@@ -226,9 +226,9 @@
 </script>
 
 <style lang="scss">
-	$header-height: 94rpx;
+	$header-height: 140rpx;
 	.cate-four {
-		height: calc(100vh - #{$header-height} - var(--window-top) - var(--window-bottom));
+		height: calc(100vh - #{$header-height} - var(--window-bottom));
 		background-color: #fff;
 
 		.aside {
@@ -242,7 +242,7 @@
 				padding: 26rpx 10rpx;
 
 				&.active {
-					color: $-color-primary;
+					color: $color-primary;
 					font-size: 26rpx;
 					font-weight: bold;
 				}

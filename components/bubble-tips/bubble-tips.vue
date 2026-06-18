@@ -1,7 +1,7 @@
 <template>
 	<view class="bubble-tips-container" :style="{top: top, left: left}">
 		<view class="bubble-content row" v-show="showBubble" v-for="item in currentList" :key="item.id">
-			<image class="bubble-img" :src="item.user.avatar" />
+			<image class="bubble-img" :src="item.user && item.user.avatar ? item.user.avatar : '/static/images/my_portrait_empty.png'" />
 			<view class="xs">
 				{{item.template}}
 			</view>
@@ -41,6 +41,7 @@
 				list: [],
 				currentList: [],
 				timer: null,
+				refreshing: false,
 				showBubble: false,
 			}
 		},
@@ -88,32 +89,47 @@
 			}
 		},
 		methods: {
+			clearTimer() {
+				if (this.timer) {
+					clearInterval(this.timer);
+					this.timer = null;
+				}
+			},
 			$getBubbleLists() {
+				if (this.refreshing) return;
+				this.refreshing = true;
 				getBubbleLists().then(res => {
 					if (res.code == 1) {
-						this.list = res.data.lists;
-						var requestTime = res.data.time * 1000;
+						const data = res.data || {};
+						this.list = Array.isArray(data.lists) ? data.lists : [];
+						const requestTime = (data.time || Math.floor(Date.now() / 1000)) * 1000;
 						Cache.set("bubbleList", JSON.stringify(this.list), 300);
 						Cache.set("requestTime", requestTime);
-						if (this.timer) {
-							clearInterval(this.timer);
-							this.timer = null;
-						}
+						this.clearTimer();
 						this.fadeUpBubble()
 					}
+				}).finally(() => {
+					this.refreshing = false;
 				})
 			},
 			fadeUpBubble() {
 				let requestTime = Cache.get("requestTime");
 				let currentTime = new Date();
-				this.showBubble = true;
 				this.index = Cache.get("currentIndex") || 0;
 				this.list = Cache.get("bubbleList") ? JSON.parse(Cache.get("bubbleList")) : [];
-				if (currentTime.getTime() - requestTime >= this.updateTime) {
+				if (!this.list.length) {
+					this.showBubble = false;
+					this.currentList = [];
+					this.clearTimer();
+					return;
+				}
+				if (!requestTime || currentTime.getTime() - requestTime >= this.updateTime) {
 					this.$getBubbleLists();
 					Cache.set("currentIndex", 0, 300)
 					return;
 				}
+				this.showBubble = true;
+				this.clearTimer();
 				this.timer = setInterval(() => {
 					this.currentList = this.list.slice(this.index, this.index + 1);
 					Cache.set("currentIndex", ++this.index);
@@ -147,11 +163,11 @@
 			}
 		},
 		onLoad() {},
+		beforeDestroy() {
+			this.clearTimer();
+		},
 		destroyed() {
-			if (this.timer) {
-				clearInterval(this.timer);
-				this.timer = null
-			}
+			this.clearTimer();
 		}
 	}
 </script>

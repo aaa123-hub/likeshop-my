@@ -211,7 +211,7 @@ page {
       height: 100rpx;
       border-radius: 10rpx;
       width: 670rpx;
-      border: $-solid-border;
+      border: $solid-border;
       margin-top: 30rpx;
     }
   }

@@ -1,8 +1,25 @@
 <template>
 	<view class="payment-pages">
+		<navbar :title="isFacePay ? '面对面付款' : '支付订单'"></navbar>
 		<view class="payment u-skeleton">
+			<template v-if="isFacePay">
+				<view class="payment-tips">
+					<u-icon name="bell-fill" color="#ffb221" size="52"></u-icon>
+					<text>温馨提示：文案填充文案填充文案填充文案填充文案填充文案填充</text>
+				</view>
+				<view class="face-pay-card">
+					<view class="face-pay-card__field">
+						<text class="face-pay-card__label">付款单号</text>
+						<input class="face-pay-card__input" placeholder="请输入付款单号" />
+					</view>
+					<view class="face-pay-card__scan">
+						<u-icon name="scan" color="#222222" size="52"></u-icon>
+						<text>扫一扫</text>
+					</view>
+				</view>
+			</template>
 			<!-- Header -->
-			<view class="payment-header">
+			<view v-if="!isFacePay" class="payment-header">
 				<price-format class="u-skeleton-fillet" :subscript-size="40" :first-size="56" :second-size="40"
 					:price="amount" :weight="500" />
 				<template v-if="timeout > 0">
@@ -78,6 +95,7 @@
 				timeout: 0, // 倒计时间戳
 				payway: '', // 支付方式
 				paywayList: [], // 支付方式列表
+				pageMode: '',
 
 				loadingSkeleton: true, // 骨架屏Loading
 				loadingPay: false, // 支付处理中Loading
@@ -101,9 +119,9 @@
 					return res.data
 				}).then(data => {
 					this.loadingSkeleton = false
-					this.amount = data.order_amount
-					this.paywayList = data.pay
-					this.payway = this.paywayList[0]?.pay_way
+					this.amount = data.order_amount || data.payAmount || 0
+					this.paywayList = data.pay || []
+					this.payway = this.paywayList[0]?.pay_way || 'BALANCE'
 					// 倒计时
 					const startTimestamp = new Date().getTime() / 1000
 					const endTimestamp = data.cancel_time * 1
@@ -121,6 +139,9 @@
 					from: this.from,
 					order_id: this.order_id,
 					pay_way: this.payway,
+					payMethod: this.payway,
+					bizOrderNo: this.order_id,
+					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER'
 				}).then(({
 					code,
 					data
@@ -133,6 +154,9 @@
 							this.handleAlipayPay(data);
 							break;
 						case 20001:
+							this.handleWalletPay();
+							break;
+						default:
 							this.handleWalletPay();
 							break;
 					}
@@ -192,6 +216,7 @@
 		onLoad(options) {
 			const from = options.from
 			const order_id = options.order_id
+			this.pageMode = options.mode || ''
 
 			try {
 				if (!from && !order_id) throw new Error('页面参数有误')
@@ -207,6 +232,11 @@
 		onUnload() {
 			this.handPayResult('fail')
 		},
+		computed: {
+			isFacePay() {
+				return this.pageMode === 'facepay' || this.from === 'facepay'
+			}
+		}
 	}
 </script>
 
@@ -217,13 +247,28 @@
 		padding: 0;
 	}
 
-	.payment-pages {
+		.payment-pages {
 		height: 100%;
+		background: #f7f8fa;
 
 		.payment {
 			display: flex;
 			flex-direction: column;
 			height: calc(100% - env(safe-area-inset-bottom));
+
+			&-tips {
+				display: flex;
+				align-items: center;
+				padding: 18rpx 24rpx;
+				font-size: 24rpx;
+				line-height: 34rpx;
+				color: #f1790e;
+				background: #ffebd8;
+
+				text {
+					margin-left: 16rpx;
+				}
+			}
 
 			&-header {
 				display: flex;
@@ -262,7 +307,7 @@
 					justify-content: center;
 					padding: 20rpx 0;
 					font-size: 26rpx;
-					color: $-color-muted;
+					color: $color-muted;
 				}
 			}
 
@@ -276,7 +321,7 @@
 					height: 120rpx;
 
 					&:nth-child(n+2) {
-						border-top: $-dashed-border;
+						border-top: $dashed-border;
 					}
 
 					&-content {
@@ -287,12 +332,12 @@
 
 						&-name {
 							font-size: 28rpx;
-							color: $-color-black;
+							color: $color-black;
 						}
 
 						&-tips {
 							font-size: 22rpx;
-							color: $-color-muted;
+							color: $color-muted;
 						}
 					}
 				}
@@ -307,7 +352,7 @@
 				margin-top: 10rpx;
 				font-size: 22rpx;
 				background-color: #FFFFFF;
-				color: $-color-normal;
+				color: $color-normal;
 			}
 
 			&-submit {
@@ -335,6 +380,52 @@
 				}
 			}
 
+		}
+	}
+
+	.face-pay-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 26rpx 24rpx 0;
+	}
+
+	.face-pay-card__field {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		height: 88rpx;
+		padding: 0 24rpx;
+		margin-right: 22rpx;
+		background: #f5f8ff;
+		border: 1rpx solid #e7edf9;
+		border-radius: 16rpx;
+	}
+
+	.face-pay-card__label {
+		flex: none;
+		font-size: 28rpx;
+		font-weight: 600;
+		color: #222222;
+	}
+
+	.face-pay-card__input {
+		flex: 1;
+		margin-left: 24rpx;
+		font-size: 28rpx;
+	}
+
+	.face-pay-card__scan {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 92rpx;
+		font-size: 22rpx;
+		color: #222222;
+
+		text {
+			margin-top: 8rpx;
 		}
 	}
 </style>

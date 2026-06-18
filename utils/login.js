@@ -53,9 +53,10 @@ export const wxMnpLogin = trottle(_wxMnpLogin, 1000)
 //小程序静默授权
 async function _wxMnpLogin() {
 	
-	const code = await getWxCode()
 	const {code:loginCode, data: loginData} = await silentLogin({
-		code 
+		loginCode: 'demo-openid-0001',
+		channelCode: 'wechat-miniapp',
+		deviceId: 'dev-001'
 	})
 	const {
 		options,

@@ -1,149 +1,183 @@
 <template>
-<!--pages/notice/notice.wxml-->
-<view class="notice-container">
-  <view v-for="(item, index) in lists" :key="index" class="notice-item mb20">
-    <view class="row-between item-header">
-      <view class="header-title md">{{item.title}}</view>
-      <view class="header-time muted xs">{{item.create_time}}</view>
-    </view>
-    <view class="item-main">
-      <view class="content sm lighter">{{item.content}}</view>
+  <view class="notice-page">
+    <navbar
+      title="消息通知"
+      :borderBottom="false"
+      :background="{ background: '#dce9ff' }"
+    ></navbar>
+
+    <view class="notice-body">
+      <view
+        v-for="(item, index) in lists"
+        :key="index"
+        class="notice-item"
+        @tap="openDetail(item)"
+      >
+        <view class="notice-icon">
+          <u-icon name="bell-fill" color="#ffffff" size="54"></u-icon>
+        </view>
+        <view class="notice-content">
+          <view class="notice-head">
+            <text class="notice-title line1">{{ item.title }}</text>
+            <text class="notice-time">{{ item.create_time }}</text>
+          </view>
+          <view class="notice-desc line1">{{ item.content }}</view>
+        </view>
+        <view v-if="index === 0" class="notice-dot"></view>
+      </view>
+
+      <view v-if="loadingStatus === loadingType.EMPTY" class="empty-box">
+        <u-empty
+          mode="message"
+          text="暂无消息通知"
+          :iconSize="160"
+          color="#999999"
+        ></u-empty>
+      </view>
+
+      <loading-footer
+        v-if="lists.length"
+        :status="loadingStatus"
+      ></loading-footer>
     </view>
   </view>
-  <loading-footer :status="loadingStatus" slotEmpty>
-    <view class="data-null column-center" slot="empty">
-			<image class="img-null" src="/static/images/news_null.png" />
-			<text class="nr muted">暂无消息通知～</text>
-		</view>
-  </loading-footer>
-</view>
 </template>
 
 <script>
-// +----------------------------------------------------------------------
-// | likeshop开源商城系统
-// +----------------------------------------------------------------------
-// | 欢迎阅读学习系统程序代码，建议反馈是我们前进的动力
-// | gitee下载：https://gitee.com/likeshop_gitee
-// | github下载：https://github.com/likeshop-github
-// | 访问官网：https://www.likeshop.cn
-// | 访问社区：https://home.likeshop.cn
-// | 访问手册：http://doc.likeshop.cn
-// | 微信公众号：likeshop技术社区
-// | likeshop系列产品在gitee、github等公开渠道开源版本可免费商用，未经许可不能去除前后端官方版权标识
-// |  likeshop系列产品收费版本务必购买商业授权，购买去版权授权后，方可去除前后端官方版权标识
-// | 禁止对系统程序代码以任何目的，任何形式的再发布
-// | likeshop团队版权所有并拥有最终解释权
-// +----------------------------------------------------------------------
-// | author: likeshop.cn.team
-// +----------------------------------------------------------------------
-import { getNoticeLists } from '@/api/store';
-import { loadingType } from '@/utils/type';
+import { getNoticeLists } from "@/api/store";
+import { loadingType } from "@/utils/type";
+import navbar from "@/components/navbar/navbar.vue";
 
 export default {
+  components: {
+    navbar,
+  },
   data() {
     return {
       page: 1,
       loadingStatus: loadingType.LOADING,
-      lists: []
+      loadingType,
+      lists: [],
+      type: "system",
     };
   },
-
-  components: {
-  },
-  props: {},
-
-  /**
-   * 生命周期函数--监听页面加载
-   */
-  onLoad: function (options) {
-    this.type = options.type;
-
-    switch (this.type) {
-      case "system":
-        uni.setNavigationBarTitle({
-          title: '系统通知'
-        });
-        break;
-
-      case "earning":
-        uni.setNavigationBarTitle({
-          title: '收益通知'
-        });
-        break;
-    }
-
+  onLoad(options) {
+    this.type = options.type || "system";
     this.getNoticeListsFun();
   },
-
-  
-  onReachBottom: function () {
+  onReachBottom() {
     this.getNoticeListsFun();
   },
-
   methods: {
+    openDetail(item) {
+      const title = encodeURIComponent(item.title || "");
+      const content = encodeURIComponent(item.content || "");
+      const time = encodeURIComponent(item.create_time || "");
+      uni.navigateTo({
+        url: `/bundle/pages/notice_detail/notice_detail?title=${title}&content=${content}&time=${time}`,
+      });
+    },
     getNoticeListsFun() {
-      let {
-        page,
-        loadingStatus,
-        lists
-      } = this;
-      if (loadingStatus == loadingType.FINISHED) return;
+      if (this.loadingStatus == loadingType.FINISHED) return;
       getNoticeLists({
         type: this.type,
-        page_no: page
-      }).then(res => {
+        page_no: this.page,
+      }).then((res) => {
         if (res.code == 1) {
-          let {
-            list,
-            more
-          } = res.data;
-          lists.push(...list);
-          this.lists = lists;
-          this.page ++;
-
+          const { list, more } = res.data;
+          this.lists.push(...list);
+          this.page++;
           if (!more) {
-            this.loadingStatus = loadingType.FINISHED
+            this.loadingStatus = loadingType.FINISHED;
           }
-
-          if (lists.length <= 0) {
-            this.loadingStatus = loadingType.EMPTY
-            return;
+          if (!this.lists.length) {
+            this.loadingStatus = loadingType.EMPTY;
           }
         } else {
-          this.loadingStatus = loadingType.ERROR
+          this.loadingStatus = loadingType.ERROR;
         }
       });
-    }
-
-  }
+    },
+  },
 };
 </script>
+
 <style lang="scss">
-/* pages/notice/notice.wxss */
-.notice-container {
-  padding: 0 20rpx;
-  margin-top: 8rpx;
-  .notice-item {
-    background-color: white;
-    padding: 0rpx 20rpx 30rpx;
-    border-radius: 10rpx;
-    .item-header {
-      padding: 19rpx 0;
-      border-bottom: $-solid-border;
-      .header-title {
-        font-weight: bold;
-      }
-    }
-    .item-main {
-        .content {
-          margin-top: 15rpx;
-        }
-    }
-  }
-  .data-null {
-    padding-top: 100rpx;
-  }
+.notice-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #dce9ff 0, #ffffff 220rpx);
 }
 
+.notice-body {
+  min-height: calc(100vh - 176rpx);
+  padding: 12rpx 24rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.notice-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #ececec;
+}
+
+.notice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 52rpx;
+  background: #4c8dff;
+  flex: none;
+}
+
+.notice-content {
+  flex: 1;
+  min-width: 0;
+  margin-left: 20rpx;
+}
+
+.notice-head {
+  display: flex;
+  align-items: center;
+}
+
+.notice-title {
+  flex: 1;
+  color: #222222;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 40rpx;
+}
+
+.notice-time {
+  margin-left: 20rpx;
+  color: #999999;
+  font-size: 22rpx;
+  line-height: 30rpx;
+}
+
+.notice-desc {
+  margin-top: 10rpx;
+  color: #b0b0b0;
+  font-size: 22rpx;
+  line-height: 30rpx;
+}
+
+.notice-dot {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 18rpx;
+  height: 18rpx;
+  margin-top: 18rpx;
+  border-radius: 50%;
+  background: #ff3131;
+}
+
+.empty-box {
+  padding-top: 220rpx;
+}
 </style>

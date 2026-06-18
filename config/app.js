@@ -14,9 +14,9 @@ const IS_H5 = false
 /** S API BaseURL **/
 const baseURLMap = {
     // 开发环境
-    development: 'https://likeshop-open.yixiangonline.com',
+    development: 'https://cy8bhf.mynatapp.cc',
     // 生产环境https://php-b2c.likeshop.cn
-    production: IS_H5 ? location.origin : ''
+    production: IS_H5 ? location.origin : 'https://cy8bhf.mynatapp.cc'
 }
 
 const baseURL = SWITCH_DEVELOPMENT ? baseURLMap['development'] : baseURLMap[process.env.NODE_ENV]

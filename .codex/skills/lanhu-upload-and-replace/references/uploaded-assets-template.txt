@@ -1,0 +1,337 @@
+# Lanhu asset upload backup
+# Generated at: 2026-05-16T15:41:40.246Z
+# Server: https://cy8bhf.mynatapp.cc/api/miniapp/files/upload
+# Public URL base: https://cy8bhf.mynatapp.cc
+# Request field: file
+# Request type: multipart/form-data without charset
+# Total: 47
+
+[success] 首页2 - 我的余额卡片图标
+key: assets_home_home2_balance_bill_2x
+local: /static/lanhu/assets/home/home2_balance_bill@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/9566a7c565dd427b822bc943e931f327/home2_balance_bill_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"69eb660d-1e62-4f85-b1a2-b9a6e3ad91ba","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/9566a7c565dd427b822bc943e931f327/home2_balance_bill_2x.png","fileName":"home2_balance_bill_2x.png","contentType":"image/png","size":26478,"objectName":"miniapp/9566a7c565dd427b822bc943e931f327/home2_balance_bill_2x.png"},"timestamp":"2026-05-16T15:41:29.854155400Z"}
+
+[success] 首页2 - 页面背景图
+key: assets_home_home2_bg_2x
+local: /static/lanhu/assets/home/home2_bg@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c6e3f8ccd2fa479d9002153f9923d380/home2_bg_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"c90fb3cd-db45-45c8-b5d7-c423e85a7833","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c6e3f8ccd2fa479d9002153f9923d380/home2_bg_2x.png","fileName":"home2_bg_2x.png","contentType":"image/png","size":229512,"objectName":"miniapp/c6e3f8ccd2fa479d9002153f9923d380/home2_bg_2x.png"},"timestamp":"2026-05-16T15:41:30.106810800Z"}
+
+[success] 首页2 - 购物身份插画
+key: assets_home_home2_buyer_illustration_2x
+local: /static/lanhu/assets/home/home2_buyer_illustration@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/9d4e1073bfdd48fdae8b730d95f2898a/home2_buyer_illustration_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"b8b48e05-2a90-4505-8ece-cb34d6de5841","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/9d4e1073bfdd48fdae8b730d95f2898a/home2_buyer_illustration_2x.png","fileName":"home2_buyer_illustration_2x.png","contentType":"image/png","size":35451,"objectName":"miniapp/9d4e1073bfdd48fdae8b730d95f2898a/home2_buyer_illustration_2x.png"},"timestamp":"2026-05-16T15:41:30.195126500Z"}
+
+[success] 首页2 - 生态应用图标
+key: assets_home_home2_ecology_icon_2x
+local: /static/lanhu/assets/home/home2_ecology_icon@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/e67a23615f1b4008b80fea223293cc90/home2_ecology_icon_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"5038fb80-258a-46c8-aaad-1b1d2802890b","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/e67a23615f1b4008b80fea223293cc90/home2_ecology_icon_2x.png","fileName":"home2_ecology_icon_2x.png","contentType":"image/png","size":10103,"objectName":"miniapp/e67a23615f1b4008b80fea223293cc90/home2_ecology_icon_2x.png"},"timestamp":"2026-05-16T15:41:30.281827900Z"}
+
+[success] 首页2 - 顶部人物/主视觉图
+key: assets_home_home2_hero_figure_2x
+local: /static/lanhu/assets/home/home2_hero_figure@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c254677529a94ec7b76783a0b6b4ccd4/home2_hero_figure_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"a14acf94-56e0-4e6f-b25c-7f7c01439ea7","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c254677529a94ec7b76783a0b6b4ccd4/home2_hero_figure_2x.png","fileName":"home2_hero_figure_2x.png","contentType":"image/png","size":439923,"objectName":"miniapp/c254677529a94ec7b76783a0b6b4ccd4/home2_hero_figure_2x.png"},"timestamp":"2026-05-16T15:41:30.467867500Z"}
+
+[success] 首页2 - 查看更多图标
+key: assets_home_home2_icon_more_2x
+local: /static/lanhu/assets/home/home2_icon_more@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/2aeae5788ad74bea922b891d6553f28e/home2_icon_more_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"f617ce19-d156-48b1-9cd8-123b70328efb","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/2aeae5788ad74bea922b891d6553f28e/home2_icon_more_2x.png","fileName":"home2_icon_more_2x.png","contentType":"image/png","size":4012,"objectName":"miniapp/2aeae5788ad74bea922b891d6553f28e/home2_icon_more_2x.png"},"timestamp":"2026-05-16T15:41:30.551963400Z"}
+
+[success] 首页2 - 消息通知图标
+key: assets_home_home2_notice_icon_2x
+local: /static/lanhu/assets/home/home2_notice_icon@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/7cc4a5339aa544c1af514b9fbd953656/home2_notice_icon_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"a446264f-757b-4653-8b54-8a05ff916f3a","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/7cc4a5339aa544c1af514b9fbd953656/home2_notice_icon_2x.png","fileName":"home2_notice_icon_2x.png","contentType":"image/png","size":9881,"objectName":"miniapp/7cc4a5339aa544c1af514b9fbd953656/home2_notice_icon_2x.png"},"timestamp":"2026-05-16T15:41:30.636523200Z"}
+
+[success] 首页2 - 卖货身份插画
+key: assets_home_home2_seller_illustration_2x
+local: /static/lanhu/assets/home/home2_seller_illustration@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/6876bd3046304b20aa6d4c50491b76fa/home2_seller_illustration_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"d97c2443-2835-498f-b8c8-f79056defefc","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/6876bd3046304b20aa6d4c50491b76fa/home2_seller_illustration_2x.png","fileName":"home2_seller_illustration_2x.png","contentType":"image/png","size":26373,"objectName":"miniapp/6876bd3046304b20aa6d4c50491b76fa/home2_seller_illustration_2x.png"},"timestamp":"2026-05-16T15:41:30.728743100Z"}
+
+[success] 首页2 - 快捷入口图标 1
+key: assets_home_home2_shortcut_primary_2x
+local: /static/lanhu/assets/home/home2_shortcut_primary@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/74a21f0693fb4ff6b96d61b4db99248c/home2_shortcut_primary_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"34b68636-0dd0-4a99-ad09-fba1a927ec06","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/74a21f0693fb4ff6b96d61b4db99248c/home2_shortcut_primary_2x.png","fileName":"home2_shortcut_primary_2x.png","contentType":"image/png","size":30891,"objectName":"miniapp/74a21f0693fb4ff6b96d61b4db99248c/home2_shortcut_primary_2x.png"},"timestamp":"2026-05-16T15:41:30.818575500Z"}
+
+[success] 首页2 - 快捷入口图标 2
+key: assets_home_home2_shortcut_secondary_2x
+local: /static/lanhu/assets/home/home2_shortcut_secondary@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/ff036a98304847049b09d8053548e16c/home2_shortcut_secondary_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"0a93d16f-537e-4245-b9c7-d9753902d0a0","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/ff036a98304847049b09d8053548e16c/home2_shortcut_secondary_2x.png","fileName":"home2_shortcut_secondary_2x.png","contentType":"image/png","size":25299,"objectName":"miniapp/ff036a98304847049b09d8053548e16c/home2_shortcut_secondary_2x.png"},"timestamp":"2026-05-16T15:41:30.904762100Z"}
+
+[success] 首页2 - 快捷入口图标 3
+key: assets_home_home2_shortcut_tertiary_2x
+local: /static/lanhu/assets/home/home2_shortcut_tertiary@2x.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/912370819fc24848a944b4a7ead65031/home2_shortcut_tertiary_2x.png
+response: {"code":"0","message":"SUCCESS","traceId":"b4ffcac1-6f4b-4070-9a1f-c0d466c4835b","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/912370819fc24848a944b4a7ead65031/home2_shortcut_tertiary_2x.png","fileName":"home2_shortcut_tertiary_2x.png","contentType":"image/png","size":74593,"objectName":"miniapp/912370819fc24848a944b4a7ead65031/home2_shortcut_tertiary_2x.png"},"timestamp":"2026-05-16T15:41:31.008750800Z"}
+
+[success] 蓝湖页面截图 - 01-feedback.png
+key: designs_01_feedback
+local: /static/lanhu/designs/01-feedback.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/74ed5e50858642519ce45b612c7692fd/01-feedback.png
+response: {"code":"0","message":"SUCCESS","traceId":"d90cae2d-a75b-4a27-be35-7d9f0920c3e3","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/74ed5e50858642519ce45b612c7692fd/01-feedback.png","fileName":"01-feedback.png","contentType":"image/png","size":58986,"objectName":"miniapp/74ed5e50858642519ce45b612c7692fd/01-feedback.png"},"timestamp":"2026-05-16T15:41:31.102272700Z"}
+
+[success] 蓝湖页面截图 - 02-notice-detail.png
+key: designs_02_notice_detail
+local: /static/lanhu/designs/02-notice-detail.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/04ea7f5c61c241df92648bc27200569b/02-notice-detail.png
+response: {"code":"0","message":"SUCCESS","traceId":"eb3997cb-becb-4a53-a022-69a1ccd2097b","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/04ea7f5c61c241df92648bc27200569b/02-notice-detail.png","fileName":"02-notice-detail.png","contentType":"image/png","size":114720,"objectName":"miniapp/04ea7f5c61c241df92648bc27200569b/02-notice-detail.png"},"timestamp":"2026-05-16T15:41:31.214524Z"}
+
+[success] 蓝湖页面截图 - 03-store-detail.png
+key: designs_03_store_detail
+local: /static/lanhu/designs/03-store-detail.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c00dcedf3cbe4c1dacc4b56e0c434a4b/03-store-detail.png
+response: {"code":"0","message":"SUCCESS","traceId":"be83e349-cdd9-47f7-ae05-46d2f1f0bc7f","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c00dcedf3cbe4c1dacc4b56e0c434a4b/03-store-detail.png","fileName":"03-store-detail.png","contentType":"image/png","size":1105928,"objectName":"miniapp/c00dcedf3cbe4c1dacc4b56e0c434a4b/03-store-detail.png"},"timestamp":"2026-05-16T15:41:31.580989100Z"}
+
+[success] 蓝湖页面截图 - 04-fiat-balance-2.png
+key: designs_04_fiat_balance_2
+local: /static/lanhu/designs/04-fiat-balance-2.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/5ab7c61871574fe088a572d5d4c7b38e/04-fiat-balance-2.png
+response: {"code":"0","message":"SUCCESS","traceId":"a38e2746-c4d8-4366-b842-3d23a7883b31","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/5ab7c61871574fe088a572d5d4c7b38e/04-fiat-balance-2.png","fileName":"04-fiat-balance-2.png","contentType":"image/png","size":118204,"objectName":"miniapp/5ab7c61871574fe088a572d5d4c7b38e/04-fiat-balance-2.png"},"timestamp":"2026-05-16T15:41:31.700261600Z"}
+
+[success] 蓝湖页面截图 - 05-street.png
+key: designs_05_street
+local: /static/lanhu/designs/05-street.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/545d582dc0784553993317a2849f5331/05-street.png
+response: {"code":"0","message":"SUCCESS","traceId":"a115b57e-cde5-4c59-8d2a-5cbdc3619679","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/545d582dc0784553993317a2849f5331/05-street.png","fileName":"05-street.png","contentType":"image/png","size":792853,"objectName":"miniapp/545d582dc0784553993317a2849f5331/05-street.png"},"timestamp":"2026-05-16T15:41:32.289547500Z"}
+
+[success] 蓝湖页面截图 - 06-pending-payment.png
+key: designs_06_pending_payment
+local: /static/lanhu/designs/06-pending-payment.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/40f933564afa49d49904696167aebc77/06-pending-payment.png
+response: {"code":"0","message":"SUCCESS","traceId":"3e56a778-1687-4c01-89af-6c40562eec02","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/40f933564afa49d49904696167aebc77/06-pending-payment.png","fileName":"06-pending-payment.png","contentType":"image/png","size":148650,"objectName":"miniapp/40f933564afa49d49904696167aebc77/06-pending-payment.png"},"timestamp":"2026-05-16T15:41:32.452998100Z"}
+
+[success] 蓝湖页面截图 - 07-store-qr.png
+key: designs_07_store_qr
+local: /static/lanhu/designs/07-store-qr.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/3600107ddc084d288d935fb05a317318/07-store-qr.png
+response: {"code":"0","message":"SUCCESS","traceId":"db03d6b3-12a0-4445-9ccb-fef62715f9e6","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/3600107ddc084d288d935fb05a317318/07-store-qr.png","fileName":"07-store-qr.png","contentType":"image/png","size":301056,"objectName":"miniapp/3600107ddc084d288d935fb05a317318/07-store-qr.png"},"timestamp":"2026-05-16T15:41:32.605488900Z"}
+
+[success] 蓝湖页面截图 - 08-goods-qr.png
+key: designs_08_goods_qr
+local: /static/lanhu/designs/08-goods-qr.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/596bcd3918dd48ac9b4a090322da6432/08-goods-qr.png
+response: {"code":"0","message":"SUCCESS","traceId":"8385d714-13ad-4102-9547-141ad503b7e4","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/596bcd3918dd48ac9b4a090322da6432/08-goods-qr.png","fileName":"08-goods-qr.png","contentType":"image/png","size":552416,"objectName":"miniapp/596bcd3918dd48ac9b4a090322da6432/08-goods-qr.png"},"timestamp":"2026-05-16T15:41:32.876004100Z"}
+
+[success] 蓝湖页面截图 - 09-store-group.png
+key: designs_09_store_group
+local: /static/lanhu/designs/09-store-group.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/b9d0f4bf877541f7a5d6cd2baa3364a5/09-store-group.png
+response: {"code":"0","message":"SUCCESS","traceId":"3d8e5a67-dfad-413b-b017-30012511d00b","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/b9d0f4bf877541f7a5d6cd2baa3364a5/09-store-group.png","fileName":"09-store-group.png","contentType":"image/png","size":557385,"objectName":"miniapp/b9d0f4bf877541f7a5d6cd2baa3364a5/09-store-group.png"},"timestamp":"2026-05-16T15:41:33.161611800Z"}
+
+[success] 蓝湖页面截图 - 10-store-album.png
+key: designs_10_store_album
+local: /static/lanhu/designs/10-store-album.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/4e7d4be41f7c4e65990419a1b3bf5f7f/10-store-album.png
+response: {"code":"0","message":"SUCCESS","traceId":"73c733f0-75b8-4c43-b115-1b156037a908","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/4e7d4be41f7c4e65990419a1b3bf5f7f/10-store-album.png","fileName":"10-store-album.png","contentType":"image/png","size":331377,"objectName":"miniapp/4e7d4be41f7c4e65990419a1b3bf5f7f/10-store-album.png"},"timestamp":"2026-05-16T15:41:33.473912100Z"}
+
+[success] 蓝湖页面截图 - 11-fiat-balance.png
+key: designs_11_fiat_balance
+local: /static/lanhu/designs/11-fiat-balance.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/db9dc82646aa43c1bccc0ba3fa0f0cc2/11-fiat-balance.png
+response: {"code":"0","message":"SUCCESS","traceId":"932d9928-4ec6-40c8-b56e-b972338cbae5","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/db9dc82646aa43c1bccc0ba3fa0f0cc2/11-fiat-balance.png","fileName":"11-fiat-balance.png","contentType":"image/png","size":93812,"objectName":"miniapp/db9dc82646aa43c1bccc0ba3fa0f0cc2/11-fiat-balance.png"},"timestamp":"2026-05-16T15:41:33.823776400Z"}
+
+[success] 蓝湖页面截图 - 12-fiat-balance-3.png
+key: designs_12_fiat_balance_3
+local: /static/lanhu/designs/12-fiat-balance-3.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c4246f65a09f42dbb44065676d082658/12-fiat-balance-3.png
+response: {"code":"0","message":"SUCCESS","traceId":"b8b8e9d8-bbf6-4639-838e-b00f55ca7862","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c4246f65a09f42dbb44065676d082658/12-fiat-balance-3.png","fileName":"12-fiat-balance-3.png","contentType":"image/png","size":100977,"objectName":"miniapp/c4246f65a09f42dbb44065676d082658/12-fiat-balance-3.png"},"timestamp":"2026-05-16T15:41:33.979450500Z"}
+
+[success] 蓝湖页面截图 - 13-payment-filter.png
+key: designs_13_payment_filter
+local: /static/lanhu/designs/13-payment-filter.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/970e718a53c04f088c62eb51f504dd35/13-payment-filter.png
+response: {"code":"0","message":"SUCCESS","traceId":"af298d5d-d19a-454d-9407-a389f9678b01","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/970e718a53c04f088c62eb51f504dd35/13-payment-filter.png","fileName":"13-payment-filter.png","contentType":"image/png","size":172562,"objectName":"miniapp/970e718a53c04f088c62eb51f504dd35/13-payment-filter.png"},"timestamp":"2026-05-16T15:41:34.235426300Z"}
+
+[success] 蓝湖页面截图 - 14-payment-record.png
+key: designs_14_payment_record
+local: /static/lanhu/designs/14-payment-record.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/cc7e0829d2fd4d569752a7b4d0b5b362/14-payment-record.png
+response: {"code":"0","message":"SUCCESS","traceId":"cdc4d8e0-277b-4e42-9719-df7cce11a3de","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/cc7e0829d2fd4d569752a7b4d0b5b362/14-payment-record.png","fileName":"14-payment-record.png","contentType":"image/png","size":67554,"objectName":"miniapp/cc7e0829d2fd4d569752a7b4d0b5b362/14-payment-record.png"},"timestamp":"2026-05-16T15:41:34.439336700Z"}
+
+[success] 蓝湖页面截图 - 15-cart.png
+key: designs_15_cart
+local: /static/lanhu/designs/15-cart.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/b3b296dec5874195982b51c72ac736cd/15-cart.png
+response: {"code":"0","message":"SUCCESS","traceId":"f6ddc35c-6966-4505-8bcf-80a2a7218d17","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/b3b296dec5874195982b51c72ac736cd/15-cart.png","fileName":"15-cart.png","contentType":"image/png","size":149829,"objectName":"miniapp/b3b296dec5874195982b51c72ac736cd/15-cart.png"},"timestamp":"2026-05-16T15:41:34.563759700Z"}
+
+[success] 蓝湖页面截图 - 16-about-us.png
+key: designs_16_about_us
+local: /static/lanhu/designs/16-about-us.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/b18158343212419f89c8d50002e15a55/16-about-us.png
+response: {"code":"0","message":"SUCCESS","traceId":"075de34e-5314-4219-81bb-4ef5357ea696","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/b18158343212419f89c8d50002e15a55/16-about-us.png","fileName":"16-about-us.png","contentType":"image/png","size":243305,"objectName":"miniapp/b18158343212419f89c8d50002e15a55/16-about-us.png"},"timestamp":"2026-05-16T15:41:34.756702300Z"}
+
+[success] 蓝湖页面截图 - 17-activity-exchange.png
+key: designs_17_activity_exchange
+local: /static/lanhu/designs/17-activity-exchange.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/fb8e79ca9083478fa7b4e8254be38d8f/17-activity-exchange.png
+response: {"code":"0","message":"SUCCESS","traceId":"4bb873ec-e2ac-47b2-8c9c-cbeac3174cfa","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/fb8e79ca9083478fa7b4e8254be38d8f/17-activity-exchange.png","fileName":"17-activity-exchange.png","contentType":"image/png","size":325327,"objectName":"miniapp/fb8e79ca9083478fa7b4e8254be38d8f/17-activity-exchange.png"},"timestamp":"2026-05-16T15:41:35.277332700Z"}
+
+[success] 蓝湖页面截图 - 18-activity-center.png
+key: designs_18_activity_center
+local: /static/lanhu/designs/18-activity-center.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/356011837d934c9f98f67fcb18060417/18-activity-center.png
+response: {"code":"0","message":"SUCCESS","traceId":"cb224f0f-8130-4f60-a005-a4b2fa4393c0","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/356011837d934c9f98f67fcb18060417/18-activity-center.png","fileName":"18-activity-center.png","contentType":"image/png","size":554605,"objectName":"miniapp/356011837d934c9f98f67fcb18060417/18-activity-center.png"},"timestamp":"2026-05-16T15:41:35.751779400Z"}
+
+[success] 蓝湖页面截图 - 19-card.png
+key: designs_19_card
+local: /static/lanhu/designs/19-card.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/e2ca286ea53c474db27f8f6a82377c3b/19-card.png
+response: {"code":"0","message":"SUCCESS","traceId":"022edfb7-0590-4121-b247-6290fa22745a","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/e2ca286ea53c474db27f8f6a82377c3b/19-card.png","fileName":"19-card.png","contentType":"image/png","size":156460,"objectName":"miniapp/e2ca286ea53c474db27f8f6a82377c3b/19-card.png"},"timestamp":"2026-05-16T15:41:35.909545300Z"}
+
+[success] 蓝湖页面截图 - 20-face-pay.png
+key: designs_20_face_pay
+local: /static/lanhu/designs/20-face-pay.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/aa5e654d6fed45daa04c2bc91c47eeaa/20-face-pay.png
+response: {"code":"0","message":"SUCCESS","traceId":"d2c6c6c8-f148-4295-81eb-f7fd8e758d58","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/aa5e654d6fed45daa04c2bc91c47eeaa/20-face-pay.png","fileName":"20-face-pay.png","contentType":"image/png","size":35713,"objectName":"miniapp/aa5e654d6fed45daa04c2bc91c47eeaa/20-face-pay.png"},"timestamp":"2026-05-16T15:41:36.113088800Z"}
+
+[success] 蓝湖页面截图 - 21-recent-visits.png
+key: designs_21_recent_visits
+local: /static/lanhu/designs/21-recent-visits.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c176c854e4734b838fe855658e743d48/21-recent-visits.png
+response: {"code":"0","message":"SUCCESS","traceId":"110928c8-17ad-4040-a6e8-28368fbb3507","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c176c854e4734b838fe855658e743d48/21-recent-visits.png","fileName":"21-recent-visits.png","contentType":"image/png","size":177590,"objectName":"miniapp/c176c854e4734b838fe855658e743d48/21-recent-visits.png"},"timestamp":"2026-05-16T15:41:36.916089200Z"}
+
+[success] 蓝湖页面截图 - 22-merchant-license.png
+key: designs_22_merchant_license
+local: /static/lanhu/designs/22-merchant-license.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/7d58e17458874d54b2452a10998cd590/22-merchant-license.png
+response: {"code":"0","message":"SUCCESS","traceId":"a20b775a-b2a5-4db1-8cae-da8c9ee9e90e","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/7d58e17458874d54b2452a10998cd590/22-merchant-license.png","fileName":"22-merchant-license.png","contentType":"image/png","size":180603,"objectName":"miniapp/7d58e17458874d54b2452a10998cd590/22-merchant-license.png"},"timestamp":"2026-05-16T15:41:37.141378500Z"}
+
+[success] 蓝湖页面截图 - 23-street-goods.png
+key: designs_23_street_goods
+local: /static/lanhu/designs/23-street-goods.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/4b49613839bc46eb83a201c53ee70c46/23-street-goods.png
+response: {"code":"0","message":"SUCCESS","traceId":"82ac1e3d-d856-43ea-88f0-d7633c2f3e4f","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/4b49613839bc46eb83a201c53ee70c46/23-street-goods.png","fileName":"23-street-goods.png","contentType":"image/png","size":288834,"objectName":"miniapp/4b49613839bc46eb83a201c53ee70c46/23-street-goods.png"},"timestamp":"2026-05-16T15:41:38.216386200Z"}
+
+[success] 蓝湖页面截图 - 24-goods-detail.png
+key: designs_24_goods_detail
+local: /static/lanhu/designs/24-goods-detail.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/28fd1b2e6bed4d9583ff01e364742450/24-goods-detail.png
+response: {"code":"0","message":"SUCCESS","traceId":"780c336c-48b5-4b67-9ed5-9d9cc6e55042","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/28fd1b2e6bed4d9583ff01e364742450/24-goods-detail.png","fileName":"24-goods-detail.png","contentType":"image/png","size":504850,"objectName":"miniapp/28fd1b2e6bed4d9583ff01e364742450/24-goods-detail.png"},"timestamp":"2026-05-16T15:41:38.962861300Z"}
+
+[success] 蓝湖页面截图 - 25-eco-app.png
+key: designs_25_eco_app
+local: /static/lanhu/designs/25-eco-app.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/794e959912c8494c96245c169e5eba87/25-eco-app.png
+response: {"code":"0","message":"SUCCESS","traceId":"e889493d-8c46-422f-89fb-821808dc2131","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/794e959912c8494c96245c169e5eba87/25-eco-app.png","fileName":"25-eco-app.png","contentType":"image/png","size":67876,"objectName":"miniapp/794e959912c8494c96245c169e5eba87/25-eco-app.png"},"timestamp":"2026-05-16T15:41:39.639263800Z"}
+
+[success] 蓝湖页面截图 - 26-auto-points.png
+key: designs_26_auto_points
+local: /static/lanhu/designs/26-auto-points.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/1207cc3c4f654403846f95f23e0b1e42/26-auto-points.png
+response: {"code":"0","message":"SUCCESS","traceId":"c6341454-5ad1-42d7-9180-f53cdfe10189","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/1207cc3c4f654403846f95f23e0b1e42/26-auto-points.png","fileName":"26-auto-points.png","contentType":"image/png","size":40159,"objectName":"miniapp/1207cc3c4f654403846f95f23e0b1e42/26-auto-points.png"},"timestamp":"2026-05-16T15:41:40.039174300Z"}
+
+[success] 蓝湖页面截图 - 27-search-list.png
+key: designs_27_search_list
+local: /static/lanhu/designs/27-search-list.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/f721faf9084a4123a17d78110bd6116a/27-search-list.png
+response: {"code":"0","message":"SUCCESS","traceId":"92a1dcd8-3077-4d00-aef0-174bfc5a9b46","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/f721faf9084a4123a17d78110bd6116a/27-search-list.png","fileName":"27-search-list.png","contentType":"image/png","size":413242,"objectName":"miniapp/f721faf9084a4123a17d78110bd6116a/27-search-list.png"},"timestamp":"2026-05-16T15:41:40.359478600Z"}
+
+[success] 蓝湖页面截图 - 28-address-empty.png
+key: designs_28_address_empty
+local: /static/lanhu/designs/28-address-empty.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/a8bd2247766c45f2aa14f81d8215b5e6/28-address-empty.png
+response: {"code":"0","message":"SUCCESS","traceId":"9dfc4f42-3243-4383-aec7-7c4416342d6c","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/a8bd2247766c45f2aa14f81d8215b5e6/28-address-empty.png","fileName":"28-address-empty.png","contentType":"image/png","size":46258,"objectName":"miniapp/a8bd2247766c45f2aa14f81d8215b5e6/28-address-empty.png"},"timestamp":"2026-05-16T15:41:40.463557Z"}
+
+[success] 蓝湖页面截图 - 29-address-edit.png
+key: designs_29_address_edit
+local: /static/lanhu/designs/29-address-edit.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/121d5b22771c4335a413d3604bbfb7e4/29-address-edit.png
+response: {"code":"0","message":"SUCCESS","traceId":"8f53698c-2747-4725-849d-cfdad51d1627","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/121d5b22771c4335a413d3604bbfb7e4/29-address-edit.png","fileName":"29-address-edit.png","contentType":"image/png","size":48407,"objectName":"miniapp/121d5b22771c4335a413d3604bbfb7e4/29-address-edit.png"},"timestamp":"2026-05-16T15:41:40.633277Z"}
+
+[success] 蓝湖页面截图 - 30-my-service.png
+key: designs_30_my_service
+local: /static/lanhu/designs/30-my-service.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/4348a03a825e43cd94ad418ac0a204d6/30-my-service.png
+response: {"code":"0","message":"SUCCESS","traceId":"fa6125e5-676c-4cda-8a9d-ebc4145391a4","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/4348a03a825e43cd94ad418ac0a204d6/30-my-service.png","fileName":"30-my-service.png","contentType":"image/png","size":197037,"objectName":"miniapp/4348a03a825e43cd94ad418ac0a204d6/30-my-service.png"},"timestamp":"2026-05-16T15:41:41.342055400Z"}
+
+[success] 蓝湖页面截图 - 31-my.png
+key: designs_31_my
+local: /static/lanhu/designs/31-my.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/0669c5960b8b41dc83f2acf0b276c618/31-my.png
+response: {"code":"0","message":"SUCCESS","traceId":"9827f1bf-bd4e-494a-bd99-d9490aedf9d2","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/0669c5960b8b41dc83f2acf0b276c618/31-my.png","fileName":"31-my.png","contentType":"image/png","size":271292,"objectName":"miniapp/0669c5960b8b41dc83f2acf0b276c618/31-my.png"},"timestamp":"2026-05-16T15:41:41.657485200Z"}
+
+[success] 蓝湖页面截图 - 32-my-order.png
+key: designs_32_my_order
+local: /static/lanhu/designs/32-my-order.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/9aa426a22f28494b971b6d686c198885/32-my-order.png
+response: {"code":"0","message":"SUCCESS","traceId":"eb5e4f5a-fcd0-4ee1-9f70-d435b09d9802","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/9aa426a22f28494b971b6d686c198885/32-my-order.png","fileName":"32-my-order.png","contentType":"image/png","size":49465,"objectName":"miniapp/9aa426a22f28494b971b6d686c198885/32-my-order.png"},"timestamp":"2026-05-16T15:41:41.835592400Z"}
+
+[success] 蓝湖页面截图 - 33-notice.png
+key: designs_33_notice
+local: /static/lanhu/designs/33-notice.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/7523299a99d9487690426011b93879fe/33-notice.png
+response: {"code":"0","message":"SUCCESS","traceId":"6c468a6e-0aeb-4c8c-bdfb-fc970d3160b7","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/7523299a99d9487690426011b93879fe/33-notice.png","fileName":"33-notice.png","contentType":"image/png","size":76801,"objectName":"miniapp/7523299a99d9487690426011b93879fe/33-notice.png"},"timestamp":"2026-05-16T15:41:42.078803200Z"}
+
+[success] 蓝湖页面截图 - 34-kyc.png
+key: designs_34_kyc
+local: /static/lanhu/designs/34-kyc.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c4afdd149d2d4c7e8a52a32f363733fc/34-kyc.png
+response: {"code":"0","message":"SUCCESS","traceId":"b254a15f-de60-4a52-b8db-723b71dc4ba9","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/c4afdd149d2d4c7e8a52a32f363733fc/34-kyc.png","fileName":"34-kyc.png","contentType":"image/png","size":148328,"objectName":"miniapp/c4afdd149d2d4c7e8a52a32f363733fc/34-kyc.png"},"timestamp":"2026-05-16T15:41:42.505707Z"}
+
+[success] 蓝湖页面截图 - 35-category.png
+key: designs_35_category
+local: /static/lanhu/designs/35-category.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/5099ec2c4f7b41429059dfd0a5d6bcad/35-category.png
+response: {"code":"0","message":"SUCCESS","traceId":"d24e9aee-2c72-467c-90a1-f7dde0ac3602","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/5099ec2c4f7b41429059dfd0a5d6bcad/35-category.png","fileName":"35-category.png","contentType":"image/png","size":331761,"objectName":"miniapp/5099ec2c4f7b41429059dfd0a5d6bcad/35-category.png"},"timestamp":"2026-05-16T15:41:42.961145600Z"}
+
+[success] 蓝湖页面截图 - 36-home-2.png
+key: designs_36_home_2
+local: /static/lanhu/designs/36-home-2.png
+request: POST /api/miniapp/files/upload
+url: https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/ad8f686ba63d457d94af4e02236a36df/36-home-2.png
+response: {"code":"0","message":"SUCCESS","traceId":"0a32991f-09f7-4598-82f0-98f40c7f3636","data":{"bucket":"ai-shop","fileUrl":"https://cy8bhf.mynatapp.cc/api/miniapp/files/miniapp/ad8f686ba63d457d94af4e02236a36df/36-home-2.png","fileName":"36-home-2.png","contentType":"image/png","size":306895,"objectName":"miniapp/ad8f686ba63d457d94af4e02236a36df/36-home-2.png"},"timestamp":"2026-05-16T15:41:43.293411700Z"}
+

@@ -1,98 +1,95 @@
 import request from '@/utils/request'
-import {client} from '@/utils/tools'
-//获取商品的优惠券
+import { orderBuy } from '@/api/order'
+
+function emptyPage() {
+    return {
+        list: [],
+        pageNo: 1,
+        pageSize: 10,
+        total: 0,
+        hasNext: false
+    }
+}
+
 export function getGoodsCoupon(data) {
-  return request.get("coupon/getGoodsCoupon",  {params: data});
-} 
+    return request.get(`miniapp/coupons/${data.id || data.couponId || 0}/receive`, {
+        params: data
+    })
+}
 
-//领券中心
 export function getCouponList(data) {
-	return request.get("coupon/couponList", {params: data});
+    return Promise.resolve({ code: 1, data: [] })
 }
 
-// 获取活动专区商品列表
 export function getActivityGoodsLists(data) {
-    return request.get("activity_area/activityGoodsList", {params: data})
+    return request.get('miniapp/activity/list', { params: data }).then((res) => {
+        if (res.code == 1) {
+            return { ...res, data: res.data || emptyPage() }
+        }
+        return res
+    })
 }
 
-
-// 获取秒杀时间段
 export function getSeckillTime() {
-	return request.get("seckill/seckillTime");
+    return request.get('miniapp/activity/list')
 }
 
-// 获取秒杀商品
 export function getSeckillGoods(params) {
-	return request.get("seckill/seckillGoods", {params})
+    return request.get('miniapp/activity/list', { params })
 }
-
-
 
 export function getGroupList(params) {
-  return request.get('team/teamGoodsList', {params});
-} 
+    return request.get('miniapp/activity/list', { params })
+}
 
-//我的拼团
 export function getUserGroup(params) {
-  return request.get('user/myTeam', {params});
-} 
+    return Promise.resolve({ code: 1, data: emptyPage() })
+}
 
-//拼团详情
 export function getTeamInfo(params) {
-  return request.get('team/teamInfo', {params});
-} 
+    return request.get('miniapp/product/' + (params.id || params.team_id || 0), { params })
+}
 
-//参与拼团验证
 export function teamCheck(data) {
-  return request.post('team/check', data);
+    return Promise.resolve({ code: 1, data })
 }
 
- //拼团下单
 export function teamBuy(data) {
-  return request.post("team/buy",data);
+    return orderBuy(data)
 }
 
-// 获取砍价列表
 export function getBargainList(data) {
-    return request.get('bargain/lists', {params: data})
+    return Promise.resolve({ code: 1, data: emptyPage() })
 }
 
-// 获取砍价详情
 export function getBargainDetail(data) {
-    return request.get('bargain/detail', {params: data})
+    return Promise.resolve({ code: 1, data: {} })
 }
 
-// 获取砍价成功人数
 export function getBargainNumber() {
-    return request.get("bargain/barginNumber")
+    return Promise.resolve({ code: 1, data: 0 })
 }
 
-// 发起砍价
 export function launchBargain(data) {
-    return request.post('bargain/sponsor', data)
+    return Promise.resolve({ code: 1, data })
 }
 
-// 获取砍价活动商品列表
 export function getBargainActivityList(data) {
-    return request.get('bargain/orderList', {params: data})
+    return Promise.resolve({ code: 1, data: emptyPage() })
 }
 
-// 砍价详情
 export function getBargainActivityDetail(data) {
-    return request.get("bargain/bargainDetail", {params: data})
+    return Promise.resolve({ code: 1, data: {} })
 }
 
-// 砍价海报
 export function getBargainPost(data) {
-    return request.get("share/shareBargain", {params: data})
+    return Promise.resolve({ code: 1, data: {} })
 }
 
-// 好友助力
 export function helpBargain(data) {
-    return request.post('bargain/knife', data)
+    return Promise.resolve({ code: 1, data })
 }
 
-// 关闭结算订单
 export function closeBargainOrder(data) {
-    return request.get("bargain/closeBargain", {params: data})
+    return Promise.resolve({ code: 1, data })
 }

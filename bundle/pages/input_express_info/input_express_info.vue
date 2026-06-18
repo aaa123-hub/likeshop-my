@@ -126,7 +126,7 @@ export default {
     uploadFile(path) {
       return new Promise(resolve => {
         uni.uploadFile({
-          url: `${baseURL}/api/file/formimage`,
+          url: `${baseURL}/api/miniapp/files/upload`,
           filePath: path,
           name: 'file',
           fileType: 'image',
@@ -137,9 +137,21 @@ export default {
               fileList
             } = this;
             let data = JSON.parse(res.data);
+            if (data.code === '0') {
+              data = {
+                ...data,
+                code: 1,
+                msg: data.message
+              }
+            }
 
             if (data.code == 1) {
-              resolve(data.data);
+              resolve({
+                ...data.data,
+                uri: data.data?.uri || data.data?.fileUrl,
+                url: data.data?.url || data.data?.fileUrl,
+                file_url: data.data?.fileUrl || data.data?.url || data.data?.uri
+              });
             }
           },
           fail: (err) => {

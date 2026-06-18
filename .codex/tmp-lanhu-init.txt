@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+date: Tue, 26 May 2026 05:18:52 GMT
+server: uvicorn
+cache-control: no-cache, no-transform
+connection: keep-alive
+content-type: text/event-stream
+mcp-session-id: 8110cf43bb494392b3f7b52e1a2828fb
+x-accel-buffering: no
+Transfer-Encoding: chunked
+
+event: message
+data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-03-26","capabilities":{"experimental":{},"logging":{},"prompts":{"listChanged":true},"resources":{"subscribe":false,"listChanged":true},"tools":{"listChanged":true},"extensions":{"io.modelcontextprotocol/ui":{}}},"serverInfo":{"name":"Lanhu Axure Extractor","version":"3.2.4"}}}
+

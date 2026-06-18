@@ -1,71 +1,347 @@
 <template>
     <view class="license">
-        <view class="box bg-white">
-            <template v-if="images.length">
-                <view v-for="(item, index) in images" :key="index" class="m-b-25" @click="viewImage(index)">
-                    <u-image :src="item" width="100%" height="348rpx">   
-                    </u-image>
-                </view>
-            </template>
-            <template v-else>
-                <view class="data-null xs muted">
-                    <image src="../../../static/images/order_null.png" mode=""></image>
-                    <view>
-                        商家暂时还没有上传资质哦~
-                    </view>
-                </view>
-            </template>
+        <navbar title="商家资质" :background="{ background: 'transparent' }" title-color="#ffffff"></navbar>
+        <view class="license-header"></view>
+        <view class="license-status" v-if="status.audit_status">
+            <view class="license-status__label">申请状态</view>
+            <view class="license-status__value" :class="statusClass">{{ statusText }}</view>
+            <view class="license-status__remark" v-if="status.audit_remark">{{ status.audit_remark }}</view>
+            <view class="license-status__time" v-if="status.updated_at">{{ status.updated_at }}</view>
         </view>
+        <view class="license-card">
+            <view class="license-item">
+                <view class="license-item__label">店铺名称</view>
+                <input class="license-item__input" v-model="form.merchantName" placeholder="请输入您的店铺名称" />
+                <u-icon name="arrow-right" size="28" color="#222222"></u-icon>
+            </view>
+            <view class="license-item">
+                <view class="license-item__label">联系电话</view>
+                <input class="license-item__input" v-model="form.contactMobile" type="number" maxlength="11" placeholder="请输入您的电话" />
+                <u-icon name="arrow-right" size="28" color="#222222"></u-icon>
+            </view>
+            <view class="license-item">
+                <view class="license-item__label">电子邮箱</view>
+                <input class="license-item__input" v-model="form.settlementAccountNo" placeholder="请输入您的电子邮箱" />
+                <u-icon name="arrow-right" size="28" color="#222222"></u-icon>
+            </view>
+        </view>
+        <view class="license-desc">
+            <view class="license-desc__title">网店说明</view>
+            <textarea class="license-desc__textarea" v-model="form.remark" placeholder="请输入网店说明" maxlength="200"></textarea>
+            <view class="license-desc__count">{{ form.remark.length }}/200</view>
+        </view>
+        <view class="license-upload">
+            <view class="license-upload__title">资质图片</view>
+            <view class="license-upload__box" @tap="chooseImage">
+                <image v-if="form.qualificationUrl" class="license-upload__image" :src="form.qualificationUrl" mode="aspectFill"></image>
+                <view v-else class="license-upload__empty">
+                    <u-icon name="plus" size="42" color="#1f7af4"></u-icon>
+                    <view class="license-upload__tip">上传营业执照</view>
+                </view>
+            </view>
+        </view>
+        <view class="license-btn" :class="{ 'license-btn--disabled': submitting }" @tap="submitApply">{{ submitting ? '提交中...' : '去开通' }}</view>
     </view>
 </template>
 
 <script>
+    import { mapGetters } from "vuex"
 	import {
-        getCopyright
+        applyMerchantQualification,
+        getMerchantQualificationStatus
 	} from "@/api/user";
+    import { uploadFile } from "@/utils/tools";
     export default {
         data() {
             return {
-                images: []
+                form: {
+                    merchantName: '',
+                    contactMobile: '',
+                    settlementAccountNo: '',
+                    qualificationUrl: '',
+                    remark: ''
+                },
+                status: {},
+                submitting: false
             }
         },
-        
+        computed: {
+            ...mapGetters(['userInfo']),
+            userId() {
+                return this.userInfo.user_id || this.userInfo.userId || this.userInfo.id
+            },
+            statusText() {
+                const statusMap = {
+                    PENDING: '审核中',
+                    AUDITING: '审核中',
+                    APPROVED: '已通过',
+                    PASS: '已通过',
+                    REJECTED: '未通过',
+                    REJECT: '未通过'
+                }
+                return statusMap[this.status.audit_status] || this.status.audit_status
+            },
+            statusClass() {
+                const status = this.status.audit_status
+                if (status === 'APPROVED' || status === 'PASS') return 'license-status__value--success'
+                if (status === 'REJECTED' || status === 'REJECT') return 'license-status__value--danger'
+                return 'license-status__value--pending'
+            }
+        },
         methods: {
-            getCopyrightFunc() {
-                getCopyright().then(res => {
-                    this.images = res.data
+            getStatus() {
+                if (!this.userId) return
+                getMerchantQualificationStatus({ userId: this.userId }).then(res => {
+                    if (res.code == 1 && res.data) {
+                        this.status = res.data
+                        this.form.merchantName = res.data.merchant_name || this.form.merchantName
+                        this.form.contactMobile = res.data.contact_mobile || this.form.contactMobile
+                        this.form.settlementAccountNo = res.data.settlement_account_no || this.form.settlementAccountNo
+                        this.form.qualificationUrl = res.data.qualification_url || this.form.qualificationUrl
+                    }
                 })
             },
-            
-            viewImage(current) {
-                uni.previewImage({
-                    current,
-                    urls: this.images// 需要预览的图片http链接列表
-                });
+            chooseImage() {
+                uni.chooseImage({
+                    count: 1,
+                    sizeType: ['compressed'],
+                    sourceType: ['album', 'camera'],
+                    success: ({ tempFilePaths }) => {
+                        const path = tempFilePaths && tempFilePaths[0]
+                        if (!path) return
+                        uni.showLoading({
+                            title: '上传中...',
+                            mask: true
+                        })
+                        uploadFile(path).then(res => {
+                            this.form.qualificationUrl = res.file_url || res.url || res.uri || ''
+                        }).finally(() => {
+                            uni.hideLoading()
+                        })
+                    }
+                })
+            },
+            validateForm() {
+                if (!this.userId) return '请先登录'
+                if (!this.form.merchantName) return '请输入店铺名称'
+                if (!this.form.contactMobile) return '请输入联系电话'
+                if (!this.form.qualificationUrl) return '请上传资质图片'
+                return ''
+            },
+            submitApply() {
+                if (this.submitting) return
+                const message = this.validateForm()
+                if (message) {
+                    this.$toast({ title: message })
+                    return
+                }
+                this.submitting = true
+                applyMerchantQualification({
+                    userId: this.userId,
+                    merchantName: this.form.merchantName,
+                    contactMobile: this.form.contactMobile,
+                    settlementAccountNo: this.form.settlementAccountNo,
+                    qualificationUrl: this.form.qualificationUrl,
+                    remark: this.form.remark
+                }).then(res => {
+                    if (res.code == 1) {
+                        this.$toast({ title: '提交成功' })
+                        this.getStatus()
+                    }
+                }).finally(() => {
+                    this.submitting = false
+                })
             }
         },
-        
         onLoad() {
-            this.getCopyrightFunc()
+            this.$store.dispatch('getUser').then(() => {
+                this.getStatus()
+            })
+        },
+        onShow() {
+            if (!this.userId) {
+                this.$store.dispatch('getUser').then(() => {
+                    this.getStatus()
+                })
+                return
+            }
+            this.getStatus()
         }
     }
 </script>
 
 <style lang="scss">
     .license {
-        padding: 30rpx;
-        .box {
-            padding: 30rpx;
-            border-radius: 16rpx;
-            .data-null {
-                padding-top: 200rpx;
-                height: 700rpx;
-                text-align: center;
-                image {
-                    width: 200rpx;
-                    height: 200rpx;
-                }
-            }
+        min-height: 100vh;
+        padding: 0 24rpx 60rpx;
+        background: linear-gradient(180deg, #0f63ff 0%, #d9e8ff 46%, #f7f8fa 46%, #f7f8fa 100%);
+    }
+
+    .license-header {
+        height: 260rpx;
+    }
+
+    .license-card,
+    .license-desc {
+        background: #ffffff;
+        border-radius: 24rpx;
+        overflow: hidden;
+    }
+
+    .license-card {
+        margin-top: -16rpx;
+    }
+
+    .license-status {
+        margin: -70rpx 0 24rpx;
+        padding: 28rpx;
+        background: #ffffff;
+        border-radius: 24rpx;
+    }
+
+    .license-status__label {
+        font-size: 28rpx;
+        color: #666666;
+    }
+
+    .license-status__value {
+        margin-top: 12rpx;
+        font-size: 36rpx;
+        font-weight: 600;
+    }
+
+    .license-status__value--pending {
+        color: #1f7af4;
+    }
+
+    .license-status__value--success {
+        color: #18a058;
+    }
+
+    .license-status__value--danger {
+        color: #e5484d;
+    }
+
+    .license-status__remark,
+    .license-status__time {
+        margin-top: 12rpx;
+        font-size: 26rpx;
+        line-height: 38rpx;
+        color: #8a8f99;
+    }
+
+    .license-item {
+        display: flex;
+        align-items: center;
+        min-height: 108rpx;
+        padding: 0 28rpx;
+
+        & + .license-item {
+            border-top: 1rpx solid #edf0f4;
         }
+    }
+
+    .license-item__label {
+        flex: none;
+        width: 156rpx;
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #222222;
+    }
+
+    .license-item__input {
+        flex: 1;
+        height: 108rpx;
+        font-size: 32rpx;
+    }
+
+    .license-desc {
+        position: relative;
+        margin-top: 24rpx;
+        padding: 28rpx;
+    }
+
+    .license-desc__title {
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #222222;
+    }
+
+    .license-desc__textarea {
+        width: 100%;
+        height: 190rpx;
+        margin-top: 28rpx;
+        padding: 26rpx;
+        font-size: 32rpx;
+        line-height: 44rpx;
+        background: #f7f8fa;
+        border-radius: 18rpx;
+        box-sizing: border-box;
+    }
+
+    .license-desc__count {
+        position: absolute;
+        right: 46rpx;
+        bottom: 40rpx;
+        font-size: 24rpx;
+        color: #c4c7cd;
+    }
+
+    .license-upload {
+        margin-top: 24rpx;
+        padding: 28rpx;
+        background: #ffffff;
+        border-radius: 24rpx;
+    }
+
+    .license-upload__title {
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #222222;
+    }
+
+    .license-upload__box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 220rpx;
+        height: 160rpx;
+        margin-top: 24rpx;
+        background: #f7f8fa;
+        border-radius: 18rpx;
+        overflow: hidden;
+    }
+
+    .license-upload__image {
+        width: 100%;
+        height: 100%;
+    }
+
+    .license-upload__empty {
+        text-align: center;
+    }
+
+    .license-upload__tip {
+        margin-top: 12rpx;
+        font-size: 24rpx;
+        color: #8a8f99;
+    }
+
+    .license-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 540rpx;
+        height: 88rpx;
+        margin: 88rpx auto 0;
+        color: #ffffff;
+        font-size: 32rpx;
+        font-weight: 600;
+        background: #1f7af4;
+        border-radius: 44rpx;
+    }
+
+    .license-btn--disabled {
+        opacity: 0.65;
     }
 </style>

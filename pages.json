@@ -13,13 +13,15 @@
 		{
 			"path": "pages/address_edit/address_edit",
 			"style": {
-				"navigationBarTitleText": "收货地址"
+				"navigationBarTitleText": "收货地址",
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/user_address/user_address",
 			"style": {
-				"navigationBarTitleText": "收货地址"
+				"navigationBarTitleText": "收货地址",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -38,13 +40,22 @@
 			"path": "pages/sort/sort",
 			"style": {
 				"navigationBarTitleText": "分类",
+				"navigationStyle": "custom",
 				"disableScroll": true
 			}
 		},
 		{
 			"path": "pages/shop_cart/shop_cart",
 			"style": {
-				"navigationBarTitleText": "购物车"
+				"navigationBarTitleText": "购物车",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/street/street",
+			"style": {
+				"navigationBarTitleText": "商街",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -59,7 +70,8 @@
 		{
 			"path": "pages/goods_search/goods_search",
 			"style": {
-				"navigationBarTitleText": "商品搜索"
+				"navigationBarTitleText": "商品搜索",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -156,7 +168,8 @@
 		{
 			"path": "pages/payment/payment",
 			"style": {
-				"navigationBarTitleText": "支付订单"
+				"navigationBarTitleText": "支付订单",
+				"navigationStyle": "custom"
 			}
 
 		},
@@ -298,7 +311,8 @@
 			{
 				"path": "pages/user_wallet/user_wallet",
 				"style": {
-					"navigationBarTitleText": "我的钱包"
+					"navigationBarTitleText": "我的钱包",
+					"navigationStyle": "custom"
 				}
 			},
 			{
@@ -334,7 +348,15 @@
 			{
 				"path": "pages/notice/notice",
 				"style": {
-					"navigationBarTitleText": "消息通知"
+					"navigationBarTitleText": "消息通知",
+					"navigationStyle": "custom"
+				}
+			},
+			{
+				"path": "pages/notice_detail/notice_detail",
+				"style": {
+					"navigationBarTitleText": "消息详情",
+					"navigationStyle": "custom"
 				}
 			},
 			{
@@ -474,40 +496,198 @@
 				"path": "pages/license/license",
 				"style": {
 					"navigationBarTitleText": "资质信息",
+					"navigationStyle": "custom",
 					"enablePullDownRefresh": true
+				}
+			}, {
+				"path": "pages/business_pages/feedback",
+				"style": {
+					"navigationBarTitleText": "意见反馈",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/face_pay",
+				"style": {
+					"navigationBarTitleText": "面对面付款",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/store_detail",
+				"style": {
+					"navigationBarTitleText": "店铺详情",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/fiat_balance_2",
+				"style": {
+					"navigationBarTitleText": "法币余额2",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/street",
+				"style": {
+					"navigationBarTitleText": "商街",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/pending_payment",
+				"style": {
+					"navigationBarTitleText": "待付款",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/store_qr",
+				"style": {
+					"navigationBarTitleText": "店铺二维码",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/goods_qr",
+				"style": {
+					"navigationBarTitleText": "商品二维码",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/store_group",
+				"style": {
+					"navigationBarTitleText": "店铺详情-团购",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/store_album",
+				"style": {
+					"navigationBarTitleText": "店铺详情-相册",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/fiat_balance_3",
+				"style": {
+					"navigationBarTitleText": "法币余额3",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/payment_filter",
+				"style": {
+					"navigationBarTitleText": "付款记录-筛选",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/payment_record",
+				"style": {
+					"navigationBarTitleText": "付款记录",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/about_us",
+				"style": {
+					"navigationBarTitleText": "关于我们",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/activity_exchange",
+				"style": {
+					"navigationBarTitleText": "活动中心-兑换",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/activity_center",
+				"style": {
+					"navigationBarTitleText": "活动中心",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/intro_card",
+				"style": {
+					"navigationBarTitleText": "介绍名片",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/recent_visits",
+				"style": {
+					"navigationBarTitleText": "最近访问",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/street_goods",
+				"style": {
+					"navigationBarTitleText": "商街-商品",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/eco_app",
+				"style": {
+					"navigationBarTitleText": "生态应用",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/auto_points",
+				"style": {
+					"navigationBarTitleText": "自动领取积分设置",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/my_service",
+				"style": {
+					"navigationBarTitleText": "我的-客服",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_pages/user_kyc",
+				"style": {
+					"navigationBarTitleText": "用户KYC",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/page_index/page_index",
+				"style": {
+					"navigationBarTitleText": "页面总览",
+					"navigationStyle": "custom"
+				}
+			}, {
+				"path": "pages/business_scene/scene_router",
+				"style": {
+					"navigationBarTitleText": "场景页",
+					"navigationStyle": "custom"
 				}
 			}
 		]
 	}],
 	"tabBar": {
 		"color": "#666",
-		"selectedColor": "#FF2C3C",
+		"selectedColor": "#1688ff",
 		"borderStyle": "black",
 		"list": [{
-			"pagePath": "pages/index/index",
-			"iconPath": "/static/images/tab_home.png",
-			"selectedIconPath": "/static/images/tab_home_s.png",
-			"text": "首页"
-		},
+				"pagePath": "pages/index/index",
+				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_home_normal_fixed@2x.png",
+				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_home_active_fixed@2x.png",
+				"text": "首页"
+			},
 			{
 				"pagePath": "pages/sort/sort",
-				"iconPath": "/static/images/tab_sort.png",
-				"selectedIconPath": "/static/images/tab_sort_s.png",
+				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_category_normal_fixed@2x.png",
+				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_category_active_fixed@2x.png",
 				"text": "分类"
 			},
 			{
+				"pagePath": "pages/street/street",
+				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_street_normal_fixed@2x.png",
+				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_street_active_fixed@2x.png",
+				"text": "商街"
+			},
+			{
 				"pagePath": "pages/shop_cart/shop_cart",
-				"iconPath": "/static/images/tab_cart.png",
-				"selectedIconPath": "/static/images/tab_cart_s.png",
+				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_cart_normal_fixed@2x.png",
+				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_cart_active_fixed@2x.png",
 				"text": "购物车"
 			},
 			{
 				"pagePath": "pages/user/user",
-				"iconPath": "/static/images/tab_user.png",
-				"selectedIconPath": "/static/images/tab_user_s.png",
+				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_user_normal_fixed@2x.png",
+				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_user_active_fixed@2x.png",
 				"text": "我的"
 			}
-		]
+		],
+		"backgroundColor": "#ffffff"
 	},
 	"globalStyle": {
 		"navigationBarTextStyle": "black",

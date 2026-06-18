@@ -252,19 +252,32 @@ export function menuJump(item) {
 export function uploadFile(path) {
   return new Promise((resolve, reject) => {
     uni.uploadFile({
-      url: `${baseURL}/api/file/formimage`,
+      url: `${baseURL}/api/miniapp/files/upload`,
       filePath: path,
       name: "file",
       header: {
         token: store.getters.token,
+        Authorization: store.getters.token ? `Bearer ${store.getters.token}` : "",
       },
       fileType: "image",
       cloudPath: "",
       success: (res) => {
         console.log("uploadFile res ==> ", res);
         let data = JSON.parse(res.data);
+        if (data.code === "0") {
+          data = {
+            ...data,
+            code: 1,
+            msg: data.message,
+          };
+        }
         if (data.code == 1) {
-          resolve(data.data);
+          resolve({
+            ...data.data,
+            uri: data.data?.uri || data.data?.fileUrl,
+            url: data.data?.url || data.data?.fileUrl,
+            file_url: data.data?.fileUrl || data.data?.url || data.data?.uri,
+          });
         } else {
           reject();
         }
@@ -307,12 +320,15 @@ export function copy(str) {
 }
 
 export function setTabbar() {
-  const config = store.getters.appConfig;
   uni.setTabBarStyle({
-    color: config.navigation_setting.ust_color,
-    selectedColor: config.navigation_setting.st_color,
+    color: "#666666",
+    selectedColor: "#1688ff",
+    backgroundColor: "#ffffff",
   });
+  return;
   // #ifdef APP-PLUS
+  const config = store.getters.appConfig;
+  if (!config.navigation_menu) return;
   config.navigation_menu.forEach((item, index) => {
     uni.downloadFile({
       url: item.un_selected_icon,
@@ -371,6 +387,7 @@ export const tabbarList = [
   "pages/user/user",
   "pages/index/index",
   "pages/sort/sort",
+  "pages/street/street",
 ];
 // 登录注册相关
 export const acountList = [

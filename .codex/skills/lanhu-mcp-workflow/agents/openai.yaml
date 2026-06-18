@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lanhu MCP Workflow"
+  short_description: "Help with Lanhu MCP startup and design fetches"
+  default_prompt: "Start or verify the local Lanhu MCP service, then fetch the needed Lanhu design context for this repo."

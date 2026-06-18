@@ -19,6 +19,62 @@ function checkParams(params) {
   return params;
 }
 
+function getCurrentUserId() {
+  const userInfo = store.getters.userInfo || {};
+  return userInfo.userId || userInfo.user_id || userInfo.id;
+}
+
+function shouldAttachUserId(url = "") {
+  return [
+    "miniapp/addresses",
+    "miniapp/cart",
+    "miniapp/orders",
+    "miniapp/payments",
+    "miniapp/wallet",
+    "miniapp/favorites",
+    "miniapp/feedback",
+    "miniapp/service/tickets",
+    "miniapp/eco-applications/merchant-qualification",
+    "miniapp/messages",
+    "miniapp/points",
+    "miniapp/kyc",
+    "miniapp/offline-payments",
+  ].some((prefix) => url.startsWith(prefix));
+}
+
+function shouldAttachUserIdToQuery(url = "", method = "") {
+  const normalizedMethod = String(method || "").toUpperCase();
+  return normalizedMethod === "GET"
+    || url.startsWith("miniapp/addresses")
+    || (url.startsWith("miniapp/cart") && ["PUT", "DELETE"].includes(normalizedMethod));
+}
+
+function appendParamsToUrl(config) {
+  if (!config.params || typeof config.params !== "object") return;
+  const query = paramsToStr(config.params);
+  if (!query || query === "?") return;
+  config.url += config.url.includes("?") ? `&${query.slice(1)}` : query;
+  config.params = undefined;
+}
+
+function attachUserId(config) {
+  const url = config.url || "";
+  if (!shouldAttachUserId(url)) return;
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  if (shouldAttachUserIdToQuery(url, config.method)) {
+    config.params = config.params || {};
+    config.params.userId = config.params.userId || config.params.user_id || userId;
+    return;
+  }
+
+  config.data = config.data || {};
+  if (typeof config.data === "object" && !Array.isArray(config.data)) {
+    config.data.userId = config.data.userId || config.data.user_id || userId;
+  }
+}
+
 const service = axios.create({
   baseURL: `${baseURL}/api/`,
   timeout: 10000,
@@ -30,12 +86,16 @@ const service = axios.create({
 // request拦截器
 service.interceptors.request.use(
   (config) => {
+    config.header = config.header || {};
     config.data = checkParams(config.data);
     config.params = checkParams(config.params);
-    if (config.method == "GET") {
-      config.url += paramsToStr(config.params);
+    attachUserId(config);
+    appendParamsToUrl(config);
+    const token = config.header.token || Cache.get(TOKEN);
+    if (token) {
+      config.header.token = token;
+      config.header.Authorization = config.header.Authorization || `Bearer ${token}`;
     }
-    config.header.token = config.header.token || Cache.get(TOKEN);
     return config;
   },
   (error) => {
@@ -49,7 +109,16 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   async (response) => {
     if (response.data) {
-      const { code, show, msg } = response.data;
+      const data = response.data;
+      if (data.code === "0" || data.code === 0) {
+        data.rawCode = data.code;
+        data.code = 1;
+        data.msg = data.msg || data.message || "SUCCESS";
+      } else if (data.message && !data.msg) {
+        data.msg = data.message;
+      }
+
+      const { code, show, msg } = data;
       const { route, options } = currentPage();
       if (code == 0 && show && msg) {
         uni.showToast({

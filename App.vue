@@ -10,9 +10,7 @@ export default {
     navHeight: "",
   },
   onLaunch: async function (options) {
-    uni.hideTabBar({
-      animation: false,
-    });
+    uni.showTabBar();
     // 获取配置
     this.getConfigFun();
 
@@ -90,4 +88,26 @@ export default {
 @import "styles/base.scss";
 /*每个页面公共css */
 @import "components/uview-ui/index.scss";
+
+/* #ifdef H5 */
+uni-tabbar .uni-tabbar__bd,
+uni-tabbar .uni-tabbar__item,
+uni-tabbar .uni-tabbar__icon {
+  overflow: visible !important;
+}
+
+uni-tabbar .uni-tabbar__icon {
+  width: 48rpx !important;
+  height: 48rpx !important;
+  margin-bottom: 2rpx !important;
+}
+
+uni-tabbar .uni-tabbar__icon img {
+  display: block !important;
+  width: 48rpx !important;
+  height: 48rpx !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+/* #endif */
 </style>

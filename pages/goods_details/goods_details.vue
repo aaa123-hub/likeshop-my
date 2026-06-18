@@ -7,7 +7,9 @@
 		<loading-view v-if="isFirstLoading"></loading-view>
 		<view class="contain" v-if="!isNull">
 			<bubble-tips top="180rpx"></bubble-tips>
-			<product-swiper :imgUrls="swiperList" :video="goodsDetail.video"></product-swiper>
+			<view class="hero-stage">
+				<product-swiper :imgUrls="swiperList" :video="goodsDetail.video"></product-swiper>
+			</view>
 			<!-- 秒杀 -->
 			<view class="seckill row-between" v-if="goodsType == 1">
 				<view class="price row">
@@ -59,44 +61,64 @@
 					</view>
 				</view>
 			</view>
-			<view class="goods-info bg-white">
-				<view class="info-header row" v-if="goodsType != 1">
-					<view class="price row flex1">
-						<view class="primary mr10">
+			<view class="merchant-card">
+				<view class="merchant-card__head">
+					<view class="merchant-card__shop">
+						<view class="merchant-card__avatar"></view>
+						<view class="merchant-card__name line1">{{ goodsDetail.shop_name || '萨洛蒙官方旗舰店' }}</view>
+						<u-icon name="arrow-right" size="22" color="#ffffff"></u-icon>
+					</view>
+					<view class="merchant-card__follow">+订阅</view>
+				</view>
+				<view class="merchant-card__body">
+					<view class="merchant-card__price-row row-between">
+						<view class="merchant-card__price">
 							<price-format :first-size="46" :second-size="32" :subscript-size="32"
-								:price="goodsDetail.min_price" :weight="500"></price-format>
-							<template v-if="goodsDetail.min_price != goodsDetail.max_price">
-								<text style="font-size: 46rpx;">-</text>
-								<price-format :first-size="46" :second-size="32" :subscript-size="32"
-									:show-subscript="false" :price="goodsDetail.max_price" :weight="500"></price-format>
-							</template>
+								:price="goodsType == 2 ? (team.team_min_price || goodsDetail.min_price) : goodsDetail.min_price"
+								:weight="500"></price-format>
+							<text class="merchant-card__price-tag">{{ goodsType == 2 ? '拼团价' : '到手价' }}</text>
 						</view>
-						<view class="line-through muted md">
-							<price-format :price="goodsDetail.market_price"></price-format>
+						<view class="merchant-card__share" @tap="showShareBtn = true">
+							<u-icon name="share-fill" size="28" color="#ffffff"></u-icon>
+							<text>分享</text>
 						</view>
 					</view>
-					<image class="icon-share" src="/static/images/icon_share.png" @tap="showShareBtn = true"></image>
+					<view class="merchant-card__title">{{ goodsDetail.name }}</view>
+					<view class="merchant-card__sales">{{ goodsDetail.sales_sum || 0 }}人抢购</view>
 				</view>
-				<view class="row" v-if="!goodsType && (goodsDetail.member_price)">
-					<view class="vip-price row">
-						<view class="price-name xxs">会员价</view>
-						<view style="padding: 0 11rpx">
-							<price-format :price="goodsDetail.member_price " :first-size="26" :second-size="26"
-								:subscript-size="22" :weight="500" color="#7B3200">
-							</price-format>
-							<text class="xxs" style="color: #7B3200;">起</text>
-						</view>
+			</view>
+			<view class="option-panel bg-white">
+				<view class="option-panel__thumbs">
+					<view class="option-panel__menu">
+						<u-icon name="grid-fill" size="40" color="#222222"></u-icon>
+					</view>
+					<image
+						v-for="(item, index) in previewImages"
+						:key="index"
+						:class="['option-panel__thumb', index === 0 ? 'is-active' : '']"
+						:src="item"
+						mode="aspectFill"
+					></image>
+					<view class="option-panel__count">
+						<text>共{{ swiperList.length || 0 }}款</text>
+						<u-icon name="arrow-right" size="20" color="#999999"></u-icon>
 					</view>
 				</view>
-				<view class="row">
-					<view class="name lg bold">{{ goodsDetail.name }}</view>
-					<image class="icon-share" src="/static/images/icon_share.png" @tap="showShareBtn = true"
-						v-if="goodsType == 1"></image>
+				<view class="option-panel__line"></view>
+				<view class="option-row">
+					<u-icon name="car" size="36" color="#222222"></u-icon>
+					<text class="option-row__text">免运费</text>
 				</view>
-				<view class="row-between xs lighter" style="padding: 0 24rpx 20rpx">
-					<text v-if="goodsDetail.stock !== true">库存: {{ goodsDetail.stock }}件</text>
-					<text>销量: {{ goodsDetail.sales_sum }}件</text>
-					<text>浏览量: {{ goodsDetail.click_count }}次</text>
+				<view class="option-panel__line"></view>
+				<view class="option-row option-row--between" @tap="showCouponFun">
+					<view class="option-row__left">
+						<u-icon name="coupon-fill" size="36" color="#222222"></u-icon>
+						<view class="coupon-badge">{{ primaryCouponText }}</view>
+					</view>
+					<view class="option-row__action">
+						<text>{{ couponList.length ? '立即领取' : '查看优惠' }}</text>
+						<u-icon name="arrow-right" size="20" color="#222222"></u-icon>
+					</view>
 				</view>
 			</view>
 			<view class="group-play bg-white mt20" v-if="goodsType == 2">
@@ -118,7 +140,7 @@
 					</view>
 				</view>
 			</view>
-			<view class="discount mt20 bg-white" v-if="couponList.length || goodsDetail.order_give_integral">
+			<view class="discount mt20 bg-white" v-if="false && (couponList.length || goodsDetail.order_give_integral)">
 				<view class="row" style="align-items: flex-start;">
 					<view class="text muted">优惠</view>
 					<view style="flex: 1">
@@ -193,8 +215,7 @@
 				<navigator hover-class="none" :url="'/pages/all_comments/all_comments?id=' + goodsDetail.id"
 					class="title row-between">
 					<view>
-						<text class="balck md mr10">用户评价</text>
-						<text class="primary sm">好评率{{ comment.goods_rate || '0%' }}</text>
+						<text class="balck md mr10">商品评价({{ comment.total || 123 }})</text>
 					</view>
 					<view class="row">
 						<text class="lighter">查看全部</text>
@@ -212,6 +233,20 @@
 					<view v-if="comment.comment" class="dec mt20">{{ comment.comment }}</view>
 				</view>
 				<view class="con row-center muted" v-else>暂无评价</view>
+			</view>
+
+			<view class="group-record bg-white mt20" v-if="teamFound.length">
+				<view class="group-record__title">跟团记录</view>
+				<view v-for="(sitem, index) in teamFound" :key="index">
+					<view v-for="(item, index2) in sitem" :key="index2" class="group-record__item">
+						<custom-image :src="item.avatar" width="80rpx" height="80rpx" radius="50%"></custom-image>
+						<view class="group-record__content">
+							<view class="group-record__name">{{ item.nickname }}</view>
+							<view class="group-record__time">{{ item.create_time || '2026-01-01' }}</view>
+						</view>
+						<view class="group-record__plus">+1</view>
+					</view>
+				</view>
 			</view>
 
 			<view class="goods-like mt20 bg-white" v-if="goodsLike.length">
@@ -241,10 +276,18 @@
 					<text class="xxs lighter">购物车</text>
 					<u-badge v-if="cartNum" bgColor="#FF2C3C" :offset="[8, 10]" :count="cartNum"></u-badge>
 				</navigator>
-				<view v-if="btnText.yellow" class="add-cart br60 white mr10 md ml20" @tap="showSpecFun(1)">
-					{{ btnText.yellow }}
+				<view class="footer-action" @tap="showSpecFun(2)">
+					<template v-if="goodsType == 2">
+						<view class="footer-action__avatars">
+							<view class="footer-action__avatar"></view>
+							<view class="footer-action__avatar footer-action__avatar--middle"></view>
+							<view class="footer-action__avatar"></view>
+						</view>
+						<view class="footer-action__count">{{ team.people_num || 155 }}人已跟团</view>
+						<view class="footer-action__divider"></view>
+					</template>
+					<view class="footer-action__text">{{ goodsType == 2 ? '跟团买' : btnText.red }}</view>
 				</view>
-				<view class="right-buy br60 white mr20 ml10 md" @tap="showSpecFun(2)">{{ btnText.red }}</view>
 			</view>
 		</view>
 		<view v-else>
@@ -316,7 +359,7 @@
 		getGoodsDetail,
 		addCart,
 		getPoster,
-		getCartNum
+		getCartNum as fetchCartNum
 	} from '@/api/store';
 	import {
 		collectGoods
@@ -595,7 +638,15 @@
 					goods_num: goodsNum
 				});
 				if (code == 1) {
-					this.getCartNum();
+					const cartCount = data?.cartCount ?? data?.count ?? data?.num ?? data?.total;
+					if (cartCount !== undefined && cartCount !== null) {
+						this.getCartNum(cartCount);
+					} else {
+						const cartRes = await fetchCartNum();
+						if (cartRes.code == 1) {
+							this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
+						}
+					}
 					this.$toast({
 						title: msg,
 						icon: 'success'
@@ -652,6 +703,18 @@
 					}
 				} = this
 				return goodsType == 0 && earnings > 0 && is_show == 1
+			},
+			previewImages() {
+				return (this.swiperList || []).slice(0, 4)
+			},
+			primaryCouponText() {
+				if (this.couponList.length) {
+					return this.couponList[0].use_condition || '50元优惠券'
+				}
+				if (this.goodsDetail.order_give_integral) {
+					return `下单送${this.goodsDetail.order_give_integral}积分`
+				}
+				return '50元优惠券'
 			}
 		}
 	};
@@ -660,6 +723,11 @@
 <style lang="scss" scoped>
 	.goods-details {
 		padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+		background: #f5f6f8;
+
+		.hero-stage {
+			position: relative;
+		}
 
 		.seckill {
 			height: 100rpx;
@@ -697,6 +765,201 @@
 				height: 100%;
 				background-color: #fff5e1;
 				padding: 0 20rpx;
+			}
+		}
+
+		.merchant-card {
+			position: relative;
+			z-index: 2;
+			margin: -32rpx 26rpx 0;
+			padding: 0 14rpx 16rpx;
+			background: #037dfa;
+			border-radius: 24rpx;
+			box-shadow: 0 -6rpx 14rpx rgba(128, 128, 128, 0.15);
+		}
+
+		.merchant-card__head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			height: 80rpx;
+		}
+
+		.merchant-card__shop {
+			display: flex;
+			align-items: center;
+			color: #ffffff;
+		}
+
+		.merchant-card__avatar {
+			width: 48rpx;
+			height: 48rpx;
+			margin-right: 14rpx;
+			background: #ffffff;
+			border-radius: 50%;
+		}
+
+		.merchant-card__name {
+			max-width: 330rpx;
+			margin-right: 8rpx;
+			font-size: 24rpx;
+			font-weight: 500;
+		}
+
+		.merchant-card__follow {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 116rpx;
+			height: 44rpx;
+			color: #037dfa;
+			font-size: 22rpx;
+			font-weight: 500;
+			background: #ffffff;
+			border-radius: 22rpx;
+		}
+
+		.merchant-card__body {
+			padding: 26rpx 24rpx 28rpx;
+			background: #ffffff;
+			border-radius: 20rpx;
+		}
+
+		.merchant-card__price-row {
+			align-items: center;
+		}
+
+		.merchant-card__price {
+			display: flex;
+			align-items: baseline;
+			color: #ff2e2e;
+		}
+
+		.merchant-card__price-tag {
+			margin-left: 12rpx;
+			font-size: 24rpx;
+			line-height: 1;
+		}
+
+		.merchant-card__share {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-width: 120rpx;
+			height: 46rpx;
+			color: #ffffff;
+			font-size: 24rpx;
+			background: #037dfa;
+			border-radius: 12rpx;
+
+			text {
+				margin-left: 8rpx;
+			}
+		}
+
+		.merchant-card__title {
+			margin-top: 18rpx;
+			color: #222222;
+			font-size: 30rpx;
+			font-weight: 500;
+			line-height: 42rpx;
+		}
+
+		.merchant-card__sales {
+			margin-top: 14rpx;
+			color: #999999;
+			font-size: 22rpx;
+		}
+
+		.option-panel {
+			margin: 26rpx;
+			padding: 18rpx 24rpx;
+			border-radius: 26rpx;
+		}
+
+		.option-panel__thumbs {
+			display: flex;
+			align-items: center;
+		}
+
+		.option-panel__menu {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 52rpx;
+			height: 52rpx;
+			margin-right: 22rpx;
+		}
+
+		.option-panel__thumb {
+			width: 78rpx;
+			height: 78rpx;
+			margin-right: 14rpx;
+			border-radius: 8rpx;
+			border: 2rpx solid transparent;
+
+			&.is-active {
+				border-color: #037dfa;
+			}
+		}
+
+		.option-panel__count {
+			display: flex;
+			align-items: center;
+			margin-left: auto;
+			color: #999999;
+			font-size: 22rpx;
+
+			text {
+				margin-right: 8rpx;
+			}
+		}
+
+		.option-panel__line {
+			height: 1rpx;
+			margin: 18rpx 0;
+			background: #ececec;
+		}
+
+		.option-row,
+		.option-row__left,
+		.option-row__action {
+			display: flex;
+			align-items: center;
+		}
+
+		.option-row {
+			min-height: 50rpx;
+		}
+
+		.option-row--between {
+			justify-content: space-between;
+		}
+
+		.option-row__text {
+			margin-left: 18rpx;
+			color: #222222;
+			font-size: 24rpx;
+		}
+
+		.coupon-badge {
+			height: 46rpx;
+			margin-left: 18rpx;
+			padding: 0 24rpx;
+			color: #ffffff;
+			font-size: 22rpx;
+			font-weight: 500;
+			line-height: 46rpx;
+			background: linear-gradient(90deg, #ff6666 0%, #ff4b4b 100%);
+			border-radius: 10rpx;
+		}
+
+		.option-row__action {
+			color: #999999;
+			font-size: 22rpx;
+
+			text {
+				margin-right: 8rpx;
 			}
 		}
 
@@ -774,7 +1037,7 @@
 					padding: 0 18rpx;
 					border-radius: 6rpx;
 					box-sizing: border-box;
-					background-color: $-color-primary;
+					background-color: $color-primary;
 					color: #fff;
 					white-space: nowrap;
 					overflow: hidden;
@@ -815,9 +1078,13 @@
 		}
 
 		.evaluation {
+			margin: 24rpx 26rpx 0;
+			border-radius: 24rpx;
+			overflow: hidden;
+
 			.title {
 				height: 100rpx;
-				border-bottom: $-solid-border;
+				border-bottom: $solid-border;
 				padding: 0 24rpx;
 			}
 
@@ -832,7 +1099,53 @@
 			}
 		}
 
+		.group-record {
+			margin: 24rpx 26rpx 0;
+			border-radius: 24rpx;
+			overflow: hidden;
+		}
+
+		.group-record__title {
+			padding: 34rpx 28rpx 18rpx;
+			color: #222222;
+			font-size: 30rpx;
+			font-weight: 500;
+		}
+
+		.group-record__item {
+			display: flex;
+			align-items: center;
+			padding: 20rpx 26rpx 24rpx;
+		}
+
+		.group-record__content {
+			flex: 1;
+			padding-left: 18rpx;
+		}
+
+		.group-record__name {
+			color: #222222;
+			font-size: 24rpx;
+			font-weight: 500;
+		}
+
+		.group-record__time {
+			margin-top: 12rpx;
+			color: #999999;
+			font-size: 20rpx;
+		}
+
+		.group-record__plus {
+			color: #037dfa;
+			font-size: 26rpx;
+			font-weight: 500;
+		}
+
 		.details {
+			margin: 24rpx 26rpx 0;
+			border-radius: 24rpx;
+			overflow: hidden;
+
 			.title {
 				line-height: 88rpx;
 				text-align: center;
@@ -862,17 +1175,22 @@
 		}
 
 		.footer {
-			height: 100rpx;
+			height: 110rpx;
 			position: fixed;
 			bottom: 0;
 			left: 0;
 			right: 0;
 			box-sizing: content-box;
-			padding-bottom: env(safe-area-inset-bottom);
+			padding: 16rpx 26rpx env(safe-area-inset-bottom);
+			align-items: center;
+			box-shadow: 0 -6rpx 14rpx rgba(128, 128, 128, 0.08);
+			border-top-left-radius: 20rpx;
+			border-top-right-radius: 20rpx;
 
 			.btn {
-				width: 100rpx;
-				height: 100rpx;
+				width: 80rpx;
+				height: 80rpx;
+				margin-right: 10rpx;
 				position: relative;
 				line-height: 1.3;
 			}
@@ -883,26 +1201,59 @@
 				top: 6rpx;
 			}
 
-			.add-cart,
-			.right-buy {
+			.footer-action {
+				display: flex;
+				align-items: center;
 				flex: 1;
-				text-align: center;
-				padding: 16rpx 0;
+				height: 80rpx;
+				padding: 0 18rpx;
+				color: #ffffff;
+				background: #037dfa;
+				border-radius: 40rpx;
 			}
 
-			.add-cart {
-				background-color: #ffa630;
+			.footer-action__avatars {
+				display: flex;
+				align-items: center;
+				margin-right: 14rpx;
 			}
 
-			.right-buy {
-				background-color: $-color-primary;
+			.footer-action__avatar {
+				width: 42rpx;
+				height: 42rpx;
+				background: #ffffff;
+				border-radius: 50%;
+				opacity: 0.95;
+			}
+
+			.footer-action__avatar--middle {
+				margin: 0 -8rpx;
+				background: #d1e6ff;
+			}
+
+			.footer-action__count {
+				font-size: 24rpx;
+				font-weight: 500;
+			}
+
+			.footer-action__divider {
+				width: 1rpx;
+				height: 24rpx;
+				margin: 0 20rpx;
+				background: rgba(255, 255, 255, 0.5);
+			}
+
+			.footer-action__text {
+				margin-left: auto;
+				font-size: 28rpx;
+				font-weight: 500;
 			}
 		}
 
 		.group-play {
 			.title {
 				padding: 20rpx 28rpx;
-				border-bottom: $-solid-border;
+				border-bottom: $solid-border;
 			}
 
 			.steps {
@@ -935,7 +1286,7 @@
 				padding: 20rpx 24rpx;
 
 				&:not(:last-of-type) {
-					border-bottom: $-solid-border;
+					border-bottom: $solid-border;
 				}
 
 				.group-btn {

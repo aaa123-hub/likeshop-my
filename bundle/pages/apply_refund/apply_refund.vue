@@ -229,6 +229,7 @@ export default {
       };
       applyAgain(data).then((res) => {
         if (res.code == 1) {
+          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
           uni.$emit("refreshsale");
           this.$toast(
             {
@@ -238,7 +239,7 @@ export default {
               tab: 5,
               url:
                 "/bundle/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                res.data.after_sale_id,
+                afterSaleId,
             }
           );
         }
@@ -271,6 +272,7 @@ export default {
       };
       applyAfterSale(data).then((res) => {
         if (res.code == 1) {
+          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
           uni.$emit("refreshsale");
           this.$toast({
             title: "提交成功",
@@ -279,7 +281,7 @@ export default {
             uni.redirectTo({
               url:
                 "/bundle/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                res.data.after_sale_id,
+                afterSaleId,
             });
           }, 500);
         }

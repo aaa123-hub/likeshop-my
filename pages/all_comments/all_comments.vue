@@ -176,14 +176,12 @@ export default {
         getCommentCategoryFun() {
             return new Promise((resolve) => {
                 getCommentCategory(this.id).then((res) => {
-                    let {
-                        code,
-                        data: { comment, percent }
-                    } = res
+                    let { code, data = {} } = res
                     if (code == 1) {
-                        this.categoryList = comment
-                        this.percent = percent
-                        this.type = comment[0].id
+                        const comment = data.comment || []
+                        this.categoryList = comment.filter((item) => item.count !== 0)
+                        this.percent = data.percent || '100%'
+                        this.type = comment[0] ? comment[0].id : ''
                         this.$nextTick(() => resolve())
                     }
                 })
@@ -257,7 +255,7 @@ export default {
             .evaluation-item {
                 padding: 20rpx;
                 &:not(:last-of-type) {
-                    border-bottom: $-solid-border;
+                    border-bottom: $solid-border;
                 }
                 .avatar {
                     width: 60rpx;

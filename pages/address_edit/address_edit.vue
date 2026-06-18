@@ -1,70 +1,87 @@
 <template>
-    <!-- pages/address_edit/address_edit.wxml -->
     <view class="address-edit">
+        <navbar :title="addressId ? '添加地址' : '添加地址'"></navbar>
         <form @submit="formSubmit" report-submit="true">
-            <view class="form bg-white">
-                <view class="form-item row">
-                    <view class="label">收货人</view>
+            <view class="form-card">
+                <view class="form-row">
+                    <view class="form-row__label">姓名</view>
                     <input
-                        class="ml10"
                         v-model="addressObj.contact"
                         name="contact"
+                        class="form-row__input"
                         type="text"
-                        placeholder="请填写收货人姓名"
+                        placeholder="请输入姓名"
                     />
-                </view>
-                <view class="form-item row">
-                    <view class="label">联系方式</view>
-                    <input
-                        class="ml10"
-                        name="telephone"
-                        v-model="addressObj.telephone"
-                        type="number"
-                        placeholder="请填写手机号码"
-                    />
-                </view>
-                <view @click="showRegion = true">
-                    <view class="form-item row">
-                        <view class="label">所在地区</view>
-                        <input
-                            class="ml10"
-                            name="region"
-                            v-model="region"
-                            disabled
-                            type="text"
-                            placeholder="请选择省、市、区"
-                        />
-                        <image class="icon-sm ml10" src="/static/images/arrow_right.png" />
+                    <view class="gender-group">
+                        <view
+                            :class="['gender-item', gender === '先生' ? 'gender-item--active' : '']"
+                            @tap="gender = '先生'"
+                        >
+                            <u-icon
+                                :name="gender === '先生' ? 'checkmark-circle-fill' : 'checkmark-circle'"
+                                :color="gender === '先生' ? '#1F7AF4' : '#d4d7de'"
+                                size="42"
+                            ></u-icon>
+                            <text>先生</text>
+                        </view>
+                        <view
+                            :class="['gender-item', gender === '女士' ? 'gender-item--active' : '']"
+                            @tap="gender = '女士'"
+                        >
+                            <u-icon
+                                :name="gender === '女士' ? 'checkmark-circle-fill' : 'checkmark-circle'"
+                                :color="gender === '女士' ? '#1F7AF4' : '#d4d7de'"
+                                size="42"
+                            ></u-icon>
+                            <text>女士</text>
+                        </view>
                     </view>
                 </view>
-                <view>
-                    <u-field
-                        v-model="addressObj.address"
-                        type="textarea"
-                        label="详细地址"
-                        placeholder="请填写小区、街道、门牌号等信息"
-                        :field-style="{ flex: 1, 'margin-left': '20rpx', height: '160rpx' }"
+                <view class="form-row">
+                    <view class="form-row__label">联系电话</view>
+                    <input
+                        name="telephone"
+                        v-model="addressObj.telephone"
+                        class="form-row__input"
+                        type="number"
+                        placeholder="请输入电话"
                     />
-                    <!-- <view class="form-item row" style="height: 200rpx;">					 -->
-                    <!-- <view class="label mt20" style="align-self: flex-start;">详细地址</view> -->
-                    <!-- <textarea name="address" style="height: 160rpx;padding: 20rpx 20rpx 20rpx 30rpx;" v-model="addressObj.address"  @input="textareaChange" placeholder="请填写小区、街道、门牌号等信息" auto-blur /> -->
-                    <!-- </view> -->
+                </view>
+                <view class="form-row" @click="showRegion = true">
+                    <view class="form-row__label">所在地址</view>
+                    <input
+                        name="region"
+                        v-model="region"
+                        class="form-row__input"
+                        disabled
+                        type="text"
+                        placeholder="请选择省市区"
+                    />
+                    <u-icon name="arrow-right" color="#222222" size="28"></u-icon>
+                </view>
+                <view class="form-row form-row--textarea">
+                    <view class="form-row__label">详细地址</view>
+                    <textarea
+                        v-model="addressObj.address"
+                        name="address"
+                        class="detail-textarea"
+                        placeholder="请选择详细地址"
+                        auto-height
+                    />
                 </view>
             </view>
-            <view class="mt10 mb10 bg-white check-wrap">
-                <radio-group class="row" @click="ChangeIsDefault">
-                    <radio
-                        id="checkbox"
-                        style="border-radius: 50%; transform: scale(0.7)"
-                        :checked="addressObj.is_default ? true : false"
-                        color="#FF2C3C"
-                    />
-                    <label for="checkbox">
-                        <text>设置为默认</text>
-                    </label>
-                </radio-group>
+            <view class="default-card">
+                <view class="default-card__label">设置为默认地址</view>
+                <u-switch
+                    v-model="isDefaultSwitch"
+                    active-color="#1F7AF4"
+                    inactive-color="#d2d4da"
+                    @change="onSwitchChange"
+                ></u-switch>
             </view>
-            <button class="my-btn bg-primary white br60" form-type="submit">完成</button>
+            <button class="submit-btn" form-type="submit">
+                {{ addressId ? '保存' : '保存' }}
+            </button>
         </form>
         <u-select
             v-model="showRegion"
@@ -112,7 +129,8 @@ export default {
             defaultRegion: ['广东省', '广州市', '番禺区'],
             defaultRegionCode: '440113',
             showRegion: false,
-            lists: []
+            lists: [],
+            gender: '先生'
         }
     },
     props: {},
@@ -150,6 +168,9 @@ export default {
      */
     // onShareAppMessage: function () {},
     methods: {
+        onSwitchChange(value) {
+            this.addressObj.is_default = value ? 1 : 0
+        },
         formSubmit(e) {
             let { value } = e.detail
             let {
@@ -246,6 +267,7 @@ export default {
                 if (res.code == 1) {
                     let { city, province, district } = res.data
                     this.addressObj = res.data
+                    this.gender = '先生'
                     this.region = `${province} ${city} ${district}`
                 }
             })
@@ -281,55 +303,128 @@ export default {
                 }
             })
         }
+    },
+    computed: {
+        isDefaultSwitch: {
+            get() {
+                return Boolean(this.addressObj.is_default)
+            },
+            set(value) {
+                this.addressObj.is_default = value ? 1 : 0
+            }
+        }
     }
 }
 </script>
 <style lang="scss">
-/* pages/address_edit/address_edit.wxss */
-
 .address-edit {
-    padding-top: 10rpx;
-    .form {
-        flex: 1;
-        .form-item {
-            padding: 0 24rpx;
-            height: 80rpx;
-            &:not(:nth-of-type(3)) {
-                border-bottom: $-solid-border;
-            }
-            .label {
-                width: 150rpx;
-            }
-            input {
-                height: 100%;
-                flex: 1;
-            }
+    min-height: 100vh;
+    padding: 0 24rpx calc(180rpx + env(safe-area-inset-bottom));
+    background: #f7f8fa;
+
+    .form-card,
+    .default-card {
+        background: #ffffff;
+        border-radius: 24rpx;
+        overflow: hidden;
+    }
+
+    .form-card {
+        margin-top: 26rpx;
+    }
+
+    .form-row {
+        display: flex;
+        align-items: center;
+        min-height: 96rpx;
+        padding: 0 28rpx;
+
+        & + .form-row {
+            border-top: 1rpx solid #eef0f3;
         }
     }
-    .check-wrap {
-        padding: 20rpx;
+
+    .form-row--textarea {
+        align-items: flex-start;
+        min-height: 320rpx;
+        padding-top: 24rpx;
     }
-    .my-btn {
-        margin: 30rpx 26rpx;
-        text-align: center;
+
+    .form-row__label {
+        flex: none;
+        width: 150rpx;
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #222222;
     }
-}
 
-van-field view {
-    height: 100%;
-}
+    .form-row__input {
+        flex: 1;
+        height: 96rpx;
+        font-size: 32rpx;
+        color: #222222;
+    }
 
-van-field textarea {
-    height: 100% !important;
-    padding-top: 10rpx !important;
-}
+    .gender-group {
+        display: flex;
+        align-items: center;
+        margin-left: 12rpx;
+    }
 
-.van-cell {
-    padding: 20rpx !important;
-}
+    .gender-item {
+        display: flex;
+        align-items: center;
+        font-size: 32rpx;
+        color: #222222;
 
-.van-field__body--textarea,
-.van-field__input {
-    margin-left: 15rpx;
+        text {
+            margin-left: 8rpx;
+        }
+
+        & + .gender-item {
+            margin-left: 32rpx;
+        }
+    }
+
+    .detail-textarea {
+        flex: 1;
+        min-height: 220rpx;
+        font-size: 32rpx;
+        line-height: 44rpx;
+        color: #222222;
+        padding-top: 6rpx;
+    }
+
+    .default-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 24rpx;
+        padding: 0 28rpx;
+        height: 112rpx;
+    }
+
+    .default-card__label {
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #222222;
+    }
+
+    .submit-btn {
+        position: fixed;
+        left: 84rpx;
+        right: 84rpx;
+        bottom: calc(56rpx + env(safe-area-inset-bottom));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 88rpx;
+        color: #ffffff;
+        font-size: 32rpx;
+        font-weight: 600;
+        background: #1f7af4;
+        border-radius: 44rpx;
+        box-shadow: 0 14rpx 30rpx rgba(31, 122, 244, 0.18);
+    }
 }
 </style>

@@ -1,85 +1,88 @@
 <template>
-    <!-- pages/user_address/user_address.wxml -->
     <view class="user-address">
-        <view class="no-address column-center" v-if="!hasAddress">
-            <image class="img-null mt20" src="/static/images/address_null.png"></image>
-            <view class="sm muted">暂无添加地址，请添加~</view>
-        </view>
-        <view class="address-list" v-else>
-            <radio-group class="radio-group" @change="radioChange">
-                <view
-                    v-for="(item, index) in addressList"
-                    :key="index"
-                    class="item bg-white mb20"
-                    :data-id="item.id"
-                    @tap="onSelect"
-                >
-                    <view class="address">
-                        <view class="consignee md bold">
-                            {{ item.contact }}
-                            <text class="phone ml10">{{ item.telephone }}</text>
-                        </view>
-                        <view class="lighter sm mt10">
-                            {{ item.province }} {{ item.city }} {{ item.district }}
-                            {{ item.address }}
-                        </view>
-                    </view>
-                    <view class="operation row-between">
-                        <view>
-                            <radio
-                                class="radio row"
-                                color="#FF2C3C"
-                                :value="item.id + ''"
-                                :checked="item.is_default == '1' ? true : false"
-                            >
-                                <text>设为默认</text>
-                            </radio>
-                        </view>
-                        <view class="row-center">
-                            <view class="row mr20" @click.stop="editAddress(item.id)">
-                                <image
-                                    class="icon-md mr10"
-                                    src="/static/images/icon_edit.png"
-                                ></image>
-                                编辑
+        <navbar title="添加地址"></navbar>
+        <view class="address-body">
+            <template v-if="hasAddress">
+                <radio-group class="address-list" @change="radioChange">
+                    <view
+                        v-for="(item, index) in addressList"
+                        :key="index"
+                        class="address-card"
+                        :data-id="item.id"
+                        @tap="onSelect"
+                    >
+                        <view class="address-card__main">
+                            <view class="address-card__header">
+                                <view class="address-card__name">
+                                    {{ item.contact }}
+                                </view>
+                                <view class="address-card__phone">{{ item.telephone }}</view>
                             </view>
-                            <view class="row ml20" :data-id="item.id" @tap.stop="showSurePop">
-                                <image
-                                    class="icon-md mr10"
-                                    src="/static/images/icon_del_1.png"
-                                ></image>
-                                删除
+                            <view class="address-card__detail">
+                                {{ item.province }} {{ item.city }} {{ item.district }}
+                                {{ item.address }}
+                            </view>
+                        </view>
+                        <view class="address-card__footer">
+                            <label class="default-wrap">
+                                <radio
+                                    color="#1F7AF4"
+                                    :value="item.id + ''"
+                                    :checked="item.is_default == '1'"
+                                />
+                                <text>设为默认地址</text>
+                            </label>
+                            <view class="address-card__actions">
+                                <view class="action-item" @tap.stop="editAddress(item.id)">
+                                    <u-icon name="edit-pen" size="28" color="#222222"></u-icon>
+                                    <text>编辑</text>
+                                </view>
+                                <view
+                                    class="action-item action-item--danger"
+                                    :data-id="item.id"
+                                    @tap.stop="showSurePop"
+                                >
+                                    <u-icon name="trash" size="28" color="#909399"></u-icon>
+                                    <text>删除</text>
+                                </view>
                             </view>
                         </view>
                     </view>
+                </radio-group>
+            </template>
+            <template v-else>
+                <view class="empty-wrap">
+                    <u-empty
+                        mode="address"
+                        text="暂无数据"
+                        :icon-size="240"
+                        :font-size="56"
+                        color="#666666"
+                        :margin-top="280"
+                    ></u-empty>
                 </view>
-            </radio-group>
+            </template>
         </view>
         <u-modal
-            id="delete-dialog"
             v-model="deleteSure"
             :showCancelButton="true"
-            confirm-text="狠心删除"
-            confirm-color="#FF2C3C"
+            confirm-text="删除"
+            confirm-color="#1F7AF4"
             :show-title="false"
             @confirm="delAddressFun"
             @cancel="hidePop"
         >
-            <view class="column-center tips-dialog">
-                <image class="icon-lg" src="/static/images/icon_warning.png"></image>
-                <view style="margin-top: 30rpx">确认删除该地址吗？</view>
-            </view>
+            <view class="tips-dialog">确认删除该地址吗？</view>
         </u-modal>
-        <view class="footer row-between fixed bg-white">
+        <view class="footer">
             <!-- #ifdef H5 || MP-WEIXIN -->
-            <view class="btn row-center bg-gray br60 mr20" @click="getWxAddressFun" v-if="isWeixin">
-                <image class="icon-lg mr10" src="/static/images/icon_wechat.png"></image>
-                <text class="md">微信导入</text>
+            <view v-if="isWeixin && hasAddress" class="footer__ghost" @click="getWxAddressFun">
+                微信导入
             </view>
             <!-- #endif -->
-            <view class="btn bg-primary white md row-center br60" @click="addAddress"
-                >新增收货地址</view
-            >
+            <view class="footer__btn" @click="addAddress">
+                {{ hasAddress ? '新增收货地址' : '+添加地址' }}
+            </view>
         </view>
     </view>
 </template>
@@ -263,44 +266,138 @@ export default {
 }
 </script>
 <style lang="scss">
-/* pages/user_address/user_address.wxss */
 .user-address {
-    padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
-    .no-address {
-        padding-top: 300rpx;
-        text-align: center;
+    min-height: 100vh;
+    padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+    background: #f7f8fa;
+
+    .address-body {
+        min-height: calc(100vh - 220rpx);
     }
+
     .address-list {
-        padding: 10rpx 0;
-        .item {
-            padding: 0 30rpx;
-            .address {
-                padding: 20rpx 0;
-                border-bottom: $-solid-border;
-            }
-            .operation {
-                height: 80rpx;
-            }
+        padding: 24rpx 24rpx 0;
+    }
+
+    .address-card {
+        overflow: hidden;
+        margin-bottom: 24rpx;
+        background: #ffffff;
+        border-radius: 24rpx;
+        box-shadow: 0 10rpx 30rpx rgba(31, 122, 244, 0.06);
+    }
+
+    .address-card__main {
+        padding: 30rpx 28rpx 24rpx;
+    }
+
+    .address-card__header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 16rpx;
+        color: #222222;
+    }
+
+    .address-card__name {
+        font-size: 34rpx;
+        font-weight: 600;
+    }
+
+    .address-card__phone {
+        margin-left: 18rpx;
+        font-size: 28rpx;
+    }
+
+    .address-card__detail {
+        font-size: 26rpx;
+        line-height: 40rpx;
+        color: #666666;
+    }
+
+    .address-card__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24rpx 28rpx;
+        border-top: 1rpx solid #f1f2f5;
+    }
+
+    .default-wrap {
+        display: flex;
+        align-items: center;
+        font-size: 24rpx;
+        color: #222222;
+    }
+
+    .address-card__actions {
+        display: flex;
+        align-items: center;
+    }
+
+    .action-item {
+        display: flex;
+        align-items: center;
+        font-size: 24rpx;
+        color: #222222;
+
+        text {
+            margin-left: 8rpx;
+        }
+
+        & + .action-item {
+            margin-left: 28rpx;
         }
     }
+
+    .action-item--danger {
+        color: #909399;
+    }
+
+    .empty-wrap {
+        min-height: calc(100vh - 360rpx);
+    }
+
     .footer {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
-        height: 118rpx;
-        padding: 0 30rpx;
-        box-sizing: content-box;
-        padding-bottom: env(safe-area-inset-bottom);
-        .btn {
-            flex: 1;
-            height: 80rpx;
-        }
+        display: flex;
+        align-items: center;
+        padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
+        background: #f7f8fa;
+    }
+
+    .footer__ghost,
+    .footer__btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 88rpx;
+        border-radius: 44rpx;
+        font-size: 32rpx;
+        font-weight: 600;
+    }
+
+    .footer__ghost {
+        flex: 1;
+        margin-right: 20rpx;
+        color: #1f7af4;
+        background: #ffffff;
+    }
+
+    .footer__btn {
+        flex: 1;
+        color: #ffffff;
+        background: #1f7af4;
+        box-shadow: 0 14rpx 30rpx rgba(31, 122, 244, 0.18);
     }
 }
 
 .tips-dialog {
-    height: 230rpx;
-    width: 100%;
+    padding: 48rpx 0 24rpx;
+    text-align: center;
+    font-size: 30rpx;
+    color: #222222;
 }
 </style>
