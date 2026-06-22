@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "月度账单详情",
+  "usingComponents": {
+    "trigonometry": "/components/trigonometry/trigonometry",
+    "price-format": "/components/price-format/price-format",
+    "custom-image": "/components/custom-image/custom-image",
+    "loading-footer": "/components/loading-footer/loading-footer",
+    "u-select": "/components/uview-ui/components/u-select/u-select"
+  }
+}

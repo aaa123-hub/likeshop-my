@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "订单结果",
+  "usingComponents": {
+    "order-goods": "/components/order-goods/order-goods",
+    "u-modal": "/components/uview-ui/components/u-modal/u-modal",
+    "loading-view": "/components/loading-view/loading-view"
+  }
+}

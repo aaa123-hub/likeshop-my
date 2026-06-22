@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-count-down": "/components/uview-ui/components/u-count-down/u-count-down",
+    "order-goods": "/components/order-goods/order-goods",
+    "price-format": "/components/price-format/price-format",
+    "loading-footer": "/components/loading-footer/loading-footer"
+  }
+}

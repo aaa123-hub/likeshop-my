@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "我的拼团",
-  "enablePullDownRefresh": true,
-  "usingComponents": {
-    "tabs": "/bundle-goods/components/tabs/tabs",
-    "tab": "/bundle-goods/components/tab/tab",
-    "group-list": "/bundle-goods/components/group-list/group-list"
-  }
-}

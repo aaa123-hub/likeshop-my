@@ -1,1 +1,6 @@
-{"navigationBarTitleText":"个人中心","navigationStyle":"custom","enablePullDownRefresh":true,"usingComponents":{}}
+{
+  "navigationBarTitleText": "个人中心",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "usingComponents": {}
+}

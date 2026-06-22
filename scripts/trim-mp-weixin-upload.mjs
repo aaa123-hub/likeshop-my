@@ -231,13 +231,12 @@ function pruneUnusedMainStatic() {
 }
 
 function minifyMainPackage() {
-    const minJs = value => value.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n\s*/g, '').replace(/\s{2,}/g, ' ')
     const minCss = value => value.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').replace(/\s*([{}:;,>])\s*/g, '$1')
     for (const item of ['common', 'components', 'pages']) {
-        const files = walk(path.join(root, item), file => /\.(js|wxss)$/.test(file))
+        const files = walk(path.join(root, item), file => file.endsWith('.wxss'))
         for (const file of files) {
             const before = fs.readFileSync(file, 'utf8')
-            const after = file.endsWith('.wxss') ? minCss(before) : minJs(before)
+            const after = minCss(before)
             if (after.length < before.length) fs.writeFileSync(file, after)
         }
     }

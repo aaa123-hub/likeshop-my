@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "custom-image": "/components/custom-image/custom-image",
+    "price-format": "/components/price-format/price-format",
+    "cu-progress": "/components/cu-progress/cu-progress"
+  },
+  "component": true
+}

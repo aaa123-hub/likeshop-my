@@ -77,6 +77,7 @@
 </template>
 
 <script>
+import SetPayPwd from '@/bundle/components/set-pay-pwd/set-pay-pwd.vue'
 import {
     hasPayPassword,
     transfer,
@@ -87,6 +88,9 @@ import {
 } from '@/api/user'
 import { trottle } from '@/utils/tools'
 export default {
+	components: {
+		SetPayPwd
+	},
     data() {
         return {
             showTransferInfo: false,

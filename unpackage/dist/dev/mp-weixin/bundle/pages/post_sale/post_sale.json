@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "退款/售后",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/components/navbar/navbar",
+    "tabs": "/components/tabs/tabs",
+    "tab": "/components/tab/tab",
+    "after-sales-list": "/bundle/components/after-sales-list/after-sales-list"
+  }
+}

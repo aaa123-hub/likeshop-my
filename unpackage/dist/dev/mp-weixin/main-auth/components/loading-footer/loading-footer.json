@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "loading": "/main-auth/components/loading/loading"
-  }
-}

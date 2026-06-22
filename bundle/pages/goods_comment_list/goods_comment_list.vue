@@ -15,6 +15,7 @@
 <script>
 
 
+import CommentList from '@/bundle/components/comment-list/comment-list.vue'
 export default {
   data() {
     return {
@@ -23,6 +24,9 @@ export default {
   },
 
   components: {
+
+  	CommentList
+
   },
   props: {},
 

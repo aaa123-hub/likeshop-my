@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "幸运抽奖",
+  "usingComponents": {
+    "u-popup": "/components/uview-ui/components/u-popup/u-popup",
+    "my-lottery": "/activity/components/my-lottery/my-lottery"
+  }
+}

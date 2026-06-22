@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "场景页",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "scene-shell": "/business/pages/business_scene/scene-shell"
+  }
+}

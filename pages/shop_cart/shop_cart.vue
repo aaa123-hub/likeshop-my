@@ -32,7 +32,7 @@
               <navigator
                 class="cart-card__body"
                 hover-class="none"
-                :url="'/pages/goods_details/goods_details?id=' + item.goods_id"
+                :url="'/bundle/pages/goods_details/goods_details?id=' + item.goods_id"
               >
                 <image class="cart-card__image" :src="item.img" mode="aspectFill"></image>
                 <view class="cart-card__info">
@@ -85,7 +85,7 @@
       <view v-else class="cart-login">
         <u-empty mode="car" text="登录后才能查看购物车哦" :iconSize="160" color="#999999">
           <view slot="bottom" class="cart-empty__action">
-            <navigator class="cart-empty__btn cart-empty__btn--login" url="/pages/login/login" hover-class="none">去登录</navigator>
+            <navigator class="cart-empty__btn cart-empty__btn--login" url="/bundle/pages/login/login" hover-class="none">去登录</navigator>
           </view>
         </u-empty>
       </view>
@@ -251,7 +251,7 @@ export default {
       }
       uni.navigateTo({
         url:
-          "/pages/confirm_order/confirm_order?data=" +
+          "/bundle/pages/confirm_order/confirm_order?data=" +
           encodeURIComponent(
             JSON.stringify({
               goods,

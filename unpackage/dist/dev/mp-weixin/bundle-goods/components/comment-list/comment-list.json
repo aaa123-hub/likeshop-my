@@ -1,9 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "custom-image": "/bundle-goods/components/custom-image/custom-image",
-    "price-format": "/bundle-goods/components/price-format/price-format",
-    "u-rate": "/bundle-goods/components/uview-ui/components/u-rate/u-rate",
-    "loading-footer": "/bundle-goods/components/loading-footer/loading-footer"
-  }
-}

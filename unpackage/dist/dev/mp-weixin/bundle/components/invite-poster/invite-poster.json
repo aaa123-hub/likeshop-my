@@ -1,0 +1,10 @@
+{
+  "component": true,
+  "usingComponents": {
+    "l-painter": "/bundle/components/lime-painter/components/l-painter/l-painter",
+    "l-painter-image": "/bundle/components/lime-painter/components/l-painter-image/l-painter-image",
+    "l-painter-text": "/bundle/components/lime-painter/components/l-painter-text/l-painter-text",
+    "l-painter-view": "/bundle/components/lime-painter/components/l-painter-view/l-painter-view",
+    "l-painter-qrcode": "/bundle/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode"
+  }
+}

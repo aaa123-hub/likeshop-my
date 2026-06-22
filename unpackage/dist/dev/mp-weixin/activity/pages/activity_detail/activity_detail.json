@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "活动详情",
+  "usingComponents": {
+    "custom-image": "/components/custom-image/custom-image",
+    "price-format": "/components/price-format/price-format",
+    "loading-footer": "/components/loading-footer/loading-footer"
+  }
+}

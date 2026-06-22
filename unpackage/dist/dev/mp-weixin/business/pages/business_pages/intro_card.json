@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "介绍名片",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "business-wrapper-page": "/business/pages/business_scene/business-wrapper-page"
+  }
+}

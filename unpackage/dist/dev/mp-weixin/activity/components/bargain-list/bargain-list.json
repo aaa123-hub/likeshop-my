@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "custom-image": "/components/custom-image/custom-image",
+    "loading-footer": "/components/loading-footer/loading-footer"
+  },
+  "component": true
+}

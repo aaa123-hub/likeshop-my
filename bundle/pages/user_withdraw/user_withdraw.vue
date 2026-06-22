@@ -172,7 +172,8 @@
 </template>
 
 <script>
-	// +----------------------------------------------------------------------
+	import Uploader from '@/bundle/components/uploader/uploader.vue'
+// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
 	// | 欢迎阅读学习系统程序代码，建议反馈是我们前进的动力
@@ -219,7 +220,8 @@
 			};
 		},
 
-		components: {},
+		components: {
+},
 		props: {},
 
 		/**
@@ -227,7 +229,10 @@
 		 */
 		onLoad: function(options) {
 			this.getWithdrawConfigFun();
-			this.applyWithdrawFun = trottle(this.applyWithdrawFun, 1000, this)
+			this.applyWithdrawFun = trottle(this.applyWithdrawFun, 1000, this),
+
+			Uploader
+
 		},
 
 

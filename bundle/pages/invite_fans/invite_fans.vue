@@ -31,7 +31,8 @@
 </template>
 
 <script>
-	import {
+	import InvitePoster from '@/bundle/components/invite-poster/invite-poster.vue'
+import {
 		// apiMnpQrCode,
 		getShareMnQrcode
 	} from '@/api/app'
@@ -42,6 +43,9 @@
 	import { apiDistributionPoster } from '@/api/user'
 	import { mapGetters } from 'vuex'
 	export default {
+	components: {
+		InvitePoster
+	},
 		data() {
 			return {
 				path: '',

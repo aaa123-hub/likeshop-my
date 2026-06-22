@@ -1,0 +1,1 @@
+<view class="goods-bargain-container"><view class="row-center" style="height:100rpx;"><view class="bLine"></view><view class="lg bold" style="margin:0 30rpx;"> 更多砍价商品 </view><view class="bLine"></view></view><goods-list vue-id="1ae10514-1" type="double" list="{{lists}}" isBargain="{{true}}" bind:__l="__l"></goods-list></view>

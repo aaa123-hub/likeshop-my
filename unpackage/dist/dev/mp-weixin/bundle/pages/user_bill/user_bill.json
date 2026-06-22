@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "钱包明细",
+  "usingComponents": {
+    "tabs": "/components/tabs/tabs",
+    "tab": "/components/tab/tab",
+    "loading-footer": "/components/loading-footer/loading-footer"
+  }
+}

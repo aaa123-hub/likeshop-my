@@ -1,0 +1,1 @@
+<view class="user-getcoupon"><block wx:if="{{!showNull}}"><coupon-list vue-id="e9ec877e-1" list="{{couponList}}" btn-type="{{3}}" data-event-opts="{{[['^reflash',[['getCouponListFun']]]]}}" bind:reflash="__e" bind:__l="__l"></coupon-list></block><block wx:else><view class="column-center" style="padding-top:200rpx;"><text class="muted">暂无优惠券可领～</text></view></block></view>

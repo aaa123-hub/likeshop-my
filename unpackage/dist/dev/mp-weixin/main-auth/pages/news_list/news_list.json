@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "商城资讯",
-  "usingComponents": {
-    "swipers": "/main-auth/components/swipers/swipers",
-    "tabs": "/main-auth/components/tabs/tabs",
-    "tab": "/main-auth/components/tab/tab",
-    "loading-footer": "/main-auth/components/loading-footer/loading-footer"
-  }
-}

@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "售后详情",
-  "usingComponents": {
-    "custom-image": "/bundle-after-a/components/custom-image/custom-image",
-    "price-format": "/bundle-after-a/components/price-format/price-format",
-    "u-modal": "/bundle-after-a/components/uview-ui/components/u-modal/u-modal"
-  }
-}

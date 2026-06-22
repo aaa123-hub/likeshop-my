@@ -128,6 +128,7 @@
 </template>
 
 <script>
+import Uploader from '@/bundle/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -151,6 +152,9 @@ import { getGoodsInfo, applyAfterSale, applyAgain } from "@/api/user";
 import { uploadFile, trottle } from "@/utils/tools.js";
 
 export default {
+	components: {
+		Uploader
+	},
   data() {
     return {
       hiddenOpt: false,

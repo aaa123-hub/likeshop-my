@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "loading": "/bundle-after-a/components/loading/loading"
-  }
-}

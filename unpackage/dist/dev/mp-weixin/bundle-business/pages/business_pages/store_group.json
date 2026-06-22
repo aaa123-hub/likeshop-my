@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "店铺详情-团购",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "business-wrapper-page": "/bundle-business/pages/business_scene/business-wrapper-page"
-  }
-}

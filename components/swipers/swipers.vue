@@ -123,7 +123,7 @@
 						break;
 					case 3:
 						uni.navigateTo({
-							url: '/pages/webview/webview?url=' + link
+							url: '/bundle/pages/webview/webview?url=' + link
 						});
 						break;
 				}

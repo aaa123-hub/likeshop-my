@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "核销订单",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "u-tabs": "/components/uview-ui/components/u-tabs/u-tabs",
+    "order-goods": "/components/order-goods/order-goods",
+    "loading-footer": "/components/loading-footer/loading-footer",
+    "u-modal": "/components/uview-ui/components/u-modal/u-modal",
+    "u-input": "/components/uview-ui/components/u-input/u-input"
+  }
+}

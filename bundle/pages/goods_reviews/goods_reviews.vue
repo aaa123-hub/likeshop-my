@@ -66,6 +66,7 @@
 </template>
 
 <script>
+import Uploader from '@/bundle/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -87,6 +88,9 @@ import { baseURL } from '@/config/app.js'
 import { goodsComment, getCommentInfo } from '@/api/user'
 import { uploadFile } from '@/utils/tools.js'
 export default {
+	components: {
+		Uploader
+	},
     data() {
         return {
             goodsRate: 0,

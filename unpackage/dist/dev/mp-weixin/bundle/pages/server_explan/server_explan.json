@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "服务说明",
+  "usingComponents": {
+    "u-parse": "/components/uview-ui/components/u-parse/u-parse"
+  }
+}

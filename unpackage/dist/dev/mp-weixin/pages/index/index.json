@@ -1,1 +1,10 @@
-{"navigationStyle":"custom","enablePullDownRefresh":true,"navigationBarTitleText":"首页","backgroundColorTop":"#FFFFFF","navigationBarTextStyle":"white","usingComponents":{"u-icon":"/components/uview-ui/components/u-icon/u-icon"}}
+{
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "navigationBarTitleText": "首页",
+  "backgroundColorTop": "#FFFFFF",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "u-icon": "/components/uview-ui/components/u-icon/u-icon"
+  }
+}

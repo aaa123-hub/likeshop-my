@@ -33,6 +33,7 @@
 </template>
 
 <script>
+import Uploader from '@/bundle/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -68,6 +69,8 @@ export default {
   },
 
   components: {
+
+  	Uploader
 
   },
   props: {},

@@ -7,7 +7,7 @@
             </view>
             <image class="home-hero__image" :src="designAssets.homeHeroFigure" mode="aspectFit"></image>
 
-            <navigator class="home-search" hover-class="none" url="/pages/goods_search/goods_search">
+            <navigator class="home-search" hover-class="none" url="/bundle/pages/goods_search/goods_search">
                 <text class="home-search__placeholder">输入关键词</text>
                 <u-icon name="search" size="48" color="#222222"></u-icon>
             </navigator>
@@ -92,7 +92,7 @@
                     :key="index"
                     class="goods-card"
                     hover-class="none"
-                    :url="'/pages/goods_details/goods_details?id=' + (item.id || item.goods_id)"
+                    :url="'/bundle/pages/goods_details/goods_details?id=' + (item.id || item.goods_id)"
                 >
                     <view v-if="isEmptyImage(item.image || item.goods_image)" class="goods-card__image image-placeholder">无</view>
                     <image v-else class="goods-card__image" :src="displayImage(item.image || item.goods_image, 'goods')" mode="aspectFill"></image>
@@ -201,10 +201,10 @@ export default {
         homeShortcutFallback() {
             return [
                 { name: '分类', image: '', url: '/pages/sort/sort', type: 'switchTab' },
-                { name: '订单', image: '', url: '/pages/user_order/user_order' },
+                { name: '订单', image: '', url: '/bundle/pages/user_order/user_order' },
                 { name: '消息', image: '', url: '/bundle/pages/notice/notice' },
-                { name: '活动', image: '', url: '/bundle/pages/business_pages/activity_center' },
-                { name: '门店', image: '', url: '/bundle/pages/business_pages/store_detail' }
+                { name: '活动', image: '', url: '/business/pages/business_pages/activity_center' },
+                { name: '门店', image: '', url: '/business/pages/business_pages/store_detail' }
             ]
         }
     },
@@ -264,7 +264,7 @@ export default {
                 ORDER: {
                     name: item.title || '订单',
                     image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/order/list' ? item.pagePath : '/pages/user_order/user_order'
+                    url: item.pagePath && item.pagePath !== '/pages/order/list' ? item.pagePath : '/bundle/pages/user_order/user_order'
                 },
                 MESSAGE: {
                     name: item.title || '消息',
@@ -274,7 +274,7 @@ export default {
                 COUPON: {
                     name: item.title || '优惠券',
                     image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/coupon/list' ? item.pagePath : '/pages/user_coupon/user_coupon'
+                    url: item.pagePath && item.pagePath !== '/pages/coupon/list' ? item.pagePath : '/bundle/pages/user_coupon/user_coupon'
                 },
                 WALLET: {
                     name: item.title || '钱包',
@@ -316,22 +316,22 @@ export default {
         },
         handleVisitTap(item) {
             if ((item.visitType || '').toUpperCase() === 'SHOP' && item.targetId) {
-                this.goPage(`/bundle/pages/business_pages/store_detail?shopId=${item.targetId}`)
+                this.goPage(`/business/pages/business_pages/store_detail?shopId=${item.targetId}`)
                 return
             }
             if (item.targetId) {
-                this.goPage(`/pages/goods_details/goods_details?id=${item.targetId}`)
+                this.goPage(`/bundle/pages/goods_details/goods_details?id=${item.targetId}`)
             }
         },
         handleActivityTap(item) {
             if (item.targetId) {
-                this.goPage(`/bundle/pages/activity_detail/activity_detail?id=${item.targetId}`)
+                this.goPage(`/activity/pages/activity_detail/activity_detail?id=${item.targetId}`)
                 return
             }
             this.openBusinessPage(businessRoutes.pages.activityCenter)
         },
         handleShopTap(item) {
-            this.goPage(`/bundle/pages/business_pages/store_detail?shopId=${item.shopId || item.id || ''}`)
+            this.goPage(`/business/pages/business_pages/store_detail?shopId=${item.shopId || item.id || ''}`)
         },
         openShortcut(item) {
             if (item.type === 'switchTab') {
@@ -348,7 +348,7 @@ export default {
                 return
             }
             if (code === 'ORDER' || item.name === '订单') {
-                this.goPage('/pages/user_order/user_order')
+                this.goPage('/bundle/pages/user_order/user_order')
                 return
             }
             if (code === 'MESSAGE' || item.name === '消息') {

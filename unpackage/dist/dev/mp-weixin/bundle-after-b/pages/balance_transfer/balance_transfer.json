@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "余额转账",
-  "usingComponents": {
-    "u-modal": "/bundle-after-b/components/uview-ui/components/u-modal/u-modal",
-    "set-pay-pwd": "/bundle-after-b/components/set-pay-pwd/set-pay-pwd"
-  }
-}

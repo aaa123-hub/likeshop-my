@@ -1,0 +1,3478 @@
+(global["webpackJsonp"] = global["webpackJsonp"] || []).push([["bundle/common/vendor"],{
+
+/***/ 1127:
+/*!**********************************************************************************!*\
+  !*** /Users/pc/nodejs/likeshop-my-former/bundle/components/tki-qrcode/qrcode.js ***!
+  \**********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _typeof2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/typeof */ 13));
+var QRCode = {};
+(function () {
+  /**
+   * 获取单个字符的utf8编码
+   * unicode BMP平面约65535个字符
+   * @param {num} code
+   * return {array}
+   */
+  function unicodeFormat8(code) {
+    // 1 byte
+    var c0, c1, c2;
+    if (code < 128) {
+      return [code];
+      // 2 bytes
+    } else if (code < 2048) {
+      c0 = 192 + (code >> 6);
+      c1 = 128 + (code & 63);
+      return [c0, c1];
+      // 3 bytes
+    } else {
+      c0 = 224 + (code >> 12);
+      c1 = 128 + (code >> 6 & 63);
+      c2 = 128 + (code & 63);
+      return [c0, c1, c2];
+    }
+  }
+  /**
+   * 获取字符串的utf8编码字节串
+   * @param {string} string
+   * @return {array}
+   */
+  function getUTF8Bytes(string) {
+    var utf8codes = [];
+    for (var i = 0; i < string.length; i++) {
+      var code = string.charCodeAt(i);
+      var utf8 = unicodeFormat8(code);
+      for (var j = 0; j < utf8.length; j++) {
+        utf8codes.push(utf8[j]);
+      }
+    }
+    return utf8codes;
+  }
+  /**
+   * 二维码算法实现
+   * @param {string} data              要编码的信息字符串
+   * @param {num} errorCorrectLevel 纠错等级
+   */
+  function QRCodeAlg(data, errorCorrectLevel) {
+    this.typeNumber = -1; //版本
+    this.errorCorrectLevel = errorCorrectLevel;
+    this.modules = null; //二维矩阵，存放最终结果
+    this.moduleCount = 0; //矩阵大小
+    this.dataCache = null; //数据缓存
+    this.rsBlocks = null; //版本数据信息
+    this.totalDataCount = -1; //可使用的数据量
+    this.data = data;
+    this.utf8bytes = getUTF8Bytes(data);
+    this.make();
+  }
+  QRCodeAlg.prototype = {
+    constructor: QRCodeAlg,
+    /**
+     * 获取二维码矩阵大小
+     * @return {num} 矩阵大小
+     */
+    getModuleCount: function getModuleCount() {
+      return this.moduleCount;
+    },
+    /**
+     * 编码
+     */
+    make: function make() {
+      this.getRightType();
+      this.dataCache = this.createData();
+      this.createQrcode();
+    },
+    /**
+     * 设置二位矩阵功能图形
+     * @param  {bool} test 表示是否在寻找最好掩膜阶段
+     * @param  {num} maskPattern 掩膜的版本
+     */
+    makeImpl: function makeImpl(maskPattern) {
+      this.moduleCount = this.typeNumber * 4 + 17;
+      this.modules = new Array(this.moduleCount);
+      for (var row = 0; row < this.moduleCount; row++) {
+        this.modules[row] = new Array(this.moduleCount);
+      }
+      this.setupPositionProbePattern(0, 0);
+      this.setupPositionProbePattern(this.moduleCount - 7, 0);
+      this.setupPositionProbePattern(0, this.moduleCount - 7);
+      this.setupPositionAdjustPattern();
+      this.setupTimingPattern();
+      this.setupTypeInfo(true, maskPattern);
+      if (this.typeNumber >= 7) {
+        this.setupTypeNumber(true);
+      }
+      this.mapData(this.dataCache, maskPattern);
+    },
+    /**
+     * 设置二维码的位置探测图形
+     * @param  {num} row 探测图形的中心横坐标
+     * @param  {num} col 探测图形的中心纵坐标
+     */
+    setupPositionProbePattern: function setupPositionProbePattern(row, col) {
+      for (var r = -1; r <= 7; r++) {
+        if (row + r <= -1 || this.moduleCount <= row + r) continue;
+        for (var c = -1; c <= 7; c++) {
+          if (col + c <= -1 || this.moduleCount <= col + c) continue;
+          if (0 <= r && r <= 6 && (c == 0 || c == 6) || 0 <= c && c <= 6 && (r == 0 || r == 6) || 2 <= r && r <= 4 && 2 <= c && c <= 4) {
+            this.modules[row + r][col + c] = true;
+          } else {
+            this.modules[row + r][col + c] = false;
+          }
+        }
+      }
+    },
+    /**
+     * 创建二维码
+     * @return {[type]} [description]
+     */
+    createQrcode: function createQrcode() {
+      var minLostPoint = 0;
+      var pattern = 0;
+      var bestModules = null;
+      for (var i = 0; i < 8; i++) {
+        this.makeImpl(i);
+        var lostPoint = QRUtil.getLostPoint(this);
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+          bestModules = this.modules;
+        }
+      }
+      this.modules = bestModules;
+      this.setupTypeInfo(false, pattern);
+      if (this.typeNumber >= 7) {
+        this.setupTypeNumber(false);
+      }
+    },
+    /**
+     * 设置定位图形
+     * @return {[type]} [description]
+     */
+    setupTimingPattern: function setupTimingPattern() {
+      for (var r = 8; r < this.moduleCount - 8; r++) {
+        if (this.modules[r][6] != null) {
+          continue;
+        }
+        this.modules[r][6] = r % 2 == 0;
+        if (this.modules[6][r] != null) {
+          continue;
+        }
+        this.modules[6][r] = r % 2 == 0;
+      }
+    },
+    /**
+     * 设置矫正图形
+     * @return {[type]} [description]
+     */
+    setupPositionAdjustPattern: function setupPositionAdjustPattern() {
+      var pos = QRUtil.getPatternPosition(this.typeNumber);
+      for (var i = 0; i < pos.length; i++) {
+        for (var j = 0; j < pos.length; j++) {
+          var row = pos[i];
+          var col = pos[j];
+          if (this.modules[row][col] != null) {
+            continue;
+          }
+          for (var r = -2; r <= 2; r++) {
+            for (var c = -2; c <= 2; c++) {
+              if (r == -2 || r == 2 || c == -2 || c == 2 || r == 0 && c == 0) {
+                this.modules[row + r][col + c] = true;
+              } else {
+                this.modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    },
+    /**
+     * 设置版本信息（7以上版本才有）
+     * @param  {bool} test 是否处于判断最佳掩膜阶段
+     * @return {[type]}      [description]
+     */
+    setupTypeNumber: function setupTypeNumber(test) {
+      var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+      for (var i = 0; i < 18; i++) {
+        var mod = !test && (bits >> i & 1) == 1;
+        this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod;
+        this.modules[i % 3 + this.moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    },
+    /**
+     * 设置格式信息（纠错等级和掩膜版本）
+     * @param  {bool} test
+     * @param  {num} maskPattern 掩膜版本
+     * @return {}
+     */
+    setupTypeInfo: function setupTypeInfo(test, maskPattern) {
+      var data = QRErrorCorrectLevel[this.errorCorrectLevel] << 3 | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+      // vertical
+      for (var i = 0; i < 15; i++) {
+        var mod = !test && (bits >> i & 1) == 1;
+        if (i < 6) {
+          this.modules[i][8] = mod;
+        } else if (i < 8) {
+          this.modules[i + 1][8] = mod;
+        } else {
+          this.modules[this.moduleCount - 15 + i][8] = mod;
+        }
+        // horizontal
+        var mod = !test && (bits >> i & 1) == 1;
+        if (i < 8) {
+          this.modules[8][this.moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          this.modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          this.modules[8][15 - i - 1] = mod;
+        }
+      }
+      // fixed module
+      this.modules[this.moduleCount - 8][8] = !test;
+    },
+    /**
+     * 数据编码
+     * @return {[type]} [description]
+     */
+    createData: function createData() {
+      var buffer = new QRBitBuffer();
+      var lengthBits = this.typeNumber > 9 ? 16 : 8;
+      buffer.put(4, 4); //添加模式
+      buffer.put(this.utf8bytes.length, lengthBits);
+      for (var i = 0, l = this.utf8bytes.length; i < l; i++) {
+        buffer.put(this.utf8bytes[i], 8);
+      }
+      if (buffer.length + 4 <= this.totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+      // padding
+      while (buffer.length % 8 != 0) {
+        buffer.putBit(false);
+      }
+      // padding
+      while (true) {
+        if (buffer.length >= this.totalDataCount * 8) {
+          break;
+        }
+        buffer.put(QRCodeAlg.PAD0, 8);
+        if (buffer.length >= this.totalDataCount * 8) {
+          break;
+        }
+        buffer.put(QRCodeAlg.PAD1, 8);
+      }
+      return this.createBytes(buffer);
+    },
+    /**
+     * 纠错码编码
+     * @param  {buffer} buffer 数据编码
+     * @return {[type]}
+     */
+    createBytes: function createBytes(buffer) {
+      var offset = 0;
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+      var length = this.rsBlock.length / 3;
+      var rsBlocks = new Array();
+      for (var i = 0; i < length; i++) {
+        var count = this.rsBlock[i * 3 + 0];
+        var totalCount = this.rsBlock[i * 3 + 1];
+        var dataCount = this.rsBlock[i * 3 + 2];
+        for (var j = 0; j < count; j++) {
+          rsBlocks.push([dataCount, totalCount]);
+        }
+      }
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+      for (var r = 0; r < rsBlocks.length; r++) {
+        var dcCount = rsBlocks[r][0];
+        var ecCount = rsBlocks[r][1] - dcCount;
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+        dcdata[r] = new Array(dcCount);
+        for (var i = 0; i < dcdata[r].length; i++) {
+          dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+        }
+        offset += dcCount;
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i++) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = modIndex >= 0 ? modPoly.get(modIndex) : 0;
+        }
+      }
+      var data = new Array(this.totalDataCount);
+      var index = 0;
+      for (var i = 0; i < maxDcCount; i++) {
+        for (var r = 0; r < rsBlocks.length; r++) {
+          if (i < dcdata[r].length) {
+            data[index++] = dcdata[r][i];
+          }
+        }
+      }
+      for (var i = 0; i < maxEcCount; i++) {
+        for (var r = 0; r < rsBlocks.length; r++) {
+          if (i < ecdata[r].length) {
+            data[index++] = ecdata[r][i];
+          }
+        }
+      }
+      return data;
+    },
+    /**
+     * 布置模块，构建最终信息
+     * @param  {} data
+     * @param  {} maskPattern
+     * @return {}
+     */
+    mapData: function mapData(data, maskPattern) {
+      var inc = -1;
+      var row = this.moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+        if (col == 6) col--;
+        while (true) {
+          for (var c = 0; c < 2; c++) {
+            if (this.modules[row][col - c] == null) {
+              var dark = false;
+              if (byteIndex < data.length) {
+                dark = (data[byteIndex] >>> bitIndex & 1) == 1;
+              }
+              var mask = QRUtil.getMask(maskPattern, row, col - c);
+              if (mask) {
+                dark = !dark;
+              }
+              this.modules[row][col - c] = dark;
+              bitIndex--;
+              if (bitIndex == -1) {
+                byteIndex++;
+                bitIndex = 7;
+              }
+            }
+          }
+          row += inc;
+          if (row < 0 || this.moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    }
+  };
+  /**
+   * 填充字段
+   */
+  QRCodeAlg.PAD0 = 0xEC;
+  QRCodeAlg.PAD1 = 0x11;
+  //---------------------------------------------------------------------
+  // 纠错等级对应的编码
+  //---------------------------------------------------------------------
+  var QRErrorCorrectLevel = [1, 0, 3, 2];
+  //---------------------------------------------------------------------
+  // 掩膜版本
+  //---------------------------------------------------------------------
+  var QRMaskPattern = {
+    PATTERN000: 0,
+    PATTERN001: 1,
+    PATTERN010: 2,
+    PATTERN011: 3,
+    PATTERN100: 4,
+    PATTERN101: 5,
+    PATTERN110: 6,
+    PATTERN111: 7
+  };
+  //---------------------------------------------------------------------
+  // 工具类
+  //---------------------------------------------------------------------
+  var QRUtil = {
+    /*
+    每个版本矫正图形的位置
+     */
+    PATTERN_POSITION_TABLE: [[], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50], [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66], [6, 26, 48, 70], [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86], [6, 34, 62, 90], [6, 28, 50, 72, 94], [6, 26, 50, 74, 98], [6, 30, 54, 78, 102], [6, 28, 54, 80, 106], [6, 32, 58, 84, 110], [6, 30, 58, 86, 114], [6, 34, 62, 90, 118], [6, 26, 50, 74, 98, 122], [6, 30, 54, 78, 102, 126], [6, 26, 52, 78, 104, 130], [6, 30, 56, 82, 108, 134], [6, 34, 60, 86, 112, 138], [6, 30, 58, 86, 114, 142], [6, 34, 62, 90, 118, 146], [6, 30, 54, 78, 102, 126, 150], [6, 24, 50, 76, 102, 128, 154], [6, 28, 54, 80, 106, 132, 158], [6, 32, 58, 84, 110, 136, 162], [6, 26, 54, 82, 110, 138, 166], [6, 30, 58, 86, 114, 142, 170]],
+    G15: 1 << 10 | 1 << 8 | 1 << 5 | 1 << 4 | 1 << 2 | 1 << 1 | 1 << 0,
+    G18: 1 << 12 | 1 << 11 | 1 << 10 | 1 << 9 | 1 << 8 | 1 << 5 | 1 << 2 | 1 << 0,
+    G15_MASK: 1 << 14 | 1 << 12 | 1 << 10 | 1 << 4 | 1 << 1,
+    /*
+    BCH编码格式信息
+     */
+    getBCHTypeInfo: function getBCHTypeInfo(data) {
+      var d = data << 10;
+      while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+        d ^= QRUtil.G15 << QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15);
+      }
+      return (data << 10 | d) ^ QRUtil.G15_MASK;
+    },
+    /*
+    BCH编码版本信息
+     */
+    getBCHTypeNumber: function getBCHTypeNumber(data) {
+      var d = data << 12;
+      while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+        d ^= QRUtil.G18 << QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18);
+      }
+      return data << 12 | d;
+    },
+    /*
+    获取BCH位信息
+     */
+    getBCHDigit: function getBCHDigit(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit++;
+        data >>>= 1;
+      }
+      return digit;
+    },
+    /*
+    获取版本对应的矫正图形位置
+     */
+    getPatternPosition: function getPatternPosition(typeNumber) {
+      return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+    },
+    /*
+    掩膜算法
+     */
+    getMask: function getMask(maskPattern, i, j) {
+      switch (maskPattern) {
+        case QRMaskPattern.PATTERN000:
+          return (i + j) % 2 == 0;
+        case QRMaskPattern.PATTERN001:
+          return i % 2 == 0;
+        case QRMaskPattern.PATTERN010:
+          return j % 3 == 0;
+        case QRMaskPattern.PATTERN011:
+          return (i + j) % 3 == 0;
+        case QRMaskPattern.PATTERN100:
+          return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 == 0;
+        case QRMaskPattern.PATTERN101:
+          return i * j % 2 + i * j % 3 == 0;
+        case QRMaskPattern.PATTERN110:
+          return (i * j % 2 + i * j % 3) % 2 == 0;
+        case QRMaskPattern.PATTERN111:
+          return (i * j % 3 + (i + j) % 2) % 2 == 0;
+        default:
+          throw new Error("bad maskPattern:" + maskPattern);
+      }
+    },
+    /*
+    获取RS的纠错多项式
+     */
+    getErrorCorrectPolynomial: function getErrorCorrectPolynomial(errorCorrectLength) {
+      var a = new QRPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i++) {
+        a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0));
+      }
+      return a;
+    },
+    /*
+    获取评价
+     */
+    getLostPoint: function getLostPoint(qrCode) {
+      var moduleCount = qrCode.getModuleCount(),
+        lostPoint = 0,
+        darkCount = 0;
+      for (var row = 0; row < moduleCount; row++) {
+        var sameCount = 0;
+        var head = qrCode.modules[row][0];
+        for (var col = 0; col < moduleCount; col++) {
+          var current = qrCode.modules[row][col];
+          //level 3 评价
+          if (col < moduleCount - 6) {
+            if (current && !qrCode.modules[row][col + 1] && qrCode.modules[row][col + 2] && qrCode.modules[row][col + 3] && qrCode.modules[row][col + 4] && !qrCode.modules[row][col + 5] && qrCode.modules[row][col + 6]) {
+              if (col < moduleCount - 10) {
+                if (qrCode.modules[row][col + 7] && qrCode.modules[row][col + 8] && qrCode.modules[row][col + 9] && qrCode.modules[row][col + 10]) {
+                  lostPoint += 40;
+                }
+              } else if (col > 3) {
+                if (qrCode.modules[row][col - 1] && qrCode.modules[row][col - 2] && qrCode.modules[row][col - 3] && qrCode.modules[row][col - 4]) {
+                  lostPoint += 40;
+                }
+              }
+            }
+          }
+          //level 2 评价
+          if (row < moduleCount - 1 && col < moduleCount - 1) {
+            var count = 0;
+            if (current) count++;
+            if (qrCode.modules[row + 1][col]) count++;
+            if (qrCode.modules[row][col + 1]) count++;
+            if (qrCode.modules[row + 1][col + 1]) count++;
+            if (count == 0 || count == 4) {
+              lostPoint += 3;
+            }
+          }
+          //level 1 评价
+          if (head ^ current) {
+            sameCount++;
+          } else {
+            head = current;
+            if (sameCount >= 5) {
+              lostPoint += 3 + sameCount - 5;
+            }
+            sameCount = 1;
+          }
+          //level 4 评价
+          if (current) {
+            darkCount++;
+          }
+        }
+      }
+      for (var col = 0; col < moduleCount; col++) {
+        var sameCount = 0;
+        var head = qrCode.modules[0][col];
+        for (var row = 0; row < moduleCount; row++) {
+          var current = qrCode.modules[row][col];
+          //level 3 评价
+          if (row < moduleCount - 6) {
+            if (current && !qrCode.modules[row + 1][col] && qrCode.modules[row + 2][col] && qrCode.modules[row + 3][col] && qrCode.modules[row + 4][col] && !qrCode.modules[row + 5][col] && qrCode.modules[row + 6][col]) {
+              if (row < moduleCount - 10) {
+                if (qrCode.modules[row + 7][col] && qrCode.modules[row + 8][col] && qrCode.modules[row + 9][col] && qrCode.modules[row + 10][col]) {
+                  lostPoint += 40;
+                }
+              } else if (row > 3) {
+                if (qrCode.modules[row - 1][col] && qrCode.modules[row - 2][col] && qrCode.modules[row - 3][col] && qrCode.modules[row - 4][col]) {
+                  lostPoint += 40;
+                }
+              }
+            }
+          }
+          //level 1 评价
+          if (head ^ current) {
+            sameCount++;
+          } else {
+            head = current;
+            if (sameCount >= 5) {
+              lostPoint += 3 + sameCount - 5;
+            }
+            sameCount = 1;
+          }
+        }
+      }
+      // LEVEL4
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+      return lostPoint;
+    }
+  };
+  //---------------------------------------------------------------------
+  // QRMath使用的数学工具
+  //---------------------------------------------------------------------
+  var QRMath = {
+    /*
+    将n转化为a^m
+     */
+    glog: function glog(n) {
+      if (n < 1) {
+        throw new Error("glog(" + n + ")");
+      }
+      return QRMath.LOG_TABLE[n];
+    },
+    /*
+    将a^m转化为n
+     */
+    gexp: function gexp(n) {
+      while (n < 0) {
+        n += 255;
+      }
+      while (n >= 256) {
+        n -= 255;
+      }
+      return QRMath.EXP_TABLE[n];
+    },
+    EXP_TABLE: new Array(256),
+    LOG_TABLE: new Array(256)
+  };
+  for (var i = 0; i < 8; i++) {
+    QRMath.EXP_TABLE[i] = 1 << i;
+  }
+  for (var i = 8; i < 256; i++) {
+    QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4] ^ QRMath.EXP_TABLE[i - 5] ^ QRMath.EXP_TABLE[i - 6] ^ QRMath.EXP_TABLE[i - 8];
+  }
+  for (var i = 0; i < 255; i++) {
+    QRMath.LOG_TABLE[QRMath.EXP_TABLE[i]] = i;
+  }
+  //---------------------------------------------------------------------
+  // QRPolynomial 多项式
+  //---------------------------------------------------------------------
+  /**
+   * 多项式类
+   * @param {Array} num   系数
+   * @param {num} shift a^shift
+   */
+  function QRPolynomial(num, shift) {
+    if (num.length == undefined) {
+      throw new Error(num.length + "/" + shift);
+    }
+    var offset = 0;
+    while (offset < num.length && num[offset] == 0) {
+      offset++;
+    }
+    this.num = new Array(num.length - offset + shift);
+    for (var i = 0; i < num.length - offset; i++) {
+      this.num[i] = num[i + offset];
+    }
+  }
+  QRPolynomial.prototype = {
+    get: function get(index) {
+      return this.num[index];
+    },
+    getLength: function getLength() {
+      return this.num.length;
+    },
+    /**
+     * 多项式乘法
+     * @param  {QRPolynomial} e 被乘多项式
+     * @return {[type]}   [description]
+     */
+    multiply: function multiply(e) {
+      var num = new Array(this.getLength() + e.getLength() - 1);
+      for (var i = 0; i < this.getLength(); i++) {
+        for (var j = 0; j < e.getLength(); j++) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i)) + QRMath.glog(e.get(j)));
+        }
+      }
+      return new QRPolynomial(num, 0);
+    },
+    /**
+     * 多项式模运算
+     * @param  {QRPolynomial} e 模多项式
+     * @return {}
+     */
+    mod: function mod(e) {
+      var tl = this.getLength(),
+        el = e.getLength();
+      if (tl - el < 0) {
+        return this;
+      }
+      var num = new Array(tl);
+      for (var i = 0; i < tl; i++) {
+        num[i] = this.get(i);
+      }
+      while (num.length >= el) {
+        var ratio = QRMath.glog(num[0]) - QRMath.glog(e.get(0));
+        for (var i = 0; i < e.getLength(); i++) {
+          num[i] ^= QRMath.gexp(QRMath.glog(e.get(i)) + ratio);
+        }
+        while (num[0] == 0) {
+          num.shift();
+        }
+      }
+      return new QRPolynomial(num, 0);
+    }
+  };
+
+  //---------------------------------------------------------------------
+  // RS_BLOCK_TABLE
+  //---------------------------------------------------------------------
+  /*
+  二维码各个版本信息[块数, 每块中的数据块数, 每块中的信息块数]
+   */
+  var RS_BLOCK_TABLE = [
+  // L
+  // M
+  // Q
+  // H
+  // 1
+  [1, 26, 19], [1, 26, 16], [1, 26, 13], [1, 26, 9],
+  // 2
+  [1, 44, 34], [1, 44, 28], [1, 44, 22], [1, 44, 16],
+  // 3
+  [1, 70, 55], [1, 70, 44], [2, 35, 17], [2, 35, 13],
+  // 4
+  [1, 100, 80], [2, 50, 32], [2, 50, 24], [4, 25, 9],
+  // 5
+  [1, 134, 108], [2, 67, 43], [2, 33, 15, 2, 34, 16], [2, 33, 11, 2, 34, 12],
+  // 6
+  [2, 86, 68], [4, 43, 27], [4, 43, 19], [4, 43, 15],
+  // 7
+  [2, 98, 78], [4, 49, 31], [2, 32, 14, 4, 33, 15], [4, 39, 13, 1, 40, 14],
+  // 8
+  [2, 121, 97], [2, 60, 38, 2, 61, 39], [4, 40, 18, 2, 41, 19], [4, 40, 14, 2, 41, 15],
+  // 9
+  [2, 146, 116], [3, 58, 36, 2, 59, 37], [4, 36, 16, 4, 37, 17], [4, 36, 12, 4, 37, 13],
+  // 10
+  [2, 86, 68, 2, 87, 69], [4, 69, 43, 1, 70, 44], [6, 43, 19, 2, 44, 20], [6, 43, 15, 2, 44, 16],
+  // 11
+  [4, 101, 81], [1, 80, 50, 4, 81, 51], [4, 50, 22, 4, 51, 23], [3, 36, 12, 8, 37, 13],
+  // 12
+  [2, 116, 92, 2, 117, 93], [6, 58, 36, 2, 59, 37], [4, 46, 20, 6, 47, 21], [7, 42, 14, 4, 43, 15],
+  // 13
+  [4, 133, 107], [8, 59, 37, 1, 60, 38], [8, 44, 20, 4, 45, 21], [12, 33, 11, 4, 34, 12],
+  // 14
+  [3, 145, 115, 1, 146, 116], [4, 64, 40, 5, 65, 41], [11, 36, 16, 5, 37, 17], [11, 36, 12, 5, 37, 13],
+  // 15
+  [5, 109, 87, 1, 110, 88], [5, 65, 41, 5, 66, 42], [5, 54, 24, 7, 55, 25], [11, 36, 12],
+  // 16
+  [5, 122, 98, 1, 123, 99], [7, 73, 45, 3, 74, 46], [15, 43, 19, 2, 44, 20], [3, 45, 15, 13, 46, 16],
+  // 17
+  [1, 135, 107, 5, 136, 108], [10, 74, 46, 1, 75, 47], [1, 50, 22, 15, 51, 23], [2, 42, 14, 17, 43, 15],
+  // 18
+  [5, 150, 120, 1, 151, 121], [9, 69, 43, 4, 70, 44], [17, 50, 22, 1, 51, 23], [2, 42, 14, 19, 43, 15],
+  // 19
+  [3, 141, 113, 4, 142, 114], [3, 70, 44, 11, 71, 45], [17, 47, 21, 4, 48, 22], [9, 39, 13, 16, 40, 14],
+  // 20
+  [3, 135, 107, 5, 136, 108], [3, 67, 41, 13, 68, 42], [15, 54, 24, 5, 55, 25], [15, 43, 15, 10, 44, 16],
+  // 21
+  [4, 144, 116, 4, 145, 117], [17, 68, 42], [17, 50, 22, 6, 51, 23], [19, 46, 16, 6, 47, 17],
+  // 22
+  [2, 139, 111, 7, 140, 112], [17, 74, 46], [7, 54, 24, 16, 55, 25], [34, 37, 13],
+  // 23
+  [4, 151, 121, 5, 152, 122], [4, 75, 47, 14, 76, 48], [11, 54, 24, 14, 55, 25], [16, 45, 15, 14, 46, 16],
+  // 24
+  [6, 147, 117, 4, 148, 118], [6, 73, 45, 14, 74, 46], [11, 54, 24, 16, 55, 25], [30, 46, 16, 2, 47, 17],
+  // 25
+  [8, 132, 106, 4, 133, 107], [8, 75, 47, 13, 76, 48], [7, 54, 24, 22, 55, 25], [22, 45, 15, 13, 46, 16],
+  // 26
+  [10, 142, 114, 2, 143, 115], [19, 74, 46, 4, 75, 47], [28, 50, 22, 6, 51, 23], [33, 46, 16, 4, 47, 17],
+  // 27
+  [8, 152, 122, 4, 153, 123], [22, 73, 45, 3, 74, 46], [8, 53, 23, 26, 54, 24], [12, 45, 15, 28, 46, 16],
+  // 28
+  [3, 147, 117, 10, 148, 118], [3, 73, 45, 23, 74, 46], [4, 54, 24, 31, 55, 25], [11, 45, 15, 31, 46, 16],
+  // 29
+  [7, 146, 116, 7, 147, 117], [21, 73, 45, 7, 74, 46], [1, 53, 23, 37, 54, 24], [19, 45, 15, 26, 46, 16],
+  // 30
+  [5, 145, 115, 10, 146, 116], [19, 75, 47, 10, 76, 48], [15, 54, 24, 25, 55, 25], [23, 45, 15, 25, 46, 16],
+  // 31
+  [13, 145, 115, 3, 146, 116], [2, 74, 46, 29, 75, 47], [42, 54, 24, 1, 55, 25], [23, 45, 15, 28, 46, 16],
+  // 32
+  [17, 145, 115], [10, 74, 46, 23, 75, 47], [10, 54, 24, 35, 55, 25], [19, 45, 15, 35, 46, 16],
+  // 33
+  [17, 145, 115, 1, 146, 116], [14, 74, 46, 21, 75, 47], [29, 54, 24, 19, 55, 25], [11, 45, 15, 46, 46, 16],
+  // 34
+  [13, 145, 115, 6, 146, 116], [14, 74, 46, 23, 75, 47], [44, 54, 24, 7, 55, 25], [59, 46, 16, 1, 47, 17],
+  // 35
+  [12, 151, 121, 7, 152, 122], [12, 75, 47, 26, 76, 48], [39, 54, 24, 14, 55, 25], [22, 45, 15, 41, 46, 16],
+  // 36
+  [6, 151, 121, 14, 152, 122], [6, 75, 47, 34, 76, 48], [46, 54, 24, 10, 55, 25], [2, 45, 15, 64, 46, 16],
+  // 37
+  [17, 152, 122, 4, 153, 123], [29, 74, 46, 14, 75, 47], [49, 54, 24, 10, 55, 25], [24, 45, 15, 46, 46, 16],
+  // 38
+  [4, 152, 122, 18, 153, 123], [13, 74, 46, 32, 75, 47], [48, 54, 24, 14, 55, 25], [42, 45, 15, 32, 46, 16],
+  // 39
+  [20, 147, 117, 4, 148, 118], [40, 75, 47, 7, 76, 48], [43, 54, 24, 22, 55, 25], [10, 45, 15, 67, 46, 16],
+  // 40
+  [19, 148, 118, 6, 149, 119], [18, 75, 47, 31, 76, 48], [34, 54, 24, 34, 55, 25], [20, 45, 15, 61, 46, 16]];
+
+  /**
+   * 根据数据获取对应版本
+   * @return {[type]} [description]
+   */
+  QRCodeAlg.prototype.getRightType = function () {
+    for (var typeNumber = 1; typeNumber < 41; typeNumber++) {
+      var rsBlock = RS_BLOCK_TABLE[(typeNumber - 1) * 4 + this.errorCorrectLevel];
+      if (rsBlock == undefined) {
+        throw new Error("bad rs block @ typeNumber:" + typeNumber + "/errorCorrectLevel:" + this.errorCorrectLevel);
+      }
+      var length = rsBlock.length / 3;
+      var totalDataCount = 0;
+      for (var i = 0; i < length; i++) {
+        var count = rsBlock[i * 3 + 0];
+        var dataCount = rsBlock[i * 3 + 2];
+        totalDataCount += dataCount * count;
+      }
+      var lengthBytes = typeNumber > 9 ? 2 : 1;
+      if (this.utf8bytes.length + lengthBytes < totalDataCount || typeNumber == 40) {
+        this.typeNumber = typeNumber;
+        this.rsBlock = rsBlock;
+        this.totalDataCount = totalDataCount;
+        break;
+      }
+    }
+  };
+
+  //---------------------------------------------------------------------
+  // QRBitBuffer
+  //---------------------------------------------------------------------
+  function QRBitBuffer() {
+    this.buffer = new Array();
+    this.length = 0;
+  }
+  QRBitBuffer.prototype = {
+    get: function get(index) {
+      var bufIndex = Math.floor(index / 8);
+      return this.buffer[bufIndex] >>> 7 - index % 8 & 1;
+    },
+    put: function put(num, length) {
+      for (var i = 0; i < length; i++) {
+        this.putBit(num >>> length - i - 1 & 1);
+      }
+    },
+    putBit: function putBit(bit) {
+      var bufIndex = Math.floor(this.length / 8);
+      if (this.buffer.length <= bufIndex) {
+        this.buffer.push(0);
+      }
+      if (bit) {
+        this.buffer[bufIndex] |= 0x80 >>> this.length % 8;
+      }
+      this.length++;
+    }
+  };
+
+  // xzedit
+  var qrcodeAlgObjCache = [];
+  /**
+   * 二维码构造函数，主要用于绘制
+   * @param  {参数列表} opt 传递参数
+   * @return {}
+   */
+  QRCode = function QRCode(opt) {
+    //设置默认参数
+    this.options = {
+      text: '',
+      size: 256,
+      correctLevel: 3,
+      background: '#ffffff',
+      foreground: '#000000',
+      pdground: '#000000',
+      image: '',
+      imageSize: 30,
+      canvasId: opt.canvasId,
+      context: opt.context,
+      usingComponents: opt.usingComponents,
+      showLoading: opt.showLoading,
+      loadingText: opt.loadingText
+    };
+    if (typeof opt === 'string') {
+      // 只编码ASCII字符串
+      opt = {
+        text: opt
+      };
+    }
+    if (opt) {
+      for (var i in opt) {
+        this.options[i] = opt[i];
+      }
+    }
+    //使用QRCodeAlg创建二维码结构
+    var qrCodeAlg = null;
+    for (var i = 0, l = qrcodeAlgObjCache.length; i < l; i++) {
+      if (qrcodeAlgObjCache[i].text == this.options.text && qrcodeAlgObjCache[i].text.correctLevel == this.options.correctLevel) {
+        qrCodeAlg = qrcodeAlgObjCache[i].obj;
+        break;
+      }
+    }
+    if (i == l) {
+      qrCodeAlg = new QRCodeAlg(this.options.text, this.options.correctLevel);
+      qrcodeAlgObjCache.push({
+        text: this.options.text,
+        correctLevel: this.options.correctLevel,
+        obj: qrCodeAlg
+      });
+    }
+    /**
+     * 计算矩阵点的前景色
+     * @param {Obj} config
+     * @param {Number} config.row 点x坐标
+     * @param {Number} config.col 点y坐标
+     * @param {Number} config.count 矩阵大小
+     * @param {Number} config.options 组件的options
+     * @return {String}
+     */
+    var getForeGround = function getForeGround(config) {
+      var options = config.options;
+      if (options.pdground && (config.row > 1 && config.row < 5 && config.col > 1 && config.col < 5 || config.row > config.count - 6 && config.row < config.count - 2 && config.col > 1 && config.col < 5 || config.row > 1 && config.row < 5 && config.col > config.count - 6 && config.col < config.count - 2)) {
+        return options.pdground;
+      }
+      return options.foreground;
+    };
+    // 创建canvas
+    var createCanvas = function createCanvas(options) {
+      if (options.showLoading) {
+        uni.showLoading({
+          title: options.loadingText,
+          mask: true
+        });
+      }
+      var ctx = uni.createCanvasContext(options.canvasId, options.context);
+      var count = qrCodeAlg.getModuleCount();
+      var ratioSize = options.size;
+      var ratioImgSize = options.imageSize;
+      //计算每个点的长宽
+      var tileW = (ratioSize / count).toPrecision(4);
+      var tileH = (ratioSize / count).toPrecision(4);
+      //绘制
+      for (var row = 0; row < count; row++) {
+        for (var col = 0; col < count; col++) {
+          var w = Math.ceil((col + 1) * tileW) - Math.floor(col * tileW);
+          var h = Math.ceil((row + 1) * tileW) - Math.floor(row * tileW);
+          var foreground = getForeGround({
+            row: row,
+            col: col,
+            count: count,
+            options: options
+          });
+          ctx.setFillStyle(qrCodeAlg.modules[row][col] ? foreground : options.background);
+          ctx.fillRect(Math.round(col * tileW), Math.round(row * tileH), w, h);
+        }
+      }
+      if (options.image) {
+        // 画圆角矩形
+        var drawRoundedRect = function drawRoundedRect(ctxi, x, y, width, height, r, lineWidth, fill, stroke) {
+          ctxi.setLineWidth(lineWidth);
+          ctxi.setFillStyle(options.background);
+          ctxi.setStrokeStyle(options.background);
+          ctxi.beginPath(); // draw top and top right corner 
+          ctxi.moveTo(x + r, y);
+          ctxi.arcTo(x + width, y, x + width, y + r, r); // draw right side and bottom right corner 
+          ctxi.arcTo(x + width, y + height, x + width - r, y + height, r); // draw bottom and bottom left corner 
+          ctxi.arcTo(x, y + height, x, y + height - r, r); // draw left and top left corner 
+          ctxi.arcTo(x, y, x + r, y, r);
+          ctxi.closePath();
+          if (fill) {
+            ctxi.fill();
+          }
+          if (stroke) {
+            ctxi.stroke();
+          }
+        };
+        var x = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
+        var y = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
+        drawRoundedRect(ctx, x, y, ratioImgSize, ratioImgSize, 2, 6, true, true);
+        ctx.drawImage(options.image, x, y, ratioImgSize, ratioImgSize);
+      }
+      setTimeout(function () {
+        ctx.draw(true, function () {
+          // 保存到临时区域
+          setTimeout(function () {
+            uni.canvasToTempFilePath({
+              width: options.width,
+              height: options.height,
+              destWidth: options.width,
+              destHeight: options.height,
+              canvasId: options.canvasId,
+              quality: Number(1),
+              success: function success(res) {
+                if (options.cbResult) {
+                  options.cbResult(res.tempFilePath);
+                }
+              },
+              fail: function fail(res) {
+                if (options.cbResult) {
+                  options.cbResult(res);
+                }
+              },
+              complete: function complete() {
+                if (options.showLoading) {
+                  uni.hideLoading();
+                }
+              }
+            }, options.context);
+          }, options.text.length + 100);
+        });
+      }, options.usingComponents ? 0 : 150);
+    };
+    createCanvas(this.options);
+    // 空判定
+    var empty = function empty(v) {
+      var tp = (0, _typeof2.default)(v),
+        rt = false;
+      if (tp == "number" && String(v) == "") {
+        rt = true;
+      } else if (tp == "undefined") {
+        rt = true;
+      } else if (tp == "object") {
+        if (JSON.stringify(v) == "{}" || JSON.stringify(v) == "[]" || v == null) rt = true;
+      } else if (tp == "string") {
+        if (v == "" || v == "undefined" || v == "null" || v == "{}" || v == "[]") rt = true;
+      } else if (tp == "function") {
+        rt = false;
+      }
+      return rt;
+    };
+  };
+  QRCode.prototype.clear = function (fn) {
+    var ctx = uni.createCanvasContext(this.options.canvasId, this.options.context);
+    ctx.clearRect(0, 0, this.options.size, this.options.size);
+    ctx.draw(false, function () {
+      if (fn) {
+        fn();
+      }
+    });
+  };
+})();
+var _default = QRCode;
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+
+/***/ 1344:
+/*!********************************************************************************************************!*\
+  !*** /Users/pc/nodejs/likeshop-my-former/bundle/components/lime-painter/components/l-painter/utils.js ***!
+  \********************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni, wx) {
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.base64ToPath = base64ToPath;
+exports.compareVersion = compareVersion;
+exports.getImageInfo = getImageInfo;
+exports.isBase64 = void 0;
+exports.isNumber = isNumber;
+exports.pathToBase64 = pathToBase64;
+exports.prefix = void 0;
+exports.sleep = sleep;
+exports.toPx = toPx;
+var _regenerator = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/regenerator */ 34));
+var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/asyncToGenerator */ 36));
+var _slicedToArray2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/slicedToArray */ 5));
+var networkReg = /^(http|\/\/)/;
+var isBase64 = function isBase64(path) {
+  return /^data:image\/(\w+);base64/.test(path);
+};
+exports.isBase64 = isBase64;
+function sleep(delay) {
+  return new Promise(function (resolve) {
+    return setTimeout(resolve, delay);
+  });
+}
+var isDev = ['devtools'].includes(uni.getSystemInfoSync().platform);
+// 缓存图片
+var cache = {};
+function isNumber(value) {
+  return /^-?\d+(\.\d+)?$/.test(value);
+}
+function toPx(value, baseSize) {
+  var isDecimal = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+  // 如果是数字
+  if (typeof value === 'number') {
+    return value;
+  }
+  // 如果是字符串数字
+  if (isNumber(value)) {
+    return value * 1;
+  }
+  // 如果有单位
+  if (typeof value === 'string') {
+    var reg = /^-?([0-9]+)?([.]{1}[0-9]+){0,1}(em|rpx|px|%)$/g;
+    var results = reg.exec(value);
+    if (!value || !results) {
+      return 0;
+    }
+    var unit = results[3];
+    value = parseFloat(value);
+    var res = 0;
+    if (unit === 'rpx') {
+      res = uni.upx2px(value);
+    } else if (unit === 'px') {
+      res = value * 1;
+    } else if (unit === '%') {
+      res = value * toPx(baseSize) / 100;
+    } else if (unit === 'em') {
+      res = value * toPx(baseSize || 14);
+    }
+    return isDecimal ? res.toFixed(2) * 1 : Math.round(res);
+  }
+  return 0;
+}
+
+// 计算版本
+function compareVersion(v1, v2) {
+  v1 = v1.split('.');
+  v2 = v2.split('.');
+  var len = Math.max(v1.length, v2.length);
+  while (v1.length < len) {
+    v1.push('0');
+  }
+  while (v2.length < len) {
+    v2.push('0');
+  }
+  for (var i = 0; i < len; i++) {
+    var num1 = parseInt(v1[i], 10);
+    var num2 = parseInt(v2[i], 10);
+    if (num1 > num2) {
+      return 1;
+    } else if (num1 < num2) {
+      return -1;
+    }
+  }
+  return 0;
+}
+var prefix = function prefix() {
+  return wx;
+};
+exports.prefix = prefix;
+var base64ToArrayBuffer = function base64ToArrayBuffer(data) {
+  return uni.base64ToArrayBuffer(data);
+};
+
+/**
+ * base64转路径
+ * @param {Object} base64
+ */
+function base64ToPath(base64) {
+  var _ref = /data:image\/(\w+);base64,(.*)/.exec(base64) || [],
+    _ref2 = (0, _slicedToArray2.default)(_ref, 3),
+    format = _ref2[1],
+    bodyData = _ref2[2];
+  return new Promise(function (resolve, reject) {
+    var fs = uni.getFileSystemManager();
+    //自定义文件名
+    if (!format) {
+      console.error('ERROR_BASE64SRC_PARSE');
+      reject(new Error('ERROR_BASE64SRC_PARSE'));
+    }
+    var time = new Date().getTime();
+    var pre = prefix();
+    var filePath = "".concat(pre.env.USER_DATA_PATH, "/").concat(time, ".").concat(format);
+    //let buffer = base64ToArrayBuffer(bodyData)
+    console.log(filePath);
+    fs.writeFile({
+      filePath: filePath,
+      data: base64.replace(/^data:\S+\/\S+;base64,/, ''),
+      encoding: 'base64',
+      // data: buffer,
+      // encoding: 'binary',
+      success: function success() {
+        resolve(filePath);
+      },
+      fail: function fail(err) {
+        console.log(base64, '!!!!!!');
+        console.error('获取base64图片失败', JSON.stringify(err));
+        reject(err);
+      }
+    });
+  });
+}
+
+/**
+ * 路径转base64
+ * @param {Object} string
+ */
+function pathToBase64(path) {
+  if (/^data:/.test(path)) return path;
+  return new Promise(function (resolve, reject) {
+    if (uni.canIUse('getFileSystemManager')) {
+      uni.getFileSystemManager().readFile({
+        filePath: path,
+        encoding: 'base64',
+        success: function success(res) {
+          resolve('data:image/png;base64,' + res.data);
+        },
+        fail: function fail(error) {
+          console.error('urlToBase64 error:', JSON.stringify(error));
+          reject(error);
+        }
+      });
+    }
+  });
+}
+function getImageInfo(img) {
+  var isH5PathToBase64 = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+  return new Promise( /*#__PURE__*/function () {
+    var _ref3 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee(resolve, reject) {
+      var localReg, imgName;
+      return _regenerator.default.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              // const base64Reg = /^data:image\/(\w+);base64/
+              localReg = /^\.|^\/(?=[^\/])/;
+              if (!isBase64(img)) {
+                _context.next = 11;
+                break;
+              }
+              if (!(isDev || !cache[img])) {
+                _context.next = 10;
+                break;
+              }
+              imgName = img;
+              _context.next = 6;
+              return base64ToPath(img);
+            case 6:
+              img = _context.sent;
+              cache[imgName] = img;
+              _context.next = 11;
+              break;
+            case 10:
+              img = cache[img];
+            case 11:
+              if (cache[img] && cache[img].errMsg) {
+                resolve(cache[img]);
+              } else {
+                uni.getImageInfo({
+                  src: img,
+                  success: function success(image) {
+                    image.path = localReg.test(img) ? "/".concat(image.path) : image.path;
+                    image.naturalSrc = img;
+                    if (isDev) {
+                      resolve(image);
+                    } else {
+                      cache[img] = image;
+                      resolve(cache[img]);
+                    }
+                  },
+                  fail: function fail(err) {
+                    resolve({
+                      path: img
+                    });
+                    console.error("getImageInfo:fail ".concat(img, " failed ").concat(JSON.stringify(err)));
+                  }
+                });
+              }
+            case 12:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee);
+    }));
+    return function (_x, _x2) {
+      return _ref3.apply(this, arguments);
+    };
+  }());
+}
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"], __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/wx.js */ 1)["default"]))
+
+/***/ }),
+
+/***/ 1345:
+/*!********************************************************************************************************!*\
+  !*** /Users/pc/nodejs/likeshop-my-former/bundle/components/lime-painter/components/common/relation.js ***!
+  \********************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.children = children;
+exports.parent = parent;
+var _toConsumableArray2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/toConsumableArray */ 18));
+var _typeof2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/typeof */ 13));
+var _defineProperty2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/defineProperty */ 11));
+var _utils = __webpack_require__(/*! ../l-painter/utils.js */ 1344);
+var styles = function styles() {
+  var v = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+  return v.split(';').filter(function (v) {
+    return v && !/^[\n\s]+$/.test(v);
+  }).map(function (v) {
+    var _item$, _item$$replace;
+    var item = v.split(':');
+    return (0, _defineProperty2.default)({}, item[0].replace(/-([a-z])/g, function () {
+      return arguments[1].toUpperCase();
+    }).replace(/\s+/g, ''), (item === null || item === void 0 ? void 0 : (_item$ = item[1]) === null || _item$ === void 0 ? void 0 : (_item$$replace = _item$.replace(/^\s+/, '')) === null || _item$$replace === void 0 ? void 0 : _item$$replace.replace(/\s+$/, '')) || '');
+  });
+};
+function parent(parent) {
+  return {
+    provide: function provide() {
+      return (0, _defineProperty2.default)({}, parent, this);
+    },
+    data: function data() {
+      return {
+        el: {
+          css: {},
+          views: []
+        }
+      };
+    },
+    watch: {
+      css: {
+        handler: function handler(v) {
+          if (this.canvasId) {
+            var _this$el$css, _this$el$css2;
+            this.el.css = (0, _typeof2.default)(v) == 'object' ? v : v && Object.assign.apply(Object, (0, _toConsumableArray2.default)(styles(v))) || {};
+            this.canvasWidth = ((_this$el$css = this.el.css) === null || _this$el$css === void 0 ? void 0 : _this$el$css.width) || this.canvasWidth;
+            this.canvasHeight = ((_this$el$css2 = this.el.css) === null || _this$el$css2 === void 0 ? void 0 : _this$el$css2.height) || this.canvasHeight;
+          }
+        },
+        immediate: true
+      }
+    }
+  };
+}
+function children(parent) {
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var indexKey = options.indexKey || 'index';
+  return {
+    inject: (0, _defineProperty2.default)({}, parent, {
+      default: null
+    }),
+    watch: {
+      el: {
+        handler: function handler(v, o) {
+          if (JSON.stringify(v) != JSON.stringify(o)) this.bindRelation();
+        },
+        deep: true,
+        immediate: true
+      },
+      src: {
+        handler: function handler(v, o) {
+          if (v != o) this.bindRelation();
+        },
+        immediate: true
+      },
+      text: {
+        handler: function handler(v, o) {
+          if (v != o) this.bindRelation();
+        },
+        immediate: true
+      },
+      css: {
+        handler: function handler(v, o) {
+          if (v != o) this.el.css = (0, _typeof2.default)(v) == 'object' ? v : v && Object.assign.apply(Object, (0, _toConsumableArray2.default)(styles(v))) || {};
+        },
+        immediate: true
+      },
+      replace: {
+        handler: function handler(v, o) {
+          if (JSON.stringify(v) != JSON.stringify(o)) this.bindRelation();
+        },
+        deep: true,
+        immediate: true
+      }
+    },
+    created: function created() {
+      var _this = this;
+      Object.defineProperty(this, 'parent', {
+        get: function get() {
+          return _this[parent];
+        }
+      });
+      Object.defineProperty(this, 'index', {
+        get: function get() {
+          var _this$parent, _this$parent$el$views;
+          _this.bindRelation();
+          return (_this$parent = _this.parent) === null || _this$parent === void 0 ? void 0 : (_this$parent$el$views = _this$parent.el.views) === null || _this$parent$el$views === void 0 ? void 0 : _this$parent$el$views.indexOf(_this.el);
+        }
+      });
+      this.el.type = this.type;
+    },
+    beforeDestroy: function beforeDestroy() {
+      var _this2 = this;
+      if (this.parent) {
+        this.parent.el.views = this.parent.el.views.filter(function (item) {
+          return item._uid !== _this2._uid;
+        });
+      }
+    },
+    methods: {
+      bindRelation: function bindRelation() {
+        var _this3 = this;
+        if (!this.el._uid) {
+          this.el._uid = this._uid;
+        }
+        if (['text', 'qrcode'].includes(this.type)) {
+          var _this$$slots, _this$$slots$default, _this$$slots$default$, _this$text;
+          this.el.text = ((_this$$slots = this.$slots) === null || _this$$slots === void 0 ? void 0 : (_this$$slots$default = _this$$slots.default) === null || _this$$slots$default === void 0 ? void 0 : (_this$$slots$default$ = _this$$slots$default[0]) === null || _this$$slots$default$ === void 0 ? void 0 : _this$$slots$default$.text) || ((_this$text = this.text) === null || _this$text === void 0 ? void 0 : _this$text.replace(/\\n/g, '\n'));
+        }
+        if (this.type == 'text' && this.replace) {
+          this.el.replace = this.replace;
+        }
+        if (this.type == 'image') {
+          this.el.src = this.src;
+        }
+        //  || this.parent.el.views.indexOf(this.el) !== -1
+        if (!this.parent) {
+          return;
+        }
+        var views = this.parent.el.views || [];
+        if (views.indexOf(this.el) !== -1) {
+          this.parent.el.views = views.map(function (v) {
+            return v._uid == _this3._uid ? _this3.el : v;
+          });
+        } else {
+          this.parent.el.views = [].concat((0, _toConsumableArray2.default)(views), [this.el]);
+        }
+      }
+    },
+    mounted: function mounted() {
+      this.bindRelation();
+    }
+  };
+}
+
+/***/ }),
+
+/***/ 1346:
+/*!**********************************************************************************************************!*\
+  !*** /Users/pc/nodejs/likeshop-my-former/bundle/components/lime-painter/components/l-painter/painter.js ***!
+  \**********************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(uni, wx) {var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;var _typeof = __webpack_require__(/*! @babel/runtime/helpers/typeof */ 13);
+!function (t, e) {
+  "object" == ( false ? undefined : _typeof(exports)) && "undefined" != typeof module ? e(exports) :  true ? !(__WEBPACK_AMD_DEFINE_ARRAY__ = [exports], __WEBPACK_AMD_DEFINE_FACTORY__ = (e),
+				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)) : undefined;
+}(this, function (t) {
+  "use strict";
+
+  /*! *****************************************************************************
+      Copyright (c) Microsoft Corporation.
+  
+      Permission to use, copy, modify, and/or distribute this software for any
+      purpose with or without fee is hereby granted.
+  
+      THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+      REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+      AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+      INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+      LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+      OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+      PERFORMANCE OF THIS SOFTWARE.
+      ***************************************************************************** */
+  var e,
+    _i = function i() {
+      return (_i = Object.assign || function (t) {
+        for (var e, i = 1, o = arguments.length; i < o; i++) {
+          for (var r in e = arguments[i]) {
+            Object.prototype.hasOwnProperty.call(e, r) && (t[r] = e[r]);
+          }
+        }
+        return t;
+      }).apply(this, arguments);
+    };
+  function o(t, e, i, o) {
+    return new (i || (i = Promise))(function (r, n) {
+      function s(t) {
+        try {
+          h(o.next(t));
+        } catch (t) {
+          n(t);
+        }
+      }
+      function a(t) {
+        try {
+          h(o.throw(t));
+        } catch (t) {
+          n(t);
+        }
+      }
+      function h(t) {
+        var e;
+        t.done ? r(t.value) : (e = t.value, e instanceof i ? e : new i(function (t) {
+          t(e);
+        })).then(s, a);
+      }
+      h((o = o.apply(t, e || [])).next());
+    });
+  }
+  function r(t, e) {
+    var i,
+      o,
+      r,
+      n,
+      s = {
+        label: 0,
+        sent: function sent() {
+          if (1 & r[0]) throw r[1];
+          return r[1];
+        },
+        trys: [],
+        ops: []
+      };
+    return n = {
+      next: a(0),
+      throw: a(1),
+      return: a(2)
+    }, "function" == typeof Symbol && (n[Symbol.iterator] = function () {
+      return this;
+    }), n;
+    function a(n) {
+      return function (a) {
+        return function (n) {
+          if (i) throw new TypeError("Generator is already executing.");
+          for (; s;) {
+            try {
+              if (i = 1, o && (r = 2 & n[0] ? o.return : n[0] ? o.throw || ((r = o.return) && r.call(o), 0) : o.next) && !(r = r.call(o, n[1])).done) return r;
+              switch (o = 0, r && (n = [2 & n[0], r.value]), n[0]) {
+                case 0:
+                case 1:
+                  r = n;
+                  break;
+                case 4:
+                  return s.label++, {
+                    value: n[1],
+                    done: !1
+                  };
+                case 5:
+                  s.label++, o = n[1], n = [0];
+                  continue;
+                case 7:
+                  n = s.ops.pop(), s.trys.pop();
+                  continue;
+                default:
+                  if (!(r = s.trys, (r = r.length > 0 && r[r.length - 1]) || 6 !== n[0] && 2 !== n[0])) {
+                    s = 0;
+                    continue;
+                  }
+                  if (3 === n[0] && (!r || n[1] > r[0] && n[1] < r[3])) {
+                    s.label = n[1];
+                    break;
+                  }
+                  if (6 === n[0] && s.label < r[1]) {
+                    s.label = r[1], r = n;
+                    break;
+                  }
+                  if (r && s.label < r[2]) {
+                    s.label = r[2], s.ops.push(n);
+                    break;
+                  }
+                  r[2] && s.ops.pop(), s.trys.pop();
+                  continue;
+              }
+              n = e.call(t, s);
+            } catch (t) {
+              n = [6, t], o = 0;
+            } finally {
+              i = r = 0;
+            }
+          }
+          if (5 & n[0]) throw n[1];
+          return {
+            value: n[0] ? n[1] : void 0,
+            done: !0
+          };
+        }([n, a]);
+      };
+    }
+  }
+  var n = {
+      upx2px: function upx2px(t) {
+        return window.innerWidth / 750 * t;
+      },
+      getSystemInfoSync: function getSystemInfoSync() {
+        return {
+          screenWidth: window.innerWidth
+        };
+      },
+      getImageInfo: function getImageInfo(t) {
+        var e = t.src,
+          i = t.success,
+          o = t.fail,
+          r = new Image();
+        r.onload = function () {
+          i({
+            width: this.naturalWidth,
+            height: this.naturalHeight,
+            path: this.src,
+            src: e
+          });
+        }, r.onerror = o, r.src = e;
+      }
+    },
+    s = "object" == (typeof swan === "undefined" ? "undefined" : _typeof(swan)) ? "mp-baidu" : "object" == (typeof tt === "undefined" ? "undefined" : _typeof(tt)) ? "mp-toutao" : "object" == (typeof plus === "undefined" ? "undefined" : _typeof(plus)) ? "plus" : "object" == (typeof window === "undefined" ? "undefined" : _typeof(window)) ? "undefined" == typeof uni || "undefined" != typeof uni && !(null === uni || void 0 === uni ? void 0 : uni.addInterceptor) ? "web" : "h5" : "mp-weixin",
+    a = "mp-weixin" == s ? wx : "mp-toutao" == s ? tt : "undefined" != typeof uni ? uni.upx2px ? uni : Object.assign(uni, n) : "undefined" != typeof window ? n : uni;
+  if (!a.upx2px) {
+    var h = (null !== (e = a.getSystemInfoSync().screenWidth) && void 0 !== e ? e : 375) / 750;
+    a.upx2px = function (t) {
+      return h * t;
+    };
+  }
+  function d(t) {
+    return /^-?\d+(\.\d+)?$/.test(t);
+  }
+  function l(t, e, i) {
+    if ("number" == typeof t) return t;
+    if (d(t)) return 1 * t;
+    if ("string" == typeof t) {
+      var o = /^-?([0-9]+)?([.]{1}[0-9]+){0,1}(em|rpx|px|%)$/g.exec(t);
+      if (!t || !o) return 0;
+      var r = o[3];
+      t = parseFloat(t);
+      var n = 0;
+      return "rpx" === r ? n = a.upx2px(t) : "px" === r ? n = 1 * t : "%" === r && e ? n = t * l(e) / 100 : "em" === r && e && (n = t * l(e || 14)), i ? 1 * n.toFixed(2) : Math.round(n);
+    }
+    return 0;
+  }
+  function c(t) {
+    var e = this;
+    return new Promise(function (i, n) {
+      return o(e, void 0, void 0, function () {
+        var e, o;
+        return r(this, function (r) {
+          switch (r.label) {
+            case 0:
+              if (e = t, "plus" != s && !/^mp/.test(s) || !/data:image\/(\w+);base64,(.*)/.test(t)) return [3, 4];
+              r.label = 1;
+            case 1:
+              return r.trys.push([1, 3,, 4]), [4, (h = t, new Promise(function (t, e) {
+                var i = /data:image\/(\w+);base64,(.*)/.exec(h) || [],
+                  o = i[1];
+                if (i[2], /^mp/.test(s)) {
+                  var r = a.getFileSystemManager();
+                  o || (console.error("ERROR_BASE64SRC_PARSE"), e(new Error("ERROR_BASE64SRC_PARSE")));
+                  var n = new Date().getTime(),
+                    d = a.env.USER_DATA_PATH + "/" + n + "." + o;
+                  r.writeFile({
+                    filePath: d,
+                    data: h.replace(/^data:\S+\/\S+;base64,/, ""),
+                    encoding: "base64",
+                    success: function success() {
+                      t(d);
+                    },
+                    fail: function fail(t) {
+                      console.error("获取base64图片失败", JSON.stringify(t)), e(t);
+                    }
+                  });
+                } else if ("plus" != s) e(new Error("not support"));else {
+                  var l = h.split(",")[0].match(/data\:\S+\/(\S+);/);
+                  l ? l = l[1] : e(new Error("base64 error"));
+                  var c = Date.now() + "." + l,
+                    u = "_doc",
+                    f = "uniapp_temp",
+                    g = "_doc/uniapp_temp/" + c;
+                  if (!function (t, e) {
+                    for (var i = t.split("."), o = e.split("."), r = !1, n = 0; n < o.length; n++) {
+                      var s = i[n] - o[n];
+                      if (0 !== s) {
+                        r = s > 0;
+                        break;
+                      }
+                    }
+                    return r;
+                  }("Android" === plus.os.name ? "1.9.9.80627" : "1.9.9.80472", plus.runtime.innerVersion)) return void plus.io.resolveLocalFileSystemURL(u, function (i) {
+                    i.getDirectory(f, {
+                      create: !0,
+                      exclusive: !1
+                    }, function (i) {
+                      i.getFile(c, {
+                        create: !0,
+                        exclusive: !1
+                      }, function (i) {
+                        i.createWriter(function (i) {
+                          var o;
+                          i.onwrite = function () {
+                            t(g);
+                          }, i.onerror = e, i.seek(0), i.writeAsBinary((o = h.split(","))[o.length - 1]);
+                        }, e);
+                      }, e);
+                    }, e);
+                  }, e);
+                  var v = new plus.nativeObj.Bitmap(c);
+                  v.loadBase64Data(h, function () {
+                    v.save(g, {}, function () {
+                      v.clear(), t(g);
+                    }, function (t) {
+                      v.clear(), e(t);
+                    });
+                  }, function (t) {
+                    v.clear(), e(t);
+                  });
+                }
+              }))];
+            case 2:
+              return e = r.sent(), [3, 4];
+            case 3:
+              return o = r.sent(), console.log(o), [3, 4];
+            case 4:
+              return a.getImageInfo({
+                src: e,
+                success: function success(t) {
+                  return i(t);
+                },
+                fail: function fail(t) {
+                  return n(t);
+                }
+              }), [2];
+          }
+          var h;
+        });
+      });
+    });
+  }
+  var u = function u(t) {
+      return !(!t || !t.startsWith("linear") && !t.startsWith("radial"));
+    },
+    f = function f(t, e, i, o, r, n) {
+      t.startsWith("linear") ? function (t, e, i, o, r, n) {
+        for (var s = function (t, e, i, o, r) {
+            void 0 === o && (o = 0);
+            void 0 === r && (r = 0);
+            var n = t.match(/([-]?\d{1,3})deg/),
+              s = n && n[1] ? parseFloat(n[1]) : 0;
+            s >= 360 && (s -= 360);
+            s < 0 && (s += 360);
+            if (0 === (s = Math.round(s))) return {
+              x0: Math.round(e / 2) + o,
+              y0: i + r,
+              x1: Math.round(e / 2) + o,
+              y1: r
+            };
+            if (180 === s) return {
+              x0: Math.round(e / 2) + o,
+              y0: r,
+              x1: Math.round(e / 2) + o,
+              y1: i + r
+            };
+            if (90 === s) return {
+              x0: o,
+              y0: Math.round(i / 2) + r,
+              x1: e + o,
+              y1: Math.round(i / 2) + r
+            };
+            if (270 === s) return {
+              x0: e + o,
+              y0: Math.round(i / 2) + r,
+              x1: o,
+              y1: Math.round(i / 2) + r
+            };
+            var a = Math.round(180 * Math.asin(e / Math.sqrt(Math.pow(e, 2) + Math.pow(i, 2))) / Math.PI);
+            if (s === a) return {
+              x0: o,
+              y0: i + r,
+              x1: e + o,
+              y1: r
+            };
+            if (s === 180 - a) return {
+              x0: o,
+              y0: r,
+              x1: e + o,
+              y1: i + r
+            };
+            if (s === 180 + a) return {
+              x0: e + o,
+              y0: r,
+              x1: o,
+              y1: i + r
+            };
+            if (s === 360 - a) return {
+              x0: e + o,
+              y0: i + r,
+              x1: o,
+              y1: r
+            };
+            var h = 0,
+              d = 0,
+              l = 0,
+              c = 0;
+            if (s < a || s > 180 - a && s < 180 || s > 180 && s < 180 + a || s > 360 - a) {
+              var u = s * Math.PI / 180,
+                f = s < a || s > 360 - a ? i / 2 : -i / 2,
+                g = Math.tan(u) * f,
+                v = s < a || s > 180 - a && s < 180 ? e / 2 - g : -e / 2 - g;
+              h = -(l = g + (p = Math.pow(Math.sin(u), 2) * v)), d = -(c = f + p / Math.tan(u));
+            }
+            if (s > a && s < 90 || s > 90 && s < 90 + a || s > 180 + a && s < 270 || s > 270 && s < 360 - a) {
+              var p;
+              u = (90 - s) * Math.PI / 180, g = s > a && s < 90 || s > 90 && s < 90 + a ? e / 2 : -e / 2, f = Math.tan(u) * g, v = s > a && s < 90 || s > 270 && s < 360 - a ? i / 2 - f : -i / 2 - f;
+              h = -(l = g + (p = Math.pow(Math.sin(u), 2) * v) / Math.tan(u)), d = -(c = f + p);
+            }
+            return h = Math.round(h + e / 2) + o, d = Math.round(i / 2 - d) + r, l = Math.round(l + e / 2) + o, c = Math.round(i / 2 - c) + r, {
+              x0: h,
+              y0: d,
+              x1: l,
+              y1: c
+            };
+          }(r, t, e, i, o), a = s.x0, h = s.y0, d = s.x1, l = s.y1, c = n.createLinearGradient(a, h, d, l), u = r.match(/linear-gradient\((.+)\)/)[1], f = g(u.substring(u.indexOf(",") + 1)), v = 0; v < f.colors.length; v++) {
+          c.addColorStop(f.percents[v], f.colors[v]);
+        }
+        n.setFillStyle(c);
+      }(e, i, o, r, t, n) : t.startsWith("radial") && function (t, e, i, o, r, n) {
+        for (var s = g(r.match(/radial-gradient\((.+)\)/)[1]), a = Math.round(t / 2) + i, h = Math.round(e / 2) + o, d = n.createRadialGradient(a, h, 0, a, h, Math.max(t, e) / 2), l = 0; l < s.colors.length; l++) {
+          d.addColorStop(s.percents[l], s.colors[l]);
+        }
+        n.setFillStyle(d);
+      }(e, i, o, r, t, n);
+    };
+  function g(t) {
+    for (var e = [], i = [], o = 0, r = t.substring(0, t.length - 1).split("%,"); o < r.length; o++) {
+      var n = r[o];
+      e.push(n.substring(0, n.lastIndexOf(" ")).trim()), i.push(n.substring(n.lastIndexOf(" "), n.length) / 100);
+    }
+    return {
+      colors: e,
+      percents: i
+    };
+  }
+  function v(t, e, i) {
+    return e in t ? Object.defineProperty(t, e, {
+      value: i,
+      enumerable: !0,
+      configurable: !0,
+      writable: !0
+    }) : t[e] = i, t;
+  }
+  function p() {
+    return (p = Object.assign || function (t) {
+      for (var e = 1; e < arguments.length; e++) {
+        var i = arguments[e];
+        for (var o in i) {
+          Object.prototype.hasOwnProperty.call(i, o) && (t[o] = i[o]);
+        }
+      }
+      return t;
+    }).apply(this, arguments);
+  }
+  var b = 0,
+    m = {
+      left: null,
+      top: null,
+      width: null,
+      height: null
+    },
+    w = function () {
+      function t(t, e, i, o) {
+        var r = this;
+        v(this, "id", b++), v(this, "style", {
+          left: null,
+          top: null,
+          width: null,
+          height: null
+        }), v(this, "computedStyle", {}), v(this, "children", {}), v(this, "layoutBox", p({}, m)), v(this, "contentSize", p({}, m, {
+          maxLineHeight: 0
+        })), v(this, "clientSize", p({}, m)), v(this, "borderSize", p({}, m)), v(this, "offsetSize", p({}, m)), this.ctx = o, this.root = i, e && (this.parent = e), this.name = t.name || t.type, this.attributes = this.getAttributes(t);
+        var n = this.getComputedStyle(t, null == e ? void 0 : e.computedStyle);
+        this.isAbsolute = "absolute" == n.position, this.isFixed = "fixed" == n.position, Object.keys(n).forEach(function (t) {
+          Object.defineProperty(r.style, t, {
+            configurable: !0,
+            enumerable: !0,
+            get: function get() {
+              return n[t];
+            },
+            set: function set(e) {
+              n[t] = e;
+            }
+          });
+        });
+        var s = {
+          contentSize: p({}, this.contentSize),
+          clientSize: p({}, this.clientSize),
+          borderSize: p({}, this.borderSize),
+          offsetSize: p({}, this.offsetSize)
+        };
+        Object.keys(s).forEach(function (t) {
+          Object.keys(r[t]).forEach(function (e) {
+            Object.defineProperty(r[t], e, {
+              configurable: !0,
+              enumerable: !0,
+              get: function get() {
+                return s[t][e];
+              },
+              set: function set(i) {
+                s[t][e] = i;
+              }
+            });
+          });
+        }), this.computedStyle = this.style;
+      }
+      var e = t.prototype;
+      return e.add = function (t) {
+        t.parent = this, this.children[t.id] = t;
+      }, e.remove = function (t) {
+        var e = this;
+        t ? this.children[t.id] && (t.remove(), delete this.children[t.id]) : Object.keys(this.children).forEach(function (t) {
+          e.children[t].remove(), delete e.children[t];
+        });
+      }, e.getChildren = function () {
+        var t = this;
+        return Object.keys(this.children).map(function (e) {
+          return t.children[e];
+        });
+      }, e.getComputedStyle = function (t, e) {
+        var i = ["color", "fontSize", "lineHeight", "verticalAlign", "fontWeight", "textAlign"],
+          o = t.css,
+          r = void 0 === o ? {} : o,
+          n = t.type,
+          s = void 0 === n ? "view" : n,
+          a = {};
+        if (e) for (var h = 0; h < i.length; h++) {
+          var c = i[h];
+          (r[c] || e[c]) && (r[c] = r[c] || e[c]);
+        }
+        for (var u = function u() {
+            var t = g[f],
+              e = r[t];
+            if (/^(box)?shadow$/i.test(t)) {
+              var i = e.split(" ").map(function (t) {
+                return /^\d/.test(t) ? l(t) : t;
+              });
+              return a.boxShadow = i, "continue";
+            }
+            if (/^border/i.test(t) && !/radius$/i.test(t)) {
+              var o,
+                n = t.match(/^border([BTRLa-z]+)?/)[0],
+                h = t.match(/[W|S|C][a-z]+/),
+                c = e.replace(/([\(,])\s+|\s+([\),])/g, "$1$2").split(" ").map(function (t) {
+                  return /^\d/.test(t) ? l(t, "", !0) : t;
+                });
+              return a[n] = ((o = {})[n + "Width"] = (d(c[0]) ? c[0] : 0) || 1, o[n + "Style"] = c[1] || "solid", o[n + "Color"] = c[2] || "black", o), 1 == c.length && h && (a[n][n + h[0]] = c[0]), "continue";
+            }
+            if (/^background(color)?$/i.test(t)) return a.backgroundColor = e, "continue";
+            if (/^objectPosition$/i.test(t)) return a[t] = e.split(" "), "continue";
+            if (/padding|margin|radius/i.test(t)) {
+              var u = /radius$/i.test(t),
+                v = u ? "borderRadius" : t.match(/[a-z]+/)[0],
+                p = [0, 0, 0, 0].map(function (t, e) {
+                  return u ? ["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"][e] : [v + "Top", v + "Right", v + "Bottom", v + "Left"][e];
+                });
+              if ("padding" === t || "margin" === t || /^(border)?radius$/i.test(t)) {
+                var b,
+                  m = (null == e ? void 0 : e.split(" ").map(function (e) {
+                    return /^\d+(rpx|px)?$/.test(e) ? l(e) : "margin" != t && /auto/.test(e) ? 0 : e;
+                  }, [])) || [0],
+                  w = u ? "borderRadius" : t,
+                  x = m[0],
+                  y = m[1],
+                  S = m[2],
+                  z = m[3];
+                a[w] = ((b = {})[p[0]] = "auto" == x ? 0 : x, b[p[1]] = d(y) ? y : x, b[p[2]] = "auto" == (d(S) ? S : x) ? 0 : d(S) ? S : x, b[p[3]] = d(z) ? z : y || x, b);
+              } else {
+                var B;
+                if ("object" == _typeof(a[v])) a[v][t] = "margin" == v && "auto" == e || /%$/.test(e) ? e : l(e);else a[v] = ((B = {})[p[0]] = a[v] || 0, B[p[1]] = a[v] || 0, B[p[2]] = a[v] || 0, B[p[3]] = a[v] || 0, B), a[v][t] = "margin" == v && "auto" == e || /%$/.test(e) ? e : l(e);
+              }
+              return "continue";
+            }
+            if (/^transform$/i.test(t)) return a[t] = {}, e.replace(/([a-zA-Z]+)\(([0-9,-\.%rpxdeg\s]+)\)/g, function (e, i, o) {
+              var n = o.split(",").map(function (t) {
+                  return t.replace(/(^\s*)|(\s*$)/g, "");
+                }),
+                s = function s(t, e) {
+                  return t.includes("deg") ? 1 * t : e && !/%$/.test(e) ? l(t, e) : t;
+                };
+              i.includes("matrix") ? a[t][i] = n.map(function (t) {
+                return 1 * t;
+              }) : i.includes("rotate") ? a[t][i] = 1 * o.match(/^-?\d+(\.\d+)?/)[0] : /[X, Y]/.test(i) ? a[t][i] = /[X]/.test(i) ? s(n[0], r.width) : s(n[0], r.height) : (a[t][i + "X"] = s(n[0], r.width), a[t][i + "Y"] = s(n[1] || n[0], r.height));
+            }), "continue";
+            /^left|top$/i.test(t) && !["absolute", "fixed"].includes(r.position) ? a[t] = 0 : a[t] = /^[\d\.]+(px|rpx)?$/.test(e) ? l(e) : /em$/.test(e) && "text" == s ? l(e, r.fontSize) : e;
+          }, f = 0, g = Object.keys(r); f < g.length; f++) {
+          u();
+        }
+        return a;
+      }, e.setPosition = function (t, e) {
+        var i = {
+          left: "width",
+          top: "height",
+          right: "width",
+          bottom: "height"
+        };
+        Object.keys(i).forEach(function (o) {
+          ["right", "bottom"].includes(o) && void 0 !== t.style[o] ? t.style["right" == o ? "left" : "top"] = e[i[o]] - t.offsetSize[i[o]] - l(t.style[o], e[i[o]]) : t.style[o] = l(t.style[o], e[i[o]]);
+        });
+      }, e.getAttributes = function (t) {
+        var e = t.attributes || {};
+        return (null != t && t.url || null != t && t.src) && (e.src = e.src || t.url || (null == t ? void 0 : t.src)), t.replace && (e.replace = t.replace), null != t && t.text && (e.text = t.text), e;
+      }, e.getOffsetSize = function (t, e, i) {
+        void 0 === i && (i = "offsetSize");
+        var o = e || {},
+          r = o.margin,
+          n = (r = void 0 === r ? {} : r).marginLeft,
+          s = void 0 === n ? 0 : n,
+          a = r.marginTop,
+          h = void 0 === a ? 0 : a,
+          d = r.marginRight,
+          l = void 0 === d ? 0 : d,
+          c = r.marginBottom,
+          u = void 0 === c ? 0 : c,
+          f = o.padding,
+          g = (f = void 0 === f ? {} : f).paddingLeft,
+          v = void 0 === g ? 0 : g,
+          p = f.paddingTop,
+          b = void 0 === p ? 0 : p,
+          m = f.paddingRight,
+          w = void 0 === m ? 0 : m,
+          x = f.paddingBottom,
+          y = void 0 === x ? 0 : x,
+          S = o.border,
+          z = (S = void 0 === S ? {} : S).borderWidth,
+          B = void 0 === z ? 0 : z,
+          R = o.borderTop,
+          M = (R = void 0 === R ? {} : R).borderTopWidth,
+          k = void 0 === M ? B : M,
+          P = o.borderBottom,
+          O = (P = void 0 === P ? {} : P).borderBottomWidth,
+          T = void 0 === O ? B : O,
+          L = o.borderRight,
+          W = (L = void 0 === L ? {} : L).borderRightWidth,
+          I = void 0 === W ? B : W,
+          j = o.borderLeft,
+          C = (j = void 0 === j ? {} : j).borderLeftWidth,
+          F = void 0 === C ? B : C;
+        return "contentSize" == i && (this[i].left = t.left + s + v + F, this[i].top = t.top + h + b + k, this[i].width = t.width, this[i].height = t.height), "clientSize" == i && (this[i].left = t.left + s + F, this[i].top = t.top + h + k, this[i].width = t.width + v + w, this[i].height = t.height + b + y), "borderSize" == i && (this[i].left = t.left + s + F / 2, this[i].top = t.top + h + k / 2, this[i].width = t.width + v + w + F / 2 + I / 2, this[i].height = t.height + b + y + T / 2 + k / 2), "offsetSize" == i && (this[i].left = t.left, this[i].top = t.top, this[i].width = t.width + v + w + F + I + s + l, this[i].height = t.height + b + y + T + k + u + h), this[i];
+      }, e.layoutBoxUpdate = function (t, e, i, o) {
+        if (void 0 === i && (i = ""), "border-box" == (null == e ? void 0 : e.boxSizing)) {
+          var r = e || {},
+            n = r.border,
+            s = (n = void 0 === n ? {} : n).borderWidth,
+            a = void 0 === s ? 0 : s,
+            h = r.borderTop,
+            d = (h = void 0 === h ? {} : h).borderTopWidth,
+            l = void 0 === d ? a : d,
+            c = r.borderBottom,
+            u = (c = void 0 === c ? {} : c).borderBottomWidth,
+            f = void 0 === u ? a : u,
+            g = r.borderRight,
+            v = (g = void 0 === g ? {} : g).borderRightWidth,
+            p = void 0 === v ? a : v,
+            b = r.borderLeft,
+            m = (b = void 0 === b ? {} : b).borderLeftWidth,
+            w = void 0 === m ? a : m,
+            x = r.padding,
+            y = (x = void 0 === x ? {} : x).paddingTop,
+            S = void 0 === y ? 0 : y,
+            z = x.paddingRight,
+            B = void 0 === z ? 0 : z,
+            R = x.paddingBottom,
+            M = void 0 === R ? 0 : R,
+            k = x.paddingLeft,
+            P = void 0 === k ? 0 : k;
+          "width" == i && (t.width -= P + B + p + w), "height" != i || o || (t.height -= S + M + l + f);
+        }
+        this.layoutBox.contentSize = this.getOffsetSize(t, e, "contentSize"), this.layoutBox.clientSize = this.getOffsetSize(t, e, "clientSize"), this.layoutBox.borderSize = this.getOffsetSize(t, e, "borderSize"), this.layoutBox.offsetSize = this.getOffsetSize(t, e, "offsetSize"), this.layoutBox = Object.assign({}, this.layoutBox, this.layoutBox.borderSize);
+      }, e.getBoxPosition = function (t) {
+        var e = this.computedStyle,
+          i = this.getChildren(),
+          o = e.verticalAlign,
+          r = e.left,
+          n = void 0 === r ? 0 : r,
+          s = e.top,
+          a = void 0 === s ? 0 : s,
+          h = p({}, this.contentSize, {
+            left: n,
+            top: a
+          }),
+          d = this.contentSize.top - this.offsetSize.top,
+          l = this.contentSize.left - this.offsetSize.left,
+          c = 0;
+        if ("bottom" == o && this.contentSize.maxLineHeight ? c = this.contentSize.maxLineHeight - this.contentSize.height : "middle" == o && this.contentSize.maxLineHeight && (c = (this.contentSize.maxLineHeight - this.contentSize.height) / 2), h.top += c, i.length) {
+          n += l, a += d;
+          for (var u = null, f = null, g = !1, v = 0; v < i.length; v++) {
+            var b = i[v];
+            if (b.isAbsolute || b.isFixed) b.isAbsolute ? (b.setPosition(b, h), b.style.left += n, b.style.top += a, b.getBoxPosition()) : (b.setPosition(b, this.root), b.getBoxPosition());else if (0 == v) b.style.left += n, b.style.top += a, b.getBoxPosition(), u = b, f = b;else {
+              var m, w, x, y;
+              (null == (m = f) ? void 0 : m.offsetSize.height) < (null == (w = u) ? void 0 : w.offsetSize.height) && (f = u);
+              var S = (null == (x = u) ? void 0 : x.offsetSize.left) + (null == (y = u) ? void 0 : y.offsetSize.width) + b.offsetSize.width > h.left + h.width + l;
+              if (this.getBoxState(u, b) || S) {
+                var z, B, R, M;
+                if (b.style.left += n, (null == (z = u) ? void 0 : z.offsetSize.height) >= (null == (B = f) ? void 0 : B.offsetSize.height)) b.style.top += u.offsetSize.top + u.offsetSize.height || 0;else b.style.top += (null == (R = f) ? void 0 : R.offsetSize.top) + (null == (M = f) ? void 0 : M.offsetSize.height) || 0;
+                b.getBoxPosition(), u = b, f = b, g = !0;
+              } else b.style.left += u.offsetSize.left + u.offsetSize.width, b.style.top += g ? u.offsetSize.top : a, b.getBoxPosition(), u = b;
+            }
+          }
+          this.layoutBoxUpdate(h, e);
+        } else this.layoutBoxUpdate(h, e);
+        return this.layoutBox;
+      }, e.setMaxLineHeight = function (t, e, i) {
+        for (var o = t; o >= 0 && !e[o].contentSize.maxLineHeight;) {
+          e[o].contentSize.maxLineHeight = i, o--;
+        }
+      }, e.getBoxState = function (t, e) {
+        return "view" == e.name && "inline-block" !== e.style.display || "view" == (null == t ? void 0 : t.name) && "inline-block" !== (null == t ? void 0 : t.style.display) || "block" == e.style.display || "block" == (null == t ? void 0 : t.style.display);
+      }, e.getBoxHieght = function () {
+        var t,
+          e = this,
+          i = this.name,
+          o = this.computedStyle,
+          r = this.attributes,
+          n = this.parent,
+          s = this.getChildren(),
+          a = o.top,
+          h = o.bottom,
+          d = o.height,
+          c = void 0 === d ? 0 : d,
+          u = o.fontSize,
+          f = void 0 === u ? 14 : u,
+          g = o.position,
+          v = o.lineHeight,
+          b = void 0 === v ? "1.4em" : v;
+        o.lineClamp;
+        var m = p({}, this.contentSize);
+        if ("image" == i && null == c) {
+          var w = r.width,
+            x = r.height;
+          r.mode, m.height = Math.round(m.width * x / w) || 0, this.layoutBoxUpdate(m, o, "height");
+        } else if (c) {
+          if (s.length) {
+            var y = null,
+              S = 0;
+            s.forEach(function (t, i) {
+              var o,
+                r,
+                n = i == s.length - 1;
+              t.getBoxHieght();
+              var a = (null == (o = y) ? void 0 : o.offsetSize.left) + (null == (r = y) ? void 0 : r.offsetSize.width) + t.offsetSize.width > m.left + m.width,
+                h = e.getBoxState(y, t);
+              if (a || h) {
+                if (a) {
+                  for (var d = i - 1; d >= 0 && !s[d].contentSize.maxLineHeight;) {
+                    S < s[d].contentSize.height && (S = s[d].contentSize.height), d--;
+                  }
+                  e.setMaxLineHeight(i - 1, s, S), S = 0;
+                }
+              } else if (n) {
+                for (var l = i; l >= 0 && !s[l].contentSize.maxLineHeight;) {
+                  S < s[l].contentSize.height && (S = s[l].contentSize.height), l--;
+                }
+                e.setMaxLineHeight(i, s, S), S = 0;
+              }
+              y = t;
+            });
+          } else this.layoutBoxUpdate(m, o, "height");
+        } else {
+          var z = 0;
+          if (null !== a && (this.isAbsolute || this.isFixed && n.contentSize.height)) {
+            var B = "absolute" == g ? n.contentSize.height : this.root.height;
+            z = B - (/%$/.test(a) ? l(a, B) : a) - (/%$/.test(h) ? l(h, B) : h);
+          }
+          if ("text" == i) b = l(b, f), m.height = z || this.attributes.lines * b, this.layoutBoxUpdate(m, o, "height", !0);else if (s.length) {
+            var R = 0,
+              M = null,
+              k = 0;
+            m.height = s.reduce(function (t, i, o) {
+              var r = o == s.length - 1;
+              if (i.isAbsolute || i.isFixed) return r ? t + R : t;
+              i.getBoxHieght();
+              var n = e.getBoxState(M, i),
+                a = k + i.offsetSize.width > m.width;
+              if (a || n) {
+                var h,
+                  d,
+                  l = 0;
+                return a || M && ("view" !== (null == (h = M) ? void 0 : h.name) || "inline-block" == (null == (d = M) ? void 0 : d.style.display)) ? (r && (e.setMaxLineHeight(o - 1, s, R), R += i.offsetSize.height), l = t + R, R = i.offsetSize.height, k = i.offsetSize.width, M = i, l) : (k = 0, R = 0, t + i.offsetSize.height);
+              }
+              return k += i.offsetSize.width, R = Math.max(R, i.offsetSize.height) || 0, r ? (e.setMaxLineHeight(o, s, R), t + R) : (M = i, t);
+            }, 0), z && (m.height = z), this.layoutBoxUpdate(m, o);
+          } else z && (m.height = z), this.layoutBoxUpdate(m, o, "height");
+        }
+        if (o.borderRadius && null != (t = this.borderSize) && t.width) for (var P in o.borderRadius) {
+          Object.hasOwnProperty.call(o.borderRadius, P) && (o.borderRadius[P] = l(o.borderRadius[P], this.borderSize.width));
+        }
+        return this.layoutBox;
+      }, e.contrastSize = function (t, e, i) {
+        var o = t;
+        return i && (o = Math.min(o, i)), e && (o = Math.max(o, e)), o;
+      }, e.measureText = function (t, e) {
+        var i = this.ctx.measureText(t);
+        return {
+          width: i.width,
+          fontHeight: (i.actualBoundingBoxAscent || .7 * e) + 1
+        };
+      }, e.getBoxWidth = function () {
+        var t,
+          e = this,
+          i = this.name,
+          o = this.computedStyle,
+          r = this.attributes,
+          n = this.parent,
+          s = void 0 === n ? {} : n,
+          a = this.ctx,
+          h = this.getChildren(),
+          d = o.left,
+          c = void 0 === d ? 0 : d;
+        o.top;
+        var u = o.right,
+          f = o.width,
+          g = void 0 === f ? 0 : f,
+          v = o.minWidth,
+          p = o.maxWidth,
+          b = o.height,
+          m = void 0 === b ? 0 : b,
+          w = o.fontSize,
+          x = void 0 === w ? 14 : w,
+          y = o.fontWeight,
+          S = o.fontFamily,
+          z = o.textStyle,
+          B = o.position,
+          R = o.display,
+          M = o.lineClamp,
+          k = o.padding,
+          P = void 0 === k ? {} : k,
+          O = o.margin,
+          T = void 0 === O ? {} : O,
+          L = o.border,
+          W = (L = void 0 === L ? {} : L).borderWidth,
+          I = void 0 === W ? 0 : W,
+          j = o.borderRight,
+          C = (j = void 0 === j ? {} : j).borderRightWidth,
+          F = void 0 === C ? I : C,
+          A = o.borderLeft,
+          H = (A = void 0 === A ? {} : A).borderLeftWidth,
+          $ = void 0 === H ? I : H;
+        if (/%$/.test(g) && s.contentSize.width && (g = l(g, s.contentSize.width, !0)), /%$/.test(m) && s.contentSize.height && (m = l(m, s.contentSize.height)), /%$/.test(v) && s.contentSize.width && (v = l(v, s.contentSize.width, !0)), /%$/.test(p) && s.contentSize.width && (p = l(p, s.contentSize.width, !0)), o.padding && null != (t = s.contentSize) && t.width) for (var E in o.padding) {
+          Object.hasOwnProperty.call(o.padding, E) && (o.padding[E] = l(o.padding[E], s.contentSize.width));
+        }
+        var U = P.paddingRight,
+          _ = void 0 === U ? 0 : U,
+          D = P.paddingLeft,
+          N = void 0 === D ? 0 : D;
+        if (o.margin && [o.margin.marginLeft, o.margin.marginRight].includes("auto")) if (g) {
+          var V = s.contentSize.width - g - _ - N - $ - F || 0;
+          o.margin.marginLeft == o.margin.marginRight ? o.margin.marginLeft = o.margin.marginRight = V / 2 : "auto" == o.margin.marginLeft ? o.margin.marginLeft = V : o.margin.marginRight = V;
+        } else o.margin.marginLeft = o.margin.marginRight = 0;
+        var X = T.marginRight,
+          q = void 0 === X ? 0 : X,
+          G = T.marginLeft,
+          J = {
+            width: g,
+            height: m,
+            left: 0,
+            top: 0
+          },
+          Y = N + _ + $ + F + (void 0 === G ? 0 : G) + q;
+        if ("text" == i && !this.attributes.widths) {
+          var Q = r.text || "";
+          a.save(), a.setFonts({
+            fontFamily: S,
+            fontSize: x,
+            fontWeight: y,
+            textStyle: z
+          }), Q.split("\n").map(function (t) {
+            var i = t.split("").map(function (t) {
+              return e.measureText(t, x).width;
+            });
+            e.attributes.fontHeight = e.measureText(t, x).fontHeight, e.attributes.widths || (e.attributes.widths = []), e.attributes.widths.push({
+              widths: i,
+              total: i.reduce(function (t, e) {
+                return t + e;
+              }, 0)
+            });
+          }), a.restore();
+        }
+        if ("image" == i && null == g) {
+          var Z = r.width,
+            K = r.height;
+          J.width = this.contrastSize(Math.round(Z * m / K) || 0, v, p), this.layoutBoxUpdate(J, o, "width");
+        } else if (g) h.length ? (this.layoutBoxUpdate(J, o, "width"), h.forEach(function (t) {
+          t.getBoxWidth();
+        })) : this.layoutBoxUpdate(J, o, "width");else {
+          var tt = 0;
+          if ((this.isAbsolute || this.isFixed) && s.contentSize.width) {
+            var et = "absolute" == B ? s.contentSize.width : this.root.width;
+            tt = et - (/%$/.test(c) ? l(c, et) : c) - (/%$/.test(u) ? l(u, et) : u);
+          }
+          if ("text" == i) {
+            var it = this.attributes.widths,
+              ot = Math.max.apply(Math, it.map(function (t) {
+                return t.total;
+              }));
+            if (s && s.contentSize.width > 0 && (ot > s.contentSize.width || "block" == R) && !this.isAbsolute && !this.isFixed) ot = s.contentSize.width - Y;
+            J.width = tt || this.contrastSize(ot, v, p), this.layoutBoxUpdate(J, o, "width");
+          } else if ("view" != i || !s || "inline-block" === R || this.isAbsolute || this.isFixed) {
+            if (h.length) {
+              for (var rt = 0, nt = null, st = 0; h.length > st;) {
+                var at = h[st],
+                  ht = st == h.length - 1,
+                  dt = this.getBoxState(nt, at);
+                if (!at.isFixed && !at.isAbsolute) if (!nt || dt) {
+                  var lt = at.getBoxWidth();
+                  rt = Math.max(rt, lt.width) || 0, nt = at;
+                } else if (nt.offsetSize.left + nt.offsetSize.width + at.offsetSize.width < s.contentSize.width && st !== h.length - 1) {
+                  rt += at.getBoxWidth().width, nt = at;
+                } else {
+                  var ct = at.getBoxWidth();
+                  ht ? rt += ct.width : rt = s.contentSize.width, nt = null;
+                }
+                st++;
+              }
+              J.width = tt || this.contrastSize(Math.ceil(rt), v, p), h.forEach(function (t) {
+                "block" != t.style.display || "text" != t.name || t.isFixed || t.isAbsolute || t.style.width || (t.style.width = J.width, t.getBoxWidth());
+              }), this.layoutBoxUpdate(J, o, "width");
+            } else J.width = tt, this.layoutBoxUpdate(J, o, "width");
+          } else J.width = this.contrastSize(s.contentSize.width - Y, v, p), this.layoutBoxUpdate(J, o), h.length && h.forEach(function (t) {
+            t.getBoxWidth();
+          });
+        }
+        if ("text" == i && !this.attributes.lines) {
+          var ut = this.attributes.widths.length;
+          this.attributes.widths.forEach(function (t) {
+            return t.widths.reduce(function (t, e, i) {
+              return t + e > J.width ? (ut++, e) : t + e;
+            }, 0);
+          }), ut = M && ut > M ? M : ut, this.attributes.lines = ut;
+        }
+        return this.layoutBox;
+      }, e.layout = function () {
+        return this.getBoxWidth(), this.getBoxHieght(), this.getBoxPosition(), this.offsetSize;
+      }, t;
+    }(),
+    x = function () {
+      var t,
+        e,
+        i,
+        o,
+        r,
+        n,
+        s = [0, 11, 15, 19, 23, 27, 31, 16, 18, 20, 22, 24, 26, 28, 20, 22, 24, 24, 26, 28, 28, 22, 24, 24, 26, 26, 28, 28, 24, 24, 26, 26, 26, 28, 28, 24, 26, 26, 26, 28, 28],
+        a = [3220, 1468, 2713, 1235, 3062, 1890, 2119, 1549, 2344, 2936, 1117, 2583, 1330, 2470, 1667, 2249, 2028, 3780, 481, 4011, 142, 3098, 831, 3445, 592, 2517, 1776, 2234, 1951, 2827, 1070, 2660, 1345, 3177],
+        h = [30660, 29427, 32170, 30877, 26159, 25368, 27713, 26998, 21522, 20773, 24188, 23371, 17913, 16590, 20375, 19104, 13663, 12392, 16177, 14854, 9396, 8579, 11994, 11245, 5769, 5054, 7399, 6608, 1890, 597, 3340, 2107],
+        d = [1, 0, 19, 7, 1, 0, 16, 10, 1, 0, 13, 13, 1, 0, 9, 17, 1, 0, 34, 10, 1, 0, 28, 16, 1, 0, 22, 22, 1, 0, 16, 28, 1, 0, 55, 15, 1, 0, 44, 26, 2, 0, 17, 18, 2, 0, 13, 22, 1, 0, 80, 20, 2, 0, 32, 18, 2, 0, 24, 26, 4, 0, 9, 16, 1, 0, 108, 26, 2, 0, 43, 24, 2, 2, 15, 18, 2, 2, 11, 22, 2, 0, 68, 18, 4, 0, 27, 16, 4, 0, 19, 24, 4, 0, 15, 28, 2, 0, 78, 20, 4, 0, 31, 18, 2, 4, 14, 18, 4, 1, 13, 26, 2, 0, 97, 24, 2, 2, 38, 22, 4, 2, 18, 22, 4, 2, 14, 26, 2, 0, 116, 30, 3, 2, 36, 22, 4, 4, 16, 20, 4, 4, 12, 24, 2, 2, 68, 18, 4, 1, 43, 26, 6, 2, 19, 24, 6, 2, 15, 28, 4, 0, 81, 20, 1, 4, 50, 30, 4, 4, 22, 28, 3, 8, 12, 24, 2, 2, 92, 24, 6, 2, 36, 22, 4, 6, 20, 26, 7, 4, 14, 28, 4, 0, 107, 26, 8, 1, 37, 22, 8, 4, 20, 24, 12, 4, 11, 22, 3, 1, 115, 30, 4, 5, 40, 24, 11, 5, 16, 20, 11, 5, 12, 24, 5, 1, 87, 22, 5, 5, 41, 24, 5, 7, 24, 30, 11, 7, 12, 24, 5, 1, 98, 24, 7, 3, 45, 28, 15, 2, 19, 24, 3, 13, 15, 30, 1, 5, 107, 28, 10, 1, 46, 28, 1, 15, 22, 28, 2, 17, 14, 28, 5, 1, 120, 30, 9, 4, 43, 26, 17, 1, 22, 28, 2, 19, 14, 28, 3, 4, 113, 28, 3, 11, 44, 26, 17, 4, 21, 26, 9, 16, 13, 26, 3, 5, 107, 28, 3, 13, 41, 26, 15, 5, 24, 30, 15, 10, 15, 28, 4, 4, 116, 28, 17, 0, 42, 26, 17, 6, 22, 28, 19, 6, 16, 30, 2, 7, 111, 28, 17, 0, 46, 28, 7, 16, 24, 30, 34, 0, 13, 24, 4, 5, 121, 30, 4, 14, 47, 28, 11, 14, 24, 30, 16, 14, 15, 30, 6, 4, 117, 30, 6, 14, 45, 28, 11, 16, 24, 30, 30, 2, 16, 30, 8, 4, 106, 26, 8, 13, 47, 28, 7, 22, 24, 30, 22, 13, 15, 30, 10, 2, 114, 28, 19, 4, 46, 28, 28, 6, 22, 28, 33, 4, 16, 30, 8, 4, 122, 30, 22, 3, 45, 28, 8, 26, 23, 30, 12, 28, 15, 30, 3, 10, 117, 30, 3, 23, 45, 28, 4, 31, 24, 30, 11, 31, 15, 30, 7, 7, 116, 30, 21, 7, 45, 28, 1, 37, 23, 30, 19, 26, 15, 30, 5, 10, 115, 30, 19, 10, 47, 28, 15, 25, 24, 30, 23, 25, 15, 30, 13, 3, 115, 30, 2, 29, 46, 28, 42, 1, 24, 30, 23, 28, 15, 30, 17, 0, 115, 30, 10, 23, 46, 28, 10, 35, 24, 30, 19, 35, 15, 30, 17, 1, 115, 30, 14, 21, 46, 28, 29, 19, 24, 30, 11, 46, 15, 30, 13, 6, 115, 30, 14, 23, 46, 28, 44, 7, 24, 30, 59, 1, 16, 30, 12, 7, 121, 30, 12, 26, 47, 28, 39, 14, 24, 30, 22, 41, 15, 30, 6, 14, 121, 30, 6, 34, 47, 28, 46, 10, 24, 30, 2, 64, 15, 30, 17, 4, 122, 30, 29, 14, 46, 28, 49, 10, 24, 30, 24, 46, 15, 30, 4, 18, 122, 30, 13, 32, 46, 28, 48, 14, 24, 30, 42, 32, 15, 30, 20, 4, 117, 30, 40, 7, 47, 28, 43, 22, 24, 30, 10, 67, 15, 30, 19, 6, 118, 30, 18, 31, 47, 28, 34, 34, 24, 30, 20, 61, 15, 30],
+        l = [255, 0, 1, 25, 2, 50, 26, 198, 3, 223, 51, 238, 27, 104, 199, 75, 4, 100, 224, 14, 52, 141, 239, 129, 28, 193, 105, 248, 200, 8, 76, 113, 5, 138, 101, 47, 225, 36, 15, 33, 53, 147, 142, 218, 240, 18, 130, 69, 29, 181, 194, 125, 106, 39, 249, 185, 201, 154, 9, 120, 77, 228, 114, 166, 6, 191, 139, 98, 102, 221, 48, 253, 226, 152, 37, 179, 16, 145, 34, 136, 54, 208, 148, 206, 143, 150, 219, 189, 241, 210, 19, 92, 131, 56, 70, 64, 30, 66, 182, 163, 195, 72, 126, 110, 107, 58, 40, 84, 250, 133, 186, 61, 202, 94, 155, 159, 10, 21, 121, 43, 78, 212, 229, 172, 115, 243, 167, 87, 7, 112, 192, 247, 140, 128, 99, 13, 103, 74, 222, 237, 49, 197, 254, 24, 227, 165, 153, 119, 38, 184, 180, 124, 17, 68, 146, 217, 35, 32, 137, 46, 55, 63, 209, 91, 149, 188, 207, 205, 144, 135, 151, 178, 220, 252, 190, 97, 242, 86, 211, 171, 20, 42, 93, 158, 132, 60, 57, 83, 71, 109, 65, 162, 31, 45, 67, 216, 183, 123, 164, 118, 196, 23, 73, 236, 127, 12, 111, 246, 108, 161, 59, 82, 41, 157, 85, 170, 251, 96, 134, 177, 187, 204, 62, 90, 203, 89, 95, 176, 156, 169, 160, 81, 11, 245, 22, 235, 122, 117, 44, 215, 79, 174, 213, 233, 230, 231, 173, 232, 116, 214, 244, 234, 168, 80, 88, 175],
+        c = [1, 2, 4, 8, 16, 32, 64, 128, 29, 58, 116, 232, 205, 135, 19, 38, 76, 152, 45, 90, 180, 117, 234, 201, 143, 3, 6, 12, 24, 48, 96, 192, 157, 39, 78, 156, 37, 74, 148, 53, 106, 212, 181, 119, 238, 193, 159, 35, 70, 140, 5, 10, 20, 40, 80, 160, 93, 186, 105, 210, 185, 111, 222, 161, 95, 190, 97, 194, 153, 47, 94, 188, 101, 202, 137, 15, 30, 60, 120, 240, 253, 231, 211, 187, 107, 214, 177, 127, 254, 225, 223, 163, 91, 182, 113, 226, 217, 175, 67, 134, 17, 34, 68, 136, 13, 26, 52, 104, 208, 189, 103, 206, 129, 31, 62, 124, 248, 237, 199, 147, 59, 118, 236, 197, 151, 51, 102, 204, 133, 23, 46, 92, 184, 109, 218, 169, 79, 158, 33, 66, 132, 21, 42, 84, 168, 77, 154, 41, 82, 164, 85, 170, 73, 146, 57, 114, 228, 213, 183, 115, 230, 209, 191, 99, 198, 145, 63, 126, 252, 229, 215, 179, 123, 246, 241, 255, 227, 219, 171, 75, 150, 49, 98, 196, 149, 55, 110, 220, 165, 87, 174, 65, 130, 25, 50, 100, 200, 141, 7, 14, 28, 56, 112, 224, 221, 167, 83, 166, 81, 162, 89, 178, 121, 242, 249, 239, 195, 155, 43, 86, 172, 69, 138, 9, 18, 36, 72, 144, 61, 122, 244, 245, 247, 243, 251, 235, 203, 139, 11, 22, 44, 88, 176, 125, 250, 233, 207, 131, 27, 54, 108, 216, 173, 71, 142, 0],
+        u = [],
+        f = [],
+        g = [],
+        v = [],
+        p = [],
+        b = 2;
+      function m(t, e) {
+        var i;
+        t > e && (i = t, t = e, e = i), i = e, i *= e, i += e, i >>= 1, v[i += t] = 1;
+      }
+      function w(t, i) {
+        var o;
+        for (g[t + e * i] = 1, o = -2; o < 2; o++) {
+          g[t + o + e * (i - 2)] = 1, g[t - 2 + e * (i + o + 1)] = 1, g[t + 2 + e * (i + o)] = 1, g[t + o + 1 + e * (i + 2)] = 1;
+        }
+        for (o = 0; o < 2; o++) {
+          m(t - 1, i + o), m(t + 1, i - o), m(t - o, i - 1), m(t + o, i + 1);
+        }
+      }
+      function x(t) {
+        for (; t >= 255;) {
+          t = ((t -= 255) >> 8) + (255 & t);
+        }
+        return t;
+      }
+      var y = [];
+      function S(t, e, i, o) {
+        var r, n, s;
+        for (r = 0; r < o; r++) {
+          u[i + r] = 0;
+        }
+        for (r = 0; r < e; r++) {
+          if (255 != (s = l[u[t + r] ^ u[i]])) for (n = 1; n < o; n++) {
+            u[i + n - 1] = u[i + n] ^ c[x(s + y[o - n])];
+          } else for (n = i; n < i + o; n++) {
+            u[n] = u[n + 1];
+          }
+          u[i + o - 1] = 255 == s ? 0 : c[x(s + y[0])];
+        }
+      }
+      function z(t, e) {
+        var i;
+        return t > e && (i = t, t = e, e = i), i = e, i += e * e, i >>= 1, v[i += t];
+      }
+      function B(t) {
+        var i, o, r, n;
+        switch (t) {
+          case 0:
+            for (o = 0; o < e; o++) {
+              for (i = 0; i < e; i++) {
+                i + o & 1 || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+            break;
+          case 1:
+            for (o = 0; o < e; o++) {
+              for (i = 0; i < e; i++) {
+                1 & o || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+            break;
+          case 2:
+            for (o = 0; o < e; o++) {
+              for (r = 0, i = 0; i < e; i++, r++) {
+                3 == r && (r = 0), r || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+            break;
+          case 3:
+            for (n = 0, o = 0; o < e; o++, n++) {
+              for (3 == n && (n = 0), r = n, i = 0; i < e; i++, r++) {
+                3 == r && (r = 0), r || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+            break;
+          case 4:
+            for (o = 0; o < e; o++) {
+              for (r = 0, n = o >> 1 & 1, i = 0; i < e; i++, r++) {
+                3 == r && (r = 0, n = !n), n || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+            break;
+          case 5:
+            for (n = 0, o = 0; o < e; o++, n++) {
+              for (3 == n && (n = 0), r = 0, i = 0; i < e; i++, r++) {
+                3 == r && (r = 0), (i & o & 1) + !(!r | !n) || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+            break;
+          case 6:
+            for (n = 0, o = 0; o < e; o++, n++) {
+              for (3 == n && (n = 0), r = 0, i = 0; i < e; i++, r++) {
+                3 == r && (r = 0), (i & o & 1) + (r && r == n) & 1 || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+            break;
+          case 7:
+            for (n = 0, o = 0; o < e; o++, n++) {
+              for (3 == n && (n = 0), r = 0, i = 0; i < e; i++, r++) {
+                3 == r && (r = 0), (r && r == n) + (i + o & 1) & 1 || z(i, o) || (g[i + o * e] ^= 1);
+              }
+            }
+        }
+      }
+      function R(t) {
+        var e,
+          i = 0;
+        for (e = 0; e <= t; e++) {
+          p[e] >= 5 && (i += 3 + p[e] - 5);
+        }
+        for (e = 3; e < t - 1; e += 2) {
+          p[e - 2] == p[e + 2] && p[e + 2] == p[e - 1] && p[e - 1] == p[e + 1] && 3 * p[e - 1] == p[e] && (0 == p[e - 3] || e + 3 > t || 3 * p[e - 3] >= 4 * p[e] || 3 * p[e + 3] >= 4 * p[e]) && (i += 40);
+        }
+        return i;
+      }
+      function M() {
+        var t,
+          i,
+          o,
+          r,
+          n,
+          s = 0,
+          a = 0;
+        for (i = 0; i < e - 1; i++) {
+          for (t = 0; t < e - 1; t++) {
+            (g[t + e * i] && g[t + 1 + e * i] && g[t + e * (i + 1)] && g[t + 1 + e * (i + 1)] || !(g[t + e * i] || g[t + 1 + e * i] || g[t + e * (i + 1)] || g[t + 1 + e * (i + 1)])) && (s += 3);
+          }
+        }
+        for (i = 0; i < e; i++) {
+          for (p[0] = 0, o = r = t = 0; t < e; t++) {
+            (n = g[t + e * i]) == r ? p[o]++ : p[++o] = 1, a += (r = n) ? 1 : -1;
+          }
+          s += R(o);
+        }
+        a < 0 && (a = -a);
+        var h = a,
+          d = 0;
+        for (h += h << 2, h <<= 1; h > e * e;) {
+          h -= e * e, d++;
+        }
+        for (s += 10 * d, t = 0; t < e; t++) {
+          for (p[0] = 0, o = r = i = 0; i < e; i++) {
+            (n = g[t + e * i]) == r ? p[o]++ : p[++o] = 1, r = n;
+          }
+          s += R(o);
+        }
+        return s;
+      }
+      var k = null;
+      return {
+        api: {
+          get ecclevel() {
+            return b;
+          },
+          set ecclevel(t) {
+            b = t;
+          },
+          get size() {
+            return _size;
+          },
+          set size(t) {
+            _size = t;
+          },
+          get canvas() {
+            return k;
+          },
+          set canvas(t) {
+            k = t;
+          },
+          getFrame: function getFrame(p) {
+            return function (p) {
+              var R, k, P, O, T, L, W, I;
+              O = p.length, t = 0;
+              do {
+                if (t++, P = 4 * (b - 1) + 16 * (t - 1), i = d[P++], o = d[P++], r = d[P++], n = d[P], O <= (P = r * (i + o) + o - 3 + (t <= 9))) break;
+              } while (t < 40);
+              for (e = 17 + 4 * t, T = r + (r + n) * (i + o) + o, O = 0; O < T; O++) {
+                f[O] = 0;
+              }
+              for (u = p.slice(0), O = 0; O < e * e; O++) {
+                g[O] = 0;
+              }
+              for (O = 0; O < (e * (e + 1) + 1) / 2; O++) {
+                v[O] = 0;
+              }
+              for (O = 0; O < 3; O++) {
+                for (P = 0, k = 0, 1 == O && (P = e - 7), 2 == O && (k = e - 7), g[k + 3 + e * (P + 3)] = 1, R = 0; R < 6; R++) {
+                  g[k + R + e * P] = 1, g[k + e * (P + R + 1)] = 1, g[k + 6 + e * (P + R)] = 1, g[k + R + 1 + e * (P + 6)] = 1;
+                }
+                for (R = 1; R < 5; R++) {
+                  m(k + R, P + 1), m(k + 1, P + R + 1), m(k + 5, P + R), m(k + R + 1, P + 5);
+                }
+                for (R = 2; R < 4; R++) {
+                  g[k + R + e * (P + 2)] = 1, g[k + 2 + e * (P + R + 1)] = 1, g[k + 4 + e * (P + R)] = 1, g[k + R + 1 + e * (P + 4)] = 1;
+                }
+              }
+              if (t > 1) for (O = s[t], k = e - 7;;) {
+                for (R = e - 7; R > O - 3 && (w(R, k), !(R < O));) {
+                  R -= O;
+                }
+                if (k <= O + 9) break;
+                w(6, k -= O), w(k, 6);
+              }
+              for (g[8 + e * (e - 8)] = 1, k = 0; k < 7; k++) {
+                m(7, k), m(e - 8, k), m(7, k + e - 7);
+              }
+              for (R = 0; R < 8; R++) {
+                m(R, 7), m(R + e - 8, 7), m(R, e - 8);
+              }
+              for (R = 0; R < 9; R++) {
+                m(R, 8);
+              }
+              for (R = 0; R < 8; R++) {
+                m(R + e - 8, 8), m(8, R);
+              }
+              for (k = 0; k < 7; k++) {
+                m(8, k + e - 7);
+              }
+              for (R = 0; R < e - 14; R++) {
+                1 & R ? (m(8 + R, 6), m(6, 8 + R)) : (g[8 + R + 6 * e] = 1, g[6 + e * (8 + R)] = 1);
+              }
+              if (t > 6) for (O = a[t - 7], P = 17, R = 0; R < 6; R++) {
+                for (k = 0; k < 3; k++, P--) {
+                  1 & (P > 11 ? t >> P - 12 : O >> P) ? (g[5 - R + e * (2 - k + e - 11)] = 1, g[2 - k + e - 11 + e * (5 - R)] = 1) : (m(5 - R, 2 - k + e - 11), m(2 - k + e - 11, 5 - R));
+                }
+              }
+              for (k = 0; k < e; k++) {
+                for (R = 0; R <= k; R++) {
+                  g[R + e * k] && m(R, k);
+                }
+              }
+              for (T = u.length, L = 0; L < T; L++) {
+                f[L] = u.charCodeAt(L);
+              }
+              if (u = f.slice(0), T >= (R = r * (i + o) + o) - 2 && (T = R - 2, t > 9 && T--), L = T, t > 9) {
+                for (u[L + 2] = 0, u[L + 3] = 0; L--;) {
+                  O = u[L], u[L + 3] |= 255 & O << 4, u[L + 2] = O >> 4;
+                }
+                u[2] |= 255 & T << 4, u[1] = T >> 4, u[0] = 64 | T >> 12;
+              } else {
+                for (u[L + 1] = 0, u[L + 2] = 0; L--;) {
+                  O = u[L], u[L + 2] |= 255 & O << 4, u[L + 1] = O >> 4;
+                }
+                u[1] |= 255 & T << 4, u[0] = 64 | T >> 4;
+              }
+              for (L = T + 3 - (t < 10); L < R;) {
+                u[L++] = 236, u[L++] = 17;
+              }
+              for (y[0] = 1, L = 0; L < n; L++) {
+                for (y[L + 1] = 1, W = L; W > 0; W--) {
+                  y[W] = y[W] ? y[W - 1] ^ c[x(l[y[W]] + L)] : y[W - 1];
+                }
+                y[0] = c[x(l[y[0]] + L)];
+              }
+              for (L = 0; L <= n; L++) {
+                y[L] = l[y[L]];
+              }
+              for (P = R, k = 0, L = 0; L < i; L++) {
+                S(k, r, P, n), k += r, P += n;
+              }
+              for (L = 0; L < o; L++) {
+                S(k, r + 1, P, n), k += r + 1, P += n;
+              }
+              for (k = 0, L = 0; L < r; L++) {
+                for (W = 0; W < i; W++) {
+                  f[k++] = u[L + W * r];
+                }
+                for (W = 0; W < o; W++) {
+                  f[k++] = u[i * r + L + W * (r + 1)];
+                }
+              }
+              for (W = 0; W < o; W++) {
+                f[k++] = u[i * r + L + W * (r + 1)];
+              }
+              for (L = 0; L < n; L++) {
+                for (W = 0; W < i + o; W++) {
+                  f[k++] = u[R + L + W * n];
+                }
+              }
+              for (u = f, R = k = e - 1, P = T = 1, I = (r + n) * (i + o) + o, L = 0; L < I; L++) {
+                for (O = u[L], W = 0; W < 8; W++, O <<= 1) {
+                  128 & O && (g[R + e * k] = 1);
+                  do {
+                    T ? R-- : (R++, P ? 0 != k ? k-- : (P = !P, 6 == (R -= 2) && (R--, k = 9)) : k != e - 1 ? k++ : (P = !P, 6 == (R -= 2) && (R--, k -= 8))), T = !T;
+                  } while (z(R, k));
+                }
+              }
+              for (u = g.slice(0), O = 0, k = 3e4, P = 0; P < 8 && (B(P), (R = M()) < k && (k = R, O = P), 7 != O); P++) {
+                g = u.slice(0);
+              }
+              for (O != P && B(O), k = h[O + (b - 1 << 3)], P = 0; P < 8; P++, k >>= 1) {
+                1 & k && (g[e - 1 - P + 8 * e] = 1, P < 6 ? g[8 + e * P] = 1 : g[8 + e * (P + 1)] = 1);
+              }
+              for (P = 0; P < 7; P++, k >>= 1) {
+                1 & k && (g[8 + e * (e - 7 + P)] = 1, P ? g[6 - P + 8 * e] = 1 : g[7 + 8 * e] = 1);
+              }
+              return g;
+            }(p);
+          },
+          utf16to8: function utf16to8(t) {
+            var e, i, o, r;
+            for (e = "", o = t.length, i = 0; i < o; i++) {
+              (r = t.charCodeAt(i)) >= 1 && r <= 127 ? e += t.charAt(i) : r > 2047 ? (e += String.fromCharCode(224 | r >> 12 & 15), e += String.fromCharCode(128 | r >> 6 & 63), e += String.fromCharCode(128 | r >> 0 & 63)) : (e += String.fromCharCode(192 | r >> 6 & 31), e += String.fromCharCode(128 | r >> 0 & 63));
+            }
+            return e;
+          },
+          draw: function draw(t, i, o, r, n) {
+            i.drawView(o, r);
+            var s = i.ctx,
+              a = o.contentSize,
+              h = a.width,
+              d = a.height;
+            r.borderRadius, r.backgroundColor;
+            var l = r.color,
+              c = void 0 === l ? "#000000" : l;
+            r.border;
+            var u = o.contentSize.left - o.borderSize.left,
+              f = o.contentSize.top - o.borderSize.top;
+            if (b = n || b, s) {
+              s.save(), i.setOpacity(r);
+              var g = i.setTransform(o, r),
+                v = g.x,
+                p = g.y;
+              v += u, p += f;
+              var m = Math.min(h, d);
+              t = this.utf16to8(t);
+              var w = this.getFrame(t),
+                x = m / e;
+              s.setFillStyle(c);
+              for (var y = 0; y < e; y++) {
+                for (var S = 0; S < e; S++) {
+                  w[S * e + y] && s.fillRect(v + x * y, p + x * S, x, x);
+                }
+              }
+              s.restore(), i.setBorder(o, r);
+            } else console.warn("No canvas provided to draw QR code in!");
+          }
+        }
+      };
+    }(),
+    y = function () {
+      function t(t, e) {
+        var o,
+          r,
+          n = this,
+          a = t.id,
+          h = t.context,
+          d = t.canvas,
+          l = t.pixelRatio,
+          c = t.width,
+          u = t.height;
+        this.count = 0, this.isDraw = !0, this.id = a, this.canvas = d, this.pixelRatio = 1 * l.toFixed(2), this.width = c, this.height = u, this.platform = s, this.isRate = !1, this.component = e, this.ctx = (r = this, (o = h).setFonts = function (t) {
+          var e = t.fontFamily,
+            i = void 0 === e ? "sans-serif" : e,
+            n = t.fontSize,
+            s = void 0 === n ? 14 : n,
+            a = t.fontWeight,
+            h = void 0 === a ? "normal" : a,
+            d = t.textStyle,
+            l = void 0 === d ? "normal" : d;
+          "mp-toutao" == r.platform && (h = "bold" == h ? "bold" : "", l = "italic" == l ? "italic" : ""), o.font = l + " " + h + " " + s + "px " + i;
+        }, o.draw ? o : Object.assign(o, {
+          setStrokeStyle: function setStrokeStyle(t) {
+            o.strokeStyle = t;
+          },
+          setLineWidth: function setLineWidth(t) {
+            o.lineWidth = t;
+          },
+          setLineCap: function setLineCap(t) {
+            o.lineCap = t;
+          },
+          setFillStyle: function setFillStyle(t) {
+            o.fillStyle = t;
+          },
+          setFontSize: function setFontSize(t) {
+            o.font = String(t) + "px sans-serif";
+          },
+          setGlobalAlpha: function setGlobalAlpha(t) {
+            o.globalAlpha = t;
+          },
+          setLineJoin: function setLineJoin(t) {
+            o.lineJoin = t;
+          },
+          setTextAlign: function setTextAlign(t) {
+            o.textAlign = t;
+          },
+          setMiterLimit: function setMiterLimit(t) {
+            o.miterLimit = t;
+          },
+          setShadow: function setShadow(t, e, i, r) {
+            o.shadowOffsetX = t, o.shadowOffsetY = e, o.shadowBlur = i, o.shadowColor = r;
+          },
+          setTextBaseline: function setTextBaseline(t) {
+            o.textBaseline = t;
+          },
+          createCircularGradient: function createCircularGradient() {},
+          draw: function draw() {}
+        })), this.sleep = 1e3 / 30, this.progress = 0, this.root = {
+          width: c,
+          height: u,
+          fontSizeRate: 1
+        };
+        var f = _i({}, this.size);
+        Object.defineProperty(this, "size", {
+          configurable: !0,
+          set: function set(t) {
+            Object.keys(t).forEach(function (e) {
+              f[e] = t[e], n.root[e] = t[e];
+            });
+          },
+          get: function get() {
+            return f;
+          }
+        }), this.init();
+      }
+      return t.prototype.init = function () {
+        this.canvas.height && (this.canvas.height = this.root.height * this.pixelRatio, this.canvas.width = this.root.width * this.pixelRatio, this.ctx.scale(this.pixelRatio, this.pixelRatio));
+      }, t.prototype.clear = function () {
+        this.ctx.clearRect(0, 0, this.root.width, this.root.height);
+      }, t.prototype.roundRect = function (t, e, i, o, r, n, s) {
+        if (void 0 === n && (n = !1), void 0 === s && (s = !1), !(r < 0)) {
+          var a = this.ctx;
+          if (a.beginPath(), r) {
+            var h = r || {},
+              d = h.borderTopLeftRadius,
+              l = void 0 === d ? r || 0 : d,
+              c = h.borderTopRightRadius,
+              u = void 0 === c ? r || 0 : c,
+              f = h.borderBottomRightRadius,
+              g = void 0 === f ? r || 0 : f,
+              v = h.borderBottomLeftRadius,
+              p = void 0 === v ? r || 0 : v;
+            a.arc(t + i - g, e + o - g, g, 0, .5 * Math.PI), a.lineTo(t + p, e + o), a.arc(t + p, e + o - p, p, .5 * Math.PI, Math.PI), a.lineTo(t, e + l), a.arc(t + l, e + l, l, Math.PI, 1.5 * Math.PI), a.lineTo(t + i - u, e), a.arc(t + i - u, e + u, u, 1.5 * Math.PI, 2 * Math.PI), a.lineTo(t + i, e + o - g);
+          } else a.rect(t, e, i, o);
+          a.closePath(), s && a.stroke(), n && a.fill();
+        }
+      }, t.prototype.setTransform = function (t, e) {
+        var i = e.transform,
+          o = e.transformOrigin,
+          r = void 0 === o ? "center center" : o,
+          n = e.position,
+          s = this.ctx,
+          a = i || {},
+          h = a.scaleX,
+          c = void 0 === h ? 1 : h,
+          u = a.scaleY,
+          f = void 0 === u ? 1 : u,
+          g = a.translateX,
+          v = void 0 === g ? 0 : g,
+          p = a.translateY,
+          b = void 0 === p ? 0 : p,
+          m = a.rotate,
+          w = void 0 === m ? 0 : m,
+          x = a.skewX,
+          y = void 0 === x ? 0 : x,
+          S = a.skewY,
+          z = void 0 === S ? 0 : S,
+          B = t.left,
+          R = t.top,
+          M = t.width,
+          k = t.height;
+        if (!["absolute", "fixed"].includes(n)) return {
+          x: B,
+          y: R,
+          w: M,
+          h: k
+        };
+        v = l(v, M) || 0, b = l(b, k) || 0;
+        var P = {
+            top: l("0%", 1),
+            center: l("50%", 1, !0),
+            bottom: l("100%", 1)
+          },
+          O = {
+            left: l("0%", 1),
+            center: l("50%", 1, !0),
+            right: l("100%", 1)
+          };
+        r = r.split(" ").filter(function (t, e) {
+          return e < 2;
+        }).reduce(function (t, e) {
+          if (/\d+/.test(e)) {
+            var i = l(e, 1, !0) / (/px|rpx$/.test(e) ? d(t.x) ? k : M : 1);
+            return d(t.x) ? Object.assign(t, {
+              y: i
+            }) : Object.assign(t, {
+              x: i
+            });
+          }
+          return d(O[e]) && !d(t.x) ? Object.assign(t, {
+            x: O[e]
+          }) : Object.assign(t, {
+            y: P[e] || .5
+          });
+        }, {}), s.scale(c, f);
+        var T = {
+          x: M * (c > 0 ? 1 : -1) * r.x + (B + v) / c,
+          y: k * (f > 0 ? 1 : -1) * r.y + (R + b) / f
+        };
+        return s.translate(T.x, T.y), w && s.rotate(w * Math.PI / 180), (y || z) && s.transform(1, Math.tan(z * Math.PI / 180), Math.tan(y * Math.PI / 180), 1, 0, 0), {
+          x: -M * r.x,
+          y: -k * r.y,
+          w: M,
+          h: k
+        };
+      }, t.prototype.setBackground = function (t, e, i, o, r) {
+        var n = this.ctx;
+        t && "transparent" != t ? u(t) ? f(t, e, i, o, r, n) : n.setFillStyle(t) : ["mp-toutiao", "mp-baidu"].includes(this.platform) ? n.setFillStyle("transparent") : n.setFillStyle("rgba(0,0,0,0)");
+      }, t.prototype.setShadow = function (t) {
+        var e = t.boxShadow,
+          i = void 0 === e ? [] : e,
+          o = this.ctx;
+        if (i.length) {
+          var r = i[0],
+            n = i[1],
+            s = i[2],
+            a = i[3];
+          o.setShadow(r, n, s, a);
+        }
+      }, t.prototype.setBorder = function (t, e) {
+        var i = this,
+          o = this.ctx,
+          r = t.width,
+          n = t.height,
+          s = e.border,
+          a = e.borderBottom,
+          h = e.borderTop,
+          d = e.borderRight,
+          l = e.borderLeft,
+          c = e.borderRadius,
+          u = s || {},
+          f = u.borderWidth,
+          g = void 0 === f ? 0 : f,
+          v = u.borderStyle,
+          p = u.borderColor,
+          b = a || {},
+          m = b.borderBottomWidth,
+          w = void 0 === m ? g : m,
+          x = b.borderBottomStyle,
+          y = void 0 === x ? v : x,
+          S = b.borderBottomColor,
+          z = void 0 === S ? p : S,
+          B = h || {},
+          R = B.borderTopWidth,
+          M = void 0 === R ? g : R,
+          k = B.borderTopStyle,
+          P = void 0 === k ? v : k,
+          O = B.borderTopColor,
+          T = void 0 === O ? p : O,
+          L = d || {},
+          W = L.borderRightWidth,
+          I = void 0 === W ? g : W,
+          j = L.borderRightStyle,
+          C = void 0 === j ? v : j,
+          F = L.borderRightColor,
+          A = void 0 === F ? p : F,
+          H = l || {},
+          $ = H.borderLeftWidth,
+          E = void 0 === $ ? g : $,
+          U = H.borderLeftStyle,
+          _ = void 0 === U ? v : U,
+          D = H.borderLeftColor,
+          N = void 0 === D ? p : D,
+          V = c || {},
+          X = V.borderTopLeftRadius,
+          q = void 0 === X ? c || 0 : X,
+          G = V.borderTopRightRadius,
+          J = void 0 === G ? c || 0 : G,
+          Y = V.borderBottomRightRadius,
+          Q = void 0 === Y ? c || 0 : Y,
+          Z = V.borderBottomLeftRadius,
+          K = void 0 === Z ? c || 0 : Z;
+        if (a || l || h || d || s) {
+          var tt = function tt(t, e, r) {
+              "dashed" == e ? /mp/.test(i.platform) ? o.setLineDash([Math.ceil(4 * t / 3), Math.ceil(4 * t / 3)]) : o.setLineDash([Math.ceil(6 * t), Math.ceil(6 * t)]) : "dotted" == e && o.setLineDash([t, t]), o.setStrokeStyle(r);
+            },
+            et = function et(t, e, i, r, n, s, a, h, d, l, c, u, f, g) {
+              o.save(), o.setLineWidth(u), tt(u, f, g), o.beginPath(), o.arc(t, e, a, Math.PI * d, Math.PI * l), o.lineTo(i, r), o.arc(n, s, h, Math.PI * l, Math.PI * c), o.stroke(), o.restore();
+            };
+          o.save(), this.setOpacity(e);
+          var it = this.setTransform(t, e),
+            ot = it.x,
+            rt = it.y;
+          s && (o.setLineWidth(g), tt(g, v, p), this.roundRect(ot, rt, r, n, c, !1, !!p), o.restore()), a && et(ot + r - Q, rt + n - Q, ot + K, rt + n, ot + K, rt + n - K, Q, K, .25, .5, .75, w, y, z), l && et(ot + K, rt + n - K, ot, rt + q, ot + q, rt + q, K, q, .75, 1, 1.25, E, _, N), h && et(ot + q, rt + q, ot + r - J, rt, ot + r - J, rt + J, q, J, 1.25, 1.5, 1.75, M, P, T), d && et(ot + r - J, rt + J, ot + r, rt + n - Q, ot + r - Q, rt + n - Q, J, Q, 1.75, 2, .25, I, C, A);
+        }
+      }, t.prototype.setOpacity = function (t) {
+        var e = t.opacity,
+          i = void 0 === e ? 1 : e;
+        this.ctx.setGlobalAlpha(i);
+      }, t.prototype.drawPattern = function (t, e, i) {
+        return o(this, void 0, void 0, function () {
+          var n = this;
+          return r(this, function (s) {
+            return [2, new Promise(function (s, a) {
+              var h = n,
+                d = h.ctx,
+                l = h.canvas,
+                c = e.width,
+                u = e.height,
+                f = i || {},
+                g = f.borderRadius,
+                v = void 0 === g ? 0 : g,
+                p = f.backgroundColor,
+                b = void 0 === p ? "transparent" : p,
+                m = f.backgroundImage,
+                w = f.backgroundRepeat,
+                x = void 0 === w ? "repeat" : w;
+              d.save(), n.setOpacity(i);
+              var y = n.setTransform(e, i),
+                S = y.x,
+                z = y.y;
+              n.setShadow(i), n.setBackground(b, c, u, S, z), n.roundRect(S, z, c, u, v, !0, !1);
+              var B = function B(t) {
+                var o = d.createPattern(t.src, x);
+                d.setFillStyle(o), n.roundRect(S, z, c, u, v, !0, !1), n.setBorder(e, i), d.restore(), s();
+              };
+              if (m) if (l.createImage || "web" == n.platform) {
+                var R = null;
+                (R = l.createImage ? l.createImage() : new Image()).onload = function () {
+                  t.src = R, B(t);
+                }, R.onerror = function () {
+                  return o(n, void 0, void 0, function () {
+                    return r(this, function (e) {
+                      return console.log("createImage fail: " + JSON.stringify(t)), s(), [2];
+                    });
+                  });
+                }, R.src = t.path;
+              } else B(t);
+            })];
+          });
+        });
+      }, t.prototype.drawView = function (t, e, i, o, r) {
+        void 0 === i && (i = !0), void 0 === o && (o = !0), void 0 === r && (r = !0);
+        var n = this.ctx,
+          s = t.width,
+          a = t.height,
+          h = e || {},
+          d = h.borderRadius,
+          l = void 0 === d ? 0 : d,
+          c = h.backgroundColor,
+          u = void 0 === c ? "transparent" : c;
+        n.save(), this.setOpacity(e);
+        var f = this.setTransform(t, e),
+          g = f.x,
+          v = f.y;
+        r && this.setShadow(e), i && this.setBackground(u, s, a, g, v), this.roundRect(g, v, s, a, l, i, !1), n.restore(), o && this.setBorder(t, e);
+      }, t.prototype.drawImage = function (t, e, i, n) {
+        return void 0 === e && (e = {}), void 0 === i && (i = {}), void 0 === n && (n = !0), o(this, void 0, void 0, function () {
+          var s = this;
+          return r(this, function (a) {
+            switch (a.label) {
+              case 0:
+                return [4, new Promise(function (a, h) {
+                  return o(s, void 0, void 0, function () {
+                    var s,
+                      h,
+                      d,
+                      u,
+                      f,
+                      g,
+                      v,
+                      p,
+                      b,
+                      m,
+                      w,
+                      x,
+                      y,
+                      S,
+                      z,
+                      B,
+                      R,
+                      M,
+                      k,
+                      P,
+                      O,
+                      T,
+                      L,
+                      W,
+                      I,
+                      j,
+                      C,
+                      F = this;
+                    return r(this, function (A) {
+                      switch (A.label) {
+                        case 0:
+                          return i.boxShadow && this.drawView(e, Object.assign(i, {
+                            backgroundColor: i.backgroundColor || i.boxShadow && (i.backgroundColor || "#ffffff")
+                          }), !0, !1, !0), h = (s = this).ctx, d = s.sleep, u = s.canvas, f = i.borderRadius, g = void 0 === f ? 0 : f, v = i.backgroundColor, p = void 0 === v ? "transparent" : v, b = i.objectFit, m = void 0 === b ? "fill" : b, w = i.objectPosition, x = e.width, y = e.height, S = e.left, z = e.top, h.save(), B = e.contentSize.left - e.borderSize.left, R = e.contentSize.top - e.borderSize.top, n || (this.setOpacity(i), M = this.setTransform(e, i), k = M.x, P = M.y, this.setBackground(p, x, y, S, z), S = k, z = P, this.roundRect(S, z, x, y, g, !!g, !1)), S += B, z += R, h.clip(), O = function O(t) {
+                            if ("fill" !== m) {
+                              var i = function (t, e, i) {
+                                  var o = t.objectFit,
+                                    r = t.objectPosition,
+                                    n = e.width / e.height,
+                                    s = i.width / i.height,
+                                    a = 1;
+                                  "contain" == o && n >= s || "cover" == o && n < s ? a = e.height / i.height : ("contain" == o && n < s || "cover" == o && n >= s) && (a = e.width / i.width);
+                                  var h = i.width * a,
+                                    d = i.height * a,
+                                    c = /^\d+px|rpx$/.test(null == r ? void 0 : r[0]) ? l(null == r ? void 0 : r[0], e.width) : (e.width - h) * (/%$/.test(null == r ? void 0 : r[0]) ? l(null == r ? void 0 : r[0], 1, !0) : {
+                                      left: 0,
+                                      center: .5,
+                                      right: 1
+                                    }[(null == r ? void 0 : r[0]) || "center"]),
+                                    u = /^\d+px|rpx$/.test(null == r ? void 0 : r[1]) ? l(null == r ? void 0 : r[1], e.height) : (e.height - d) * (/%$/.test(null == r ? void 0 : r[1]) ? l(null == r ? void 0 : r[1], 1, !0) : {
+                                      top: 0,
+                                      center: .5,
+                                      bottom: 1
+                                    }[(null == r ? void 0 : r[1]) || "center"]),
+                                    f = function f(t, e) {
+                                      return [(t - c) / a, (e - u) / a];
+                                    },
+                                    g = f(0, 0),
+                                    v = g[0],
+                                    p = g[1],
+                                    b = f(e.width, e.height),
+                                    m = b[0],
+                                    w = b[1];
+                                  return {
+                                    sx: Math.max(v, 0),
+                                    sy: Math.max(p, 0),
+                                    sw: Math.min(m - v, i.width),
+                                    sh: Math.min(w - p, i.height),
+                                    dx: Math.max(c, 0),
+                                    dy: Math.max(u, 0),
+                                    dw: Math.min(h, e.width),
+                                    dh: Math.min(d, e.height)
+                                  };
+                                }({
+                                  objectFit: m,
+                                  objectPosition: w
+                                }, e.contentSize, t),
+                                o = i.sx,
+                                r = i.sy,
+                                n = i.sh,
+                                s = i.sw,
+                                a = i.dx,
+                                d = i.dy,
+                                c = i.dh,
+                                u = i.dw;
+                              "mp-baidu" == F.platform ? h.drawImage(t.src, a + S, d + z, u, c, o, r, s, n) : h.drawImage(t.src, o, r, s, n, a + S, d + z, u, c);
+                            } else h.drawImage(t.src, S, z, x, y);
+                          }, T = function T() {
+                            h.restore(), F.drawView(e, i, !1, !0, !1), setTimeout(a, d);
+                          }, L = function L(t) {
+                            if (u.createImage || "web" == F.platform) {
+                              var e = null;
+                              (e = u.createImage ? u.createImage() : new Image()).onload = function () {
+                                t.src = e, O(t), T();
+                              }, e.onerror = function () {
+                                return o(F, void 0, void 0, function () {
+                                  return r(this, function (e) {
+                                    return console.log("createImage fail: " + JSON.stringify(t)), a(!0), [2];
+                                  });
+                                });
+                              }, e.src = t.path;
+                            } else O(t), T();
+                          }, "string" != typeof t ? [3, 2] : [4, c(t)];
+                        case 1:
+                          return W = A.sent(), I = W.path, j = W.width, C = W.height, L({
+                            path: I,
+                            src: I,
+                            width: j,
+                            height: C
+                          }), [3, 3];
+                        case 2:
+                          L(t), A.label = 3;
+                        case 3:
+                          return [2];
+                      }
+                    });
+                  });
+                })];
+              case 1:
+                return a.sent(), [2];
+            }
+          });
+        });
+      }, t.prototype.drawText = function (t, e, i, o) {
+        this.drawView(e, i);
+        var r = this.ctx,
+          n = e.borderSize,
+          s = e.contentSize,
+          a = s.width,
+          h = s.height,
+          d = s.left - n.left,
+          c = s.top - n.top,
+          u = i.color,
+          f = void 0 === u ? "#000000" : u,
+          g = i.lineHeight,
+          v = void 0 === g ? "1.4em" : g,
+          p = i.fontSize,
+          b = void 0 === p ? 14 : p,
+          m = i.fontWeight,
+          w = i.fontFamily,
+          x = i.textStyle,
+          y = i.textAlign,
+          S = void 0 === y ? "left" : y,
+          z = i.verticalAlign,
+          B = void 0 === z ? "middle" : z;
+        i.backgroundColor;
+        var R = i.lineClamp,
+          M = i.textDecoration;
+        if (v = l(v, b), t) {
+          r.save(), this.setOpacity(i);
+          var k = this.setTransform(e, i),
+            P = k.x,
+            O = k.y;
+          switch (P += d, O += c, r.setFonts({
+            fontFamily: w,
+            fontSize: b,
+            fontWeight: m,
+            textStyle: x
+          }), r.setTextBaseline("middle"), r.setTextAlign(S), r.setFillStyle(f), O += b / 2, S) {
+            case "left":
+              break;
+            case "center":
+              P += .5 * a;
+              break;
+            case "right":
+              P += a;
+          }
+          var T = o.lines * v,
+            L = Math.ceil((h - T) / 2);
+          switch (L < 0 && (L = 0), B) {
+            case "top":
+              break;
+            case "middle":
+              O += L;
+              break;
+            case "bottom":
+              O += 2 * L;
+          }
+          var W = (v - o.fontHeight) / 2,
+            I = function I(t, e, i) {
+              var n = t;
+              switch (S) {
+                case "left":
+                  t = t, n += i;
+                  break;
+                case "center":
+                  n = (t -= i / 2) + i;
+                  break;
+                case "right":
+                  n = t, t -= i;
+              }
+              M && (r.setLineWidth(b / 13), r.beginPath(), e -= W, /\bunderline\b/.test(M) && (r.moveTo(t, e - .5 * o.fontHeight), r.lineTo(n, e - .5 * o.fontHeight)), /\boverline\b/.test(M) && (r.moveTo(t, e - 1.5 * o.fontHeight), r.lineTo(n, e - 1.5 * o.fontHeight)), /\bline-through\b/.test(M) && (r.moveTo(t, e - o.fontHeight), r.lineTo(n, e - o.fontHeight)), r.closePath(), r.setStrokeStyle(f), r.stroke());
+            };
+          if (1 == o.widths.lenght && o.widths[0].total <= s.width) return r.fillText(t, P, O + W), I(P, O += v, o.widths[0].total), r.restore(), void this.setBorder(e, i);
+          for (var j = t.split(""), C = O, F = P, A = "", H = 0, $ = 0; $ <= j.length; $++) {
+            var E = j[$] || "",
+              U = "\n" === E,
+              _ = "" == E,
+              D = A + (E = U ? "" : E),
+              N = r.measureText(D).width;
+            if (H >= R) break;
+            if (F = P, (N = N) > s.width || U || _) {
+              if (H++, A = _ && N <= s.width ? D : A, H === R && N > a) {
+                for (; r.measureText(A + "...").width > s.width && !(A.length <= 1);) {
+                  A = A.substring(0, A.length - 1);
+                }
+                A += "...";
+              }
+              if (r.fillText(A, F, O + W), I(F, O += v, N), A = E, O + v > C + h) break;
+            } else A = D;
+          }
+          r.restore();
+        }
+      }, t.prototype.source = function (t) {
+        var e;
+        return o(this, void 0, void 0, function () {
+          var i, o;
+          return r(this, function (r) {
+            switch (r.label) {
+              case 0:
+                if ("{}" == JSON.stringify(t)) return [2];
+                if (!t.type) for (i in t.type = "view", t.css = t.css || {}, t) {
+                  ["views", "children", "type", "css"].includes(i) || (t.css[i] = t[i], delete t[i]);
+                }
+                return (null === (e = null == t ? void 0 : t.css) || void 0 === e ? void 0 : e.width) || (t.css ? t.css.width = this.root.width : t.css = {
+                  width: this.root.width
+                }), [4, this.create(t)];
+              case 1:
+                return o = r.sent(), this.size = o.layout(), this.node = o, [2, this.size];
+            }
+          });
+        });
+      }, t.prototype.create = function (t, e) {
+        var i, n, s, a;
+        return o(this, void 0, void 0, function () {
+          var o, h, d, l, u, f, g, v, p, b, m, x;
+          return r(this, function (r) {
+            switch (r.label) {
+              case 0:
+                if ("image" == t.type && !t.src && !t.url || "qrcode" == t.type && !t.text) return [2];
+                if ("none" == (null === (i = null == t ? void 0 : t.css) || void 0 === i ? void 0 : i.display)) return console.error("element display none"), [2];
+                r.label = 1;
+              case 1:
+                return r.trys.push([1, 4,, 5]), "image" == t.type || "view" == t.type && (null === (n = t.css) || void 0 === n ? void 0 : n.backgroundImage) ? (o = null, h = /url\((.+)\)/, t.css.backgroundImage && (null === (s = h.exec(t.css.backgroundImage)) || void 0 === s ? void 0 : s[1]) && (o = null === (a = h.exec(t.css.backgroundImage)) || void 0 === a ? void 0 : a[1]), [4, c(t.src || o)]) : [3, 3];
+              case 2:
+                d = r.sent(), l = d.width, u = d.height, f = d.path, ["mp-weixin", "mp-baidu", "mp-qq", "mp-toutiao"].includes(this.platform) && (f = /^\.|^\/(?=[^\/])/.test(t.src || o) ? "/" + f : f), t.attributes = Object.assign(t.attributes || {}, {
+                  width: l,
+                  height: u,
+                  path: f,
+                  src: f,
+                  naturalSrc: t.src || o
+                }), r.label = 3;
+              case 3:
+                return [3, 5];
+              case 4:
+                return g = r.sent(), console.log(g), [2];
+              case 5:
+                if (this.count += 1, v = new w(t, e, this.root, this.ctx), !(p = t.views || t.children)) return [3, 9];
+                b = 0, r.label = 6;
+              case 6:
+                return b < p.length ? (m = p[b], [4, this.create(m, v)]) : [3, 9];
+              case 7:
+                (x = r.sent()) && v.add(x), r.label = 8;
+              case 8:
+                return b++, [3, 6];
+              case 9:
+                return [2, v];
+            }
+          });
+        });
+      }, t.prototype.drawNode = function (t) {
+        return o(this, void 0, void 0, function () {
+          var e, i, o, n, s, a, h, d, l, c, u, f;
+          return r(this, function (r) {
+            switch (r.label) {
+              case 0:
+                return e = t.layoutBox, i = t.computedStyle, o = t.attributes, n = t.name, s = t.children, a = t.attributes, h = a.src, d = a.text, "view" !== n ? [3, 4] : h ? [4, this.drawPattern(o, e, i)] : [3, 2];
+              case 1:
+                return r.sent(), [3, 3];
+              case 2:
+                this.drawView(e, i), r.label = 3;
+              case 3:
+                return [3, 7];
+              case 4:
+                return "image" === n && h ? [4, this.drawImage(o, e, i, !1)] : [3, 6];
+              case 5:
+                return r.sent(), [3, 7];
+              case 6:
+                "text" === n ? this.drawText(d, e, i, o) : "qrcode" === n && (null == x ? void 0 : x.api) && x.api.draw(d, this, e, i), r.label = 7;
+              case 7:
+                if (this.progress += 1, !s) return [2];
+                l = Object.values ? Object.values(s) : Object.keys(s).map(function (t) {
+                  return s[t];
+                }), c = 0, u = l, r.label = 8;
+              case 8:
+                return c < u.length ? (f = u[c], [4, this.drawNode(f)]) : [3, 11];
+              case 9:
+                r.sent(), r.label = 10;
+              case 10:
+                return c++, [3, 8];
+              case 11:
+                return [2];
+            }
+          });
+        });
+      }, t.prototype.render = function () {
+        return o(this, void 0, void 0, function () {
+          return r(this, function (t) {
+            switch (t.label) {
+              case 0:
+                return this.init(), [4, (e = 30, void 0 === e && (e = 0), new Promise(function (t) {
+                  return setTimeout(t, e);
+                }))];
+              case 1:
+                return t.sent(), [4, this.drawNode(this.node)];
+              case 2:
+                return t.sent(), [2];
+            }
+            var e;
+          });
+        });
+      }, t.prototype.listen = function (t, e) {
+        var i = this;
+        if ("progressChange" == t) {
+          var o = 0;
+          Object.defineProperty(this, "progress", {
+            configurable: !0,
+            set: function set(t) {
+              o = t, e(t / i.count);
+            },
+            get: function get() {
+              return o || 0;
+            }
+          });
+        }
+      }, t.prototype.save = function (t) {
+        try {
+          var e = t || {},
+            i = e.fileType,
+            o = void 0 === i ? "png" : i,
+            r = e.quality,
+            n = void 0 === r ? 1 : r;
+          return this.canvas.toDataURL("image/" + o, n);
+        } catch (t) {
+          return console.log("image cross domain"), t;
+        }
+      }, t;
+    }();
+  "web" == s && (window.Painter = y), t.Painter = y, Object.defineProperty(t, "__esModule", {
+    value: !0
+  });
+});
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"], __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/wx.js */ 1)["default"]))
+
+/***/ }),
+
+/***/ 159:
+/*!******************************************************!*\
+  !*** /Users/pc/nodejs/likeshop-my-former/api/new.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getArticleDetail = getArticleDetail;
+exports.getArticleList = getArticleList;
+exports.getCategoryList = getCategoryList;
+var _defineProperty2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/defineProperty */ 11));
+var _request = _interopRequireDefault(__webpack_require__(/*! @/utils/request */ 39));
+var _imagePlaceholder = __webpack_require__(/*! @/utils/image-placeholder */ 53);
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); enumerableOnly && (symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; })), keys.push.apply(keys, symbols); } return keys; }
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = null != arguments[i] ? arguments[i] : {}; i % 2 ? ownKeys(Object(source), !0).forEach(function (key) { (0, _defineProperty2.default)(target, key, source[key]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } return target; }
+function normalizeArticle() {
+  var page = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var fallbackCode = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+  return _objectSpread(_objectSpread({}, page), {}, {
+    id: page.pageCode || page.id || fallbackCode,
+    title: page.title || '内容详情',
+    synopsis: page.synopsis || page.summary || '',
+    image: (0, _imagePlaceholder.resolveImage)(page.image || page.coverUrl || page.cover || ''),
+    create_time: page.create_time || page.updatedAt || '',
+    visit: page.visit || 0,
+    content: page.content || ''
+  });
+}
+function normalizeArticlePage(res, pageCode) {
+  if (res.code != 1) return res;
+  var article = normalizeArticle(res.data || {}, pageCode);
+  return _objectSpread(_objectSpread({}, res), {}, {
+    data: {
+      list: [article],
+      lists: [article],
+      more: false,
+      page_no: 1,
+      page_size: 1,
+      total: 1
+    }
+  });
+}
+function pageCodeFromParams() {
+  var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  if (data.id) return data.id;
+  if (data.pageCode) return data.pageCode;
+  return data.type ? 'help_center' : 'mall_news';
+}
+function getCategoryList() {
+  var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var pageCode = pageCodeFromParams(data);
+  return _request.default.get("miniapp/content-pages/".concat(pageCode)).then(function (res) {
+    if (res.code != 1 || !res.data) {
+      return _objectSpread(_objectSpread({}, res), {}, {
+        data: []
+      });
+    }
+    return _objectSpread(_objectSpread({}, res), {}, {
+      data: [{
+        id: pageCode,
+        name: res.data.title || pageCode
+      }]
+    });
+  });
+}
+function getArticleList() {
+  var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var pageCode = pageCodeFromParams(data);
+  return _request.default.get("miniapp/content-pages/".concat(pageCode)).then(function (res) {
+    return normalizeArticlePage(res, pageCode);
+  });
+}
+function getArticleDetail() {
+  var data = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var pageCode = pageCodeFromParams(data);
+  return _request.default.get("miniapp/content-pages/".concat(pageCode)).then(function (res) {
+    if (res.code != 1) return res;
+    return _objectSpread(_objectSpread({}, res), {}, {
+      data: normalizeArticle(res.data || {}, pageCode)
+    });
+  });
+}
+
+/***/ }),
+
+/***/ 194:
+/*!********************************************************!*\
+  !*** /Users/pc/nodejs/likeshop-my-former/utils/pay.js ***!
+  \********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.alipay = alipay;
+exports.wxpay = wxpay;
+var _defineProperty2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/defineProperty */ 11));
+var _wechath = _interopRequireDefault(__webpack_require__(/*! ./wechath5 */ 52));
+var _tools = __webpack_require__(/*! ./tools */ 47);
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); enumerableOnly && (symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; })), keys.push.apply(keys, symbols); } return keys; }
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = null != arguments[i] ? arguments[i] : {}; i % 2 ? ownKeys(Object(source), !0).forEach(function (key) { (0, _defineProperty2.default)(target, key, source[key]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } return target; }
+function wxpay(opt) {
+  return new Promise(function (resolve, reject) {
+    var params = {
+      timeStamp: opt.timeStamp,
+      // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
+      nonceStr: opt.nonceStr,
+      // 支付签名随机串，不长于 32 位
+      package: opt.package,
+      // 统一支付接口返回的prepay_id参数值，提交格式如：prepay_id=***）
+      signType: opt.signType,
+      // 签名方式，默认为'SHA1'，使用新版支付需传入'MD5'
+      paySign: opt.paySign
+    };
+    console.log(params);
+    uni.requestPayment(_objectSpread(_objectSpread({
+      provider: 'wxpay'
+    }, params), {}, {
+      success: function success(res) {
+        resolve('success');
+      },
+      cancel: function cancel(res) {
+        resolve('fail');
+      },
+      fail: function fail(res) {
+        resolve('fail');
+      }
+    }));
+  });
+}
+function alipay(opt) {}
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ })
+
+}]);
+//# sourceMappingURL=../../../.sourcemap/mp-weixin/bundle/common/vendor.js.map

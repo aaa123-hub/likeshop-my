@@ -79,6 +79,7 @@ import { setTabbar, tabbarList } from '@/utils/tools'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 
 const streetAsset = (name) => `/static/lanhu/slices/street/${name}`
+const merchantThumb = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'
 const emptyServiceNames = ['服装', '本地生活', '粮油饮品']
 
 export default {
@@ -92,19 +93,19 @@ export default {
             streetStarIcon: streetAsset('searchlist_star.png'),
             streetTimeIcon: streetAsset('searchlist_time.png'),
             streetCategories: [
-                { name: '美食餐饮', image: streetAsset('image_4.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '休闲娱乐', image: streetAsset('image_4_2.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '美容美发', image: streetAsset('image_4_3.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '体育运动', image: streetAsset('image_4_4.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '酒店住宿', image: streetAsset('image_4_5.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '本地生活', image: '', url: '/bundle/pages/business_pages/street_goods' },
-                { name: '百货日用', image: streetAsset('image_4_7.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '粮油饮品', image: '', url: '/bundle/pages/business_pages/street_goods' }
+                { name: '美食餐饮', image: streetAsset('image_4.png'), url: '/business/pages/business_pages/street_goods' },
+                { name: '休闲娱乐', image: streetAsset('image_4_2.png'), url: '/business/pages/business_pages/street_goods' },
+                { name: '美容美发', image: streetAsset('image_4_3.png'), url: '/business/pages/business_pages/street_goods' },
+                { name: '体育运动', image: streetAsset('image_4_4.png'), url: '/business/pages/business_pages/street_goods' },
+                { name: '酒店住宿', image: streetAsset('image_4_5.png'), url: '/business/pages/business_pages/street_goods' },
+                { name: '本地生活', image: '', url: '/business/pages/business_pages/street_goods' },
+                { name: '百货日用', image: streetAsset('image_4_7.png'), url: '/business/pages/business_pages/street_goods' },
+                { name: '粮油饮品', image: '', url: '/business/pages/business_pages/street_goods' }
             ],
             streetMerchants: [
-                { name: '广州市越秀区斌记面家', score: '5.0', meta: '营业中 · 地址待补充', image: streetAsset('merchant_thumb.png'), url: '/bundle/pages/business_pages/store_detail' },
-                { name: '本地生活精选店', score: '5.0', meta: '营业中 · 地址待补充', image: streetAsset('merchant_thumb.png'), url: '/bundle/pages/business_pages/store_detail' },
-                { name: '社区优选服务中心', score: '5.0', meta: '营业中 · 地址待补充', image: streetAsset('merchant_thumb.png'), url: '/bundle/pages/business_pages/store_detail' }
+                { name: '广州市越秀区斌记面家', score: '5.0', meta: '营业中 · 地址待补充', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
+                { name: '本地生活精选店', score: '5.0', meta: '营业中 · 地址待补充', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
+                { name: '社区优选服务中心', score: '5.0', meta: '营业中 · 地址待补充', image: merchantThumb, url: '/business/pages/business_pages/store_detail' }
             ]
         }
     },
@@ -159,8 +160,8 @@ export default {
                 image: this.shouldUseEmptyServiceImage(item.name || fallback.name) ? '' : resolveImage(item.image || fallback.image),
                 categoryId,
                 url: categoryId
-                    ? `/bundle/pages/business_pages/street_goods?categoryId=${categoryId}`
-                    : (fallback.url || '/bundle/pages/business_pages/street_goods'),
+                    ? `/business/pages/business_pages/street_goods?categoryId=${categoryId}`
+                    : (fallback.url || '/business/pages/business_pages/street_goods'),
                 key: categoryId || item.name || fallback.name || index
             }
         },
@@ -178,8 +179,8 @@ export default {
                 image: resolveImage(item.shopLogo || item.image || fallback.image),
                 meta: metaParts.join(' · ') || fallback.meta || '营业状态待更新',
                 url: shopId
-                    ? `/bundle/pages/business_pages/store_detail?shopId=${shopId}`
-                    : (fallback.url || '/bundle/pages/business_pages/store_detail')
+                    ? `/business/pages/business_pages/store_detail?shopId=${shopId}`
+                    : (fallback.url || '/business/pages/business_pages/store_detail')
             }
         },
         isEmptyImage(src) {

@@ -62,7 +62,7 @@
                             :key="item.id || index"
                             class="sort-like-card"
                             hover-class="none"
-                            :url="`/pages/goods_details/goods_details?id=${item.id || 1}`"
+                            :url="`/bundle/pages/goods_details/goods_details?id=${item.id || 1}`"
                         >
                             <view v-if="isEmptyImage(item.image)" class="sort-like-card__image image-placeholder">无</view>
                             <image v-else class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
@@ -202,13 +202,13 @@ export default {
         buildSearchUrl(item) {
             const id = item.id || ''
             const name = encodeURIComponent(item.name || '')
-            return `/pages/goods_search/goods_search?id=${id}&name=${name}`
+            return `/bundle/pages/goods_search/goods_search?id=${id}&name=${name}`
         },
         onSortSearch() {
             const keyword = (this.searchKeyword || '').trim()
             if (!keyword) return
             uni.navigateTo({
-                url: `/pages/goods_search/goods_search?keyword=${encodeURIComponent(keyword)}`
+                url: `/bundle/pages/goods_search/goods_search?keyword=${encodeURIComponent(keyword)}`
             })
         },
         resolveImage(image, index) {

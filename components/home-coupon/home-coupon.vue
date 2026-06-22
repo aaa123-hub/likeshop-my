@@ -125,7 +125,7 @@
 				}
 
 				uni.navigateTo({
-					url: '/pages/user_getcoupon/user_getcoupon'
+					url: '/bundle/pages/user_getcoupon/user_getcoupon'
 				});
 			}
 

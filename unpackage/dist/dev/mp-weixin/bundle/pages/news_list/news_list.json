@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "商城资讯",
+  "usingComponents": {
+    "swipers": "/components/swipers/swipers",
+    "tabs": "/components/tabs/tabs",
+    "tab": "/components/tab/tab",
+    "loading-footer": "/components/loading-footer/loading-footer"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "会员中心",
+  "usingComponents": {
+    "custom-image": "/components/custom-image/custom-image",
+    "loading-view": "/components/loading-view/loading-view"
+  }
+}

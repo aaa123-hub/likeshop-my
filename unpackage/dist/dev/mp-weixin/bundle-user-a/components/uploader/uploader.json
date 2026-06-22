@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "custom-image": "/bundle-user-a/components/custom-image/custom-image",
-    "u-icon": "/bundle-user-a/components/uview-ui/components/u-icon/u-icon"
-  }
-}

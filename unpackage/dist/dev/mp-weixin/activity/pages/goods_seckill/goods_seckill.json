@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "商品秒杀",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/components/navbar/navbar",
+    "swipers": "/components/swipers/swipers",
+    "custom-image": "/components/custom-image/custom-image",
+    "price-format": "/components/price-format/price-format",
+    "loading-footer": "/components/loading-footer/loading-footer"
+  }
+}

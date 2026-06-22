@@ -12,6 +12,7 @@
 </template>
 
 <script>
+import AfterSalesList from '@/bundle/components/after-sales-list/after-sales-list.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -55,6 +56,9 @@ export default {
   },
 
   components: {
+
+  	AfterSalesList
+
   },
   props: {},
 

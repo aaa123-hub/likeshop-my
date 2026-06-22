@@ -1,0 +1,1 @@
+<view class="lime-painter-view"><slot></slot></view>

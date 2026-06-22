@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "个人资料",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/components/navbar/navbar",
+    "u-icon": "/components/uview-ui/components/u-icon/u-icon",
+    "u-popup": "/components/uview-ui/components/u-popup/u-popup",
+    "u-verification-code": "/components/uview-ui/components/u-verification-code/u-verification-code",
+    "u-form-item": "/components/uview-ui/components/u-form-item/u-form-item",
+    "u-picker": "/components/uview-ui/components/u-picker/u-picker"
+  }
+}

@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "u-image": "/main-auth/components/uview-ui/components/u-image/u-image"
-  }
-}

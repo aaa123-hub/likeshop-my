@@ -1,9 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "l-painter": "/main-goods/components/lime-painter/components/l-painter/l-painter",
-    "l-painter-image": "/main-goods/components/lime-painter/components/l-painter-image/l-painter-image",
-    "l-painter-text": "/main-goods/components/lime-painter/components/l-painter-text/l-painter-text",
-    "l-painter-view": "/main-goods/components/lime-painter/components/l-painter-view/l-painter-view"
-  }
-}
