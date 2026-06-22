@@ -1,0 +1,1 @@
+<view class="my-coupons"><block wx:if="{{!showNull}}"><coupon-list vue-id="2bae0142-1" list="{{couponList}}" btnType="{{type}}" bind:__l="__l"></coupon-list></block><block wx:else><view class="coupon-empty"><view class="coupon-empty__title">暂无优惠券</view><view class="coupon-empty__desc">有可用优惠券时会展示在这里</view></view></block></view>

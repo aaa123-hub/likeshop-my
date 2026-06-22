@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "商品评价列表",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/bundle/components/navbar/navbar",
+    "tabs": "/bundle/components/tabs/tabs",
+    "tab": "/bundle/components/tab/tab",
+    "comment-list": "/bundle/components/comment-list/comment-list"
+  }
+}

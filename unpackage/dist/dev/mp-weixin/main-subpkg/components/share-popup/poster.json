@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "usingComponents": {
+    "l-painter": "/main-subpkg/components/lime-painter/components/l-painter/l-painter",
+    "l-painter-image": "/main-subpkg/components/lime-painter/components/l-painter-image/l-painter-image",
+    "l-painter-text": "/main-subpkg/components/lime-painter/components/l-painter-text/l-painter-text",
+    "l-painter-view": "/main-subpkg/components/lime-painter/components/l-painter-view/l-painter-view"
+  }
+}

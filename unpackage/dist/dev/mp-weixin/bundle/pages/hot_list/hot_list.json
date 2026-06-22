@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "热销榜单",
+  "usingComponents": {
+    "swipers": "/bundle/components/swipers/swipers",
+    "goods-list": "/bundle/components/goods-list/goods-list",
+    "loading-footer": "/bundle/components/loading-footer/loading-footer"
+  }
+}

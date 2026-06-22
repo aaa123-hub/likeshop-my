@@ -1,0 +1,15 @@
+{
+  "navigationBarTitleText": "支付订单",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/main-subpkg/components/navbar/navbar",
+    "u-icon": "/main-subpkg/components/uview-ui/components/u-icon/u-icon",
+    "price-format": "/main-subpkg/components/price-format/price-format",
+    "u-count-down": "/main-subpkg/components/uview-ui/components/u-count-down/u-count-down",
+    "u-radio-group": "/main-subpkg/components/uview-ui/components/u-radio-group/u-radio-group",
+    "u-image": "/main-subpkg/components/uview-ui/components/u-image/u-image",
+    "u-radio": "/main-subpkg/components/uview-ui/components/u-radio/u-radio",
+    "u-loading": "/main-subpkg/components/uview-ui/components/u-loading/u-loading",
+    "u-skeleton": "/main-subpkg/components/uview-ui/components/u-skeleton/u-skeleton"
+  }
+}

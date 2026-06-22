@@ -1,0 +1,27 @@
+
+.my-lottery {
+	background-image: url(https://shengyuan.store/api/miniapp/files/miniapp/c9b53701ebf1454eba82065f77fd9030/choujiang_light.png);
+	width: 640rpx;
+	height: 640rpx;
+	background-size: 100% 100%;
+	padding: 35rpx 40rpx;
+}
+.my-lottery .lottery-item {
+	width: 180rpx;
+	height: 180rpx;
+	background-image: url(https://shengyuan.store/api/miniapp/files/miniapp/8420e911aeb243cd9f0f603626d60c21/choujiang_block.png);
+	background-size: 100% 100%;
+}
+.my-lottery .lottery-item.lotty-btn {
+	background-image: url(https://shengyuan.store/api/miniapp/files/miniapp/51be0e273df14c858fb1b5a62154dd15/choujiang_button.png);
+}
+.container .activity-null {
+	color: #FEE5BF;
+	font-size: 40rpx;
+	width: 640rpx;
+	height: 640rpx;
+}
+.active {
+	opacity: 0.7;
+}
+

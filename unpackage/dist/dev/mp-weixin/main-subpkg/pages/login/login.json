@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "登录",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "u-modal": "/main-subpkg/components/uview-ui/components/u-modal/u-modal"
+  }
+}

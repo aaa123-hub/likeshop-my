@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "我的优惠券",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/main-subpkg/components/navbar/navbar",
+    "tabs": "/main-subpkg/components/tabs/tabs",
+    "tab": "/main-subpkg/components/tab/tab",
+    "my-coupons": "/main-subpkg/components/my-coupons/my-coupons"
+  }
+}

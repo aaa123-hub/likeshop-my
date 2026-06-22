@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "提现记录",
+  "usingComponents": {
+    "price-format": "/bundle/components/price-format/price-format",
+    "loading-footer": "/bundle/components/loading-footer/loading-footer"
+  }
+}

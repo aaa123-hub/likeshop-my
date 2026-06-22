@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "我的-客服",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "business-wrapper-page": "/bundle/pages/business_scene/business-wrapper-page"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "custom-image": "/main-subpkg/components/custom-image/custom-image",
+    "price-format": "/main-subpkg/components/price-format/price-format",
+    "cu-progress": "/main-subpkg/components/cu-progress/cu-progress"
+  },
+  "component": true
+}

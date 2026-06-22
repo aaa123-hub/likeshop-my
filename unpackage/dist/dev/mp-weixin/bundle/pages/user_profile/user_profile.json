@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "个人设置",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/bundle/components/navbar/navbar",
+    "u-icon": "/bundle/components/uview-ui/components/u-icon/u-icon",
+    "u-popup": "/bundle/components/uview-ui/components/u-popup/u-popup",
+    "u-verification-code": "/bundle/components/uview-ui/components/u-verification-code/u-verification-code",
+    "u-form-item": "/bundle/components/uview-ui/components/u-form-item/u-form-item",
+    "u-picker": "/bundle/components/uview-ui/components/u-picker/u-picker"
+  }
+}

@@ -1,0 +1,1 @@
+<u-modal vue-id="3fdf0ebc-1" show-cancel-button="{{true}}" content="{{getTipsText}}" confirm-color="#ff2c3c" value="{{show}}" data-event-opts="{{[['^confirm',[['onConfirm']]],['^input',[['__set_model',['','show','$event',[]]]]]]}}" bind:confirm="__e" bind:input="__e" bind:__l="__l"></u-modal>

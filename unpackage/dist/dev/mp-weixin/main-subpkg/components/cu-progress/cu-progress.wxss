@@ -1,0 +1,14 @@
+
+.cu-progress {
+  background-color: #E5E5E5;
+  height: 6rpx;
+  width: 90rpx;
+  position: relative;
+}
+.cu-progress .cu-progress-bar {
+  height: 100%;
+  width: 30rpx;
+  position: absolute;
+  left: 0;
+}
+

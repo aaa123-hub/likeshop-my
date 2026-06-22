@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "分销推广",
+  "usingComponents": {
+    "loading-view": "/bundle/components/loading-view/loading-view",
+    "custom-image": "/bundle/components/custom-image/custom-image",
+    "u-input": "/bundle/components/uview-ui/components/u-input/u-input",
+    "price-format": "/bundle/components/price-format/price-format",
+    "u-icon": "/bundle/components/uview-ui/components/u-icon/u-icon",
+    "u-popup": "/bundle/components/uview-ui/components/u-popup/u-popup",
+    "u-select": "/bundle/components/uview-ui/components/u-select/u-select"
+  }
+}

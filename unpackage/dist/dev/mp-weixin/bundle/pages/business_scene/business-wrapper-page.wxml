@@ -1,0 +1,1 @@
+<scene-shell vue-id="306fabd0-1" scene="{{scene}}" store-detail-default-tab="{{storeDetailDefaultTab}}" bind:__l="__l"></scene-shell>

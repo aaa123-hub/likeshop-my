@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "忘记转账密码",
+  "usingComponents": {
+    "u-input": "/bundle/components/uview-ui/components/u-input/u-input",
+    "u-count-down": "/bundle/components/uview-ui/components/u-count-down/u-count-down"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "loading": "/main-subpkg/components/loading/loading"
+  }
+}

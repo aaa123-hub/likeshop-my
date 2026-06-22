@@ -1,0 +1,7 @@
+{
+  "component": true,
+  "usingComponents": {
+    "custom-image": "/main-subpkg/components/custom-image/custom-image",
+    "price-format": "/main-subpkg/components/price-format/price-format"
+  }
+}

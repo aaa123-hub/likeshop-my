@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "抽奖记录",
+  "usingComponents": {
+    "custom-image": "/bundle/components/custom-image/custom-image",
+    "loading-footer": "/bundle/components/loading-footer/loading-footer"
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/sort/sort",
+    "pages/shop_cart/shop_cart",
+    "pages/street/street",
+    "pages/user/user"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "商城",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#666",
+    "selectedColor": "#1688ff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "static/lanhu/assets/tabbar/tabbar-home-normal.png",
+        "selectedIconPath": "static/lanhu/assets/tabbar/tabbar-home-active.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/sort/sort",
+        "iconPath": "static/lanhu/assets/tabbar/tabbar-category-normal.png",
+        "selectedIconPath": "static/lanhu/assets/tabbar/tabbar-category-active.png",
+        "text": "分类"
+      },
+      {
+        "pagePath": "pages/street/street",
+        "iconPath": "static/lanhu/assets/tabbar/tabbar-street-normal.png",
+        "selectedIconPath": "static/lanhu/assets/tabbar/tabbar-street-active.png",
+        "text": "商街"
+      },
+      {
+        "pagePath": "pages/shop_cart/shop_cart",
+        "iconPath": "static/lanhu/assets/tabbar/tabbar-cart-normal.png",
+        "selectedIconPath": "static/lanhu/assets/tabbar/tabbar-cart-active.png",
+        "text": "购物车"
+      },
+      {
+        "pagePath": "pages/user/user",
+        "iconPath": "static/lanhu/assets/tabbar/tabbar-user-normal.png",
+        "selectedIconPath": "static/lanhu/assets/tabbar/tabbar-user-active.png",
+        "text": "我的"
+      }
+    ],
+    "backgroundColor": "#ffffff"
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseAddress"
+  ],
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于小程序位置接口的效果展示"
+    }
+  },
+  "usingComponents": {},
+  "subpackages": [
+    {
+      "root": "main-subpkg",
+      "pages": [
+        "pages/address_edit/address_edit",
+        "pages/user_address/user_address",
+        "pages/news_list/news_list",
+        "pages/news_details/news_details",
+        "pages/goods_search/goods_search",
+        "pages/goods_details/goods_details",
+        "pages/confirm_order/confirm_order",
+        "pages/user_collection/user_collection",
+        "pages/user_coupon/user_coupon",
+        "pages/user_getcoupon/user_getcoupon",
+        "pages/login/login",
+        "pages/forget_pwd/forget_pwd",
+        "pages/register/register",
+        "pages/user_order/user_order",
+        "pages/order_details/order_details",
+        "pages/all_comments/all_comments",
+        "pages/user_vip/user_vip",
+        "pages/pay_result/pay_result",
+        "pages/payment/payment",
+        "pages/webview/webview",
+        "components/uview-ui/components/u-avatar-cropper/u-avatar-cropper"
+      ]
+    },
+    {
+      "root": "bundle",
+      "pages": [
+        "pages/goods_seckill/goods_seckill",
+        "pages/goods_logistics/goods_logistics",
+        "pages/goods_comment_list/goods_comment_list",
+        "pages/goods_reviews/goods_reviews",
+        "pages/activity_detail/activity_detail",
+        "pages/goods_combination/goods_combination",
+        "pages/user_group/user_group",
+        "pages/hot_list/hot_list",
+        "pages/user_sign/user_sign",
+        "pages/sign_detail/sign_detail",
+        "pages/sign_rule/sign_rule",
+        "pages/user_spread/user_spread",
+        "pages/invite_fans/invite_fans",
+        "pages/user_spread_month_bill/user_spread_month_bill",
+        "pages/user_spread_month_bill_detail/user_spread_month_bill_detail",
+        "pages/user_spread_order/user_spread_order",
+        "pages/user_fans/user_fans",
+        "pages/user_withdraw/user_withdraw",
+        "pages/user_withdraw_code/user_withdraw_code",
+        "pages/user_wallet/user_wallet",
+        "pages/user_bill/user_bill",
+        "pages/user_payment/user_payment",
+        "pages/widthdraw_result/widthdraw_result",
+        "pages/server_explan/server_explan",
+        "pages/message_center/message_center",
+        "pages/notice/notice",
+        "pages/notice_detail/notice_detail",
+        "pages/user_profile/user_profile",
+        "pages/user_set/user_set",
+        "pages/post_sale/post_sale",
+        "pages/apply_refund/apply_refund",
+        "pages/after_sales_detail/after_sales_detail",
+        "pages/input_express_info/input_express_info",
+        "pages/contact_offical/contact_offical",
+        "pages/luckly_wheel/luckly_wheel",
+        "pages/prize_record/prize_record",
+        "pages/win_prize_code/win_prize_code",
+        "pages/bargain/bargain",
+        "pages/bargain_process/bargain_process",
+        "pages/bargain_code/bargain_code",
+        "pages/recharge_code/recharge_code",
+        "pages/balance_transfer/balance_transfer",
+        "pages/transfer_record/transfer_record",
+        "pages/set_pay_pwd/set_pay_pwd",
+        "pages/forget_pay_pwd/forget_pay_pwd",
+        "pages/store_list/store_list",
+        "pages/writeoff_order/writeoff_order",
+        "pages/writeoff_detail/writeoff_detail",
+        "pages/live_broadcast/live_broadcast",
+        "pages/license/license",
+        "pages/business_pages/feedback",
+        "pages/business_pages/face_pay",
+        "pages/business_pages/store_detail",
+        "pages/business_pages/fiat_balance_2",
+        "pages/business_pages/street",
+        "pages/business_pages/pending_payment",
+        "pages/business_pages/store_qr",
+        "pages/business_pages/goods_qr",
+        "pages/business_pages/store_group",
+        "pages/business_pages/store_album",
+        "pages/business_pages/fiat_balance_3",
+        "pages/business_pages/payment_filter",
+        "pages/business_pages/payment_record",
+        "pages/business_pages/about_us",
+        "pages/business_pages/activity_exchange",
+        "pages/business_pages/activity_center",
+        "pages/business_pages/intro_card",
+        "pages/business_pages/recent_visits",
+        "pages/business_pages/street_goods",
+        "pages/business_pages/eco_app",
+        "pages/business_pages/auto_points",
+        "pages/business_pages/my_service",
+        "pages/business_pages/user_kyc",
+        "pages/page_index/page_index",
+        "pages/business_scene/scene_router"
+      ]
+    }
+  ],
+  "lazyCodeLoading": "requiredComponents"
+}

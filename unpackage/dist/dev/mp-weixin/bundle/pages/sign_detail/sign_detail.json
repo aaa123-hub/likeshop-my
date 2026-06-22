@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "积分明细",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/bundle/components/navbar/navbar",
+    "loading-footer": "/bundle/components/loading-footer/loading-footer"
+  }
+}
