@@ -49,7 +49,7 @@
 						</view>
 						<view class="mr20 row group-num">
 							<view class="group-icon">
-								<image src="/static/images/icon_group.png" class="icon-sm"></image>
+								<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_group.png" class="icon-sm"></image>
 							</view>
 							<view class="xxs ml10 mr10">{{ team.people_num }}人团</view>
 						</view>
@@ -61,7 +61,7 @@
 					</view>
 				</view>
 			</view>
-			<view class="merchant-card">
+			<view class="merchant-card" @tap="goShopDetail">
 				<view class="merchant-card__head">
 					<view class="merchant-card__shop">
 						<view class="merchant-card__avatar"></view>
@@ -107,7 +107,7 @@
 				<view class="option-panel__line"></view>
 				<view class="option-row">
 					<u-icon name="car" size="36" color="#222222"></u-icon>
-					<text class="option-row__text">免运费</text>
+					<text class="option-row__text">{{ freightText }}</text>
 				</view>
 				<view class="option-panel__line"></view>
 				<view class="option-row option-row--between" @tap="showCouponFun">
@@ -158,7 +158,7 @@
 									</view>
 								</view>
 							</view>
-							<image class="icon-sm" src="/static/images/arrow_right.png"></image>
+							<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 						</view>
 						<view class="row integral" style="align-items: flex-start;"
 							v-if="goodsDetail.order_give_integral">
@@ -202,13 +202,13 @@
 			</swiper>
 			<view v-if="!goodsType" class="spec row bg-white mt20" @tap="showSpecFun(0)">
 				<view class="text lighter">已选</view>
-				<view class="line1 mr20" style="flex: 1;">{{ checkedGoods.spec_value_str || '默认' }}</view>
-				<image class="icon-sm" src="/static/images/arrow_right.png"></image>
+				<view class="line1 mr20" style="flex: 1;">{{ selectedSpecText }}</view>
+				<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 			</view>
 			<navigator class="mt20" hover-class="none" url="/bundle/pages/server_explan/server_explan?type=2">
 				<view class="row bg-white" style="padding: 24rpx 24rpx;">
 					<view class="text lighter flex1">售后保障</view>
-					<image class="icon-sm" src="/static/images/arrow_right.png"></image>
+					<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 				</view>
 			</navigator>
 			<view class="evaluation bg-white mt20">
@@ -219,7 +219,7 @@
 					</view>
 					<view class="row">
 						<text class="lighter">查看全部</text>
-						<image class="icon-sm" src="/static/images/arrow_right.png"></image>
+						<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 					</view>
 				</navigator>
 				<view class="con" v-if="comment.goods_rate">
@@ -261,18 +261,18 @@
 			<view class="footer row bg-white fixed">
 				<navigator class="btn column-center" hover-class="none"
 					url="/bundle/pages/contact_offical/contact_offical">
-					<image class="icon-md" src="/static/images/icon_contact.png"></image>
+					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_contact.png"></image>
 					<text class="xxs lighter">客服</text>
 				</navigator>
 				<button class="btn column-center" hover-class="none" @tap="collectGoodsFun">
 					<image class="icon-md"
-						:src="goodsDetail.is_collect == 1 ? '/static/images/icon_collection_s.png' : '/static/images/icon_collection.png'">
+						:src="goodsDetail.is_collect == 1 ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_collection_s.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_collection.png'">
 					</image>
 					<text class="xxs lighter">收藏</text>
 				</button>
 				<navigator class="btn cart column-center" hover-class="none" open-type="switchTab"
 					url="/pages/shop_cart/shop_cart">
-					<image class="icon-md" src="/static/images/icon_cart.png"></image>
+					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_cart.png"></image>
 					<text class="xxs lighter">购物车</text>
 					<u-badge v-if="cartNum" bgColor="#FF2C3C" :offset="[8, 10]" :count="cartNum"></u-badge>
 				</navigator>
@@ -321,7 +321,7 @@
 				<view class="row-between" style="padding: 30rpx">
 					<view class="title md bold">领券</view>
 					<view class="close" @tap="showCoupon = false">
-						<image class="icon-lg" src="/static/images/icon_close.png"></image>
+						<image class="icon-lg" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_close.png"></image>
 					</view>
 				</view>
 				<view class="content bg-body">
@@ -415,7 +415,8 @@
 				isGroup: 0,
 				id: '',
 				showDownload: false,
-				distribution: {}
+				distribution: {},
+				fetchingDetail: false
 			};
 		},
 		onLoad(options) {
@@ -436,7 +437,6 @@
 			} else {
 				this.id = options.id;
 			}
-			this.getGoodsCouponFun();
 			this.getCartNum();
 		},
 		onShow() {
@@ -459,8 +459,13 @@
 			resolveGoodsImage(image) {
 				return resolveImage(image, 'goods')
 			},
+			goShopDetail() {
+				const shopId = this.goodsDetail.shop_id || this.goodsDetail.shopId
+				if (!shopId) return
+				uni.navigateTo({ url: `/bundle/pages/business_pages/store_detail?shopId=${shopId}` })
+			},
 			applyDefaultGoodsDetail() {
-				const image = '/static/lanhu/designs/24-goods-detail.png';
+				const image = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/designs/24-goods-detail.png';
 				this.isNull = false;
 				this.goodsType = 0;
 				this.countTime = 0;
@@ -499,6 +504,8 @@
 					this.applyDefaultGoodsDetail();
 					return;
 				}
+				if (this.fetchingDetail) return;
+				this.fetchingDetail = true;
 				try {
 					const {
 						data,
@@ -538,9 +545,11 @@
 					this.distribution = distribution || {}
 					this.isNull = false;
 					this.goodsDetail = data;
-					this.swiperList = Array.isArray(goods_image) ? goods_image : [];
+					this.swiperList = Array.isArray(goods_image) && goods_image.length ? goods_image : [data.image].filter(Boolean);
 					this.comment = comment || {};
 					this.goodsLike = Array.isArray(like) ? like : [];
+					this.couponList = Array.isArray(data.coupon_list) ? data.coupon_list : [];
+					this.checkedGoods = data.goods_item?.find(item => Number(item.stock || 0) > 0) || data.goods_item?.[0] || {};
 					this.countTime = time;
 					this.goodsType = activity?.type || 0;
 					this.team = team ? team : {};
@@ -559,12 +568,14 @@
 					console.error('[goods-details] getGoodsDetailFun failed:', error);
 					this.applyDefaultGoodsDetail();
 				} finally {
+					this.fetchingDetail = false;
 					this.$nextTick(() => {
 						this.isFirstLoading = false;
 					});
 				}
 			},
 			async getGoodsCouponFun() {
+				if (!this.id) return;
 				const {
 					data,
 					code
@@ -625,14 +636,19 @@
 			onBuy(e) {
 				let {
 					id,
+					sku_id,
+					skuId,
+					item_id,
 					goodsNum
 				} = e.detail;
+				const itemId = item_id || sku_id || skuId || id;
 				const {
 					goodsType,
 					team
 				} = this;
 				let goods = [{
-					item_id: id,
+					item_id: itemId,
+					skuId: itemId,
 					num: goodsNum
 				}];
 				const params = {
@@ -664,13 +680,18 @@
 			async onAddCart(e) {
 				let {
 					id,
+					sku_id,
+					skuId,
+					item_id,
 					goodsNum
 				} = e.detail;
+				const itemId = item_id || sku_id || skuId || id;
 
 				if (this.goodsType == 2) {
 					// 拼团单独购买
 					let goods = [{
-						item_id: id,
+						item_id: itemId,
+						skuId: itemId,
 						num: goodsNum
 					}];
 					uni.navigateTo({
@@ -685,7 +706,8 @@
 					data,
 					msg
 				} = await addCart({
-					item_id: id,
+					item_id: itemId,
+					skuId: itemId,
 					goods_num: goodsNum
 				});
 				if (code == 1) {
@@ -766,6 +788,17 @@
 					return `下单送${this.goodsDetail.order_give_integral}积分`
 				}
 				return '50元优惠券'
+			},
+			selectedSpecText() {
+				return this.checkedGoods.spec_value_str || this.checkedGoods.skuName || this.checkedGoods.name || '默认'
+			},
+			freightText() {
+				const type = this.goodsDetail.freight_type || this.goodsDetail.freightType
+				const amount = Number(this.goodsDetail.freight_amount ?? this.goodsDetail.freightAmount ?? 0)
+				if (type === 'PICKUP') return '线下自提'
+				if (type === 'TEMPLATE') return amount > 0 ? `运费 ¥${amount}` : '按运费模板计算'
+				if (type === 'FIXED') return amount > 0 ? `运费 ¥${amount}` : '固定运费'
+				return '免运费'
 			}
 		}
 	};
@@ -787,7 +820,7 @@
 			.price {
 				width: 504rpx;
 				height: 100%;
-				background: url(../../static/images/bg_seckill.png) no-repeat;
+				background: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_seckill.png) no-repeat;
 				background-size: 100%;
 			}
 
@@ -799,7 +832,7 @@
 		.group {
 			height: 100rpx;
 			width: 100%;
-			background-image: url(../../static/images/pintuan_bg.png);
+			background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/pintuan_bg.png);
 			background-size: 100%;
 
 			.group-num {
@@ -1370,7 +1403,7 @@
 			}
 
 			.share-con {
-				background: url('../../static/images/bg_packet_img.png');
+				background: url('https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_packet_img.png');
 				width: 241rpx;
 				height: 208rpx;
 				background-size: 100%;

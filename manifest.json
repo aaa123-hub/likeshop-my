@@ -156,7 +156,7 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "wx75faf8824586138a",
+        "appid" : "wx57414bbbd4e676a6",
         "setting" : {
             "urlCheck" : false,
             "es6" : true,
@@ -187,7 +187,7 @@
     },
     "h5" : {
         "title" : "加载中",
-        "domain" : "http://106.55.190.19/mobile/",
+        "domain" : "https://shengyuan.store/mobile/",
         "router" : {
             "base" : "/mobile/",
             "mode" : "history"
@@ -198,7 +198,7 @@
             "port" : 8080,
             "proxy" : {
                 "/api" : {
-                    "target" : "http://106.55.190.19",
+                    "target" : "https://shengyuan.store",
                     "changeOrigin" : true,
                     "secure" : false,
                     "pathRewrite" : {

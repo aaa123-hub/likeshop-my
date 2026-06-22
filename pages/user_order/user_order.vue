@@ -100,15 +100,16 @@ export default {
   },
 
   onPullDownRefresh: function () {
-   const {active, order} = this
-   console.log(this.$refs['order' + order[active].type])
-   this.$refs['order' + order[active].type][0].reflesh()
+    const {active, order} = this
+   const current = this.$refs['order' + order[active].type]
+   if (current && current[0] && current[0].reflesh) current[0].reflesh()
+   else uni.stopPullDownRefresh()
   },
 
   onReachBottom: function () {
 	  const {active, order} = this
-	console.log(this.$refs['order' + order[active].type])
-	this.$refs['order' + order[active].type][0].getOrderListFun()
+	const current = this.$refs['order' + order[active].type]
+	if (current && current[0] && current[0].getOrderListFun) current[0].getOrderListFun()
   },
   methods: {
     changeShow(index) {

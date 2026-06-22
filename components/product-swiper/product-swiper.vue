@@ -33,12 +33,12 @@
             <image
               v-show="showPlay"
               @tap.stop="play"
-              src="/static/images/icon_play.png"
+              src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_play.png"
               class="icon-play"
             >
             </image>
 
-            <!--  <image v-show="showPlay" style="right: 50rpx;bottom: 50rpx;" @tap.stop="play" src="/static/images/all.png" class="icon-play">
+            <!--  <image v-show="showPlay" style="right: 50rpx;bottom: 50rpx;" @tap.stop="play" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/all.png" class="icon-play">
                         </image> -->
             <!-- #endif -->
             <!-- #ifdef APP-PLUS -->

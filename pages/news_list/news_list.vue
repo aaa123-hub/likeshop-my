@@ -26,7 +26,7 @@
                     <view class="row-between mt20">
                         <view class="xs muted">发布时间: {{item.create_time}}</view>
                         <view class="row">
-                            <!-- <image class="icon-sm" src="/static/images/icon_see.png"></image> -->
+                            <!-- <image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_see.png"></image> -->
                             <view class="ml10 xs muted">{{ item.visit }}人浏览</view>
                         </view>
                     </view>

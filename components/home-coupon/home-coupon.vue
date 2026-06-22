@@ -22,7 +22,7 @@
 			<view class="normal lg title">每日领券</view>
 			<view class="row">
 				<view class="muted sm mr5">进入领券中心</view>
-				<image src="/static/images/arrow_right.png" class="icon-sm"></image>
+				<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" class="icon-sm"></image>
 			</view>
 		</view>
 		<view class="coupon-scroll">
@@ -40,7 +40,7 @@
 							<view class="desc xs">{{item.use_condition}}</view>
 						</view>
 						<view class="coupon-right xxs primary column-center">立即领取</view>
-						<image v-if="item.is_get" class="coupon-img" src="/static/images/home_img_ receive.png"></image>
+						<image v-if="item.is_get" class="coupon-img" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_img_ receive.png"></image>
 					</view>
 				</view>
 			</scroll-view>
@@ -134,7 +134,7 @@
 </script>
 <style lang="scss">
 	.every-day-coupon {
-		background-image: url(../../static/images/home_bg_coupon.png);
+		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon.png);
 		background-size: 100% 100%;
 		background-repeat: no-repeat;
 		height: 264rpx;
@@ -159,11 +159,11 @@
 				width: 326rpx;
 				flex: none;
 				position: relative;
-				background: url(../../static/images/home_bg_coupon_red.png);
+				background: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon_red.png);
 				background-size: 100% 100%;
 
 				&.recieve {
-					background-image: url(../../static/images/home_bg_coupon_gray.png);
+					background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon_gray.png);
 
 					.coupon-right {
 						background-color: #E5E5E5;

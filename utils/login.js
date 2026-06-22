@@ -54,6 +54,7 @@ export const wxMnpLogin = trottle(_wxMnpLogin, 1000)
 async function _wxMnpLogin() {
 	const wxLoginCode = await getWxCode()
 	const {code: loginCode, data: loginData} = await silentLogin({
+		jsCode: wxLoginCode,
 		loginCode: wxLoginCode,
 		channelCode: 'wechat-miniapp'
 	})

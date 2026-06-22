@@ -81,7 +81,7 @@ export default {
   width: 100%;
   min-height: 729rpx;
   padding: calc(var(--status-bar-height) + 45rpx) 24rpx 0;
-  background: url("https://lanhu-oss-proxy.lanhuapp.com/20a18e804d6534fa893b09b171a132ff") 0 0 / 100% 100% no-repeat;
+  background: url("https://shengyuan.store/api/miniapp/files/miniapp/edd7d531c2674468be3c7a339309d186/notice-detail-header-bg.png") 0 0 / 100% 100% no-repeat;
   box-sizing: border-box;
 }
 

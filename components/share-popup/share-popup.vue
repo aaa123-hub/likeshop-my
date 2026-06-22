@@ -5,18 +5,18 @@
 			<view class="row row-center md bold mt30 mb30">分享至</view>
 			<view class="row row-around share-tab">
 				<view class="column column-center" @tap="getPoster">
-					<image mode="widthFix" class="share-icon" src="/static/images/icon_generate_poster.png"></image>
+					<image mode="widthFix" class="share-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_generate_poster.png"></image>
 					<view class="" style="margin: 15rpx 0;">生成海报</view>
 				</view>
 				<!-- #ifdef MP-WEIXIN-->
 				<button open-type="share" class="column column-center" hover-class="none">
-					<image class="share-icon" src="/static/images/icon_wechat.png"></image>
+					<image class="share-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_wechat.png"></image>
 					<view class="">微信好友</view>
 				</button>
 				<!-- #endif -->
 				<!-- #ifdef H5 || APP-PLUS -->
 				<view oclass="column column-center" @tap="shareWx">
-					<image class="share-icon" src="/static/images/icon_wechat.png"></image>
+					<image class="share-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_wechat.png"></image>
 					<view class="">微信好友</view>
 				</view>
 				<!-- #endif -->
@@ -43,7 +43,7 @@
 		<!-- #ifdef H5 -->
 		<u-popup :custom-style="{'background': 'none'}"  class="share-tips" v-model="showTips" mode="top">
 			<view style="overflow: hidden;">
-				<image src="/static/images/share_arrow.png" class="share-arrow" />
+				<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/share_arrow.png" class="share-arrow" />
 				<view class="white" style="text-align: center;margin-top: 280rpx;">
 					<view class="bold lg">立即分享给好友吧</view>
 					<view class="sm m-t-10">点击屏幕右上角将本页面分享给好友</view>
@@ -144,7 +144,13 @@
 					// #ifdef MP-WEIXIN 
 					const res = await this.getMnpQrcode()
 					// #endif
-					this.mnpQrcode = res.data.qr_code.replaceAll("\r\n", "")
+					const qrCode = res && res.data && (res.data.qr_code || res.data.qrCode || res.data.qrcode)
+					if (!qrCode) {
+						uni.hideLoading()
+						this.$toast({ title: '生成失败，请稍后重试' })
+						return
+					}
+					this.mnpQrcode = String(qrCode).replaceAll("\r\n", "")
 					
 					if(this.type == 2) {
 						this.bargainShare = res.data.extra

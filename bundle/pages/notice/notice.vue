@@ -58,8 +58,8 @@ export default {
       loadingStatus: loadingType.LOADING,
       loadingType,
       lists: [],
-      noticeBgUrl: getDesignAsset('/static/lanhu/assets/notice/notice_top_bg.png'),
-      noticeIconUrl: getDesignAsset('/static/lanhu/assets/notice/notice_message_icon.png'),
+      noticeBgUrl: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/f00089bec938401183e81071ab3badb2/notice-page-bg.png'),
+      noticeIconUrl: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/64a7a4fa945a4dfaa27ca15ad949045b/notice-message-icon.png'),
       type: "system",
     };
   },

@@ -1,7 +1,7 @@
 <template>
 	<view class="bubble-tips-container" :style="{top: top, left: left}">
 		<view class="bubble-content row" v-show="showBubble" v-for="item in currentList" :key="item.id">
-			<image class="bubble-img" :src="item.user && item.user.avatar ? item.user.avatar : '/static/images/my_portrait_empty.png'" />
+			<image class="bubble-img" :src="item.user && item.user.avatar ? item.user.avatar : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/my_portrait_empty.png'" />
 			<view class="xs">
 				{{item.template}}
 			</view>

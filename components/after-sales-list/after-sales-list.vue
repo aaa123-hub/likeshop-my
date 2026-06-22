@@ -234,7 +234,7 @@
       @cancel="hideDialog"
     >
       <view class="column-center tips-dialog" style="padding: 20rpx 0">
-        <image class="icon-lg" src="/static/images/icon_warning.png"></image>
+        <image class="icon-lg" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
         <view style="margin-top: 30rpx">是否要撤销申请？</view>
       </view>
     </u-modal>

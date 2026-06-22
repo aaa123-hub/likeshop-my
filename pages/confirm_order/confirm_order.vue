@@ -43,11 +43,11 @@ likeshop.cn.team // +-----------------------------------------------------------
                     </view>
 
                     <view
-                        v-show="addressTabsList[addressTabsIndex]['sign'] === 'express'"
+                        v-show="currentDelivery.sign === 'express'"
                         class="address-row"
                         @tap="onAddressExpress"
                     >
-                        <image class="address-icon" src="/static/images/icon_address.png" mode="scaleToFill"></image>
+                        <image class="address-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png" mode="scaleToFill"></image>
                         <view class="address-content">
                             <template v-if="address.id">
                                 <view class="address-person">
@@ -62,15 +62,15 @@ likeshop.cn.team // +-----------------------------------------------------------
                                 <view class="address-empty">下单前请填写收货地址</view>
                             </template>
                         </view>
-                        <image class="arrow-icon" src="/static/images/arrow_right.png" mode="scaleToFill"></image>
+                        <image class="arrow-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" mode="scaleToFill"></image>
                     </view>
 
                     <view
-                        v-show="addressTabsList[addressTabsIndex]['sign'] === 'store'"
+                        v-show="currentDelivery.sign === 'store'"
                         class="address-row"
                         @tap="onAddressStore"
                     >
-                        <image class="address-icon" src="/static/images/icon_address.png" mode="scaleToFill"></image>
+                        <image class="address-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png" mode="scaleToFill"></image>
                         <view class="address-content">
                             <template v-if="storeInfo.id">
                                 <view class="address-person">{{ storeInfo.name }}</view>
@@ -80,10 +80,10 @@ likeshop.cn.team // +-----------------------------------------------------------
                                 <view class="address-empty">请选择门店地址</view>
                             </template>
                         </view>
-                        <image class="arrow-icon" src="/static/images/arrow_right.png" mode="scaleToFill"></image>
+                        <image class="arrow-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" mode="scaleToFill"></image>
                     </view>
 
-                    <view v-show="addressTabsList[addressTabsIndex]['sign'] === 'store'" class="store-form">
+                    <view v-show="currentDelivery.sign === 'store'" class="store-form">
                         <view class="store-field">
                             <text>提货人</text>
                             <u-input
@@ -173,7 +173,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                         <text>优惠券</text>
                         <view class="row-value">
                             <text :class="orderInfo.discount_amount ? 'red-value' : 'muted-value'">{{ couponText }}</text>
-                            <image class="small-arrow" src="/static/images/arrow_right.png" mode="scaleToFill"></image>
+                            <image class="small-arrow" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" mode="scaleToFill"></image>
                         </view>
                     </view>
                     <template v-if="orderInfo.integral_switch">
@@ -318,14 +318,17 @@ export default {
 
     computed: {
         delivery() {
-            return this.addressTabsList[this.addressTabsIndex]['id']
+            return this.currentDelivery.id
+        },
+        currentDelivery() {
+            return this.addressTabsList[this.addressTabsIndex] || this.addressTabsList[0] || { id: 1, sign: 'express', name: '快递配送' }
         },
         shopName() {
             const firstGoods = this.goodsLists[0] || {}
             return firstGoods.shop_name || firstGoods.store_name || this.orderInfo.shop_name || '店铺名称'
         },
         freightText() {
-            if (!this.address.id && this.addressTabsList[this.addressTabsIndex]['sign'] === 'express') {
+            if (!this.address.id && this.currentDelivery.sign === 'express') {
                 return '填写地址后自动算运费'
             }
             return `¥${this.orderInfo.shipping_price || '0.00'}`
@@ -366,6 +369,12 @@ export default {
                     this.addressTabsList = this.addressTabsList.filter(
                         (item) => item.sign !== 'store'
                     )
+                }
+                if (!this.addressTabsList.length) {
+                    this.addressTabsList = [{ id: 1, sign: 'express', name: '快递配送' }]
+                }
+                if (!this.addressTabsList[this.addressTabsIndex]) {
+                    this.addressTabsIndex = 0
                 }
             })
             // 页面数据初始化
@@ -552,12 +561,10 @@ export default {
                     this.goodsLists = data.goods_lists
                     //TODO
                     if (data.selffetch_info) {
-                        console.log(456)
-                        this.storeInfo = data.selffetch_info.selffetch_shop
-                            ? data.selffetch_info.selffetch_shop
-                            : {}
-                        this.userConsignee = data.selffetch_info.contact
-                        this.userMobile = data.selffetch_info.mobile
+                        const selffetchInfo = data.selffetch_info || {}
+                        this.storeInfo = selffetchInfo.selffetch_shop || {}
+                        this.userConsignee = selffetchInfo.contact || ''
+                        this.userMobile = selffetchInfo.mobile || ''
                     }
 
                     this.orderInfo = data
@@ -594,7 +601,7 @@ export default {
                 }
             } catch (err) {
                 console.log(err)
-                // this.$toast({ title: '下单异常，请重新操作' })
+                this.$toast({ title: '下单异常，请重新操作' })
             } finally {
                 this.showLoading = false
             }
@@ -614,7 +621,7 @@ export default {
             }
 
             // 门店自提
-            if (this.addressTabsList[this.addressTabsIndex]['sign'] === 'store') {
+            if (this.currentDelivery.sign === 'store') {
                 orderFrom.selffetch_shop_id = this.storeInfo.id
                 orderFrom.consignee = this.userConsignee
                 orderFrom.mobile = this.userMobile

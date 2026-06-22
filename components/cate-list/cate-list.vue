@@ -43,7 +43,7 @@
 					</view>
 					<view class="tag row-center" @tap="changeType">
 						<image class="icon-sm"
-							:src=" goodsType === 'one' ? '/static/images/icon_double.png' : '/static/images/icon_one.png'">
+							:src=" goodsType === 'one' ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_double.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_one.png'">
 						</image>
 					</view>
 				</view>

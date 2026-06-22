@@ -133,7 +133,7 @@ export default {
                         title: res.msg
                     })
                     this.showCount = true
-                    this.$refs.countDown.start()
+                    if (this.$refs.countDown && this.$refs.countDown.start) this.$refs.countDown.start()
                 }
             })
         }

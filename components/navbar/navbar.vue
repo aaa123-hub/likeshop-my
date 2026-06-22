@@ -54,7 +54,7 @@
 		computed: {
 			backIcon() {
 				const iconName = this.isIndex ? 'icon_home' : 'icon_back'
-				return require(`@/static/images/${iconName}.png`)
+				return `https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/${iconName}.png`
 			}
 		},
 		created() {

@@ -327,7 +327,7 @@
             }
         },
         onReachBottom() {
-          if(this.$refs.goodsBargain) {
+          if(this.$refs.goodsBargain && this.$refs.goodsBargain.$getBargainList) {
               this.$refs.goodsBargain.$getBargainList();
           }
         },
@@ -501,7 +501,7 @@
 <style lang="scss">
     .bargain-process-container {
         .bargain-process-header {
-            background-image: url(../../../static/images/bg_hometop.png);
+            background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_hometop.png);
             height: 420rpx;
             background-size: 100% 100%;
             padding-top: 30rpx;
@@ -674,7 +674,7 @@
         .bargain-pop-container {
             width: 559rpx;
             height: 580rpx;
-            background-image: url(../../static/images/bg_kanjia.png);
+            background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_kanjia.png);
             background-size: 100% 100%;
             .differ-price {
                 font-size: 58rpx;
@@ -697,7 +697,7 @@
                 }
             }
             .invite-btn {
-                background-image: url(../../static/images/coupon_button.png);
+                background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_button.png);
                 background-size: 100% 100%;
                 height: 106rpx;
                 color: #7B3200;

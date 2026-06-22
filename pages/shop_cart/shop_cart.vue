@@ -117,7 +117,7 @@
       @cancel="changeDelPopup"
     >
       <view class="cart-delete-dialog">
-        <image class="cart-delete-dialog__icon" src="/static/images/icon_warning.png"></image>
+        <image class="cart-delete-dialog__icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
         <view class="cart-delete-dialog__text">确认删除该商品吗？</view>
       </view>
     </u-modal>

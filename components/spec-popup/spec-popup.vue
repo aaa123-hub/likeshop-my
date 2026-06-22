@@ -216,6 +216,9 @@ export default {
   computed: {
     // 选择的规格参数等
     specValueText() {
+      if (!this.specList.length) {
+        return `已选择 ${this.checkedGoods.spec_value_str || this.checkedGoods.name || '默认'} ${this.goodsNum} 件`;
+      }
       let arr = this.checkedGoods.spec_value_ids?.split(",");
       let spec_str = "";
       if (arr)
@@ -232,6 +235,7 @@ export default {
     goods(value) {
       this.specList = value.goods_spec || [];
       let goodsItem = value.goods_item || [];
+      if (!goodsItem.length) return;
       this.outOfStock = goodsItem.filter((item) => item.stock == 0);
       // 找出库存不为0的
       const resultArr = goodsItem.filter((item) => item.stock != 0);
@@ -251,7 +255,9 @@ export default {
     specList(value) {
       if (this.checkedGoods.stock == 0) return;
 
-      const res = this.goods.goods_item.filter((item) => {
+      const goodsItem = (this.goods && this.goods.goods_item) || [];
+      if (!goodsItem.length) return;
+      const res = goodsItem.filter((item) => {
         return this.checkedGoods.spec_value_ids === item.spec_value_ids;
       });
 
@@ -315,7 +321,8 @@ export default {
 
     // 选择规格
     choseSpecItem(index, index2) {
-      const id = this.specList[index].spec_value[index2].id;
+      const id = this.specList[index]?.spec_value?.[index2]?.id;
+      if (!id) return;
 
       // 无法选择
       const disable = this.disable.filter((item) => item == id);
@@ -364,7 +371,7 @@ export default {
     // 匹配出已选择和缺库存的
     getArrResult(arr, outOfStock, result = []) {
       outOfStock.forEach((item) => {
-        const res = this.getArrIdentical(arr, item.spec_value_ids.split(","));
+      const res = this.getArrIdentical(arr, String(item.spec_value_ids || '').split(","));
         if (res != undefined && res.length != 0) {
           result.push(res);
         }

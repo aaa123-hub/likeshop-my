@@ -17,7 +17,7 @@
                     :src="
                         userInfo.avatar != ''
                             ? userInfo.avatar
-                            : '../../static/images/default_avatar.png'
+                            : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png'
                     "
                     @click="handleUser"
                 >
@@ -375,7 +375,7 @@ export default {
                     this.$toast({
                         title: res.msg
                     })
-                    this.$refs.uCode.start()
+                    if (this.$refs.uCode && this.$refs.uCode.start) this.$refs.uCode.start()
                 }
             })
         },
@@ -429,6 +429,10 @@ export default {
                 value: value
             })
             if (res.code == 1) {
+                if (this.fieldType === FieldType.NICKNAME) this.userInfo.nickname = value
+                if (this.fieldType === FieldType.AVATAR) this.userInfo.avatar = value
+                if (this.fieldType === FieldType.SEX) this.userInfo.sex = value
+                this.$store.commit('SETUSERINFO', this.userInfo)
                 this.$toast({
                     title: res.msg
                 })
@@ -563,7 +567,7 @@ export default {
     async onLoad(options) {
         // #ifdef H5
 
-        const bindCode = options.code
+        let bindCode = options.code
         if (bindCode) {
             if (Array.isArray(bindCode)) bindCode = bindCode.pop()
 

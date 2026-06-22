@@ -14,9 +14,9 @@
                     mode="aspectFill"
                 ></image>
                 <view class="my-page__profile-text" @tap="goLogin">
-                    <view class="my-page__nickname">{{ isLogin ? userInfo.nickname : '点击登录' }}</view>
+                    <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '暂未设置用户名' : '点击登录') }}</view>
                     <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
-                    <view class="my-page__member-id" v-else>登录体验更多功能</view>
+                    <view class="my-page__member-id my-page__member-id--hint" v-else>{{ isLogin ? '完善昵称后，好友更容易识别你' : '登录体验更多功能' }}</view>
                 </view>
                 <image
                     class="my-page__setting"
@@ -130,7 +130,7 @@
         <view v-if="showServiceModal" class="service-modal">
             <view class="service-modal__mask" @tap="closeServiceModal"></view>
             <view class="service-sheet">
-                <image class="service-sheet__bg" src="/static/lanhu/assets/customer_service/service_wechat.png" mode="scaleToFill"></image>
+                <image class="service-sheet__bg" src="https://shengyuan.store/api/miniapp/files/miniapp/7f2a2e10cdc84ef0a400da7bde38e665/service-dialog-bg.png" mode="scaleToFill"></image>
                 <view class="service-sheet__head">
                     <view class="service-sheet__title">平台客服</view>
                     <image class="service-sheet__hero" :src="serviceHeroImage" mode="aspectFit"></image>
@@ -169,11 +169,11 @@ export default {
             businessRoutes,
             designAssets,
             showServiceModal: false,
-			serviceHeroImage: '/static/lanhu/assets/customer_service/service_hero.png',
+			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
             serviceContacts: [
-				{ type: '微信', value: '133 1212 1313', icon: '/static/lanhu/assets/customer_service/service_phone.png' },
-				{ type: 'QQ', value: '133 1212 1313', icon: '/static/lanhu/assets/customer_service/service_message.png' },
-				{ type: '手机号', value: '133 1212 1313', icon: '/static/lanhu/assets/customer_service/service_email.png' }
+				{ type: '微信', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
+				{ type: 'QQ', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/f3a751f36ea442378ed3b18f916ce872/contact-message-icon.png' },
+				{ type: '手机号', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/ad78cb6626b94083b5b4690cd5d7bc91/contact-email-icon.png' }
             ]
         }
     },
@@ -287,6 +287,10 @@ export default {
                 { name: '关于我们', url: businessRoutes.pages.aboutUs.url, image: designAssets.myAbout },
                 { name: '平台客服', action: 'service', image: designAssets.myService }
             ]
+        },
+        displayNickname() {
+            const nickname = this.userInfo.nickname || this.userInfo.username || this.userInfo.mobile || ''
+            return String(nickname).trim()
         }
     }
 }
@@ -385,6 +389,11 @@ export default {
     text-overflow: ellipsis;
 }
 
+.my-page__nickname--empty {
+    color: #999999;
+    font-weight: 400;
+}
+
 .my-page__member-id {
     margin-top: 11rpx;
     color: rgba(102, 102, 102, 1);
@@ -396,6 +405,10 @@ export default {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.my-page__member-id--hint {
+    color: #037dfa;
 }
 
 .service-modal {
@@ -423,7 +436,7 @@ export default {
     bottom: 0;
     min-height: 704rpx;
     padding: 9rpx 30rpx calc(55rpx + env(safe-area-inset-bottom));
-    background: none url('/static/lanhu/assets/customer_service/service_wechat.png') no-repeat center top;
+    background: none url('https://shengyuan.store/api/miniapp/files/miniapp/7f2a2e10cdc84ef0a400da7bde38e665/service-dialog-bg.png') no-repeat center top;
     background-size: 100% 100%;
     border-radius: 32rpx 32rpx 0 0;
     box-sizing: border-box;

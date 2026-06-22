@@ -85,7 +85,7 @@ author: likeshop.cn.team //
             class="icon-md mr20"
             width="44"
             height="44"
-            src="/static/images/icon_address.png"
+            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png"
             mode="scaleToFill"
           />
           <view class="receiving-content">
@@ -108,7 +108,7 @@ author: likeshop.cn.team //
             class="icon-md mr20"
             width="44"
             height="44"
-            src="/static/images/icon_address.png"
+            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png"
             mode="scaleToFill"
           />
           <view class="receiving-content">
@@ -132,7 +132,7 @@ author: likeshop.cn.team //
         <view v-if="orderDetail.delivery_type == 2" class="contain receive">
           <view v-if="orderDetail.verification_status" class="delivery--die">
             <u-image
-              src="/static/images/delivery_die.png"
+              src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/delivery_die.png"
               width="134"
               height="98"
               mode="scaleFill"
@@ -463,7 +463,7 @@ export default {
       return new Promise((resolve, reject) => {
         getwechatSyncCheck({ id })
           .then(({ data }) => {
-            if (data.order.order_state === 4) {
+            if (data && data.order && data.order.order_state === 4) {
               resolve("已确认收货");
             } else {
               reject("未确认收货");
@@ -488,6 +488,8 @@ export default {
           compareWeChatVersion("2.6.0") === 1 &&
           wx.openBusinessView &&
           this.orderDetail.pay_way === 1 &&
+          res.data &&
+          res.data.order &&
           res.data.order.order_state !== 1
         ) {
           try {
@@ -545,16 +547,17 @@ export default {
       getOrderDetail(this.id)
         .then((res) => {
           if (res.code == 1) {
-            this.cancelTime = res.data.order_cancel_time - Date.now() / 1000;
-            this.orderDetail = res.data;
-            this.team = res.data.team || {};
+            const data = res.data || {};
+            this.cancelTime = (data.order_cancel_time || 0) - Date.now() / 1000;
+            this.orderDetail = data;
+            this.team = data.team || {};
             this.$nextTick(() => {
               this.isFirstLoading = false;
             });
           } else {
             setTimeout(() => uni.navigateBack(), 1500);
           }
-          return res.data;
+          return res.data || {};
         })
         .then((data) => {
           if (data.delivery_type === 2) {

@@ -21,7 +21,7 @@
 		<view class="contain bg-white">
 			<view class="header  column-center">
 				<view>
-					<image class="tips-icon" src="/static/images/icon_paySuccess.png"></image>
+					<image class="tips-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png"></image>
 				</view>
 				<view class="xl mt20">订单支付成功</view>
 			</view>

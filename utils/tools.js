@@ -272,11 +272,13 @@ export function uploadFile(path) {
           };
         }
         if (data.code == 1) {
+          const fileUrl = data.data?.fileUrl || data.data?.url || data.data?.uri || "";
+          const resolvedFileUrl = fileUrl && fileUrl.indexOf("/") === 0 ? `${baseURL}${fileUrl}` : fileUrl;
           resolve({
             ...data.data,
-            uri: data.data?.uri || data.data?.fileUrl,
-            url: data.data?.url || data.data?.fileUrl,
-            file_url: data.data?.fileUrl || data.data?.url || data.data?.uri,
+            uri: resolvedFileUrl,
+            url: resolvedFileUrl,
+            file_url: resolvedFileUrl,
           });
         } else {
           reject();

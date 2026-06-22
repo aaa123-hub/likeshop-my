@@ -255,6 +255,15 @@
                                 <view class="store-detail-group-card__action">立即抢</view>
                             </view>
                         </view>
+                        <view v-if="!storeDetailGroupProducts.length" class="store-detail-media-empty">
+                            <image
+                                class="store-detail-media-empty__image"
+                                :src="storeDetailAlbumEmptyImage"
+                                mode="aspectFit"
+                            ></image>
+                            <view class="store-detail-media-empty__title">暂无团购</view>
+                            <view class="store-detail-media-empty__desc">商家暂未上架团购商品</view>
+                        </view>
                     </view>
 
                     <view v-else-if="storeDetailActiveTab === 'album'" class="store-detail-media-wrap">
@@ -307,7 +316,7 @@
 
                     <view v-else-if="storeDetailActiveTab === 'comment'" class="store-detail-comment-list">
                         <view
-                            v-for="(item, index) in storeDetailComments"
+                            v-for="(item, index) in storeDetailDisplayComments"
                             :key="item.id || index"
                             class="store-detail-comment-card"
                         >
@@ -325,6 +334,15 @@
                                 </view>
                             </view>
                             <view class="store-detail-comment-card__content line2">{{ item.content }}</view>
+                        </view>
+                        <view v-if="!storeDetailDisplayComments.length" class="store-detail-media-empty">
+                            <image
+                                class="store-detail-media-empty__image"
+                                :src="storeDetailAlbumEmptyImage"
+                                mode="aspectFit"
+                            ></image>
+                            <view class="store-detail-media-empty__title">暂无评价</view>
+                            <view class="store-detail-media-empty__desc">商家暂无用户评价</view>
                         </view>
                     </view>
                 </view>
@@ -388,17 +406,22 @@
             <template v-else-if="scene === 'store-group'">
                 <view class="card">
                     <view class="section-title">团购专区</view>
-                    <view class="group-item" v-for="(item, index) in groupList" :key="index">
+                    <view class="group-item" v-for="(item, index) in storeDetailGroupProducts" :key="item.id || item.goods_id || index">
                         <view v-if="isEmptyImage(item.image)" class="group-item__image image-placeholder">无</view>
                         <image v-else class="group-item__image" :src="item.image" mode="aspectFill"></image>
                         <view class="group-item__content">
                             <view class="group-item__title line2">{{ item.name }}</view>
-                            <view class="group-item__meta">{{ item.people }}人团 · 已拼{{ item.joined }}件</view>
+                            <view class="group-item__meta">{{ item.meta }}</view>
                             <view class="group-item__foot">
-                                <view class="group-item__price">¥{{ item.price }}</view>
-                                <view class="mini-btn" @tap="goPage('/pages/goods_details/goods_details?id=1')">去拼团</view>
+                                <view class="group-item__price">¥{{ item.priceText }}</view>
+                                <view class="mini-btn" @tap="goStoreDetailGroupItem(item)">去拼团</view>
                             </view>
                         </view>
+                    </view>
+                    <view v-if="!storeDetailGroupProducts.length" class="store-detail-media-empty">
+                        <image class="store-detail-media-empty__image" :src="storeDetailAlbumEmptyImage" mode="aspectFit"></image>
+                        <view class="store-detail-media-empty__title">暂无团购</view>
+                        <view class="store-detail-media-empty__desc">商家暂未上架团购商品</view>
                     </view>
                 </view>
             </template>
@@ -528,14 +551,14 @@
 
             <template v-else-if="scene === 'intro-card'">
                 <view class="intro-card-page">
-                    <image class="intro-card-page-bg" src="/static/lanhu/assets/business_pages/intro_card_page_bg.png" mode="scaleToFill"></image>
+                    <image class="intro-card-page-bg" src="https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png" mode="scaleToFill"></image>
                     <view class="intro-card-topbar">
                         <image class="intro-card-back" :src="introCardBackIcon" mode="aspectFit" @tap="goBack"></image>
                         <view class="intro-card-title">联盟码</view>
                     </view>
 
                     <view class="intro-card-panel">
-                        <image class="intro-card-panel-bg" src="/static/lanhu/assets/business_pages/intro_card_panel_bg.png" mode="scaleToFill"></image>
+                        <image class="intro-card-panel-bg" src="https://shengyuan.store/api/miniapp/files/miniapp/4a6ec42c3ad54de8a47300fb1a79d820/intro-card-panel-bg.png" mode="scaleToFill"></image>
                         <view class="intro-card-user">
                             <view class="intro-card-avatar"></view>
                             <view class="intro-card-info">
@@ -864,7 +887,7 @@
 
             <template v-else-if="scene === 'activity-center'">
                 <view class="activity-center-page">
-                    <image class="activity-center-bg" src="/static/lanhu/assets/business_pages/activity_center_bg.png" mode="scaleToFill"></image>
+                    <image class="activity-center-bg" src="https://shengyuan.store/api/miniapp/files/miniapp/5d41b07208f5494697f46875f9eb5aaa/activity-center-bg.png" mode="scaleToFill"></image>
                     <view class="activity-center-hero">
                         <view class="activity-center-topbar">
                             <view class="activity-center-back" @tap="goBack"></view>
@@ -995,19 +1018,19 @@ export default {
             feedbackContact: '',
 			feedbackImages: [],
 			feedbackHeroImage: 'https://lanhu-oss-proxy.lanhuapp.com/17e52b5f7f7af0e92c09f57bd56f679e',
-			feedbackUploadIcon: '/static/lanhu/assets/business_pages/feedback_upload_icon.png',
+			feedbackUploadIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/e5d8d8724ebd49afbb6a747ff66f8d09/feedback-upload-icon.png',
 			paymentRecordFilterIcon: 'https://lanhu-oss-proxy.lanhuapp.com/b2636d4f8db726053805211c9457c120',
 			aboutArrowIcon: 'https://lanhu-oss-proxy.lanhuapp.com/d35bb9407ef16b8d704effe295ad7e27',
 			activityCenterBackIcon: '',
-			introCardBackIcon: '/static/lanhu/assets/business_pages/intro_card_back.png',
-			introCardCopyIcon: '/static/lanhu/assets/business_pages/intro_card_copy.png',
-			introCardCopyIconAlt: '/static/lanhu/assets/business_pages/intro_card_copy_alt.png',
-			introCardQrImage: '/static/lanhu/assets/business_pages/intro_card_qr.png',
+			introCardBackIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/09dbe58e5283491f8bf3932d51ca6441/intro-card-back-icon.png',
+			introCardCopyIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/62f0790376274645b017cc64e7cae6b8/intro-card-copy-icon.png',
+			introCardCopyIconAlt: 'https://shengyuan.store/api/miniapp/files/miniapp/0d49e91085034160aa0280bd63f498cb/intro-card-copy-alt-icon.png',
+			introCardQrImage: 'https://shengyuan.store/api/miniapp/files/miniapp/343da0ec1adc42ff87a010eea8adfcbd/intro-card-qr-placeholder.png',
 			recentVisitsBackIcon: 'https://lanhu-oss-proxy.lanhuapp.com/6c1b9219335c90eb81ddc57cd6d0016e',
-			user_kyc:'/static/lanhu/assets/business_pages/user_kyc.png',
-			right_icon:'/static/lanhu/assets/business_pages/right_icon.png',
-			left_icon:'/static/lanhu/assets/business_pages/left_icon.png',
-			icon_conter:'/static/lanhu/assets/business_pages/icon_conter.png',
+			user_kyc:'https://shengyuan.store/api/miniapp/files/miniapp/205ef63eca8a4ecc9d880e2102394945/kyc-page-bg.png',
+			right_icon:'https://shengyuan.store/api/miniapp/files/miniapp/14ea8fb481864dbc9cf9bdea659d4734/kyc-cert-back-placeholder.png',
+			left_icon:'https://shengyuan.store/api/miniapp/files/miniapp/17cda3ae31a6439fbb0dbda78313bc3e/kyc-cert-front-placeholder.png',
+			icon_conter:'https://shengyuan.store/api/miniapp/files/miniapp/eb2969d2231047739685055b1762b936/center-icon.png',
             kycForm: {
                 realName: '',
                 certNo: '',
@@ -1029,14 +1052,14 @@ export default {
             showActivityExchangeModal: false,
             activityCenterItems: [
                 {
-                    image: getDesignAsset('/static/lanhu/assets/business_pages/activity_center.png'),
+                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/7e05f3335e194023930025e1595b407e/activity-center-card.png'),
                     title: '积分兑换游戏',
                     desc: '辅助标题辅助标题辅助标题',
                     date: '2026-01-01',
                     buttonText: '积分兑卡密'
                 },
                 {
-                    image: getDesignAsset('/static/lanhu/assets/business_pages/activity_center.png'),
+                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/7e05f3335e194023930025e1595b407e/activity-center-card.png'),
                     title: '积分兑换游戏',
                     desc: '辅助标题辅助标题辅助标题',
                     date: '2026-01-01',
@@ -1094,11 +1117,11 @@ export default {
                     image: ''
                 }
             ],
-            storeDetailCapsuleImage: getDesignAsset('/static/lanhu/slices/street/image_2.png'),
-            storeDetailAddressIcon: getDesignAsset('/static/lanhu/assets/store/store_detail_address_icon.png'),
-            storeDetailStarIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_star.png'),
-            storeDetailTimeIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_time.png'),
-            storeDetailAlbumEmptyImage: getDesignAsset('/static/lanhu/assets/store/store_media_empty.png'),
+            storeDetailCapsuleImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_2.png'),
+            storeDetailAddressIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/78a66305c5c34a91bc0c6b60f8198b6f/store-address-icon.png'),
+            storeDetailStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
+            storeDetailTimeIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'),
+            storeDetailAlbumEmptyImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/78d88fcd23604d4ca9c5e3b1df0108d4/store-media-empty.png'),
             storeDetailComments: [
                 {
                     id: 'comment-default-1',
@@ -1116,17 +1139,18 @@ export default {
                 }
             ],
             storeDetailLoadedShopId: '',
+            storeDetailApiLoaded: false,
             storeDetailActiveTab: 'detail',
             storeDetailData: {
                 shopBase: {
                     shopId: '',
                     shopName: '广州市越秀区斌记面家',
-                    shopLogo: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                    shopLogo: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                     shopScore: '5.0',
                     businessHours: '8:00-16:00',
                     detailAddress: '广东省东莞市厚街镇12号123街区',
                     openStatus: 'OPEN',
-                    avatarUrl: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                    avatarUrl: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                     contactPhone: ''
                 },
                 albums: [],
@@ -1137,7 +1161,7 @@ export default {
                         id: 'group-default-1',
                         goods_id: 1,
                         name: '双人精品套餐',
-                        image: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                        image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                         price: '128',
                         sales_sum: 129
                     },
@@ -1145,17 +1169,17 @@ export default {
                         id: 'group-default-2',
                         goods_id: 2,
                         name: '家庭超值套餐',
-                        image: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                        image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                         price: '268',
                         sales_sum: 76
                     }
                 ],
                 qrcodeInfo: {}
             },
-            streetCapsuleImage: getDesignAsset('/static/lanhu/slices/street/image_2.png'),
-            streetSearchIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_menu_capsule.png'),
-            streetStarIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_star.png'),
-            streetTimeIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_time.png'),
+            streetCapsuleImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_2.png'),
+            streetSearchIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_menu_capsule.png'),
+            streetStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
+            streetTimeIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'),
             streetSearchText: '输入关键词',
             streetKeyword: '',
             listKeyword: '',
@@ -1166,39 +1190,39 @@ export default {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                     url: '/bundle/pages/business_pages/store_detail'
                 },
                 {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                     url: '/bundle/pages/business_pages/store_detail'
                 },
                 {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                     url: '/bundle/pages/business_pages/store_detail'
                 },
                 {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                     url: '/bundle/pages/business_pages/store_detail'
                 }
             ],
             streetCategories: [
-                { name: '美食餐饮', image: getDesignAsset('/static/lanhu/slices/street/image_4.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '休闲娱乐', image: getDesignAsset('/static/lanhu/slices/street/image_4_2.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '美容美发', image: getDesignAsset('/static/lanhu/slices/street/image_4_3.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '体育运动', image: getDesignAsset('/static/lanhu/slices/street/image_4_4.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '酒店住宿', image: getDesignAsset('/static/lanhu/slices/street/image_4_5.png'), url: '/bundle/pages/business_pages/street_goods' },
+                { name: '美食餐饮', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4.png'), url: '/bundle/pages/business_pages/street_goods' },
+                { name: '休闲娱乐', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_2.png'), url: '/bundle/pages/business_pages/street_goods' },
+                { name: '美容美发', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_3.png'), url: '/bundle/pages/business_pages/street_goods' },
+                { name: '体育运动', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_4.png'), url: '/bundle/pages/business_pages/street_goods' },
+                { name: '酒店住宿', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_5.png'), url: '/bundle/pages/business_pages/street_goods' },
                 { name: '本地生活', image: '', url: '/bundle/pages/business_pages/street_goods' },
-                { name: '百货日用', image: getDesignAsset('/static/lanhu/slices/street/image_4_7.png'), url: '/bundle/pages/business_pages/street_goods' },
+                { name: '百货日用', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_7.png'), url: '/bundle/pages/business_pages/street_goods' },
                 { name: '粮油饮品', image: '', url: '/bundle/pages/business_pages/street_goods' }
             ],
             walletRecords: [],
@@ -1209,7 +1233,7 @@ export default {
                 digitalAmount: '¥0.00'
             },
             paymentRecordList: [],
-            paymentRecordEmptyImage: getDesignAsset('/static/lanhu/designs/28-address-empty.png'),
+            paymentRecordEmptyImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/designs/28-address-empty.png'),
             showPaymentFilter: false,
             paymentMethodOptions: [
                 { label: '全部', active: true },
@@ -1361,7 +1385,7 @@ export default {
                 businessHours: shopBase.businessHours || '',
                 detailAddress: shopBase.detailAddress || '地址待补充',
                 openStatus: shopBase.openStatus || '',
-                shopLogo: shopBase.shopLogo || shopBase.avatarUrl || getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                shopLogo: shopBase.shopLogo || shopBase.avatarUrl || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                 contactPhone: shopBase.contactPhone || ''
             }
         },
@@ -1395,6 +1419,18 @@ export default {
                 }))
                 .filter(item => item.cover || item.url)
         },
+        storeDetailDisplayComments() {
+            const comments = this.storeDetailData.comments || this.storeDetailData.commentList || this.storeDetailData.reviews || []
+            const source = comments.length || this.storeDetailApiLoaded ? comments : this.storeDetailComments
+            return source.map((item, index) => ({
+                ...item,
+                id: item.id || item.commentId || item.reviewId || index,
+                name: item.name || item.nickname || item.userName || item.memberName || '匿名用户',
+                date: item.date || item.create_time || item.createdAt || item.createTime || '',
+                content: item.content || item.comment || item.reviewContent || item.remark || '暂无评价内容',
+                avatar: item.avatar || item.userAvatar || item.headimgurl || ''
+            }))
+        },
         storeDetailBusinessHoursText() {
             if (this.storeDetailView.businessHours) {
                 return `营业时间：${this.storeDetailView.businessHours}`
@@ -1402,29 +1438,28 @@ export default {
             return this.getStreetOpenStatusLabel(this.storeDetailView.openStatus) || '营业时间待更新'
         },
         storeDetailTabs() {
-            const groupCount = this.storeDetailData.groupBuyProducts?.length || 0
             const albumCount = this.storeDetailData.albums?.length || 0
             const videoCount = this.storeDetailVideos.length
             return [
                 { key: 'detail', label: '商家详情', active: this.storeDetailActiveTab === 'detail' },
-                { key: 'group', label: '团购', active: this.storeDetailActiveTab === 'group' },
+                { key: 'group', label: '团购', active: this.storeDetailActiveTab === 'group', count: this.storeDetailGroupProducts.length },
                 { key: 'album', label: '相册', active: this.storeDetailActiveTab === 'album', count: albumCount },
                 { key: 'video', label: '视频', active: this.storeDetailActiveTab === 'video', count: videoCount },
-                { key: 'comment', label: `评价(${this.storeDetailComments.length})`, active: this.storeDetailActiveTab === 'comment' }
+                { key: 'comment', label: `评价(${this.storeDetailDisplayComments.length})`, active: this.storeDetailActiveTab === 'comment' }
             ]
         },
         storeDetailGroupProducts() {
-            const source = (this.storeDetailData.groupBuyProducts || []).length
-                ? this.storeDetailData.groupBuyProducts
-                : this.groupList
+            const groupProducts = this.storeDetailData.groupBuyProducts || []
+            const source = groupProducts.length || this.storeDetailApiLoaded ? groupProducts : this.groupList
             return source.map((item, index) => ({
                 ...item,
                 id: item.id || item.goods_id || index,
-                name: item.name || item.goods_name || '团购套餐',
-                image: item.image || item.goods_image || getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                goods_id: item.goods_id || item.goodsId || item.spuId || item.productId || item.id || '',
+                name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || '团购套餐',
+                image: item.image || item.goods_image || item.cover || item.mainImageUrl || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                 meta: this.getStoreDetailGroupMeta(item),
                 scoreText: this.formatStreetScore(item.score ?? item.shopScore ?? item.commentScore ?? 5),
-                priceText: this.formatStoreDetailPrice(item.price)
+                priceText: this.formatStoreDetailPrice(item.groupPrice ?? item.group_price ?? item.teamPrice ?? item.team_price ?? item.activityPrice ?? item.price)
             }))
         },
         storeDetailPayUrl() {
@@ -1446,7 +1481,7 @@ export default {
                 if (value === 'street') {
                     this.loadStreetIndex()
                 }
-                if (value === 'store-detail') {
+                if (value === 'store-detail' || value === 'store-group') {
                     this.loadStoreDetail()
                 }
                 if (value === 'payment-record') {
@@ -1456,7 +1491,7 @@ export default {
         }
     },
     mounted() {
-        if (this.scene === 'store-detail') {
+        if (this.scene === 'store-detail' || this.scene === 'store-group') {
             this.loadStoreDetail()
         }
     },
@@ -1614,12 +1649,18 @@ export default {
                     ...this.storeDetailData,
                     ...res.data
                 }
+                this.storeDetailApiLoaded = true
                 this.storeDetailLoadedShopId = String(shopId)
             } catch (error) {}
         },
         getStoreDetailGroupMeta(item = {}) {
             if (item.people && item.joined !== undefined) {
                 return `${item.people}人团 · 已拼${item.joined}件`
+            }
+            const people = item.peopleNum || item.people_num || item.groupNum || item.group_num
+            const joined = item.joinedCount || item.join_num || item.joinNum || item.sales_sum || item.salesCount
+            if (people || joined !== undefined) {
+                return `${people || '多人'}人团 · 已拼${joined || 0}件`
             }
             if (item.sales_sum !== undefined) {
                 return `团购商品 · 已拼${item.sales_sum}件`
@@ -1633,7 +1674,7 @@ export default {
             return Number.isInteger(price) ? String(price) : price.toFixed(2)
         },
         goStoreDetailGroupItem(item = {}) {
-            const goodsId = item.goods_id || item.id || ''
+            const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || ''
             if (!goodsId) return
             this.goPage(`/pages/goods_details/goods_details?id=${goodsId}`)
         },
@@ -1705,7 +1746,7 @@ export default {
                 shopId,
                 name: item.shopName || item.name || fallback.name || '',
                 score: this.formatStreetScore(item.shopScore ?? item.score ?? fallback.score),
-                image: item.shopLogo || item.image || fallback.image || getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
+                image: item.shopLogo || item.image || fallback.image || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                 meta: metaParts.join(' · ') || fallback.meta || '营业状态待更新',
                 url: shopId
                     ? `/bundle/pages/business_pages/store_detail?shopId=${shopId}`
@@ -1783,7 +1824,7 @@ export default {
 }
 
 .business-scene--activity-center {
-    background: #f7f8fb url('/static/lanhu/assets/business_pages/activity_center_bg.png') no-repeat center top;
+    background: #f7f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/5d41b07208f5494697f46875f9eb5aaa/activity-center-bg.png') no-repeat center top;
     background-size: 100% 100%;
 }
 
@@ -2189,7 +2230,7 @@ export default {
     max-width: 750rpx;
     margin: 0 auto;
     overflow: hidden;
-    background: #f7f8fb url('/static/lanhu/assets/business_pages/activity_center_bg.png') no-repeat center top;
+    background: #f7f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/5d41b07208f5494697f46875f9eb5aaa/activity-center-bg.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
 }
@@ -2342,7 +2383,7 @@ export default {
     width: 553rpx;
     min-height: 727rpx;
     padding: 208rpx 11rpx 32rpx;
-    background: #ffffff url('/static/lanhu/designs/17-activity-exchange.png') no-repeat center top;
+    background: #ffffff url('https://shengyuan.store/api/miniapp/files/miniapp/b754a48bca11497987f401487e44e3cf/activity-exchange-dialog-bg.png') no-repeat center top;
     background-size: 100% 100%;
     border-radius: 24rpx;
     box-sizing: border-box;
@@ -2437,7 +2478,7 @@ export default {
     max-width: 750rpx;
     margin: 0 auto;
     padding-top: calc(var(--status-bar-height) + 45rpx);
-    background: #0d83ff url('/static/lanhu/assets/business_pages/intro_card_page_bg.png') no-repeat center top;
+    background: #0d83ff url('https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
     overflow: hidden;
@@ -2486,7 +2527,7 @@ export default {
     min-height: 860rpx;
     margin: 196rpx auto 0;
     padding: 45rpx 36rpx 56rpx;
-    background: url('/static/lanhu/assets/business_pages/intro_card_panel_bg.png') no-repeat center top;
+    background: url('https://shengyuan.store/api/miniapp/files/miniapp/4a6ec42c3ad54de8a47300fb1a79d820/intro-card-panel-bg.png') no-repeat center top;
     background-size: 100% 100%;
     border-radius: 0;
     box-sizing: border-box;
@@ -3876,11 +3917,11 @@ export default {
 .store-detail-video-card {
     position: relative;
     width: calc(50% - 18rpx);
-    height: 220rpx;
+    height: 246rpx;
     margin: 0 9rpx 18rpx;
     overflow: hidden;
     border-radius: 15rpx;
-    background: #ffffff;
+    background: #f6f8fb;
     box-shadow: 0 10rpx 24rpx rgba(34, 34, 34, 0.05);
 }
 
@@ -3888,6 +3929,7 @@ export default {
 .store-detail-video-card__cover {
     width: 100%;
     height: 100%;
+    display: block;
 }
 
 .store-detail-video-card__mask {
@@ -3935,9 +3977,15 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     min-height: 620rpx;
+    padding: 80rpx 30rpx;
     border-radius: 18rpx;
     box-sizing: border-box;
+}
+
+.store-detail-media-empty__image {
+    display: block;
 }
 
 .store-detail-media-empty__title {

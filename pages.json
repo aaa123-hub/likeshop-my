@@ -88,7 +88,8 @@
 		{
 			"path": "pages/confirm_order/confirm_order",
 			"style": {
-				"navigationBarTitleText": "确认订单"
+				"navigationBarTitleText": "确认订单",
+				"navigationStyle": "custom"
 			}
 
 		},
@@ -333,7 +334,8 @@
 			{
 				"path": "pages/user_payment/user_payment",
 				"style": {
-					"navigationBarTitleText": "用户充值"
+					"navigationBarTitleText": "用户充值",
+					"navigationStyle": "custom"
 				}
 			},
 			{
@@ -371,13 +373,15 @@
 			{
 				"path": "pages/user_profile/user_profile",
 				"style": {
-					"navigationBarTitleText": "个人设置"
+					"navigationBarTitleText": "个人设置",
+					"navigationStyle": "custom"
 				}
 			},
 			{
 				"path": "pages/user_set/user_set",
 				"style": {
-					"navigationBarTitleText": "个人资料"
+					"navigationBarTitleText": "个人资料",
+					"navigationStyle": "custom"
 				}
 			},
 			{
@@ -668,32 +672,32 @@
 		"borderStyle": "black",
 		"list": [{
 				"pagePath": "pages/index/index",
-				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_home_normal_fixed@2x.png",
-				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_home_active_fixed@2x.png",
+				"iconPath": "static/lanhu/assets/tabbar/tabbar-home-normal.png",
+				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-home-active.png",
 				"text": "首页"
 			},
 			{
 				"pagePath": "pages/sort/sort",
-				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_category_normal_fixed@2x.png",
-				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_category_active_fixed@2x.png",
+				"iconPath": "static/lanhu/assets/tabbar/tabbar-category-normal.png",
+				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-category-active.png",
 				"text": "分类"
 			},
 			{
 				"pagePath": "pages/street/street",
-				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_street_normal_fixed@2x.png",
-				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_street_active_fixed@2x.png",
+				"iconPath": "static/lanhu/assets/tabbar/tabbar-street-normal.png",
+				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-street-active.png",
 				"text": "商街"
 			},
 			{
 				"pagePath": "pages/shop_cart/shop_cart",
-				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_cart_normal_fixed@2x.png",
-				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_cart_active_fixed@2x.png",
+				"iconPath": "static/lanhu/assets/tabbar/tabbar-cart-normal.png",
+				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-cart-active.png",
 				"text": "购物车"
 			},
 			{
 				"pagePath": "pages/user/user",
-				"iconPath": "/static/lanhu/assets/category-tabbar/category_tab_user_normal_fixed@2x.png",
-				"selectedIconPath": "/static/lanhu/assets/category-tabbar/category_tab_user_active_fixed@2x.png",
+				"iconPath": "static/lanhu/assets/tabbar/tabbar-user-normal.png",
+				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-user-active.png",
 				"text": "我的"
 			}
 		],

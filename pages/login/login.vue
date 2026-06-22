@@ -178,14 +178,17 @@ export default {
             // #ifdef MP-WEIXIN
             const loginCode = await this.getLoginCodeWithTimeout()
             return {
+                jsCode: loginCode,
                 loginCode,
                 channelCode: 'wechat-miniapp'
             }
             // #endif
 
             // #ifndef MP-WEIXIN
+            const loginCode = `h5-dev-${Date.now()}`
             return {
-                loginCode: `h5-dev-${Date.now()}`,
+                jsCode: loginCode,
+                loginCode,
                 channelCode: 'wechat-miniapp'
             }
             // #endif

@@ -99,6 +99,7 @@
 
 				loadingSkeleton: true, // 骨架屏Loading
 				loadingPay: false, // 支付处理中Loading
+				hasPayResult: false,
 			}
 		},
 
@@ -119,21 +120,27 @@
 					return res.data
 				}).then(data => {
 					this.loadingSkeleton = false
+					data = data || {}
 					this.amount = data.order_amount || data.payAmount || 0
 					this.paywayList = data.pay || []
 					this.payway = this.paywayList[0]?.pay_way || 'BALANCE'
 					// 倒计时
 					const startTimestamp = new Date().getTime() / 1000
 					const endTimestamp = data.cancel_time * 1
-					this.timeout = endTimestamp - startTimestamp
+					this.timeout = endTimestamp ? endTimestamp - startTimestamp : 0
 				}).catch(err => {
-					throw new Error(err)
+					this.loadingSkeleton = false
+					this.$toast({ title: err.message || '支付信息加载失败' })
 				})
 			},
 
 			// 预支付处理
 			handlePrepay() {
 				if (this.loadingPay) return
+				if (!this.payway) {
+					this.$toast({ title: '暂无可用支付方式' })
+					return
+				}
 				this.loadingPay = true
 				prepay({
 					from: this.from,
@@ -161,7 +168,7 @@
 							break;
 					}
 				}).catch(err => {
-
+					this.$toast({ title: err && err.message ? err.message : '支付失败，请稍后重试' })
 				}).finally(() => {
 					setTimeout(() => {
 						this.loadingPay = false
@@ -194,6 +201,7 @@
 
 			// 支付后处理
 			handPayResult(result) {
+				this.hasPayResult = true
 				switch (result) {
 					case 'success':
 						uni.$emit('payment', {
@@ -230,7 +238,7 @@
 		},
 
 		onUnload() {
-			this.handPayResult('fail')
+			if (!this.hasPayResult) this.handPayResult('fail')
 		},
 		computed: {
 			isFacePay() {

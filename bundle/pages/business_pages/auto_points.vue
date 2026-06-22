@@ -1,7 +1,7 @@
 <template>
     <view class="auto-points-page">
         <view class="auto-points-topbar">
-            <image class="auto-points-back" src="/static/lanhu/assets/business_pages/auto_points_back.png" mode="aspectFit" @tap="goBack"></image>
+            <image class="auto-points-back" src="https://shengyuan.store/api/miniapp/files/miniapp/f7aa105f2e8b470798a431a761e2ca45/auto-points-back-icon.png" mode="aspectFit" @tap="goBack"></image>
             <view class="auto-points-title">自动领取积分设置</view>
         </view>
 
@@ -17,7 +17,7 @@
                     <view class="auto-points-switch__thumb"></view>
                 </view>
             </view>
-            <image class="auto-points-divider" src="/static/lanhu/assets/business_pages/auto_points_divider.png" mode="scaleToFill"></image>
+            <image class="auto-points-divider" src="https://shengyuan.store/api/miniapp/files/miniapp/b8dfe9dcba7644ef89bbf62c4230aba3/auto-points-divider.png" mode="scaleToFill"></image>
             <view class="auto-points-row">
                 <text>确认收货后</text>
                 <view :class="['auto-points-switch', onlineReceive ? 'is-active' : '']" @tap="onlineReceive = !onlineReceive">
@@ -39,7 +39,7 @@
                 </view>
             </view>
         </view>
-        <image class="auto-points-divider auto-points-divider--standalone" src="/static/lanhu/assets/business_pages/auto_points_divider.png" mode="scaleToFill"></image>
+        <image class="auto-points-divider auto-points-divider--standalone" src="https://shengyuan.store/api/miniapp/files/miniapp/b8dfe9dcba7644ef89bbf62c4230aba3/auto-points-divider.png" mode="scaleToFill"></image>
 
         <view class="auto-points-save" @tap="saveSettings">保存</view>
     </view>
@@ -86,7 +86,7 @@ export default {
     min-height: 100vh;
     padding-top: calc(var(--status-bar-height) + 45rpx);
     overflow: hidden;
-    background: #f6f8fb url('/static/lanhu/assets/business_pages/auto_points_bg.png') no-repeat center top;
+    background: #f6f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/d436eea929e84f17a7bbc5f609cc7188/auto-points-bg.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
 }

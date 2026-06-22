@@ -7,7 +7,7 @@
             <view class="info">
                 <view class="row-between">
                     <view class="name line2">{{item.name}}</view>
-                    <image style="height: 56rpx;width: 56rpx;flex: none;margin-left: 14rpx" src="/static/images/icon_del.png" @tap.stop="deleteConfirm" :data-id="item.id"></image>
+                    <image style="height: 56rpx;width: 56rpx;flex: none;margin-left: 14rpx" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_del.png" @tap.stop="deleteConfirm" :data-id="item.id"></image>
                 </view>
                 <view class="row-between mt20">
                     <price-format :first-size="30" :second-size="26" :price="item.price" :weight="400" :subscriptSize="30" :showSubscript="true" color="#FF2C3C" />
@@ -31,7 +31,7 @@
         @cancel="deleteCancel"
     >
         <view class="column-center tips-dialog" style="padding: 20rpx 0;">
-            <image class="icon-lg" src="/static/images/icon_warning.png"></image>
+            <image class="icon-lg" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
             <view style="margin-top:30rpx">确认删除该收藏吗？</view>
         </view>
     </u-modal>

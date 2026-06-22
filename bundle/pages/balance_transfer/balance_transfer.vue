@@ -119,7 +119,7 @@ export default {
         },
         showInputPwd() {
             this.showTransferInfo = false
-            this.$refs.setPayPwd.showInputPwd()
+            if (this.$refs.setPayPwd && this.$refs.setPayPwd.showInputPwd) this.$refs.setPayPwd.showInputPwd()
         },
         getTransferRecentFun() {
             getTransferRecent().then((res) => {

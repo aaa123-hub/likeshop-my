@@ -7,6 +7,61 @@ page {
     color: $color-normal;
 	padding-bottom: env(safe-area-inset-bottom);
     background-color: $color-body;
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+}
+
+view,
+scroll-view,
+swiper,
+button,
+input,
+textarea,
+image {
+    box-sizing: border-box;
+}
+
+image {
+    max-width: 100%;
+}
+
+scroll-view {
+    max-width: 100%;
+}
+
+.fixed,
+.cart-footer,
+.footer,
+.payment-footer {
+    max-width: 750rpx;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-inset-bottom {
+    height: env(safe-area-inset-bottom);
+    flex: none;
+}
+
+.page-adaptive {
+    width: 100%;
+    max-width: 750rpx;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+.full-height-adaptive {
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .flex1{

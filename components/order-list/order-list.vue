@@ -296,7 +296,7 @@ export default {
       return new Promise((resolve, reject) => {
         getwechatSyncCheck({ id })
           .then(({ data }) => {
-            if (data.order.order_state === 4) {
+            if (data && data.order && data.order.order_state === 4) {
               resolve("已确认收货");
             } else {
               reject("未确认收货");
@@ -322,6 +322,8 @@ export default {
           compareWeChatVersion("2.6.0") === 1 &&
           wx.openBusinessView &&
           this.pay_way === 1 &&
+          res.data &&
+          res.data.order &&
           res.data.order.order_state !== 1
         ) {
           try {

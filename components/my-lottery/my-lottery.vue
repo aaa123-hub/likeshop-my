@@ -208,7 +208,7 @@
 </script>
 <style>
 	.my-lottery {
-		background-image: url(../../static/images/choujiang_light.png);
+		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/choujiang_light.png);
 		width: 640rpx;
 		height: 640rpx;
 		background-size: 100% 100%;
@@ -218,12 +218,12 @@
 	.my-lottery .lottery-item {
 		width: 180rpx;
 		height: 180rpx;
-		background-image: url(../../static/images/choujiang_block.png);
+		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/choujiang_block.png);
 		background-size: 100% 100%;
 	}
 
 	.my-lottery .lottery-item.lotty-btn {
-		background-image: url(../../static/images/choujiang_button.png);
+		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/choujiang_button.png);
 	}
 
 	.container .activity-null {

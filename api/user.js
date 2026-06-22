@@ -44,9 +44,9 @@ function normalizePageResponse(res = {}, itemNormalizer) {
 function fakeUserInfo() {
     return {
         avatar: '',
-        nickname: '开发测试用户',
+        nickname: '',
         sn: '',
-        mobile: '13800000000',
+        mobile: '',
         sex: 0,
         create_time: '',
         user_money: 0,
@@ -58,11 +58,12 @@ function fakeUserInfo() {
         wait_comment: 0,
         after_sale: 0,
         distribution_code: '',
-        next_level_tips: '立即开通'
+        next_level_tips: ''
     }
 }
 
 function normalizeUserProfile(data = {}) {
+    const genderValue = data.sex ?? data.gender ?? 0
     return {
         ...fakeUserInfo(),
         ...data,
@@ -72,7 +73,7 @@ function normalizeUserProfile(data = {}) {
         nickname: data.nickname || data.nickName || data.userName || fakeUserInfo().nickname,
         sn: data.sn || data.userNo || data.inviteCode || data.openId || fakeUserInfo().sn,
         mobile: data.mobile || data.phone || '',
-        sex: data.sex ?? data.gender ?? 0,
+        sex: normalizeGenderForView(genderValue),
         user_money: data.user_money ?? data.balance ?? data.walletBalance ?? 0,
         user_integral: data.user_integral ?? data.availablePoints ?? data.points ?? 0,
         coupon: data.coupon ?? data.couponCount ?? 0,
@@ -84,6 +85,26 @@ function normalizeUserProfile(data = {}) {
         distribution_code: data.distribution_code || data.distributionCode || data.inviteCode || fakeUserInfo().distribution_code,
         next_level_tips: data.next_level_tips || data.nextLevelTips || '立即开通'
     }
+}
+
+function normalizeGenderForView(value) {
+    if (value === 1 || value === '1' || value === 'MALE' || value === 'male' || value === '男') return 1
+    if (value === 2 || value === '2' || value === 'FEMALE' || value === 'female' || value === '女') return 2
+    return 0
+}
+
+function normalizeGenderForApi(value) {
+    if (value === 1 || value === '1' || value === 'MALE' || value === 'male' || value === '男') return 'MALE'
+    if (value === 2 || value === '2' || value === 'FEMALE' || value === 'female' || value === '女') return 'FEMALE'
+    if (value === 0 || value === '0' || value === 'UNKNOWN' || value === 'unknown') return 'UNKNOWN'
+    return value
+}
+
+function assignIfPresent(target, keys, value) {
+    if (value === undefined || value === null || value === '') return
+    keys.forEach((key) => {
+        target[key] = value
+    })
 }
 
 function normalizeAddress(item = {}) {
@@ -104,13 +125,21 @@ function normalizeAddress(item = {}) {
 }
 
 function normalizeCoupon(item = {}) {
+    const threshold = item.thresholdAmount ?? item.threshold_amount ?? 0
     return {
         ...item,
         id: item.id || item.couponId,
-        money: item.money || item.amount || item.discountAmount || 0,
-        use_condition: item.use_condition || item.useCondition || item.condition || '',
+        name: item.name || item.couponName || item.coupon_name || '',
+        money: item.money || item.amount || item.discountAmount || item.discountValue || 0,
+        use_condition: item.use_condition || item.useCondition || item.condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'),
+        use_time_tips: item.use_time_tips || [item.startTime, item.endTime].filter(Boolean).join(' 至 '),
+        coupon_type: item.coupon_type || item.couponType || '',
         is_get: item.is_get || item.received || false
     }
+}
+
+function unsupported(message) {
+    return Promise.resolve({ code: 0, msg: message, data: null })
 }
 
 function currentUserId(data = {}) {
@@ -211,10 +240,7 @@ export function getUser() {
                 data: normalizeUserProfile(res.data || {})
             }
         }
-        return {
-            ...res,
-            data: fakeUserInfo()
-        }
+        return res
     })
 }
 
@@ -307,7 +333,20 @@ export function hasRegionCode(data) {
 }
 
 export function getMyCoupon(data) {
-    return Promise.resolve({ code: 1, data: [] })
+    return request.get('miniapp/coupons', {
+        params: {
+            status: data?.status ?? data?.type,
+            receiveStatus: data?.receiveStatus,
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 50
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        return {
+            ...res,
+            data: (res.data?.list || []).map(normalizeCoupon)
+        }
+    })
 }
 
 export function getCollectGoods(data) {
@@ -366,13 +405,7 @@ export function confirmOrder(id) {
 }
 
 export function rechargeTemplate() {
-    return Promise.resolve({
-        code: 1,
-        data: [
-            { id: 1, money: 100, tips: '推荐充值' },
-            { id: 2, money: 200, tips: '推荐充值' }
-        ]
-    })
+    return Promise.resolve({ code: 1, msg: '暂无推荐充值套餐', data: [] })
 }
 
 export function getAfterSaleList(params) {
@@ -428,11 +461,11 @@ export function getGoodsInfo(params) {
 }
 
 export function inputExpressInfo(data) {
-    return Promise.resolve({ code: 1, msg: '提交成功', data })
+    return unsupported('Backend refund express API is not available')
 }
 
 export function cancelApply(data) {
-    return Promise.resolve({ code: 1, msg: '撤销成功', data })
+    return unsupported('Backend refund cancel API is not available')
 }
 
 export function afterSaleDetail(params) {
@@ -462,9 +495,22 @@ export function getAccountLog(params) {
 
 export function recharge(data) {
     return request.post('miniapp/wallet/recharge/gift-card', {
-        cardNo: data.cardNo || data.id || '',
-        cardSecret: data.cardSecret || '',
+        cardNo: data.cardNo || data.card_no || data.id || '',
+        cardSecret: data.cardSecret || data.card_secret || '',
         idempotentKey: data.idempotentKey || `recharge-${Date.now()}`
+    }).then((res) => {
+        if (res.code != 1) return res
+        return {
+            ...res,
+            msg: res.msg || '充值成功',
+            data: {
+                ...res.data,
+                give_integral: res.data?.give_integral || 0,
+                give_growth: res.data?.give_growth || 0,
+                money: res.data?.rechargeAmount || res.data?.money || 0,
+                balanceAfter: res.data?.balanceAfter || res.data?.balance_after || 0
+            }
+        }
     })
 }
 
@@ -473,23 +519,41 @@ export function getRechargeRecord(params) {
 }
 
 export function inputInviteCode(data) {
-    return Promise.resolve({ code: 1, msg: '绑定成功', data })
+    return request.get('miniapp/alliance/card', {
+        params: {
+            inviteCode: data.invite_code || data.inviteCode || data.code
+        }
+    }).then((res) => res.code == 1 ? { ...res, msg: res.msg || '绑定成功' } : res)
 }
 
 export function applyVip(data) {
-    return Promise.resolve({ code: 1, msg: '申请成功', data })
+    return applyMerchantQualification(data)
 }
 
 export function veryfiyDistribute() {
-    return Promise.resolve({ code: 1, data: {} })
+    return getMerchantQualificationStatus()
 }
 
 export function applyVipDetail() {
-    return Promise.resolve({ code: 1, data: {} })
+    return getMerchantQualificationStatus()
 }
 
 export function getInviteInfo() {
-    return Promise.resolve({ code: 1, data: {} })
+    return request.get('miniapp/alliance/card').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                code: data.allianceCode || data.code,
+                invite_code: data.allianceCode || data.code,
+                share_url: data.shareUrl,
+                order_count: data.summary?.orderCount || 0,
+                total_commission: data.summary?.totalCommission || 0
+            }
+        }
+    })
 }
 
 export function getCommentInfo(data) {
@@ -519,26 +583,71 @@ export function getUserInfo() {
     return getUser()
 }
 
+function buildUserProfilePayload(data = {}) {
+    const payload = {}
+    if (data.field) {
+        if (data.field === 'nickname') assignIfPresent(payload, ['nickname', 'nickName', 'userName'], data.value)
+        if (data.field === 'avatar') assignIfPresent(payload, ['avatarUrl', 'avatar', 'headimgurl'], data.value)
+        if (data.field === 'sex') assignIfPresent(payload, ['gender', 'sex'], normalizeGenderForApi(data.value))
+        if (data.field === 'mobile') assignIfPresent(payload, ['mobile', 'phone'], data.value)
+        return payload
+    }
+    assignIfPresent(payload, ['nickname', 'nickName', 'userName'], data.nickname || data.nickName || data.name || data.userName)
+    assignIfPresent(payload, ['avatarUrl', 'avatar', 'headimgurl'], data.avatarUrl || data.avatar || data.headimgurl)
+    if (data.gender !== undefined || data.sex !== undefined) {
+        assignIfPresent(payload, ['gender', 'sex'], normalizeGenderForApi(data.gender ?? data.sex))
+    }
+    assignIfPresent(payload, ['birthday'], data.birthday)
+    assignIfPresent(payload, ['regionCode', 'region_code'], data.regionCode || data.region_code)
+    assignIfPresent(payload, ['bio'], data.bio)
+    assignIfPresent(payload, ['mobile', 'phone'], data.mobile || data.phone)
+    assignIfPresent(payload, ['realName', 'real_name'], data.realName || data.real_name)
+    return payload
+}
+
 export function setUserInfo(data) {
-    return request.put('miniapp/user/profile', {
-        nickname: data.nickname || data.nickName || data.name,
-        avatar: data.avatar || data.avatarUrl,
-        sex: data.sex ?? data.gender,
-        mobile: data.mobile,
-        realName: data.realName || data.real_name
-    }).then((res) => res.code == 1 ? { ...res, data: normalizeUserProfile(res.data || data), msg: res.msg || '保存成功' } : res)
+    const payload = buildUserProfilePayload(data || {})
+    return request.put('miniapp/user/profile', payload)
+        .then((res) => res.code == 1 ? { ...res, data: normalizeUserProfile(res.data || payload), msg: res.msg || '保存成功' } : res)
 }
 
 export function changeUserMobile(data) {
-    return request.post('miniapp/auth/bind-mobile', data)
+    const payload = {
+        ...data,
+        mobile: data.new_mobile || data.mobile || data.phone,
+        smsCode: data.smsCode || data.code,
+        code: data.code,
+        encryptedData: data.encryptedData || data.encrypted_data,
+        encrypted_data: data.encrypted_data || data.encryptedData,
+        iv: data.iv
+    }
+    return request.post('miniapp/auth/bind-mobile', payload)
 }
 
 export function getLevelList() {
-    return Promise.resolve({ code: 1, data: [] })
+    return request.get('miniapp/points/account').then((res) => {
+        if (res.code != 1) return res
+        return {
+            ...res,
+            data: [
+                {
+                    id: 1,
+                    name: '普通会员',
+                    growth: res.data?.totalPoints || 0,
+                    current: true
+                }
+            ]
+        }
+    })
 }
 
 export function getUserFans(data) {
-    return Promise.resolve({ code: 1, data: [] })
+    return request.get('miniapp/alliance/orders', {
+        params: {
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res) : res)
 }
 
 export function applyWithdraw(data) {
@@ -576,11 +685,22 @@ export function getMonthOrderDetail(params) {
 }
 
 export function getInviteBanner(data) {
-    return Promise.resolve({ code: 1, data: [] })
+    return request.get('miniapp/eco-applications').then((res) => {
+        if (res.code != 1) return res
+        return { ...res, data: res.data?.list || [] }
+    })
 }
 
 export function getWallet() {
     return request.get('miniapp/wallet/balance').then(normalizeWallet)
+}
+
+export function submitFeedback(data = {}) {
+    return request.post('miniapp/feedback', {
+        feedbackType: data.feedbackType || data.feedback_type || data.type || 'OTHER',
+        content: data.content || '',
+        contactInfo: data.contactInfo || data.contact_info || data.contact || ''
+    })
 }
 
 export function scanOfflinePayment(data) {
@@ -606,16 +726,6 @@ export function getPointsAccount() {
                 total_points: data.totalPoints || data.total_points || 0
             }
         }
-    })
-}
-
-export function submitFeedback(data = {}) {
-    return request.post('miniapp/feedback', {
-        feedbackType: data.feedbackType || data.type,
-        content: data.content || data.feedbackContent,
-        contact: data.contact || data.mobile || data.email,
-        imageUrls: data.imageUrls || data.images || [],
-        idempotentKey: data.idempotentKey || `feedback-${Date.now()}`
     })
 }
 
@@ -737,20 +847,25 @@ export function readMessage(messageId, params = {}) {
 }
 
 export function getSignList() {
-    return getPointsAccount().then((res) => {
-        if (res.code != 1) return res
-        const points = res.data?.available_points || res.data?.availablePoints || 0
+    return Promise.all([getPointsAccount(), getUser()]).then(([pointsRes, userRes]) => {
+        if (pointsRes.code != 1) return pointsRes
+        const points = pointsRes.data || {}
+        const user = userRes.code == 1 ? userRes.data || {} : {}
+        const signList = Array.from({ length: 7 }, (_, index) => ({
+            days: index + 1,
+            integral: index + 1,
+            status: 0
+        }))
         return {
-            ...res,
+            ...pointsRes,
             data: {
-                sign_list: Array.from({ length: 7 }).map((_, index) => ({
-                    days: index + 1,
-                    integral: 5,
-                    status: 0
-                })),
+                ...points,
+                sign_list: signList,
+                list: signList,
                 user: {
-                    user_integral: points,
-                    avatar: '',
+                    ...user,
+                    user_integral: points.available_points || points.availablePoints || points.total_points || 0,
+                    avatar: user.avatar || '',
                     today_sign: 0,
                     days: 0
                 },
@@ -761,51 +876,56 @@ export function getSignList() {
 }
 
 export function userSign() {
-    return Promise.resolve({
-        code: 1,
-        msg: '签到成功',
-        data: {
-            days: 1,
-            growth: 0,
-            integral: 5
-        }
-    })
+    return unsupported('后端暂未提供签到接口')
 }
 
 export function getSignRule() {
-    return Promise.resolve({ code: 1, data: {} })
+    return request.get('miniapp/points/account')
 }
 
 export function userLogout(data) {
-    return Promise.resolve({ code: 1, msg: '退出成功', data })
+    Cache.remove(USER_INFO)
+    return Promise.resolve({ code: 1, msg: 'logout', data })
 }
 
 export function getPrize(data) {
-    return Promise.resolve({ code: 1, data: data || {} })
+    return unsupported('后端暂未提供抽奖奖品接口')
 }
 
 export function getUserRecord(data) {
-    return Promise.resolve({ code: 1, data: [] })
+    return request.get('miniapp/messages', {
+        params: {
+            bizType: data?.bizType || 'LOTTERY',
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeMessageItem) : res)
 }
 
 export function userLottery(data) {
-    return Promise.resolve({ code: 1, data: data || {} })
+    return unsupported('后端暂未提供抽奖接口')
 }
 
 export function luckyDrawWinningList(data) {
-    return Promise.resolve({ code: 1, data: [] })
+    return request.get('miniapp/messages', {
+        params: {
+            bizType: data?.bizType || 'LOTTERY',
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeMessageItem) : res)
 }
 
 export function setWechatInfo(data) {
-    return Promise.resolve({ code: 1, msg: '保存成功', data })
+    return setUserInfo(data)
 }
 
 export function setPassword(data) {
-    return Promise.resolve({ code: 1, msg: '设置成功', data })
+    return unsupported('后端暂未提供支付密码设置接口')
 }
 
 export function changePayPassword(data) {
-    return Promise.resolve({ code: 1, msg: '修改成功', data })
+    return unsupported('后端暂未提供支付密码修改接口')
 }
 
 export function hasPayPassword() {
@@ -813,44 +933,61 @@ export function hasPayPassword() {
 }
 
 export function transfer(data) {
-    return Promise.resolve({ code: 1, msg: '转账成功', data })
+    return unsupported('后端暂未提供余额转账接口')
 }
 
 export function getTransferRecent() {
-    return Promise.resolve({ code: 1, data: [] })
-}
-
-export function transferRecord(params) {
-    return Promise.resolve({ code: 1, data: [] })
-}
-
-export function send(data) {
-    return Promise.resolve({ code: 1, data })
-}
-
-export function retrievePayPassword(data) {
-    return Promise.resolve({ code: 1, msg: '操作成功', data })
-}
-
-export function transferToInfo(params) {
-    return Promise.resolve({
-        code: 1,
-        data: {
-            avatar: '',
-            nickname: params.transferTo || '',
-            sn: params.transferTo || ''
+    return request.get('miniapp/wallet/ledger', {
+        params: {
+            bizType: 'TRANSFER',
+            pageNo: 1,
+            pageSize: 5
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        const normalized = normalizePageResponse(res, normalizeLedgerItem)
+        return {
+            ...normalized,
+            data: normalized.data.list.map((item) => ({
+                ...item,
+                sn: item.targetUserNo || item.target_user_no || item.sn || item.bizOrderNo || '',
+                nickname: item.targetNickname || item.target_nickname || item.nickname || item.type_desc || '转账用户',
+                avatar: resolveImage(item.targetAvatar || item.target_avatar || item.avatar, 'avatar')
+            }))
         }
     })
 }
 
+export function transferRecord(params) {
+    return request.get('miniapp/wallet/ledger', {
+        params: {
+            bizType: params?.bizType || params?.type || 'TRANSFER',
+            pageNo: params?.pageNo || params?.page_no || 1,
+            pageSize: params?.pageSize || params?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLedgerItem) : res)
+}
+
+export function send(data) {
+    return unsupported('Backend SMS API is not available')
+}
+
+export function retrievePayPassword(data) {
+    return unsupported('后端暂未提供找回支付密码接口')
+}
+
+export function transferToInfo(params) {
+    return unsupported('后端暂未提供转账收款人查询接口')
+}
+
 export function apiDistributionPoster() {
-    return Promise.resolve({ code: 1, data: {} })
+    return unsupported('Backend distribution poster API is not available')
 }
 
 export function getCopyright() {
-    return Promise.resolve({ code: 1, data: {} })
+    return request.get('miniapp/content-pages/copyright')
 }
 
 export function bindOawechat(data) {
-    return Promise.resolve({ code: 1, data })
+    return unsupported('Backend official-account binding API is not available')
 }

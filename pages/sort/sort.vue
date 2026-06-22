@@ -138,7 +138,7 @@ export default {
             return source.slice(0, 9).map((item, index) => ({
                 id: item.id || item.categoryId,
                 name: item.name || fallbackHotCategories[index % fallbackHotCategories.length].name,
-                image: this.resolveImage(item.image || item.pic || item.cover, index)
+                image: this.resolveImage(item.icon || item.image || item.iconUrl || item.imageUrl || item.pic || item.cover, index)
             }))
         },
         likeGoods() {
@@ -229,6 +229,8 @@ export default {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
     overflow: hidden;
     background: #ffffff;
 }
@@ -334,7 +336,7 @@ export default {
 }
 
 .sort-content__inner {
-    padding: 10rpx 24rpx calc(180rpx + var(--window-bottom)) 26rpx;
+    padding: 10rpx 24rpx calc(180rpx + var(--window-bottom) + env(safe-area-inset-bottom)) 26rpx;
     box-sizing: border-box;
 }
 

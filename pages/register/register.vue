@@ -271,7 +271,7 @@ export default {
         if (res.code == 1) {
           this.canSendSms = false;
           this.$toast(res.msg);
-          this.$refs.countDown.start();
+          if (this.$refs.countDown && this.$refs.countDown.start) this.$refs.countDown.start();
         }
       });
     },

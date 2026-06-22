@@ -94,7 +94,7 @@
 		padding-bottom: 20rpx;
 		&.seckill {
 			background-color: $color-white;
-			background-image: url(../../static/images/home_seckill_bg.png);
+			background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_seckill_bg.png);
 		}
 
 		.a-main {

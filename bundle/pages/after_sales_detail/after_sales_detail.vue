@@ -97,7 +97,7 @@
 		<u-modal v-model="confirmDialog" confirm-text="确定" :showCancelButton="true" :show-title="false"
 			confirm-color="#FF2C3C" @confirm="cancelApplyFun" @cancel="hideDialog">
 			<view class="column-center tips-dialog" style="padding: 20rpx 0;">
-				<image class="icon-lg" src="/static/images/icon_warning.png"></image>
+				<image class="icon-lg" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
 				<view style="margin-top:30rpx">是否要撤销申请？</view>
 			</view>
 		</u-modal>
@@ -174,7 +174,11 @@
 					address,
 					contact,
 					mobile
-				} = lists.shop;
+				} = lists.shop || {};
+				if (!address && !contact && !mobile) {
+					this.$toast({ title: '暂无退货地址' })
+					return
+				}
 				copyContent = address + " " + contact + " " + mobile;
 				copy(copyContent)
 			},
@@ -183,6 +187,10 @@
 				let {
 					lists
 				} = this;
+				if (!lists.order_goods || !lists.order_goods.item_id) {
+					this.$toast({ title: '缺少售后商品信息' })
+					return
+				}
 				uni.navigateTo({
 					url: '/bundle/pages/apply_refund/apply_refund?order_id=' + this.orderId + '&afterSaleId=' +
 						this.afterSaleId + '&item_id=' + lists.order_goods.item_id
@@ -219,7 +227,7 @@
 					id: this.afterSaleId
 				}).then(res => {
 					if (res.code == 1) {
-						this.lists = res.data
+						this.lists = res.data || {}
 					}
 				});
 			}

@@ -1,7 +1,7 @@
 <template>
 	<view class="luckly-wheel-container">
 		<view class="header">
-			<image src="../../static/images/choujiang_bg.png"></image>
+			<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/choujiang_bg.png"></image>
 		</view>
 		<view class="main">
 			<view class="row-end">
@@ -14,7 +14,7 @@
 				<view class="wheel-container">
 					<view class="row-center">
 						<view class="notice-container row">
-							<image src="../../static/images/icon_notice.png" class="icon"></image>
+							<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_notice.png" class="icon"></image>
 							<!-- <view class="xs ml20 marquee-box" style="color: #F9EDDD" wx:if="{{record.length > 0}}">
                 <text class="xs marquee_text" style="color: #F9EDDD;" wx:for="{{record}}" wx:key="id">{{item.text}}</text>
             </view> -->
@@ -36,7 +36,7 @@
 						<template v-if="config.show_win">
 							<navigator class="row" url="/bundle/pages/win_prize_code/win_prize_code"
 								hover-class="none">
-								<image class="mr10" src="../../static/images/choujiang_name_list.png"></image>
+								<image class="mr10" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/choujiang_name_list.png"></image>
 								中奖名单
 							</navigator>
 						</template>
@@ -72,7 +72,7 @@
 					</view>
 				</view>
 				<view style="margin-top: 50rpx" @tap="onClose">
-					<image src="../../static/images/icon_close.png" style="width: 62rpx;height: 62rpx;"></image>
+					<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_close.png" style="width: 62rpx;height: 62rpx;"></image>
 				</view>
 			</view>
 		</u-popup>
@@ -249,7 +249,7 @@
 			width: 545rpx;
 			height: 514rpx;
 			background-size: 100% 100%;
-			background-image: url(../../static/images/lottery_bg.png);
+			background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/lottery_bg.png);
 		}
 	}
 

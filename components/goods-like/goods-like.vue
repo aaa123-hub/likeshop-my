@@ -3,7 +3,7 @@
 		<view class="title row-center">
 			<text class="line"></text>
 			<view class="row">
-				<image class="mr20" src="/static/images/icon_like.png"></image>
+				<image class="mr20" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_like.png"></image>
 				<text class="bold xxl">猜你喜欢</text>
 			</view>
 			<text class="line"></text>

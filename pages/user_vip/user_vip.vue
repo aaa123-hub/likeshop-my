@@ -136,7 +136,7 @@
 
 		.user-vip {
 			.header {
-				background-image: url(../../static/images/vip_grade_bg.png);
+				background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/vip_grade_bg.png);
 				padding-top: 30rpx;
 				background-size: 100% 100%;
 				height: 382rpx;

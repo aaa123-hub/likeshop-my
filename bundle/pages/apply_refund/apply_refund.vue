@@ -27,7 +27,7 @@
           </view>
           <image
             style="width: 28rpx; height: 28rpx"
-            src="/static/images/arrow_right.png"
+            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"
           ></image>
         </view>
         <view class="opt-item row-between" @tap="allRefunds">
@@ -37,7 +37,7 @@
           </view>
           <image
             style="width: 28rpx; height: 28rpx"
-            src="/static/images/arrow_right.png"
+            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"
           ></image>
         </view>
       </view>
@@ -68,7 +68,7 @@
             }}</text>
             <image
               class="icon-sm ml20"
-              src="/static/images/arrow_right.png"
+              src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"
             ></image>
           </view>
         </view>

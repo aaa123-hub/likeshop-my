@@ -29,10 +29,10 @@
 							<price-format color="#FF2C3C"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
 							<price-format class="muted" :firstSize="24" :secondSize="24" :subscript-size="24" line-through :price="item.market_price"></price-format>
 						</view>
-						<image class="icon-md" src="/static/images/icon_go_red.png"></image>
+						<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_go_red.png"></image>
 					</view>
 				</view>
-				<image class="paixu" :src="'/static/images/No.' + (index < 3 ? index : 3) + '.png'"></image>
+				<image class="paixu" :src="'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/No.' + (index < 3 ? index : 3) + '.png'"></image>
 				<view class="number xxs">{{ index + 1 }}</view>
 			</navigator>
 		</view>
@@ -53,7 +53,7 @@
 						<button type="primary" class="br60" size="xs">去购买</button>
 					</view>
 				</view>
-				<image class="paixu" :src="'/static/images/No.' + (index < 3 ? index : 3) + '.png'"></image>
+				<image class="paixu" :src="'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/No.' + (index < 3 ? index : 3) + '.png'"></image>
 				<view class="number">{{ index + 1 }}</view>
 			</navigator>
 		</view>

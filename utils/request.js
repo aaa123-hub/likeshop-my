@@ -7,6 +7,46 @@ import { baseURL } from "../config/app";
 import { getWxCode, toLogin, wxMnpLogin } from "./login";
 
 let index = 0;
+let reloginPromise = null;
+
+const IMAGE_FIELD_PATTERN = /(^|_)(image|img|icon|avatar|cover|logo|thumb|thumbnail|pic|poster|photo)(s|url|urls|_url|_urls)?$/i;
+
+function isSkippableUrl(value = "") {
+  return /^(https?:)?\/\//i.test(value)
+    || /^(data|blob|wxfile|file):/i.test(value)
+    || value.startsWith("#");
+}
+
+function normalizeBackendImageUrl(value) {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed || isSkippableUrl(trimmed)) return value;
+  if (trimmed.includes(",")) {
+    return trimmed.split(",").map((item) => normalizeBackendImageUrl(item)).join(",");
+  }
+  return trimmed.startsWith("/") ? `${baseURL}${trimmed}` : `${baseURL}/${trimmed}`;
+}
+
+function normalizeResponseImages(target, parentKey = "") {
+  if (!target || typeof target !== "object") return target;
+  if (Array.isArray(target)) {
+    target.forEach((item) => normalizeResponseImages(item, parentKey));
+    return target;
+  }
+  Object.keys(target).forEach((key) => {
+    const value = target[key];
+    if (typeof value === "string" && IMAGE_FIELD_PATTERN.test(key)) {
+      target[key] = normalizeBackendImageUrl(value);
+      return;
+    }
+    if (Array.isArray(value) && IMAGE_FIELD_PATTERN.test(key)) {
+      target[key] = value.map((item) => typeof item === "string" ? normalizeBackendImageUrl(item) : normalizeResponseImages(item, key));
+      return;
+    }
+    if (value && typeof value === "object") normalizeResponseImages(value, key);
+  });
+  return target;
+}
 
 function checkParams(params) {
   if (typeof params != "object") return params;
@@ -82,19 +122,6 @@ function validateRequestParams(config) {
     if (!getParamValue(config, ["payMethod"])) missing.push("payMethod");
     if (!getParamValue(config, ["idempotentKey"])) missing.push("idempotentKey");
   }
-  if (url === "miniapp/kyc/submit" && method === "POST") {
-    if (!getParamValue(config, ["realName"])) missing.push("realName");
-    if (!getParamValue(config, ["certType"])) missing.push("certType");
-    if (!getParamValue(config, ["certNo"])) missing.push("certNo");
-    if (!getParamValue(config, ["certFrontUrl"])) missing.push("certFrontUrl");
-    if (!getParamValue(config, ["certBackUrl"])) missing.push("certBackUrl");
-    if (!getParamValue(config, ["requestNo"])) missing.push("requestNo");
-  }
-  if (url === "miniapp/feedback" && method === "POST") {
-    if (!getParamValue(config, ["feedbackType", "type"])) missing.push("feedbackType");
-    if (!getParamValue(config, ["content", "feedbackContent"])) missing.push("content");
-    if (!getParamValue(config, ["idempotentKey"])) missing.push("idempotentKey");
-  }
 
   return Array.from(new Set(missing));
 }
@@ -133,6 +160,8 @@ function shouldAttachUserId(url = "") {
     "miniapp/orders",
     "miniapp/payments",
     "miniapp/wallet",
+    "miniapp/coupons",
+    "miniapp/alliance",
     "miniapp/favorites",
     "miniapp/feedback",
     "miniapp/service/tickets",
@@ -148,6 +177,7 @@ function shouldAttachUserId(url = "") {
 function shouldAttachUserIdToQuery(url = "", method = "") {
   const normalizedMethod = String(method || "").toUpperCase();
   return normalizedMethod === "GET"
+    || url.startsWith("miniapp/user/profile")
     || url.startsWith("miniapp/addresses")
     || (url.startsWith("miniapp/cart") && ["PUT", "DELETE"].includes(normalizedMethod));
 }
@@ -176,6 +206,53 @@ function attachUserId(config) {
   if (typeof config.data === "object" && !Array.isArray(config.data)) {
     config.data.userId = config.data.userId || config.data.user_id || userId;
   }
+}
+
+function isAuthRequest(url = "") {
+  return url.startsWith("miniapp/auth/");
+}
+
+function isLoginExpiredResponse(code, message = "", statusCode) {
+  const normalizedCode = String(code || "");
+  const normalizedMessage = String(message || "").toLowerCase();
+  if (statusCode === 401) return true;
+  if (normalizedCode === "A0106") return normalizedMessage.includes("token");
+  if (normalizedCode === "A0107") {
+    return normalizedMessage.includes("token") || normalizedMessage.includes("permission denied");
+  }
+  return normalizedCode === "-1";
+}
+
+function reloginAfterAuthExpired() {
+  if (!reloginPromise) {
+    store.commit("LOGOUT");
+    //#ifdef MP-WEIXIN
+    wxMnpLogin();
+    reloginPromise = new Promise((resolve) => setTimeout(resolve, 1500)).finally(() => {
+      reloginPromise = null;
+    });
+    // #endif
+    //#ifndef MP-WEIXIN
+    reloginPromise = Promise.resolve().finally(() => {
+      reloginPromise = null;
+    });
+    // #endif
+  }
+  return reloginPromise;
+}
+
+function handleLoginExpired(route, options) {
+  reloginAfterAuthExpired();
+  //#ifdef H5 || APP-PLUS
+  if (route && !tabbarList.includes(route)) {
+    toLogin();
+  }
+  // #endif
+  //#ifdef H5
+  if (!acountList.includes(route)) {
+    Cache.set(BACK_URL, `/${route}${paramsToStr(options)}`);
+  }
+  // #endif
 }
 
 const service = axios.create({
@@ -229,28 +306,22 @@ service.interceptors.response.use(
         data.msg = backendMessage;
       }
 
-      const { code, show, msg } = data;
+      const { code, show, msg, rawCode } = data;
       const { route, options } = currentPage();
-      if (code == 0 && msg && show !== false) {
+      if (!isAuthRequest(response.config?.url || "") && isLoginExpiredResponse(rawCode || code, msg, response.statusCode || response.status)) {
+        handleLoginExpired(route, options);
+        data.show = false;
+      } else if (code == 0 && msg && show !== false) {
         uni.showToast({
           title: msg,
           icon: "none",
         });
       } else if (code == -1) {
-        store.commit("LOGOUT");
-        //#ifdef MP-WEIXIN
-        wxMnpLogin();
-        // #endif
-        //#ifdef H5 || APP-PLUS
-        if (route && !tabbarList.includes(route)) {
-          toLogin();
-        }
-        // #endif
-        //#ifdef H5
-        if (!acountList.includes(route)) {
-          Cache.set(BACK_URL, `/${route}${paramsToStr(options)}`);
-        }
-        // #endif
+        handleLoginExpired(route, options);
+      }
+
+      if (data.data) {
+        normalizeResponseImages(data.data);
       }
     }
 
@@ -263,6 +334,18 @@ service.interceptors.response.use(
     const responseData = error && error.response && error.response.data;
     if (responseData && responseData.code !== undefined) {
       const message = responseData.message || responseData.msg || "请求失败";
+      const statusCode = error.response.statusCode || error.response.status;
+      if (!isAuthRequest(error.config?.url || "") && isLoginExpiredResponse(responseData.code, message, statusCode)) {
+        const { route, options } = currentPage();
+        handleLoginExpired(route, options);
+        return Promise.resolve({
+          ...responseData,
+          rawCode: responseData.code,
+          code: 0,
+          msg: message,
+          show: false,
+        });
+      }
       uni.showToast({
         title: message,
         icon: "none",

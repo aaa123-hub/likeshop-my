@@ -80,8 +80,8 @@ export default {
             break;
     }
 
-    let myComponent = this.$refs[afterSaleType][0];
-    if (myComponent.getAfterSaleListFun) {
+    let myComponent = this.$refs[afterSaleType] && this.$refs[afterSaleType][0];
+    if (myComponent && myComponent.getAfterSaleListFun) {
       myComponent.getAfterSaleListFun();
     }
   },
@@ -109,7 +109,7 @@ export default {
           this.active = type == AfterSaleType.NORMAL ? 0 : type == AfterSaleType.HANDLING ? 1 : 2
       }
       
-      if(this.$refs[type] && this.$refs[type][0].getAfterSaleListFun()) {
+      if(this.$refs[type] && this.$refs[type][0] && this.$refs[type][0].getAfterSaleListFun) {
           this.$refs[type][0].getAfterSaleListFun()
       }
     },

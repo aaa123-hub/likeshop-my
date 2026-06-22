@@ -5,42 +5,36 @@
 		<view class="user-payment">
 			<form report-submit="true">
 				<view class="payment bg-white">
-					<view class="md normal row" style="padding: 66rpx 66rpx 0">
-						充值金额
-					</view>
+					<view class="payment-title">礼品卡充值</view>
+					<view class="field-label">卡号</view>
 					<view class="input row">
-						<text style="font-size: 46rpx">￥</text>
-						<input :placeholder="placeholder" type="digit" @focus="setPlaceholder"
-							@blur="setPlaceholderStatus" :value="number" @input="onInput"></input>
+						<input placeholder="请输入礼品卡卡号" :value="cardNo" @input="onCardNoInput"></input>
+					</view>
+					<view class="field-label">卡密</view>
+					<view class="input row">
+						<input placeholder="请输入礼品卡卡密" password :value="cardSecret" @input="onCardSecretInput"></input>
 					</view>
 					<view class="tip muted mt20 row">
 						提示：当前余额为
 						<text class="primary">￥{{userInfo.user_money || 0}}</text>
 					</view>
 				</view>
-				<button size="lg" class="btn white br60" @tap="rechargeRights">
-					立即充值
+				<button size="lg" :class="['btn white br60', showLoading ? 'is-disabled' : '']" :disabled="showLoading" @tap="rechargeRights">
+					{{ showLoading ? '提交中...' : '立即充值' }}
 				</button>
 			</form>
 			<view class="fast-payment-container">
-				<view class="title bold normal row">推荐充值</view>
-				<view class="fast-pay row wrap">
-					<view v-for="(item, index) in rechargeObj" :key="index" class="fast-pay-item bg-white column-center"
-						@tap="temRecharge" :data-id="item.id">
-						<view class="hot-recharge white" v-if="item.is_recommend">热门充值</view>
-						<view class="price primary bold">
-							<price-format weight="500" :firstSize="42" :secondSize="42" :price="item.money">
-							</price-format>
-							<text class="xxl" style="font-weight: 500">元</text>
-						</view>
-						<view class="preferential primary xs">{{item.tips}}</view>
-					</view>
+				<view class="title bold normal row">充值说明</view>
+				<view class="recharge-tips bg-white">
+					<view>1. 请填写平台发放的礼品卡卡号和卡密。</view>
+					<view>2. 充值成功后余额会自动刷新。</view>
+					<view>3. 如卡密无效，请联系平台客服处理。</view>
 				</view>
 			</view>
 		</view>
 		<u-popup class="pay-popup" v-model="showPopup" closeable round mode="center">
 			<view class="content bg-white">
-				<image class="img-icon" src="../../static/images/recharge_success.png"></image>
+				<image class="img-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/recharge_success.png"></image>
 				<view class="xxl bold mt10">充值成功</view>
 				<view v-if="rechargeInfo.give_integral || rechargeInfo.give_growth" class="lg"
 					style="margin-top: 50rpx">恭喜您获得 <text><text class="primary"
@@ -72,25 +66,15 @@
 	// | Author: LikeShopTeam
 	// +----------------------------------------------------------------------
 	import {
-		rechargeTemplate,
 		recharge,
 		getUser
 	} from '@/api/user';
-	import {
-		prepay
-	} from '@/api/app';
-	import {
-		wxpay
-	} from '@/utils/pay';
 
 	export default {
 		data() {
 			return {
-				navRecharge: ['账户充值', '佣金转入'],
-				active: 0,
-				number: '',
-				placeholder: "0.00",
-				rechargeObj: [],
+				cardNo: '',
+				cardSecret: '',
 				showPopup: false,
 				rechargeInfo: {},
 				userInfo: {},
@@ -105,18 +89,16 @@
 		 * 生命周期函数--监听页面加载
 		 */
 		onLoad: function(options) {
-			this.rechargeTemplateFun();
 			this.getUserInfoFun();
-			
+
 			uni.$on('payment', params => {
 				if (params.result) {
 					this.onShowPopup()
 					this.getUserInfoFun()
-					uni.navigateBack()
 				}
 			})
 		},
-		
+
 		onUnload() {
 			uni.$off('payment')
 		},
@@ -124,15 +106,6 @@
 		methods: {
 			onShowPopup() {
 				this.showPopup = !this.showPopup
-			},
-
-			setPlaceholderStatus: function(event) {
-				if (event.detail.value.length == 0) {
-					this.placeholder = '0.00'
-				}
-			},
-			setPlaceholder: function() {
-				this.placeholder = ''
 			},
 
 			getUserInfoFun() {
@@ -143,67 +116,44 @@
 				});
 			},
 
-			rechargeTemplateFun() {
-				rechargeTemplate().then(res => {
-					if (res.code == 1) {
-						this.rechargeObj = res.data
-					}
-				});
-			},
-
 			rechargeRights() {
-				const {
-					number
-				} = this;
-				this.rechargeFun({
-					money: Number(number)
-				});
+				const cardNo = this.cardNo.trim()
+				const cardSecret = this.cardSecret.trim()
+				if (!cardNo) {
+					uni.showToast({ title: '请输入礼品卡卡号', icon: 'none' })
+					return
+				}
+				if (!cardSecret) {
+					uni.showToast({ title: '请输入礼品卡卡密', icon: 'none' })
+					return
+				}
+				this.rechargeFun({ cardNo, cardSecret });
 			},
-
-			temRecharge(e) {
-				let {
-					id
-				} = e.currentTarget.dataset;
-				this.rechargeFun({
-					id
-				});
-			},
-
 			rechargeFun(obj) {
+				if (this.showLoading) return
 				this.showLoading = true
 
 				recharge(obj).then(({ code, data, msg }) => {
 					if (code != 1) throw new Error(msg)
-					
-					this.rechargeInfo = data					
-					uni.navigateTo({
-						url: `/pages/payment/payment?from=${'recharge'}&order_id=${data.id}`
-					})
+
+					this.rechargeInfo = data || {}
+					this.cardNo = ''
+					this.cardSecret = ''
+					this.getUserInfoFun()
+					this.showPopup = true
 				}).catch(err => {
-					console.log(err)
+					uni.showToast({ title: err.message || '充值失败', icon: 'none' })
 				}).finally(() => {
 					this.showLoading = false
 				})
 			},
 
-			checkInputText: function(text) {
-				var reg = /^(\.*)(\d+)(\.?)(\d{0,2}).*$/g;
-
-				if (reg.test(text)) {
-					//正则匹配通过，提取有效文本
-					text = text.replace(reg, '$2$3$4');
-				} else {
-					//正则匹配不通过，直接清空
-					text = '';
-				}
-
-				return text; //返回符合要求的文本（为数字且最多有带2位小数）
+			onCardNoInput(e) {
+				this.cardNo = e.detail.value
 			},
 
-			onInput(e) {
-				let number = e.detail.value;
-				number = this.checkInputText(number);
-				this.number = number
+			onCardSecretInput(e) {
+				this.cardSecret = e.detail.value
 			}
 		}
 	};
@@ -211,13 +161,31 @@
 <style lang="scss">
 	/* pages/user_payment/user_payment.wxss */
 	.user-payment {
-		padding: 20rpx 30rpx 0;
+		min-height: calc(100vh - var(--window-top));
+		padding: 24rpx 30rpx calc(40rpx + env(safe-area-inset-bottom));
+		background: #f6f7fb;
+		box-sizing: border-box;
 
 		.payment {
-			text-align: center;
-			border-radius: 20rpx;
+			border-radius: 24rpx;
 			overflow: hidden;
-			padding-bottom: 74rpx;
+			padding: 42rpx 36rpx 38rpx;
+			box-shadow: 0 12rpx 36rpx rgba(24, 40, 80, 0.06);
+
+			.payment-title {
+				color: #222222;
+				font-size: 36rpx;
+				font-weight: 600;
+				line-height: 48rpx;
+			}
+
+			.field-label {
+				margin-top: 38rpx;
+				color: #333333;
+				font-size: 28rpx;
+				font-weight: 500;
+				line-height: 36rpx;
+			}
 
 			.nav {
 				margin: 20rpx 95rpx 80rpx;
@@ -238,33 +206,41 @@
 			}
 
 			.input {
-				margin-left: 66rpx;
-				margin-top: 35rpx;
-				margin-right: 30rpx;
+				margin-top: 18rpx;
+				padding: 0 24rpx;
+				background: #f7f8fa;
+				border-radius: 18rpx;
+				border: 1rpx solid #edf0f5;
+				box-sizing: border-box;
 
 				input {
-					height: 94rpx;
+					width: 100%;
+					height: 88rpx;
 					text-align: left;
-					font-size: 66rpx;
-					margin-left: 30rpx;
+					font-size: 30rpx;
 				}
-
-				border-bottom: $solid-border;
 			}
 
 			.tip {
-				margin: 25rpx 66rpx;
+				margin-top: 28rpx;
+				font-size: 24rpx;
+				line-height: 34rpx;
 			}
 
 		}
 
 		.btn {
 			background: linear-gradient(79deg, rgba(249, 95, 47, 1) 0%, rgba(255, 44, 60, 1) 100%);
-			margin: 70rpx 0 30rpx;
+			margin: 48rpx 0 30rpx;
+			border: 0;
+
+			&.is-disabled {
+				opacity: 0.65;
+			}
 		}
 
 		.fast-payment-container {
-			margin-top: 72rpx;
+			margin-top: 48rpx;
 
 			.title {
 				font-size: 38rpx;
@@ -273,18 +249,15 @@
 
 			.fast-pay {
 				margin-top: 40rpx;
+				gap: 18rpx;
 
 				.fast-pay-item {
 					position: relative;
-					width: 214rpx;
+					width: calc((100% - 36rpx) / 3);
 					height: 150rpx;
 					border-radius: 10rpx;
 					margin-bottom: 16rpx;
 					border: 1px solid $color-primary;
-
-					&:not(:nth-of-type(3n)) {
-						margin-right: 24rpx;
-					}
 
 					.hot-recharge {
 						position: absolute;
@@ -306,6 +279,16 @@
 					}
 				}
 
+			}
+
+			.recharge-tips {
+				margin-top: 24rpx;
+				padding: 28rpx 30rpx;
+				border-radius: 20rpx;
+				color: #666666;
+				font-size: 26rpx;
+				line-height: 44rpx;
+				box-shadow: 0 12rpx 36rpx rgba(24, 40, 80, 0.04);
 			}
 		}
 	}

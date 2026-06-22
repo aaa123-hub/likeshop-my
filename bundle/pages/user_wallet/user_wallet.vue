@@ -109,8 +109,8 @@ export default {
         user_money: 0,
         open_racharge: 1
       },
-      walletIconUrl: '/static/lanhu/assets/home/wallet_balance_icon.png',
-      user_wallet: '/static/lanhu/assets/home/user_wallet.png',
+      walletIconUrl: 'https://shengyuan.store/api/miniapp/files/miniapp/ce28a354dbb5412f9f776a748d865aa1/wallet-balance-icon.png',
+      user_wallet: 'https://shengyuan.store/api/miniapp/files/miniapp/eb819a12b29d43be91001eb8e65f397d/wallet-card-bg.png',
       recordIcons: {
         billIncome: 'https://lanhu-oss-proxy.lanhuapp.com/1eb0627a5caca505c66f5d2494ec65f3',
         billExpense: 'https://lanhu-oss-proxy.lanhuapp.com/f712888273ee1a4831a3478ccbf43931',

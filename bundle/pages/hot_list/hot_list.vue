@@ -20,7 +20,7 @@
 	<view class="hot-list">
 		<view class="header">
 			<view class="title row mb20">
-				<image src="../../static/images/icon_paixu.png" class="icon mr20"></image>
+				<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paixu.png" class="icon mr20"></image>
 				<text class="xs white">实时更新热销火爆商品</text>
 			</view>
 			<swipers :pid="15" height="284rpx" radius="10rpx"></swipers>
@@ -90,7 +90,7 @@
 </script>
 <style lang="scss">
 	.hot-list {
-		background: url(../../static/images/hot_list_bg.png) no-repeat;
+		background: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/hot_list_bg.png) no-repeat;
 		background-size: 100% 330rpx;
 		padding: 62rpx 30rpx 0;
 		min-height: 100vh;

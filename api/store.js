@@ -30,6 +30,33 @@ function parseImageList(value) {
     return []
 }
 
+function parseDetailContent(value) {
+    if (!value) return ''
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value)
+            if (Array.isArray(parsed)) return parsed.map((item) => item.text || item.content || item.value || '').filter(Boolean).join('<br/>')
+            if (parsed && typeof parsed === 'object') return parsed.html || parsed.content || parsed.text || value
+        } catch (e) {}
+        return value
+    }
+    if (Array.isArray(value)) return value.map((item) => item.text || item.content || item.value || '').filter(Boolean).join('<br/>')
+    if (typeof value === 'object') return value.html || value.content || value.text || ''
+    return ''
+}
+
+function normalizeCouponItem(item = {}) {
+    const threshold = item.thresholdAmount || item.minAmount || item.useThreshold
+    const amount = item.amount || item.discountAmount || item.couponAmount || item.value
+    return {
+        ...item,
+        id: item.id || item.couponId,
+        name: item.name || item.couponName || item.title || '优惠券',
+        use_condition: item.use_condition || item.useCondition || item.conditionText || (threshold ? `满${threshold}可用` : (amount ? `${amount}元优惠券` : '优惠券')),
+        money: amount || item.money || 0
+    }
+}
+
 function buildSpecValueId(spec, groupName, valueName, fallback) {
     return spec.id || spec.valueId || spec.value_id || `${groupName}-${valueName || fallback}`
 }
@@ -40,8 +67,8 @@ function normalizeCategory(item = {}) {
         id: item.id || item.categoryId,
         pid: item.pid ?? item.parentId ?? 0,
         name: item.name || item.categoryName || '',
-        image: resolveImage(item.image || item.iconUrl),
-        icon: resolveImage(item.icon || item.iconUrl),
+        image: resolveImage(item.image || item.icon || item.iconUrl || item.imageUrl || item.picUrl),
+        icon: resolveImage(item.icon || item.iconUrl || item.image || item.imageUrl || item.picUrl),
         level: item.level || item.categoryLevel || 1,
         sort: item.sort ?? item.sortNo ?? 0,
         status: item.status || item.categoryStatus || '',
@@ -63,7 +90,9 @@ function normalizeGoodsListItem(item = {}) {
         market_price: item.market_price || item.marketPrice || item.originPrice || item.maxPrice || item.max_price || item.price || 0,
         origin_price: item.origin_price || item.originPrice || item.market_price || 0,
         shop_id: item.shop_id || item.shopId || item.merchantShopId || '',
+        shopId: item.shopId || item.shop_id || item.merchantShopId || '',
         shop_name: item.shop_name || item.shopName || item.storeName || item.shopInfo?.shopName || '',
+        shopName: item.shopName || item.shop_name || item.storeName || item.shopInfo?.shopName || '',
         sales_sum: item.sales_sum || item.salesCount || item.sales_count || 0,
         tags: item.tags || []
     }
@@ -87,8 +116,9 @@ function normalizeSkuItem(item = {}, index = 0) {
         sku_code: item.sku_code || item.skuCode || '',
         name: item.name || item.skuName || specValueStr,
         price: item.price || item.salePrice || 0,
+        team_price: item.team_price || item.teamPrice || item.groupPrice || item.salePrice || item.price || 0,
         market_price: item.market_price || item.marketPrice || item.salePrice || 0,
-        stock: item.stock ?? item.stockQty ?? 0,
+        stock: item.stock ?? item.stockQty ?? item.stockQuantity ?? 0,
         image,
         spec_value_str: item.spec_value_str || specValueStr,
         spec_value: item.spec_value || specValueStr,
@@ -122,11 +152,7 @@ function normalizeSpecList(skuList = []) {
             }
         })
     })
-    return groups.length ? groups : [{
-        id: 1,
-        name: '规格',
-        spec_value: [{ id: 'default', value: '默认', name: '默认' }]
-    }]
+    return groups
 }
 
 function normalizeGoodsDetail(detail = {}, spuId) {
@@ -135,22 +161,31 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         images.push(detail.mainImageUrl || detail.cover || detail.image)
     }
     const goodsItem = (detail.skuList || detail.goods_item || []).map(normalizeSkuItem)
-    const normalizedGoodsItem = goodsItem.length ? goodsItem : [normalizeSkuItem({
-        skuId: detail.skuId || detail.spuId || spuId,
-        skuName: '默认',
-        salePrice: detail.minPrice || detail.salePrice || detail.price || 0,
-        marketPrice: detail.maxPrice || detail.originPrice || detail.market_price || 0,
-        stockQty: detail.stockQty ?? detail.stock ?? 999,
-        imageUrls: images,
-        specJson: [{ name: '规格', value: '默认', id: 'default' }]
-    })]
+    if (!goodsItem.length) {
+        goodsItem.push(normalizeSkuItem({
+            id: detail.defaultSkuId || detail.skuId || detail.id || spuId,
+            skuId: detail.defaultSkuId || detail.skuId || detail.id || spuId,
+            skuName: '默认',
+            salePrice: detail.minPrice || detail.price || 0,
+            marketPrice: detail.marketPrice || detail.originPrice || detail.maxPrice || detail.price || 0,
+            stockQty: detail.stockQty ?? detail.stock ?? 999,
+            imageUrl: detail.mainImageUrl || detail.cover || detail.image || images[0]
+        }))
+    }
+    const shopInfo = detail.shopInfo || detail.shop || detail.shop_info || {}
+    const commentSummary = normalizeCommentSummary(detail.commentSummary || detail.comment || {})
+    const coupons = (detail.couponList || detail.coupon_list || detail.coupons || []).map(normalizeCouponItem)
+    const content = parseDetailContent(detail.content || detail.goods_detail || detail.detail || detail.detailJson || detail.description)
 
     return {
         ...detail,
         id: detail.id || detail.spuId || detail.productId || spuId,
         goods_id: detail.goods_id || detail.spuId || detail.productId || detail.id || spuId,
-        shop_id: detail.shop_id || detail.shopId || detail.merchantShopId || detail.shopInfo?.shopId || '',
-        shop_name: detail.shop_name || detail.shopName || detail.storeName || detail.shopInfo?.shopName || '',
+        spuId: detail.spuId || detail.id || detail.productId || spuId,
+        shop_id: detail.shop_id || detail.shopId || detail.merchantShopId || shopInfo.shopId || shopInfo.id || '',
+        shopId: detail.shopId || detail.shop_id || detail.merchantShopId || shopInfo.shopId || shopInfo.id || '',
+        shop_name: detail.shop_name || detail.shopName || detail.storeName || shopInfo.shopName || shopInfo.name || '',
+        shopName: detail.shopName || detail.shop_name || detail.storeName || shopInfo.shopName || shopInfo.name || '',
         name: detail.name || detail.spuName || detail.productName || detail.title || '',
         goods_name: detail.goods_name || detail.spuName || detail.productName || detail.title || detail.name || '',
         image: resolveImage(detail.image || detail.mainImageUrl || detail.cover || images[0], 'goods'),
@@ -159,19 +194,24 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         min_price: detail.min_price || detail.minPrice || detail.salePrice || 0,
         max_price: detail.max_price || detail.maxPrice || detail.salePrice || detail.minPrice || 0,
         market_price: detail.market_price || detail.originPrice || detail.maxPrice || 0,
+        sales_sum: detail.sales_sum || detail.salesCount || detail.sales_count || detail.virtualSales || 0,
+        stock: detail.stock ?? detail.stockQty ?? goodsItem.reduce((sum, item) => sum + Number(item.stock || 0), 0),
+        is_collect: detail.is_collect ?? detail.isCollect ?? detail.collected ?? 0,
         goods_image: images.length ? images : [resolveImage('', 'goods')],
-        coupon_list: detail.coupon_list || detail.couponList || [],
-        comment: detail.comment || detail.commentSummary || {},
-        shop: detail.shop || detail.shopInfo || {},
-        shop_info: detail.shop_info || detail.shopInfo || {},
-        goods_item: normalizedGoodsItem,
-        sku_list: detail.skuList || detail.sku_list || [],
-        goods_spec: detail.goods_spec || normalizeSpecList(detail.skuList || []),
+        coupon_list: coupons,
+        couponList: coupons,
+        comment: commentSummary,
+        commentSummary,
+        shop: shopInfo,
+        shop_info: shopInfo,
+        goods_item: goodsItem,
+        sku_list: detail.skuList || detail.sku_list || goodsItem,
+        goods_spec: detail.goods_spec || normalizeSpecList(detail.skuList || detail.goods_item || []),
         like: detail.recommendedProducts || detail.like || [],
         activity: detail.groupBuyActivity || detail.activity || {},
         distribution: detail.distribution || {},
-        goods_detail: detail.goods_detail || detail.content || detail.detail || detail.detailJson || detail.description || '',
-        content: detail.content || detail.goods_detail || detail.detail || detail.detailJson || detail.description || '',
+        goods_detail: content,
+        content,
         highlight: detail.highlight || '',
         after_sale: detail.after_sale || detail.afterSale || '',
         usage_hint: detail.usage_hint || detail.usageHint || '',
@@ -201,7 +241,7 @@ function normalizeCartItem(item = {}) {
         goods_num: quantity,
         quantity,
         spec_value_str: item.spec_value_str || item.skuName || item.specValue || '',
-        item_stock: item.item_stock || item.stockQty || item.stock || 999,
+        item_stock: item.item_stock || item.stockQty || item.stock || 0,
         selected: item.selected ?? item.checked ?? 1,
         cart_status: item.cart_status ?? item.cartStatus ?? 0,
         shop_id: item.shop_id || item.shopId || normalized.shop_id,
@@ -217,11 +257,26 @@ function normalizeCommentItem(item = {}) {
         avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl, 'avatar'),
         nickname: item.nickname || item.userName || item.memberName || '匿名用户',
         goods_comment: item.goods_comment || item.score || item.star || item.rating || 5,
+        goods_rate: item.goods_rate || item.score || item.star || item.rating || 5,
         create_time: item.create_time || item.createdAt || item.createTime || '',
         spec_value_str: item.spec_value_str || item.skuName || item.specValue || '',
         comment: item.comment || item.content || '',
         image: images.length ? images : [resolveImage('', 'goods')],
         reply: item.reply || item.merchantReply || item.replyContent || ''
+    }
+}
+
+function normalizeCommentSummary(summary = {}) {
+    const first = summary.latestComment || summary.firstComment || (typeof summary.comment === 'object' ? summary.comment : {}) || summary.list?.[0] || summary.items?.[0] || summary.rows?.[0] || {}
+    const normalizedFirst = normalizeCommentItem(first)
+    return {
+        ...summary,
+        total: summary.total || summary.totalCount || summary.commentCount || summary.count || 0,
+        goods_rate: normalizedFirst.goods_rate,
+        avatar: normalizedFirst.avatar,
+        nickname: normalizedFirst.nickname,
+        create_time: normalizedFirst.create_time,
+        comment: normalizedFirst.comment || (typeof summary.comment === 'string' ? summary.comment : '')
     }
 }
 
@@ -236,12 +291,7 @@ function normalizeCommentPage(data = {}) {
         page_no: data.pageNo || data.page_no || 1,
         page_size: data.pageSize || data.page_size || list.length || 10,
         total: data.total || list.length,
-        comment: data.comment || [
-            { id: '', name: '全部', count: data.total || list.length },
-            { id: 'GOOD', name: '好评', count: summary.goodCount || 0 },
-            { id: 'MEDIUM', name: '中评', count: summary.mediumCount || 0 },
-            { id: 'BAD', name: '差评', count: summary.badCount || 0 }
-        ],
+        comment: data.comment || [],
         percent: data.percent || summary.goodRate || summary.goodsRate || '100%'
     }
 }
@@ -264,14 +314,12 @@ function normalizeHomeData(data = {}) {
 }
 
 function normalizeStreetCategory(item = {}) {
-    const name = item.name || item.categoryName || item.title || ''
-    const useEmptyImage = ['服装', '本地生活', '粮油饮品'].some(keyword => String(name).includes(keyword))
     return {
         ...item,
         id: item.id || item.categoryId || item.recommendId || '',
         categoryId: item.categoryId || item.id || item.recommendId || '',
-        name,
-        image: useEmptyImage ? '' : resolveImage(item.image || item.icon || item.iconUrl || item.cover)
+        name: item.name || item.categoryName || item.title || '',
+        image: resolveImage(item.image || item.icon || item.iconUrl || item.cover)
     }
 }
 
@@ -308,8 +356,48 @@ function normalizeShopMediaItem(item = {}) {
     }
 }
 
+function normalizeShopCommentItem(item = {}) {
+    const user = item.user || item.member || item.customer || {}
+    return {
+        ...item,
+        id: item.id || item.commentId || item.reviewId || '',
+        name: item.name || item.nickname || item.userName || item.memberName || user.nickname || user.name || user.userName || '匿名用户',
+        date: item.date || item.create_time || item.createdAt || item.createTime || item.commentTime || item.evaluateTime || '',
+        content: item.content || item.comment || item.reviewContent || item.remark || item.evaluateContent || item.commentContent || '暂无评价内容',
+        avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl || user.avatar || user.avatarUrl || user.headimgurl, 'avatar'),
+        score: item.score || item.star || item.rating || item.shopScore || item.serviceScore || 5
+    }
+}
+
+function normalizeShopGroupItem(item = {}) {
+    const normalized = normalizeGoodsListItem(item)
+    const activity = item.activity || item.groupBuyActivity || item.groupActivity || {}
+    const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || activity.goodsId || activity.spuId
+    const price = item.groupPrice || item.group_price || item.teamPrice || item.team_price || item.activityPrice || item.salePrice || item.minPrice || item.price || normalized.price
+    return {
+        ...normalized,
+        ...item,
+        id: goodsId || normalized.id,
+        goods_id: goodsId || normalized.goods_id,
+        spuId: item.spuId || item.productId || goodsId || normalized.spu_id,
+        name: item.name || item.goodsName || item.goods_name || item.spuName || item.productName || item.title || normalized.name,
+        goods_name: item.goods_name || item.goodsName || item.spuName || item.productName || item.title || normalized.goods_name,
+        image: resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || item.thumbnail || normalized.image, 'goods'),
+        price,
+        groupPrice: price,
+        people: item.people || item.peopleNum || item.people_num || item.groupNum || item.group_num || activity.peopleNum || activity.people_num || '',
+        joined: item.joined || item.joinedCount || item.join_num || item.joinNum || item.sales_sum || item.salesCount || activity.joinedCount || 0,
+        sales_sum: item.sales_sum || item.salesCount || item.sales_count || item.joinedCount || item.joinNum || 0,
+        score: item.score || item.shopScore || item.commentScore || item.rating || 5
+    }
+}
+
 function normalizeShopDetail(data = {}) {
-    const base = data.shopBase || data.shop || {}
+    const base = data.shopBase || data.shop || data.shopInfo || data.shop_info || data.baseInfo || {}
+    const groupPayload = data.groupBuyProducts || data.groupProducts || data.group_buy_products || data.activityProducts || data.products || data.groupBuyProductList || data.groupBuyList || data.groupList || data.groups || []
+    const commentPayload = data.comments || data.commentList || data.reviews || data.shopComments || data.evaluations || data.commentPage?.list || data.commentPage?.records || data.commentPage?.items || data.commentSummary?.list || []
+    const groupProducts = Array.isArray(groupPayload) ? groupPayload : (groupPayload.list || groupPayload.records || groupPayload.items || groupPayload.rows || [])
+    const comments = Array.isArray(commentPayload) ? commentPayload : (commentPayload.list || commentPayload.records || commentPayload.items || commentPayload.rows || [])
     return {
         ...data,
         shopBase: {
@@ -327,10 +415,12 @@ function normalizeShopDetail(data = {}) {
             cityName: base.cityName || '',
             districtName: base.districtName || ''
         },
-        albums: (data.albums || []).map(normalizeShopMediaItem),
-        videos: (data.videos || []).map(normalizeShopMediaItem),
+        albums: (data.albums || data.albumList || data.shopAlbums || []).map(normalizeShopMediaItem),
+        videos: (data.videos || data.videoList || data.shopVideos || []).map(normalizeShopMediaItem),
         coupons: data.coupons || [],
-        groupBuyProducts: (data.groupBuyProducts || []).map(normalizeGoodsListItem),
+        groupBuyProducts: groupProducts.map(normalizeShopGroupItem),
+        comments: comments.map(normalizeShopCommentItem),
+        commentTotal: data.commentTotal || data.commentCount || data.commentSummary?.total || comments.length,
         qrcodeInfo: data.qrcodeInfo || {}
     }
 }
@@ -497,13 +587,15 @@ export function getGoodsDetail(data) {
 }
 
 // 商品搜索
-export function getGoodsSearch(data) {
+export function getGoodsSearch(data = {}) {
     return request.get('miniapp/search/products', {
         params: {
             keyword: data.keyword,
             categoryId: data.category_id || data.categoryId,
             shopId: data.shop_id || data.shopId,
             sortType: data.sortType || data.price || data.sales_sum,
+            minPrice: data.minPrice || data.min_price,
+            maxPrice: data.maxPrice || data.max_price,
             pageNo: data.page_no || data.pageNo,
             pageSize: data.page_size || data.pageSize
         }
@@ -623,10 +715,7 @@ export function getMessageLists() {
         const list = res.data.list || []
         return {
             ...res,
-            data: list.length ? list : [
-                { type: 'system', title: '系统通知', content: '暂无新消息', img: '/static/images/icon_notice.png' },
-                { type: 'order', title: '订单通知', content: '暂无新消息', img: '/static/images/icon_notice.png' }
-            ]
+            data: list
         }
     })
 }

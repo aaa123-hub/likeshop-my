@@ -5,19 +5,19 @@
 <view class="user-sgin">
     <view class="header">
         <view class="row">
-            <u-image class="avatar" width="110rpx" height="110rpx" shape="circle" :src="avatar == '' ? '../../static/images/default_avatar.png' : avatar" />
+            <u-image class="avatar" width="110rpx" height="110rpx" shape="circle" :src="avatar == '' ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png' : avatar" />
             <view class="white ml20 row-between" style="flex: 1">
                 <view>
                     <view style="font-size: 56rpx">{{integral}}</view>
                     <view class="row">
                         <navigator class="sm row" hover-class="none" url="/bundle/pages/sign_rule/sign_rule">
                             我的积分
-                            <image src="../../static/images/jifen_icon_help.png" class="icon-sm ml10"></image>
+                            <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_help.png" class="icon-sm ml10"></image>
                         </navigator>
                     </view>
                 </view>
                 <navigator class="score-detail-entry row" url="/bundle/pages/sign_detail/sign_detail" hover-class="none">
-                    <image style="width: 26rpx;height: 26rpx;flex: none; margin-right: 7rpx" src="../../static/images/jifen_icon_data.png"></image>
+                    <image style="width: 26rpx;height: 26rpx;flex: none; margin-right: 7rpx" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_data.png"></image>
                     <text class="sm white">积分明细</text>
                 </navigator>
             </view>
@@ -30,7 +30,7 @@
                 <view v-for="(item, index) in signList" :key="index" class="item column-center">
                     <view :class="'circle row-center ' + (item.status == 1 ? 'active-circle' : '')">
                         <view class="num xs lighter" v-if="item.status != 1">+{{item.integral}}</view>
-                        <image class="num" src="../../static/images/jifen_icon_select.png" v-if="item.status == 1"></image>
+                        <image class="num" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_select.png" v-if="item.status == 1"></image>
                     </view>
                     <view class="day mt10 lighter sm">{{item.days}}天</view>
                 </view>
@@ -46,7 +46,7 @@
             </view>
             <view class="task">
                 <view v-for="(item, index) in makeInegral" :key="index" class="item row">
-                    <image class="img mr20" :src="item.type == 1 ? '../../static/images/icon_jifen_qiandao.png' : item.type == 2 ? '../../static/images/icon_jifen_pay.png' : '../../static/images/icon_jifen_invite.png'"></image>
+                    <image class="img mr20" :src="item.type == 1 ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen_qiandao.png' : item.type == 2 ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen_pay.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen_invite.png'"></image>
                     <view class="con">
                         <view class="md">{{item.name}}</view>
                         <view class="xs">
@@ -66,7 +66,7 @@
             <view class="header-score row-center mt20">+{{addIntegral}}</view>
             <view class="box column-center">
                 <view class="desc row mt20 sm">
-                    <image style="width: 28rpx; height: 30rpx;margin-right: 8rpx" src="../../static/images/icon_jifen.png"></image>
+                    <image style="width: 28rpx; height: 30rpx;margin-right: 8rpx" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen.png"></image>
                     {{addIntegral}}积分 + {{addGrowth}}成长值
                 </view>
                 <view class="bottom-box">
@@ -139,15 +139,17 @@ export default {
     getSignListFun() {
       getSignList().then(res => {
         if (res.code == 1) {
+          const data = res.data || {}
+          const user = data.user || {}
           let {
             sign_list
-          } = res.data;
+          } = data;
           this.signList = sign_list;
-          this.integral = res.data.user.user_integral;
-		  this.avatar = res.data.user.avatar
-          this.canSign = res.data.user.today_sign;
-          this.signDays = res.data.user.days;
-          this.makeInegral = res.data.make_inegral
+          this.integral = user.user_integral || 0;
+		  this.avatar = user.avatar || ''
+          this.canSign = user.today_sign || 0;
+          this.signDays = user.days || 0;
+          this.makeInegral = data.make_inegral || 0
         }
       });
     },
@@ -314,7 +316,7 @@ export default {
     height: 626rpx;
     width: 560rpx;
     position: relative;
-    background-image: url(../../static/images/jifen_popBg.png);
+    background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_popBg.png);
 }
 
 .u-mode-center-box {

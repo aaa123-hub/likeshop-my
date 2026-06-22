@@ -44,9 +44,9 @@
           const {
             active, bargain
           } = this;
-          let type = bargain[active].ref_name;
-          let myComponent = this.$refs[type][0];
-          if (myComponent.$getBargainActivityList) {
+          let type = bargain[active] && bargain[active].ref_name;
+          let myComponent = type && this.$refs[type] && this.$refs[type][0];
+          if (myComponent && myComponent.$getBargainActivityList) {
             myComponent.$getBargainActivityList();
           }
         },
@@ -54,7 +54,8 @@
             onChange(active) {
                 const {bargain} = this;
                 console.log(active)
-                let type = bargain[active].ref_name
+                let type = bargain[active] && bargain[active].ref_name
+                if (!type) return
                 let index = bargain.findIndex(item => {
                   return item.ref_name == type;
                 });
@@ -68,7 +69,7 @@
                 this.$nextTick(() => {                    
                     console.log(this.$refs, "refs", type)
                     console.log('this.$refs[all]', this.$refs['all'])
-                    if(this.$refs[type] && this.$refs[type][0].$getBargainActivityList) {
+                    if(this.$refs[type] && this.$refs[type][0] && this.$refs[type][0].$getBargainActivityList) {
                         this.$refs[type][0].$getBargainActivityList();
                     }
                 })

@@ -29,11 +29,46 @@ function normalizeOrderItem(item = {}) {
 
 function normalizeOrderListItem(item = {}) {
   const detail = normalizeOrderDetail(item);
+  const status = detail.order_status;
   return {
     ...detail,
+    id: detail.id || detail.orderNo || detail.order_sn,
+    order_status_desc: detail.order_status_desc || formatOrderStatus(status),
+    pay_btn: detail.pay_btn ?? status === "CREATED",
+    cancel_btn: detail.cancel_btn ?? status === "CREATED",
+    take_btn: detail.take_btn ?? status === "SHIPPED",
+    del_btn: detail.del_btn ?? ["CANCELLED", "COMPLETED"].includes(status),
     order_goods: detail.order_goods?.length ? detail.order_goods : (item.itemList || item.items || []).map(normalizeOrderItem),
     goods_lists: detail.goods_lists?.length ? detail.goods_lists : (item.itemList || item.items || []).map(normalizeOrderItem),
   };
+}
+
+function formatOrderStatus(status) {
+  const statusMap = {
+    CREATED: "待付款",
+    PAID: "待发货",
+    SHIPPED: "待收货",
+    COMPLETED: "已完成",
+    CANCELLED: "已关闭",
+  };
+  return statusMap[status] || status || "";
+}
+
+function normalizeOrderStatus(status) {
+  const statusMap = {
+    all: "",
+    pay: "CREATED",
+    created: "CREATED",
+    wait_pay: "CREATED",
+    WAIT_PAY: "CREATED",
+    delivery: "SHIPPED",
+    shipped: "SHIPPED",
+    finish: "COMPLETED",
+    completed: "COMPLETED",
+    close: "CANCELLED",
+    cancelled: "CANCELLED",
+  };
+  return statusMap[String(status || "")] ?? status;
 }
 
 function normalizeOrderPage(data = {}) {
@@ -188,9 +223,11 @@ export function delOrder(id) {
 export function getDelivery() {
   return Promise.resolve({
     code: 1,
+    msg: "使用默认配送方式",
     data: {
-      is_express: true,
-      is_selffetch: true
+      is_express: 1,
+      is_selffetch: 1,
+      deliveryType: "MIXED"
     }
   });
 }
@@ -199,7 +236,7 @@ export function getDelivery() {
 export function getOrderList(data) {
   return request.get("miniapp/orders", {
     params: {
-      status: data.status || data.type,
+      status: normalizeOrderStatus(data.status || data.type),
       pageNo: data.pageNo || data.page_no || data.page,
       pageSize: data.pageSize || data.page_size || 10
     },

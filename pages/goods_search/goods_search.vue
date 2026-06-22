@@ -64,7 +64,7 @@
 		</view>
 		<view v-show="!showHistory" class="result-panel">
 			<template v-if="goodsList.length">
-				<view v-for="(item, index) in goodsList" :key="index" class="merchant-card">
+				<view v-for="(item, index) in goodsList" :key="index" class="merchant-card" @tap="goResultDetail(item)">
 					<view v-if="isEmptyImage(item)" class="merchant-card__image image-placeholder">无</view>
 					<image v-else class="merchant-card__image" :src="getGoodsImage(item)" mode="aspectFill"></image>
 					<view class="merchant-card__content">
@@ -98,6 +98,32 @@
 				</view>
 			</loading-footer>
 		</view>
+		<u-popup v-model="showFilter" mode="bottom" border-radius="24" safe-area-inset-bottom>
+			<view class="filter-panel">
+				<view class="filter-panel__title">更多筛选</view>
+				<view class="filter-group">
+					<view class="filter-group__label">价格区间</view>
+					<view class="filter-price-row">
+						<input class="filter-price-input" v-model="minPrice" type="digit" placeholder="最低价" />
+						<view class="filter-price-line"></view>
+						<input class="filter-price-input" v-model="maxPrice" type="digit" placeholder="最高价" />
+					</view>
+				</view>
+				<view class="filter-group">
+					<view class="filter-group__label">排序方式</view>
+					<view class="filter-chip-row">
+						<view :class="['filter-chip', sortType === '' ? 'active' : '']" @tap="sortType = ''">综合</view>
+						<view :class="['filter-chip', sortType === 'PRICE_ASC' ? 'active' : '']" @tap="sortType = 'PRICE_ASC'">价格低到高</view>
+						<view :class="['filter-chip', sortType === 'PRICE_DESC' ? 'active' : '']" @tap="sortType = 'PRICE_DESC'">价格高到低</view>
+						<view :class="['filter-chip', sortType === 'SALES_DESC' ? 'active' : '']" @tap="sortType = 'SALES_DESC'">销量优先</view>
+					</view>
+				</view>
+				<view class="filter-actions">
+					<view class="filter-action reset" @tap="resetFilter">重置</view>
+					<view class="filter-action confirm" @tap="applyFilter">确定</view>
+				</view>
+			</view>
+		</u-popup>
 	</view>
 </template>
 
@@ -128,8 +154,12 @@
 				priceSort: '',
 				saleSort: '',
 				showHistory: false,
+				showFilter: false,
 				hotList: [],
-				historyList: []
+				historyList: [],
+				minPrice: '',
+				maxPrice: '',
+				sortType: ''
 			};
 		},
 
@@ -198,12 +228,34 @@
 			getGoodsDistance(item) {
 				return item.distance_desc || item.distance || '距离 1.2km'
 			},
+			goResultDetail(item) {
+				const shopId = item.shop_id || item.shopId || item.merchantShopId
+				const goodsId = item.id || item.goods_id || item.spuId || item.productId
+				if (shopId) {
+					uni.navigateTo({ url: `/bundle/pages/business_pages/store_detail?shopId=${shopId}` })
+					return
+				}
+				if (goodsId) {
+					uni.navigateTo({ url: `/pages/goods_details/goods_details?id=${goodsId}` })
+					return
+				}
+				this.$toast({ title: '暂无详情' })
+			},
 			onChange(e) {
 				this.keyword = e.value
 			},
 
 			changeType() {
-				this.goodsType = this.goodsType === 'one' ? 'double' : 'one'
+				this.showFilter = true
+			},
+			resetFilter() {
+				this.minPrice = ''
+				this.maxPrice = ''
+				this.sortType = ''
+			},
+			applyFilter() {
+				this.showFilter = false
+				this.onRefresh()
 			},
 
 			clearSearchFun() {
@@ -226,6 +278,7 @@
 				} = this;
 				this.saleSort = ''
 				this.priceSort = priceSort == 'asc' ? 'desc' : 'asc'
+				this.sortType = this.priceSort === 'asc' ? 'PRICE_ASC' : 'PRICE_DESC'
 				this.onRefresh();
 			},
 
@@ -235,6 +288,7 @@
 				} = this;
 				this.priceSort = ''
 				this.saleSort = saleSort == 'desc' ? 'asc' : 'desc'
+				this.sortType = 'SALES_DESC'
 				this.onSearch();
 			},
 
@@ -312,7 +366,10 @@
 					page_no: page,
 					keyword,
 					price: priceSort,
-					sales_sum: saleSort
+					sales_sum: saleSort,
+					sortType: this.sortType,
+					minPrice: this.minPrice,
+					maxPrice: this.maxPrice
 				}
 				const data = await loadingFun(getGoodsSearch, page, goodsList, status, params)
 				if (!data) return
@@ -538,6 +595,102 @@
 
 		.empty-slot {
 			min-height: 760rpx;
+		}
+
+		.filter-panel {
+			padding: 32rpx 30rpx 40rpx;
+			background: #ffffff;
+		}
+
+		.filter-panel__title {
+			font-size: 34rpx;
+			font-weight: 700;
+			color: #222222;
+			line-height: 48rpx;
+		}
+
+		.filter-group {
+			margin-top: 32rpx;
+		}
+
+		.filter-group__label {
+			margin-bottom: 20rpx;
+			font-size: 28rpx;
+			font-weight: 600;
+			color: #222222;
+		}
+
+		.filter-price-row {
+			display: flex;
+			align-items: center;
+		}
+
+		.filter-price-input {
+			flex: 1;
+			height: 76rpx;
+			padding: 0 24rpx;
+			border-radius: 38rpx;
+			background: #f5f7fb;
+			font-size: 26rpx;
+			color: #222222;
+			text-align: center;
+		}
+
+		.filter-price-line {
+			width: 34rpx;
+			height: 2rpx;
+			margin: 0 18rpx;
+			background: #ccd3df;
+		}
+
+		.filter-chip-row {
+			display: flex;
+			flex-wrap: wrap;
+			margin-right: -16rpx;
+		}
+
+		.filter-chip {
+			margin-right: 16rpx;
+			margin-bottom: 18rpx;
+			padding: 0 28rpx;
+			line-height: 66rpx;
+			border-radius: 34rpx;
+			background: #f5f7fb;
+			font-size: 26rpx;
+			color: #4b5565;
+		}
+
+		.filter-chip.active {
+			background: #e8f2ff;
+			color: #1688ff;
+			font-weight: 600;
+		}
+
+		.filter-actions {
+			display: flex;
+			align-items: center;
+			margin-top: 36rpx;
+		}
+
+		.filter-action {
+			flex: 1;
+			height: 78rpx;
+			line-height: 78rpx;
+			border-radius: 40rpx;
+			font-size: 28rpx;
+			font-weight: 700;
+			text-align: center;
+		}
+
+		.filter-action.reset {
+			margin-right: 18rpx;
+			background: #f5f7fb;
+			color: #4b5565;
+		}
+
+		.filter-action.confirm {
+			background: #1688ff;
+			color: #ffffff;
 		}
 	}
 </style>

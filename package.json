@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "./autoRelease.sh",
+    "sync:tabbar-icons": "node scripts/sync-tabbar-icons.mjs",
     "upload:lanhu-assets": "node scripts/upload-lanhu-assets.mjs"
   },
   "keywords": [],

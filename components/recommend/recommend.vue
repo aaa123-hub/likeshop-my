@@ -7,7 +7,7 @@
     <view class="goods-title row-center">
         <text class="line"></text>
         <view class="row">
-            <image class="mr10" src="/static/images/icon_like.png"></image>
+            <image class="mr10" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_like.png"></image>
             <text class="bold xxl">好物优选</text>
         </view>
         <text class="line"></text>

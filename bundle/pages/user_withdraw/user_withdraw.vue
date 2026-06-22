@@ -43,7 +43,7 @@
 									:deletable="true" useSlot @delete="handleDelete">
 									<view>
 										<view class="upload-area row-center">
-											<image src="/static/images/uploader_icon.png"></image>
+											<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/uploader_icon.png"></image>
 										</view>
 										<view class="mt10 normal nr" style="line-height: 36rpx;text-align: center;">
 											微信收款码</view>
@@ -90,7 +90,7 @@
 									:deletable="true" useSlot @delete="handleDelete">
 									<view class="column-center">
 										<view class="upload-area row-center">
-											<image src="/static/images/uploader_icon.png"></image>
+											<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/uploader_icon.png"></image>
 										</view>
 										<view class="mt10 normal nr" style="line-height: 36rpx;text-align: center;">
 											支付宝收款码</view>
