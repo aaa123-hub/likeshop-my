@@ -25,19 +25,11 @@
                 <u-icon name="arrow-right" size="28" color="#222222"></u-icon>
             </view>
         </view>
-        <view class="license-desc">
-            <view class="license-desc__title">网店说明</view>
-            <textarea class="license-desc__textarea" v-model="form.remark" placeholder="请输入网店说明" maxlength="200"></textarea>
-            <view class="license-desc__count">{{ form.remark.length }}/200</view>
-        </view>
-        <view class="license-upload">
-            <view class="license-upload__title">资质图片</view>
-            <view class="license-upload__box" @tap="chooseImage">
-                <image v-if="form.qualificationUrl" class="license-upload__image" :src="form.qualificationUrl" mode="aspectFill"></image>
-                <view v-else class="license-upload__empty">
-                    <u-icon name="plus" size="42" color="#1f7af4"></u-icon>
-                    <view class="license-upload__tip">上传营业执照</view>
-                </view>
+        <view class="license-extra">
+            <view class="license-desc">
+                <view class="license-desc__title">网店说明</view>
+                <textarea class="license-desc__textarea" v-model="form.remark" placeholder="请输入网店说明" maxlength="200"></textarea>
+                <view class="license-desc__count">{{ form.remark.length }}/200</view>
             </view>
         </view>
         <view class="license-btn" :class="{ 'license-btn--disabled': submitting }" @tap="submitApply">{{ submitting ? '提交中...' : '去开通' }}</view>
@@ -50,7 +42,6 @@
         applyMerchantQualification,
         getMerchantQualificationStatus
 	} from "@/api/user";
-    import { uploadFile } from "@/utils/tools";
     export default {
         data() {
             return {
@@ -58,7 +49,6 @@
                     merchantName: '',
                     contactMobile: '',
                     settlementAccountNo: '',
-                    qualificationUrl: '',
                     remark: ''
                 },
                 status: {},
@@ -97,27 +87,6 @@
                         this.form.merchantName = res.data.merchant_name || this.form.merchantName
                         this.form.contactMobile = res.data.contact_mobile || this.form.contactMobile
                         this.form.settlementAccountNo = res.data.settlement_account_no || this.form.settlementAccountNo
-                        this.form.qualificationUrl = res.data.qualification_url || this.form.qualificationUrl
-                    }
-                })
-            },
-            chooseImage() {
-                uni.chooseImage({
-                    count: 1,
-                    sizeType: ['compressed'],
-                    sourceType: ['album', 'camera'],
-                    success: ({ tempFilePaths }) => {
-                        const path = tempFilePaths && tempFilePaths[0]
-                        if (!path) return
-                        uni.showLoading({
-                            title: '上传中...',
-                            mask: true
-                        })
-                        uploadFile(path).then(res => {
-                            this.form.qualificationUrl = res.file_url || res.url || res.uri || ''
-                        }).finally(() => {
-                            uni.hideLoading()
-                        })
                     }
                 })
             },
@@ -125,7 +94,6 @@
                 if (!this.userId) return '请先登录'
                 if (!this.form.merchantName) return '请输入店铺名称'
                 if (!this.form.contactMobile) return '请输入联系电话'
-                if (!this.form.qualificationUrl) return '请上传资质图片'
                 return ''
             },
             submitApply() {
@@ -141,7 +109,6 @@
                     merchantName: this.form.merchantName,
                     contactMobile: this.form.contactMobile,
                     settlementAccountNo: this.form.settlementAccountNo,
-                    qualificationUrl: this.form.qualificationUrl,
                     remark: this.form.remark
                 }).then(res => {
                     if (res.code == 1) {
@@ -172,13 +139,19 @@
 
 <style lang="scss">
     .license {
-        min-height: 100vh;
-        padding: 0 24rpx 60rpx;
-        background: linear-gradient(180deg, #0f63ff 0%, #d9e8ff 46%, #f7f8fa 46%, #f7f8fa 100%);
+        display: flex;
+        flex-direction: column;
+        // min-height: 100vh;
+        // height: 100vh;
+        padding: 0 24rpx calc(24rpx + env(safe-area-inset-bottom));
+        box-sizing: border-box;
+        overflow: hidden;
+        background: linear-gradient(180deg, #0f63ff 0%, #d9e8ff 300rpx, #f7f8fa 600rpx, #f7f8fa 100%);
     }
 
     .license-header {
-        height: 260rpx;
+        flex: none;
+        height: 148rpx;
     }
 
     .license-card,
@@ -189,14 +162,16 @@
     }
 
     .license-card {
-        margin-top: -16rpx;
+        flex: none;
+        margin-top: -10rpx;
     }
 
     .license-status {
-        margin: -70rpx 0 24rpx;
-        padding: 28rpx;
+        flex: none;
+        margin: -42rpx 0 16rpx;
+        padding: 18rpx 24rpx;
         background: #ffffff;
-        border-radius: 24rpx;
+        border-radius: 20rpx;
     }
 
     .license-status__label {
@@ -233,8 +208,8 @@
     .license-item {
         display: flex;
         align-items: center;
-        min-height: 108rpx;
-        padding: 0 28rpx;
+        min-height: 82rpx;
+        padding: 0 24rpx;
 
         & + .license-item {
             border-top: 1rpx solid #edf0f4;
@@ -244,36 +219,44 @@
     .license-item__label {
         flex: none;
         width: 156rpx;
-        font-size: 32rpx;
+        font-size: 28rpx;
         font-weight: 600;
         color: #222222;
     }
 
     .license-item__input {
         flex: 1;
-        height: 108rpx;
-        font-size: 32rpx;
+        height: 82rpx;
+        font-size: 28rpx;
+    }
+
+    .license-extra {
+        flex: 1;
+        min-height: 0;
+        margin-top: 20rpx;
     }
 
     .license-desc {
         position: relative;
-        margin-top: 24rpx;
-        padding: 28rpx;
+        // height: 100%;
+        padding: 26rpx;
+        box-sizing: border-box;
     }
 
     .license-desc__title {
-        font-size: 32rpx;
+        font-size: 28rpx;
         font-weight: 600;
         color: #222222;
     }
 
     .license-desc__textarea {
         width: 100%;
-        height: 190rpx;
-        margin-top: 28rpx;
-        padding: 26rpx;
-        font-size: 32rpx;
-        line-height: 44rpx;
+        height: calc(100% - 72rpx);
+        min-height: 220rpx;
+        margin-top: 22rpx;
+        padding: 24rpx;
+        font-size: 28rpx;
+        line-height: 40rpx;
         background: #f7f8fa;
         border-radius: 18rpx;
         box-sizing: border-box;
@@ -281,50 +264,10 @@
 
     .license-desc__count {
         position: absolute;
-        right: 46rpx;
+        right: 48rpx;
         bottom: 40rpx;
         font-size: 24rpx;
         color: #c4c7cd;
-    }
-
-    .license-upload {
-        margin-top: 24rpx;
-        padding: 28rpx;
-        background: #ffffff;
-        border-radius: 24rpx;
-    }
-
-    .license-upload__title {
-        font-size: 32rpx;
-        font-weight: 600;
-        color: #222222;
-    }
-
-    .license-upload__box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 220rpx;
-        height: 160rpx;
-        margin-top: 24rpx;
-        background: #f7f8fa;
-        border-radius: 18rpx;
-        overflow: hidden;
-    }
-
-    .license-upload__image {
-        width: 100%;
-        height: 100%;
-    }
-
-    .license-upload__empty {
-        text-align: center;
-    }
-
-    .license-upload__tip {
-        margin-top: 12rpx;
-        font-size: 24rpx;
-        color: #8a8f99;
     }
 
     .license-btn {
@@ -332,10 +275,10 @@
         align-items: center;
         justify-content: center;
         width: 540rpx;
-        height: 88rpx;
-        margin: 88rpx auto 0;
+        height: 78rpx;
+        margin: 20rpx auto 0;
         color: #ffffff;
-        font-size: 32rpx;
+        font-size: 30rpx;
         font-weight: 600;
         background: #1f7af4;
         border-radius: 44rpx;

@@ -3,18 +3,22 @@
 		<view class="search-top">
 			<navbar title="搜索" :background="{ background: '#bcd1f3' }"></navbar>
 			<view class="search-box">
-				<u-search
-					v-model="keyword"
-					@focus="showHistory = true"
-					:focus="showHistory"
-					@search="onSearch"
-					:bg-color="'#ffffff'"
-					:show-action="false"
-					border-color="transparent"
-					search-icon-color="#222222"
-					placeholder="输入关键词"
-					height="64"
-				></u-search>
+				<view class="search-input-wrap">
+					<input
+						class="search-input"
+						v-model="keyword"
+						:focus="showHistory"
+						confirm-type="search"
+						placeholder="输入关键词"
+						placeholder-class="search-input__placeholder"
+						@focus="showHistory = true"
+						@confirm="onSearch"
+					/>
+					<view class="search-submit" @tap="onSearch">
+						<text class="search-submit__text">搜索</text>
+						<u-icon name="search" size="32" color="#ffffff"></u-icon>
+					</view>
+				</view>
 			</view>
 		</view>
 		<u-sticky offset-top="0" h5-nav-height="0">
@@ -61,7 +65,8 @@
 		<view v-show="!showHistory" class="result-panel">
 			<template v-if="goodsList.length">
 				<view v-for="(item, index) in goodsList" :key="index" class="merchant-card">
-					<image class="merchant-card__image" :src="getGoodsImage(item)" mode="aspectFill"></image>
+					<view v-if="isEmptyImage(item)" class="merchant-card__image image-placeholder">无</view>
+					<image v-else class="merchant-card__image" :src="getGoodsImage(item)" mode="aspectFill"></image>
 					<view class="merchant-card__content">
 						<view class="merchant-card__header">
 							<view class="merchant-card__title line1">
@@ -110,6 +115,7 @@
 	import {
 		loadingType
 	} from '@/utils/type';
+	import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder';
 
 	export default {
 		data() {
@@ -174,11 +180,14 @@
 			this.getGoodsSearchFun();
 		},
 		methods: {
+			isEmptyImage(item) {
+				return isPlaceholderImage(item.image || item.goods_image || item.cover)
+			},
 			getMerchantTitle(item) {
 				return item.name || item.goods_name || item.shop_name || '广州市越秀区斌记面家'
 			},
 			getGoodsImage(item) {
-				return item.image || item.goods_image || item.cover || '/static/images/goods_null.png'
+				return resolveImage(item.image || item.goods_image || item.cover, 'goods')
 			},
 			getGoodsScore(item) {
 				return item.score || item.star || '5.0'
@@ -321,11 +330,57 @@
 
 		.search-top {
 			background: #bcd1f3;
-			padding-bottom: 16rpx;
+			padding-bottom: 20rpx;
 		}
 
 		.search-box {
-			padding: 0 24rpx 12rpx;
+			padding: 0 36rpx 14rpx;
+		}
+
+		.search-input-wrap {
+			display: flex;
+			align-items: center;
+			width: 100%;
+			height: 78rpx;
+			padding: 0 8rpx 0 30rpx;
+			box-sizing: border-box;
+			background: #ffffff;
+			border-radius: 42rpx;
+			box-shadow: 0 8rpx 20rpx rgba(69, 101, 154, 0.08);
+		}
+
+		.search-input {
+			flex: 1;
+			min-width: 0;
+			height: 78rpx;
+			color: #222222;
+			font-size: 28rpx;
+			font-weight: 500;
+		}
+
+		.search-input__placeholder {
+			color: #9aa4b5;
+			font-size: 28rpx;
+			font-weight: 400;
+		}
+
+		.search-submit {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 126rpx;
+			height: 62rpx;
+			margin-left: 16rpx;
+			border-radius: 34rpx;
+			background: #1688ff;
+			font-weight: 700;
+		}
+
+		.search-submit__text {
+			margin-right: 6rpx;
+			color: #ffffff;
+			font-size: 26rpx;
+			font-weight: 700;
 		}
 
 		.filter-bar {
@@ -405,6 +460,9 @@
 
 		.merchant-card__image {
 			flex: none;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			width: 192rpx;
 			height: 192rpx;
 			border-radius: 16rpx;

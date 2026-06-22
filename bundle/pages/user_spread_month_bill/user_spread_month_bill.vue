@@ -22,7 +22,6 @@
     </view>
     <loading-footer :status="loadingStatus" slotEmpty>            
         <view slot="empty" class="data-null column-center">
-            <image src="/static/images/order_null.png" class="img-null"></image>
             <view class="muted xs">暂无相关数据～</view>
         </view>
     </loading-footer>

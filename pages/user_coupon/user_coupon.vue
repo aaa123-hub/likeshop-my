@@ -1,6 +1,7 @@
 <template>
 <!-- pages/user_coupon/user_coupon.wxml -->
 <view class="user-coupon">
+    <navbar title="我的优惠券"></navbar>
     <tabs :active="active" sticky line-width="40" @change="onChange">
         <tab v-for="(item, index) in coupons" :key="index" :title="item.title + '(' + item.num + ')'">
             <my-coupons :type="item.type" @getnum="onChangeNum($event, index)"></my-coupons>

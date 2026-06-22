@@ -12,11 +12,13 @@ const IS_H5 = false
 /** E 是否H5端 **/
 
 /** S API BaseURL **/
+const API_ORIGIN = 'http://106.55.190.19'
+
 const baseURLMap = {
     // 开发环境
-    development: 'https://cy8bhf.mynatapp.cc',
+    development: API_ORIGIN,
     // 生产环境https://php-b2c.likeshop.cn
-    production: IS_H5 ? location.origin : 'https://cy8bhf.mynatapp.cc'
+    production: API_ORIGIN
 }
 
 const baseURL = SWITCH_DEVELOPMENT ? baseURLMap['development'] : baseURLMap[process.env.NODE_ENV]

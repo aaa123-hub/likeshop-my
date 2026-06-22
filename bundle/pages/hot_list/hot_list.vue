@@ -33,7 +33,6 @@
 				</loading-footer>
 			</view>
 			<view v-else class="column-center" style="padding-top: 400rpx">
-				<image class="img-null" src="/static/images/goods_null.png"></image>
 				<text class="lighter">暂无商品~</text>
 			</view>
 		</view>

@@ -1,11 +1,8 @@
 <template>
   <view class="shop-cart-page">
     <view class="shop-cart-page__screen">
-      <image class="shop-cart-page__status" :src="designAssets.myStatusBar" mode="aspectFit"></image>
-
       <view class="shop-cart-page__top">
         <view class="shop-cart-page__title">购物车({{ cartCountText }})</view>
-        <image class="shop-cart-page__menu" :src="designAssets.myMenuCapsule" mode="aspectFit"></image>
       </view>
 
       <view v-if="isLogin" class="shop-cart-page__content">
@@ -175,7 +172,11 @@ export default {
     }
   },
   onPullDownRefresh() {
-    this.getCartListFun();
+    if (this.isLogin) {
+      this.getCartListFun();
+      return;
+    }
+    uni.stopPullDownRefresh();
   },
   methods: {
     ...mapActions(["getCartNum"]),
@@ -285,7 +286,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 36rpx 28rpx 34rpx;
+  padding: calc(var(--status-bar-height) + 18rpx) 28rpx 28rpx;
 }
 
 .shop-cart-page__title {

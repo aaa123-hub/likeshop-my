@@ -1,11 +1,18 @@
 <template>
     <view class="sort-page">
         <view class="sort-header">
-            <navigator class="sort-search" hover-class="none" url="/pages/goods_search/goods_search">
-                <text class="sort-search__placeholder">请输入您想要的商品</text>
+            <view class="sort-search">
+                <input
+                    v-model="searchKeyword"
+                    class="sort-search__input"
+                    confirm-type="search"
+                    placeholder="请输入您想要的商品"
+                    placeholder-class="sort-search__placeholder"
+                    @confirm="onSortSearch"
+                />
                 <u-icon name="camera" size="38" color="#b8b8b8"></u-icon>
-                <view class="sort-search__btn">搜索</view>
-            </navigator>
+                <view class="sort-search__btn" @tap="onSortSearch">搜索</view>
+            </view>
         </view>
 
         <view class="sort-main">
@@ -20,14 +27,18 @@
                 </view>
             </scroll-view>
 
-            <scroll-view class="sort-content" scroll-y scroll-with-animation>
-                <view class="sort-content__inner">
+            <scroll-view
+                class="sort-content"
+                scroll-y
+                scroll-with-animation
+                refresher-enabled
+                :refresher-triggered="refreshing"
+                :scroll-into-view="contentAnchor"
+                @refresherrefresh="refreshCategoryList"
+            >
+                <view id="sort-content-top" class="sort-content__inner">
                     <view class="sort-topline">
-                        <view class="sort-topline__active">
-                            <view class="sort-topline__marker"></view>
-                            <text>为你推荐</text>
-                        </view>
-                        <text class="sort-topline__title">热卖类目</text>
+                        <text class="sort-topline__title">{{ currentCategory.name || '热卖类目' }}</text>
                     </view>
 
                     <view class="sort-grid">
@@ -38,13 +49,14 @@
                             hover-class="none"
                             :url="buildSearchUrl(item)"
                         >
-                            <image class="sort-grid__image" :src="item.image" mode="aspectFit"></image>
+                            <view v-if="isEmptyImage(item.image)" class="sort-grid__image image-placeholder">无</view>
+                            <image v-else class="sort-grid__image" :src="item.image" mode="aspectFit"></image>
                             <text class="sort-grid__name line1">{{ item.name }}</text>
                         </navigator>
                     </view>
 
-                    <view class="sort-section-title">猜你喜欢</view>
-                    <view class="sort-like-grid">
+                    <view v-if="likeGoods.length" class="sort-section-title">猜你喜欢</view>
+                    <view v-if="likeGoods.length" class="sort-like-grid">
                         <navigator
                             v-for="(item, index) in likeGoods"
                             :key="item.id || index"
@@ -52,7 +64,8 @@
                             hover-class="none"
                             :url="`/pages/goods_details/goods_details?id=${item.id || 1}`"
                         >
-                            <image class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
+                            <view v-if="isEmptyImage(item.image)" class="sort-like-card__image image-placeholder">无</view>
+                            <image v-else class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
                             <view class="sort-like-card__body">
                                 <text class="sort-like-card__name line2">{{ item.name }}</text>
                                 <view class="sort-like-card__footer">
@@ -74,6 +87,7 @@ import { getCatrgory } from '@/api/store'
 import Cache from '@/utils/cache'
 import { setTabbar } from '@/utils/tools'
 import { getDesignAsset, designAssetList } from '@/utils/design-assets'
+import { isPlaceholderImage } from '@/utils/image-placeholder'
 
 const defaultCategories = [
     '为你推荐',
@@ -104,6 +118,9 @@ export default {
     data() {
         return {
             activeIndex: 0,
+            contentAnchor: '',
+            searchKeyword: '',
+            refreshing: false,
             cateList: []
         }
     },
@@ -116,45 +133,26 @@ export default {
             return this.sideCategories[this.activeIndex] || {}
         },
         hotCategories() {
-            const sons = this.currentCategory.sons || []
+            const sons = this.currentCategory.sons || this.currentCategory.children || []
             const source = sons.length ? sons : fallbackHotCategories
             return source.slice(0, 9).map((item, index) => ({
-                id: item.id,
+                id: item.id || item.categoryId,
                 name: item.name || fallbackHotCategories[index % fallbackHotCategories.length].name,
                 image: this.resolveImage(item.image || item.pic || item.cover, index)
             }))
         },
         likeGoods() {
-            return [
-                {
-                    id: 1,
-                    name: '女裤纯棉舒适',
-                    price: '2300',
-                    sold: '1000',
-                    image: getDesignAsset('/static/lanhu/designs/27-search-list.png')
-                },
-                {
-                    id: 2,
-                    name: '女裤纯棉舒适',
-                    price: '2300',
-                    sold: '1000',
-                    image: getDesignAsset('/static/lanhu/designs/24-goods-detail.png')
-                },
-                {
-                    id: 3,
-                    name: '女裤纯棉舒适',
-                    price: '2300',
-                    sold: '1000',
-                    image: getDesignAsset('/static/lanhu/designs/27-search-list.png')
-                },
-                {
-                    id: 4,
-                    name: '女裤纯棉舒适',
-                    price: '2300',
-                    sold: '1000',
-                    image: getDesignAsset('/static/lanhu/designs/24-goods-detail.png')
-                }
-            ]
+            const goodsList = this.currentCategory.goodsList || this.currentCategory.products || []
+            if (goodsList.length) {
+                return goodsList.slice(0, 4).map((item, index) => ({
+                    id: item.id || item.spuId || item.productId || index + 1,
+                    name: item.name || item.spuName || item.productName || item.title || '推荐商品',
+                    price: item.price || item.salePrice || item.minPrice || 0,
+                    sold: item.salesCount || item.sales_sum || item.sold || 0,
+                    image: this.resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl, index)
+                }))
+            }
+            return []
         }
     },
     onLoad() {
@@ -162,6 +160,7 @@ export default {
         this.getCategoryList()
     },
     onShow() {
+        this.getCategoryList()
         this.getCartNum()
     },
     onShareAppMessage() {
@@ -175,25 +174,51 @@ export default {
     methods: {
         ...mapActions(['getCartNum']),
         async getCategoryList() {
-            const res = await getCatrgory()
-            if (res.code == 1) {
-                this.cateList = res.data || []
-                this.activeIndex = 0
+            try {
+                const res = await getCatrgory()
+                if (res.code == 1) {
+                    this.cateList = res.data || []
+                    this.activeIndex = 0
+                }
+            } catch (error) {
+                console.error('[sort-tab] getCategoryList failed:', error)
             }
         },
+        refreshCategoryList() {
+            if (this.refreshing) return Promise.resolve()
+            this.refreshing = true
+            return this.getCategoryList().finally(() => {
+                this.refreshing = false
+            })
+        },
         changeCategory(index) {
+            if (index === this.activeIndex) return
             this.activeIndex = index
+            this.contentAnchor = ''
+            this.$nextTick(() => {
+                this.contentAnchor = 'sort-content-top'
+            })
         },
         buildSearchUrl(item) {
             const id = item.id || ''
             const name = encodeURIComponent(item.name || '')
             return `/pages/goods_search/goods_search?id=${id}&name=${name}`
         },
+        onSortSearch() {
+            const keyword = (this.searchKeyword || '').trim()
+            if (!keyword) return
+            uni.navigateTo({
+                url: `/pages/goods_search/goods_search?keyword=${encodeURIComponent(keyword)}`
+            })
+        },
         resolveImage(image, index) {
             if (image) {
                 return getDesignAsset(image)
             }
-            return fallbackHotCategories[index % fallbackHotCategories.length].image
+            return ''
+        },
+        isEmptyImage(src) {
+            return isPlaceholderImage(src)
         }
     }
 }
@@ -210,7 +235,7 @@ export default {
 
 .sort-header {
     flex: none;
-    padding: calc(var(--status-bar-height) + 18rpx) 24rpx 18rpx;
+    padding: calc(var(--status-bar-height) + 24rpx) 24rpx 16rpx;
     background: #ffffff;
 }
 
@@ -225,9 +250,17 @@ export default {
 }
 
 .sort-search__placeholder {
-    flex: 1;
     color: #c4c4c4;
     font-size: 24rpx;
+}
+
+.sort-search__input {
+    flex: 1;
+    min-width: 0;
+    height: 60rpx;
+    color: #222222;
+    font-size: 24rpx;
+    line-height: 60rpx;
 }
 
 .sort-search__btn {
@@ -350,8 +383,20 @@ export default {
 }
 
 .sort-grid__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 132rpx;
     height: 132rpx;
+    border-radius: 14rpx;
+    background: #eef1f5;
+}
+
+.image-placeholder {
+    color: #9ca3af;
+    font-size: 24rpx;
+    line-height: 32rpx;
+    text-align: center;
 }
 
 .sort-grid__name {
@@ -378,8 +423,9 @@ export default {
 }
 
 .sort-like-card {
-    width: 313rpx;
+    width: 48.4%;
     margin-bottom: 18rpx;
+    box-sizing: border-box;
     overflow: hidden;
     border-radius: 22rpx;
     background: #ffffff;
@@ -387,21 +433,23 @@ export default {
 }
 
 .sort-like-card__image {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    height: 286rpx;
-    background: #f1f1f1;
+    height: 220rpx;
+    background: #eef1f5;
 }
 
 .sort-like-card__body {
-    padding: 16rpx 16rpx 18rpx;
+    padding: 14rpx 12rpx 16rpx;
 }
 
 .sort-like-card__name {
     color: #222222;
-    font-size: 28rpx;
+    font-size: 24rpx;
     font-weight: 500;
-    line-height: 38rpx;
+    line-height: 34rpx;
 }
 
 .sort-like-card__footer {
@@ -413,14 +461,17 @@ export default {
 
 .sort-like-card__price {
     color: #ff2d2d;
-    font-size: 34rpx;
+    font-size: 28rpx;
     font-weight: 700;
     line-height: 42rpx;
 }
 
 .sort-like-card__sold {
+    flex: none;
+    margin-left: 8rpx;
     color: #999999;
-    font-size: 22rpx;
+    font-size: 20rpx;
     line-height: 30rpx;
+    white-space: nowrap;
 }
 </style>

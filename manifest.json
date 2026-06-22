@@ -187,7 +187,7 @@
     },
     "h5" : {
         "title" : "加载中",
-        "domain" : "https://b2c.likeshop.cn/mobile/",
+        "domain" : "http://106.55.190.19/mobile/",
         "router" : {
             "base" : "/mobile/",
             "mode" : "history"
@@ -198,11 +198,11 @@
             "port" : 8080,
             "proxy" : {
                 "/api" : {
-                    "target" : "http://likeshop.yixiangonline.com",
+                    "target" : "http://106.55.190.19",
                     "changeOrigin" : true,
                     "secure" : false,
                     "pathRewrite" : {
-                        "^/api" : "/api/"
+                        "^/api" : "/api"
                     }
                 }
             }

@@ -9,7 +9,7 @@
         <view class="wallet-card">
             <view class="wallet-card__head">
                 <view>
-                    <view class="wallet-card__label">我的余额(HK$)</view>
+                    <view class="wallet-card__label">我的余额(HK$）</view>
                     <view class="wallet-card__amount">
                         <text>¥</text>{{ formatMoney(wallet.user_money) }}
                     </view>
@@ -32,56 +32,52 @@
         >
             礼品卡充值
         </navigator>
-        <view class="wallet-tabs">
-            <view
-                :class="['wallet-tab', activeTab === 0 ? 'wallet-tab--active' : '']"
-                @tap="activeTab = 0"
-            >
-                余额明细
-            </view>
-            <view
-                :class="['wallet-tab', activeTab === 1 ? 'wallet-tab--active' : '']"
-                @tap="activeTab = 1"
-            >
-                提现记录
-            </view>
-        </view>
-        <view class="wallet-panel">
-            <template v-if="activeRecords.length">
-                <navigator
-                    v-for="(item, index) in activeRecords"
-                    :key="index"
-                    class="wallet-record"
-                    hover-class="none"
-                    :url="item.url"
+        <view class="wallet-records-card">
+            <view class="wallet-tabs">
+                <view
+                    :class="['wallet-tab', activeTab === 0 ? 'wallet-tab--active' : '']"
+                    @tap="activeTab = 0"
                 >
-                    <view :class="['wallet-record__icon', item.iconClass]">
-                        <text class="wallet-record__icon-text">{{ item.iconText }}</text>
-                    </view>
-                    <view class="wallet-record__main">
-                        <view class="wallet-record__title">{{ item.title }}</view>
-                        <view class="wallet-record__time">{{ item.time }}</view>
-                    </view>
-                    <view class="wallet-record__side">
-                        <view :class="['wallet-record__amount', item.amountClass]">
-                            {{ item.amount }}
-                        </view>
-                        <view class="wallet-record__balance">余额：{{ item.balance }}</view>
-                    </view>
-                </navigator>
-            </template>
-            <template v-else>
-                <view class="empty-panel">
-                    <view class="empty-illustration">
-                        <view class="empty-cloud"></view>
-                        <view class="empty-card"></view>
-                        <view class="empty-search"></view>
-                        <view class="empty-leaf empty-leaf--left"></view>
-                        <view class="empty-leaf empty-leaf--right"></view>
-                    </view>
-                    <view class="empty-text">暂无数据</view>
+                    余额明细
                 </view>
-            </template>
+                <view
+                    :class="['wallet-tab', activeTab === 1 ? 'wallet-tab--active' : '']"
+                    @tap="activeTab = 1"
+                >
+                    提现记录
+                </view>
+            </view>
+            <view :class="['wallet-panel', activeTab === 1 ? 'wallet-panel--withdraw' : '']">
+                <template v-if="activeRecords.length">
+                    <navigator
+                        v-for="(item, index) in activeRecords"
+                        :key="index"
+                        class="wallet-record"
+                        hover-class="none"
+                        :url="item.url"
+                    >
+                        <image class="wallet-record__icon" :src="item.icon" mode="aspectFit"></image>
+                        <view class="wallet-record__main">
+                            <view class="wallet-record__title">{{ item.title }}</view>
+                            <view class="wallet-record__time">{{ item.time }}</view>
+                        </view>
+                        <view class="wallet-record__side">
+                            <view :class="['wallet-record__amount', item.amountClass]">
+                                {{ item.amount }}
+                            </view>
+                            <view class="wallet-record__balance">余额：{{ item.balance }}</view>
+                        </view>
+                    </navigator>
+                </template>
+                <template v-else>
+                    <view class="empty-panel">
+                        <view class="empty-illustration">
+                            <image style="width: 100%;height: 100%;" :src="user_wallet"></image>
+                        </view>
+                        <view class="empty-text">暂无数据</view>
+                    </view>
+                </template>
+            </view>
         </view>
     </view>
 </view>
@@ -106,12 +102,20 @@
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
 import { getWallet, getAccountLog, getWithdrawRecords } from '@/api/user';
-import { getDesignAsset } from '@/utils/design-assets';
 export default {
   data() {
     return {
-      wallet: {},
-      walletIconUrl: getDesignAsset('/static/lanhu/assets/home/home2_balance_bill@2x.png'),
+      wallet: {
+        user_money: 0,
+        open_racharge: 1
+      },
+      walletIconUrl: '/static/lanhu/assets/home/wallet_balance_icon.png',
+      user_wallet: '/static/lanhu/assets/home/user_wallet.png',
+      recordIcons: {
+        billIncome: 'https://lanhu-oss-proxy.lanhuapp.com/1eb0627a5caca505c66f5d2494ec65f3',
+        billExpense: 'https://lanhu-oss-proxy.lanhuapp.com/f712888273ee1a4831a3478ccbf43931',
+        withdraw: 'https://lanhu-oss-proxy.lanhuapp.com/d0d334412f0bfc4ea6a16aa55bd61e62'
+      },
       activeTab: 0,
       billList: [],
       withdrawList: []
@@ -149,20 +153,18 @@ export default {
         amount: this.normalizeAmount(item.change_amount, isIncome),
         amountClass: isIncome ? 'is-plus' : 'is-minus',
         balance: this.normalizeBalance(item.left_amount || item.left_money || item.balance || 0),
-        iconClass: isIncome ? 'wallet-record__icon--income' : 'wallet-record__icon--expense',
-        iconText: isIncome ? '+' : '-',
+        icon: isIncome ? this.recordIcons.billIncome : this.recordIcons.billExpense,
         url: '/bundle/pages/user_bill/user_bill?type=0'
       }
     },
     normalizeWithdrawRecord(item) {
       return {
-        title: item.desc || item.status_desc || '提现',
+        title: item.desc || item.status_desc || item.type_desc || item.source_type || '提现',
         time: item.create_time || '--',
-        amount: this.normalizeAmount(item.money || item.left_money || item.amount, false),
+        amount: this.normalizeAmount(item.money || item.change_amount || item.amount, false),
         amountClass: 'is-minus',
-        balance: this.normalizeBalance(item.left_money || item.balance || 0),
-        iconClass: 'wallet-record__icon--withdraw',
-        iconText: '↥',
+        balance: this.normalizeBalance(item.left_amount || item.left_money || item.balance || 0),
+        icon: this.recordIcons.withdraw,
         url: `/bundle/pages/widthdraw_result/widthdraw_result?id=${item.id}&type=1`
       }
     },
@@ -170,14 +172,12 @@ export default {
     getWalletFun() {
       getWallet().then(res => {
         if (res.code == 1) {
-          this.wallet = res.data
+          this.wallet = Object.assign({}, this.wallet, res.data)
         }
       });
     },
     getBillListFun() {
       getAccountLog({
-        source: 1,
-        type: 0,
         page_no: 1
       }).then((res) => {
         if (res.code == 1) {
@@ -187,6 +187,7 @@ export default {
     },
     getWithdrawListFun() {
       getWithdrawRecords({
+        bizType: 'WITHDRAW',
         page_no: 1
       }).then((res) => {
         if (res.code == 1) {
@@ -196,7 +197,10 @@ export default {
     }
 
   },
-  onLoad() {
+  onLoad(options) {
+    if (options && (options.tab === 'withdraw' || options.mode === 'withdraw')) {
+      this.activeTab = 1
+    }
     this.getBillListFun()
     this.getWithdrawListFun()
   },
@@ -205,10 +209,16 @@ export default {
       return this.activeTab === 0 ? this.billRecords : this.withdrawRecords
     },
     billRecords() {
-      return this.billList.map((item) => this.normalizeBillRecord(item))
+      if (this.billList.length) {
+        return this.billList.map((item) => this.normalizeBillRecord(item))
+      }
+      return []
     },
     withdrawRecords() {
-      return this.withdrawList.map((item) => this.normalizeWithdrawRecord(item))
+      if (this.withdrawList.length) {
+        return this.withdrawList.map((item) => this.normalizeWithdrawRecord(item))
+      }
+      return []
     }
   }
 };
@@ -216,77 +226,81 @@ export default {
 <style lang="scss">
 .user-wallet {
     min-height: 100vh;
-    background: #f7f8fa;
+    background: #f5f7fb;
 }
 
 .wallet-page {
-    padding: 16rpx 26rpx 0;
+    min-height: calc(100vh - 88rpx);
+    padding: 18rpx 24rpx 0;
 }
 
 .wallet-card {
     position: relative;
     overflow: hidden;
-    min-height: 288rpx;
-    border-radius: 12rpx;
-    background: linear-gradient(100deg, #0b84ff 0%, #176ff4 52%, #5a8af2 100%);
+    height: 298rpx;
+    border-radius: 18rpx;
+    background: linear-gradient(108deg, #0187ff 0%, #037dfa 52%, #2f75ff 100%);
     color: #ffffff;
+    box-shadow: 0 14rpx 34rpx rgba(3, 125, 250, 0.18);
 }
 
 .wallet-card__head {
     display: flex;
     justify-content: space-between;
-    padding: 40rpx 26rpx 30rpx;
+    padding: 29rpx 32rpx 0 26rpx;
 }
 
 .wallet-card__label {
-    font-size: 28rpx;
-    line-height: 40rpx;
+    font-size: 27rpx;
+    line-height: 32rpx;
+    white-space: nowrap;
 }
 
 .wallet-card__amount {
-    margin-top: 22rpx;
-    font-size: 46rpx;
+    margin-top: 34rpx;
+    font-size: 49rpx;
     font-weight: 600;
-    line-height: 56rpx;
+    line-height: 52rpx;
 
     text {
         margin-right: 2rpx;
-        font-size: 32rpx;
+        font-size: 31rpx;
     }
 }
 
 .wallet-card__image {
-    width: 180rpx;
-    height: 142rpx;
-    margin-top: -10rpx;
-    margin-right: -6rpx;
-    opacity: 0.78;
+    flex: none;
+    width: 138rpx;
+    height: 133rpx;
+    margin-top: 0;
+    opacity: 1;
 }
 
 .wallet-card__foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 0 26rpx;
-    padding: 28rpx 0 30rpx;
+    margin: 30rpx 16rpx 0;
+    padding: 31rpx 27rpx 0 11rpx;
     border-top: 1rpx solid rgba(255, 255, 255, 0.28);
 }
 
 .wallet-card__desc {
     display: flex;
     align-items: center;
-    font-size: 28rpx;
-    line-height: 40rpx;
+    color: #d5e0e6;
+    font-size: 24rpx;
+    line-height: 30rpx;
 }
 
 .wallet-card__question {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28rpx;
-    height: 28rpx;
+    width: 30rpx;
+    height: 30rpx;
     margin-left: 10rpx;
-    border: 3rpx solid rgba(255, 255, 255, 0.92);
+    border: 2rpx solid rgba(255, 255, 255, 0.92);
     border-radius: 50%;
     color: #ffffff;
     font-size: 22rpx;
@@ -295,8 +309,9 @@ export default {
 }
 
 .wallet-card__value {
-    font-size: 28rpx;
+    font-size: 31rpx;
     font-weight: 600;
+    line-height: 34rpx;
 }
 
 .wallet-btn {
@@ -304,22 +319,32 @@ export default {
     align-items: center;
     justify-content: center;
     width: 510rpx;
-    height: 80rpx;
-    margin: 24rpx auto 44rpx;
+    height: 81rpx;
+    margin: 16rpx auto 45rpx;
     color: #ffffff;
     font-size: 32rpx;
     font-weight: 600;
     background: #0785ff;
-    border-radius: 42rpx;
+    border-radius: 40rpx;
+}
+
+.wallet-records-card {
+    overflow: hidden;
+    min-height: calc(100vh - 611rpx);
+    background: #ffffff;
+    border-radius: 18rpx 18rpx 0 0;
 }
 
 .wallet-tabs {
     position: relative;
     display: flex;
     overflow: hidden;
-    height: 70rpx;
-    border-radius: 10rpx 10rpx 0 0;
-    background: #e5e8ec;
+    width: 100%;
+    height: 78rpx;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(180deg, #eef1f4 0%, #e3e7eb 100%);
+    border-radius: 18rpx 18rpx 0 0;
 }
 
 .wallet-tab {
@@ -329,45 +354,49 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 70rpx;
-    font-size: 28rpx;
+    min-width: 0;
+    height: 78rpx;
+    font-size: 32rpx;
     font-weight: 600;
     color: #222222;
+    white-space: nowrap;
 }
 
 .wallet-tab--active {
     background: #ffffff;
-    border-radius: 10rpx 30rpx 0 0;
 
     &::after {
         content: '';
         position: absolute;
         left: 50%;
-        bottom: 0;
-        width: 36rpx;
-        height: 6rpx;
-        background: #2f73ff;
-        border-radius: 4rpx;
+        bottom: 8rpx;
+        width: 35rpx;
+        height: 7rpx;
+        background: #2a7aff;
+        border-radius: 6rpx;
         transform: translateX(-50%);
     }
 }
 
+.wallet-tab:first-child.wallet-tab--active {
+    border-radius: 18rpx 34rpx 0 0;
+}
+
 .wallet-tab:nth-child(2).wallet-tab--active {
-    border-radius: 30rpx 10rpx 0 0;
+    border-radius: 34rpx 18rpx 0 0;
 }
 
 .wallet-panel {
-    min-height: 910rpx;
-    padding: 8rpx 24rpx 24rpx;
+    min-height: calc(100vh - 692rpx);
+    padding: 18rpx 16rpx 24rpx;
     background: #ffffff;
-    border-radius: 0 12rpx 0 0;
 }
 
 .wallet-record {
     display: flex;
     align-items: center;
-    min-height: 104rpx;
-    padding: 20rpx 0;
+    min-height: 117rpx;
+    padding: 10rpx 0;
 
     & + .wallet-record {
         border-top: 1rpx solid #f0f1f4;
@@ -375,73 +404,47 @@ export default {
 }
 
 .wallet-record__icon {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     flex: none;
-    width: 54rpx;
-    height: 54rpx;
-    border-radius: 50%;
-    box-shadow: 0 10rpx 24rpx rgba(57, 115, 255, 0.12);
-}
-
-.wallet-record__icon-text {
-    font-size: 28rpx;
-    font-weight: 600;
-    line-height: 1;
-}
-
-.wallet-record__icon--income {
-    background: linear-gradient(180deg, #eff5ff 0%, #dfeaff 100%);
-    color: #4d7eff;
-}
-
-.wallet-record__icon--expense {
-    background: linear-gradient(180deg, #f7ecff 0%, #efe1ff 100%);
-    color: #8d4ff8;
-}
-
-.wallet-record__icon--withdraw {
-    background: linear-gradient(180deg, #edf4ff 0%, #deebff 100%);
-    color: #4f7eff;
+    width: 117rpx;
+    height: 117rpx;
 }
 
 .wallet-record__main {
     flex: 1;
     min-width: 0;
-    padding: 0 18rpx 0 18rpx;
+    padding: 0 18rpx 0 6rpx;
 }
 
 .wallet-record__title {
-    font-size: 28rpx;
+    font-size: 30rpx;
     font-weight: 600;
     color: #222222;
     line-height: 38rpx;
 }
 
 .wallet-record__time {
-    margin-top: 4rpx;
-    font-size: 18rpx;
+    margin-top: 18rpx;
+    font-size: 20rpx;
     color: #999999;
     line-height: 28rpx;
 }
 
 .wallet-record__side {
     flex: none;
+    width: 150rpx;
     text-align: right;
 }
 
 .wallet-record__amount {
-    font-size: 24rpx;
+    font-size: 30rpx;
     font-weight: 600;
     color: #222222;
     line-height: 34rpx;
 }
 
 .wallet-record__balance {
-    margin-top: 4rpx;
-    font-size: 18rpx;
+    margin-top: 16rpx;
+    font-size: 24rpx;
     color: #999999;
     line-height: 28rpx;
 }

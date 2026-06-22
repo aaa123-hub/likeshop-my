@@ -1,5 +1,6 @@
 <template>
 <view>
+<navbar title="签到"></navbar>
 <!-- pages/user_sgin/user_sgin.wxml -->
 <view class="user-sgin">
     <view class="header">

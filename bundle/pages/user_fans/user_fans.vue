@@ -66,7 +66,6 @@
             </view>
             <loading-footer :status="loadingStatus" slotEmpty>                    
                 <view class="data-null column-center" slot="empty">
-                    <image class="img-null" src="/static/images/order_null.png"></image>
                     <text>暂无相关数据...</text>
                 </view>
             </loading-footer>

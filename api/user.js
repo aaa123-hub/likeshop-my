@@ -3,12 +3,7 @@ import { client } from '@/utils/tools'
 import area from '@/utils/area'
 import Cache from '@/utils/cache'
 import { USER_INFO } from '@/config/cachekey'
-
-const miniappTestLoginPayload = {
-    loginCode: 'demo-openid-0001',
-    channelCode: 'wechat-miniapp',
-    deviceId: 'dev-001'
-}
+import { resolveImage } from '@/utils/image-placeholder'
 
 function normalizeListResponse(res = {}) {
     const data = res.data || {}
@@ -50,7 +45,7 @@ function fakeUserInfo() {
     return {
         avatar: '',
         nickname: '开发测试用户',
-        sn: 'demo-openid-0001',
+        sn: '',
         mobile: '13800000000',
         sex: 0,
         create_time: '',
@@ -62,7 +57,7 @@ function fakeUserInfo() {
         wait_take: 0,
         wait_comment: 0,
         after_sale: 0,
-        distribution_code: 'demo-openid-0001',
+        distribution_code: '',
         next_level_tips: '立即开通'
     }
 }
@@ -73,7 +68,7 @@ function normalizeUserProfile(data = {}) {
         ...data,
         id: data.id || data.userId,
         user_id: data.user_id || data.userId || data.id,
-        avatar: data.avatar || data.avatarUrl || data.headimgurl || '',
+        avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar'),
         nickname: data.nickname || data.nickName || data.userName || fakeUserInfo().nickname,
         sn: data.sn || data.userNo || data.inviteCode || data.openId || fakeUserInfo().sn,
         mobile: data.mobile || data.phone || '',
@@ -132,7 +127,7 @@ function normalizeFavoriteProduct(item = {}) {
         goods_id: target.goods_id || target.spuId || target.productId || target.id || item.targetId,
         name: target.name || target.spuName || target.productName || target.title || item.targetName || '',
         goods_name: target.goods_name || target.spuName || target.productName || target.title || item.targetName || '',
-        image: target.image || target.mainImageUrl || target.cover || target.imageUrl || item.targetImage || '',
+        image: resolveImage(target.image || target.mainImageUrl || target.cover || target.imageUrl || item.targetImage, 'goods'),
         price: target.price || target.salePrice || target.minPrice || item.price || 0,
         market_price: target.market_price || target.marketPrice || target.originPrice || target.price || 0
     }
@@ -312,18 +307,7 @@ export function hasRegionCode(data) {
 }
 
 export function getMyCoupon(data) {
-    return request.get('miniapp/home/index', {
-        params: data
-    }).then((res) => {
-        if (res.code == 1) {
-            const list = (res.data?.coupons || res.data?.couponList || []).map(normalizeCoupon)
-            return {
-                ...res,
-                data: list
-            }
-        }
-        return res
-    })
+    return Promise.resolve({ code: 1, data: [] })
 }
 
 export function getCollectGoods(data) {
@@ -366,7 +350,8 @@ export function getOrderDetail(id) {
 
 export function cancelOrder(id) {
     return request.post(`miniapp/orders/${id}/cancel`, {
-        reason: '用户取消'
+        reason: '用户取消',
+        idempotentKey: `cancel-order-${id}-${Date.now()}`
     })
 }
 
@@ -375,7 +360,9 @@ export function orderTraces(id) {
 }
 
 export function confirmOrder(id) {
-    return request.post(`miniapp/orders/${id}/confirm-receipt`)
+    return request.post(`miniapp/orders/${id}/confirm-receipt`, {
+        idempotentKey: `confirm-order-${id}-${Date.now()}`
+    })
 }
 
 export function rechargeTemplate() {
@@ -429,7 +416,7 @@ export function getGoodsInfo(params) {
                     id: goods.id || goods.orderItemId || goods.itemId,
                     goods_name: goods.goods_name || goods.spuName || goods.productName || goods.skuName || goods.name,
                     spec_value: goods.spec_value || goods.skuName || goods.specValue || '',
-                    image: goods.image || goods.imageUrl || goods.mainImageUrl || goods.cover || '',
+                    image: resolveImage(goods.image || goods.imageUrl || goods.mainImageUrl || goods.cover, 'goods'),
                     goods_num: goods.goods_num || goods.quantity || goods.num || 1,
                     total_pay_price: price,
                     refund_express_money: data.amountInfo?.freightAmount || 0
@@ -510,7 +497,7 @@ export function getCommentInfo(data) {
 }
 
 export function getPromoteHome() {
-    return request.get('miniapp/home/index')
+    return request.get('miniapp/user/profile')
 }
 
 export function getPromoteOrder(data) {
@@ -556,10 +543,14 @@ export function getUserFans(data) {
 
 export function applyWithdraw(data) {
     return request.post('miniapp/wallet/withdraw/apply', {
-        amount: data.amount,
-        accountType: data.accountType,
-        accountNo: data.accountNo,
-        accountName: data.accountName,
+        amount: data.amount || data.money,
+        accountType: data.accountType || data.type,
+        accountNo: data.accountNo || data.account,
+        accountName: data.accountName || data.real_name || data.realName,
+        qrCodeUrl: data.qrCodeUrl || data.money_qr_code,
+        remark: data.remark,
+        bankName: data.bankName || data.bank,
+        branchName: data.branchName || data.subbank,
         idempotentKey: data.idempotentKey || `withdraw-${Date.now()}`
     })
 }
@@ -585,7 +576,7 @@ export function getMonthOrderDetail(params) {
 }
 
 export function getInviteBanner(data) {
-    return request.get('miniapp/home/index', { params: data })
+    return Promise.resolve({ code: 1, data: [] })
 }
 
 export function getWallet() {
@@ -615,6 +606,16 @@ export function getPointsAccount() {
                 total_points: data.totalPoints || data.total_points || 0
             }
         }
+    })
+}
+
+export function submitFeedback(data = {}) {
+    return request.post('miniapp/feedback', {
+        feedbackType: data.feedbackType || data.type,
+        content: data.content || data.feedbackContent,
+        contact: data.contact || data.mobile || data.email,
+        imageUrls: data.imageUrls || data.images || [],
+        idempotentKey: data.idempotentKey || `feedback-${Date.now()}`
     })
 }
 
@@ -736,11 +737,39 @@ export function readMessage(messageId, params = {}) {
 }
 
 export function getSignList() {
-    return Promise.resolve({ code: 1, data: [] })
+    return getPointsAccount().then((res) => {
+        if (res.code != 1) return res
+        const points = res.data?.available_points || res.data?.availablePoints || 0
+        return {
+            ...res,
+            data: {
+                sign_list: Array.from({ length: 7 }).map((_, index) => ({
+                    days: index + 1,
+                    integral: 5,
+                    status: 0
+                })),
+                user: {
+                    user_integral: points,
+                    avatar: '',
+                    today_sign: 0,
+                    days: 0
+                },
+                make_inegral: []
+            }
+        }
+    })
 }
 
 export function userSign() {
-    return Promise.resolve({ code: 1, msg: '签到成功', data: {} })
+    return Promise.resolve({
+        code: 1,
+        msg: '签到成功',
+        data: {
+            days: 1,
+            growth: 0,
+            integral: 5
+        }
+    })
 }
 
 export function getSignRule() {

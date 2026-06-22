@@ -23,8 +23,8 @@
                         <image :src="designAssets.myAvatarDefault" mode="aspectFill"></image>
                     </view>
                     <view class="company-login__user-info">
-                        <view class="company-login__user-name">开发测试用户</view>
-                        <view class="company-login__user-code">demo-openid-0001</view>
+                        <view class="company-login__user-name">微信用户</view>
+                        <view class="company-login__user-code">使用微信授权登录</view>
                     </view>
                 </view>
 
@@ -59,6 +59,7 @@
                     :class="{ 'is-loading': loginLoading }"
                     hover-class="company-login__button--hover"
                     :loading="loginLoading"
+                    @click="mnpLoginFun"
                     @tap="mnpLoginFun"
                 >
                     一键登录
@@ -103,15 +104,10 @@ import { mapMutations, mapGetters } from 'vuex'
 import { authLogin } from '@/api/app'
 import { inputInviteCode } from '@/api/user'
 import { currentPage } from '@/utils/tools'
+import { getWxCode } from '@/utils/login'
 import Cache from '@/utils/cache'
 import { BACK_URL } from '@/config/cachekey'
 import { designAssets } from '@/utils/design-assets'
-
-const testLoginPayload = {
-    loginCode: 'demo-openid-0001',
-    channelCode: 'wechat-miniapp',
-    deviceId: 'dev-001'
-}
 
 export default {
     data() {
@@ -158,7 +154,8 @@ export default {
             })
 
             try {
-                const { code, data, msg } = await authLogin(testLoginPayload)
+                const loginPayload = await this.buildLoginPayload()
+                const { code, data, msg } = await authLogin(loginPayload)
                 if (code == 1 && data && data.token) {
                     await this.loginHandle(data)
                 } else {
@@ -168,12 +165,38 @@ export default {
                 }
             } catch (error) {
                 this.$toast({
-                    title: '登录失败，请检查接口服务'
+                    title: error && error.message === 'wx.login timeout'
+                        ? '微信登录凭证获取失败，请重试'
+                        : '登录失败，请检查接口服务'
                 })
             } finally {
                 this.loginLoading = false
                 uni.hideLoading()
             }
+        },
+        async buildLoginPayload() {
+            // #ifdef MP-WEIXIN
+            const loginCode = await this.getLoginCodeWithTimeout()
+            return {
+                loginCode,
+                channelCode: 'wechat-miniapp'
+            }
+            // #endif
+
+            // #ifndef MP-WEIXIN
+            return {
+                loginCode: `h5-dev-${Date.now()}`,
+                channelCode: 'wechat-miniapp'
+            }
+            // #endif
+        },
+        getLoginCodeWithTimeout() {
+            return Promise.race([
+                getWxCode(),
+                new Promise((resolve, reject) => {
+                    setTimeout(() => reject(new Error('wx.login timeout')), 5000)
+                })
+            ])
         },
         async loginHandle(data) {
             this.LOGIN(data)

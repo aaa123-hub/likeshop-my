@@ -34,7 +34,6 @@
         </view>
         <loading-footer :status="loadingStatus" slotEmpty>
             <view class="data-null column-center" slot="empty">
-                <image class="img-null" src="/static/images/goods_null.png"></image>
                 <view class="muted nr">暂无商品～</view>
             </view>
         </loading-footer>

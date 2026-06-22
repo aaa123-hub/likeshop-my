@@ -25,7 +25,6 @@
 				</view>
 			</view>
 			<view v-if="coupons.length == 0" class="column-center" style="padding-top: 50rpx">
-				<image class="img-null" src="/static/images/coupon_null.png"></image>
 				<text class="muted">暂无优惠券～</text>
 			</view>
 		</scroll-view>

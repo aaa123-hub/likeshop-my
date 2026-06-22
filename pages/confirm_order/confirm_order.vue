@@ -11,214 +11,233 @@ likeshop系列产品收费版本务必购买商业授权，购买去版权授权
 likeshop.cn.team // +----------------------------------------------------------------------
 
 <template>
-    <view>
+    <view class="confirm-order-page">
         <view class="confirm-order">
-            <view class="confirm-con">
-                <!-- 收货方式 -->
-                <view class="contain">
-                    <u-tabs
-                        :list="addressTabsList"
-                        :is-scroll="addressTabsList.length === 1"
-                        :current="addressTabsIndex"
-                        :active-color="primaryColor"
-                        bar-width="100"
-                        :bar-style="{ top: '100%' }"
-                        @change="changeDelivery"
-                    />
-                    <!-- 快递配送 -->
-                    <view
-                        v-show="addressTabsList[addressTabsIndex]['sign'] === 'express'"
-                        class="receiving-card"
-                        @click="onAddressExpress"
-                    >
-                        <u-image
-                            class="icon-md mr20"
-                            width="44"
-                            height="44"
-                            src="/static/images/icon_address.png"
-                            mode="scaleToFill"
-                        />
-                        <view class="receiving-content">
-                            <template v-if="address.id">
-                                <view class="md black bold">
-                                    <text>{{ address.contact }}</text>
-                                    <text class="ml10">{{ address.telephone }}</text>
-                                </view>
-                                <view class="xs black mt10">{{
-                                    address.province +
-                                    address.city +
-                                    address.district +
-                                    address.address
-                                }}</view>
-                            </template>
-                            <template v-else>
-                                <view>请选择收货地址</view>
-                            </template>
-                        </view>
-                        <u-icon name="arrow-right" />
-                    </view>
-                    <!-- 门店自提 -->
-                    <view
-                        v-show="addressTabsList[addressTabsIndex]['sign'] === 'store'"
-                        class="receiving-card"
-                        @click="onAddressStore"
-                    >
-                        <u-image
-                            class="icon-md mr20"
-                            width="44"
-                            height="44"
-                            src="/static/images/icon_address.png"
-                            mode="scaleToFill"
-                        />
-                        <view class="receiving-content">
-                            <template v-if="storeInfo.id">
-                                <text class="md black bold">{{ storeInfo.name }}</text>
-                                <text class="xs black mt10">{{ storeInfo.shop_address }}</text>
-                                <text class="xs muted mt10">
-                                    <text>营业时间：</text>
-                                    <text
-                                        >{{ storeInfo.business_start_time }} -
-                                        {{ storeInfo.business_end_time }}</text
-                                    >
-                                </text>
-                            </template>
-                            <template v-else>
-                                <view>请选择门店地址</view>
-                            </template>
-                        </view>
-                        <u-icon name="arrow-right" />
-                    </view>
+            <view class="page-head">
+                <view class="nav-row">
+                    <view class="back-icon" @tap="goBack"></view>
+                    <text class="nav-title">待付款</text>
                 </view>
-
-                <!-- 门店自提表单 -->
-                <view
-                    v-show="addressTabsList[addressTabsIndex]['sign'] === 'store'"
-                    class="contain store-from"
-                >
-                    <view class="store-from-item">
-                        <text>提货人</text>
-                        <u-input
-                            v-model="userConsignee"
-                            class="flex1"
-                            type="text"
-                            input-align="right"
-                            :clearable="false"
-                            placeholder="请输入提货人"
-                        />
-                    </view>
-                    <view class="store-from-item">
-                        <text>联系方式</text>
-                        <u-input
-                            v-model="userMobile"
-                            class="flex1"
-                            type="text"
-                            input-align="right"
-                            :clearable="false"
-                            placeholder="请输入联系方式"
-                        />
-                    </view>
-                </view>
-
-                <view class="goods contain">
-                    <order-goods
-                        :team="{ need: orderInfo.team_need }"
-                        :list="goodsLists"
-                        :delivery="delivery"
-                        :order_type="orderInfo.order_type"
-                        mode="comfirm"
-                    ></order-goods>
-                    <!-- <view class="item row-between">
-						<view>配送方式</view>
-						<view>快递</view>
-					</view> -->
-                    <view class="item row-between">
-                        <view>买家留言</view>
-                        <u-input
-                            v-model="userRemark"
-                            class="flex1 ml20"
-                            :clearable="false"
-                            placeholder="请添加备注（150字以内）"
-                        ></u-input>
-                    </view>
-                </view>
-                <view class="contain benefit" v-if="orderInfo.order_type == 0">
-                    <view class="item row-between" @tap="showCoupon = true">
-                        <view>优惠券</view>
-                        <view class="row">
-                            <text class="primary" v-if="orderInfo.discount_amount"
-                                >-￥{{ orderInfo.discount_amount }}</text
-                            >
-                            <text v-else-if="usableCoupon.length" class="primary">{{
-                                usableCoupon.length + '张可用'
-                            }}</text>
-                            <text v-else class="muted">无优惠券可用</text>
-                            <image
-                                class="icon-sm ml20"
-                                src="/static/images/arrow_right.png"
-                            ></image>
-                        </view>
-                    </view>
-                    <view class="item row" @tap="changeIntegral" v-if="orderInfo.integral_switch">
-                        <view>积分抵扣</view>
-                        <view class="ml20 muted xs row" style="flex: 1">
-                            共{{ orderInfo.user_integral }}积分{{
-                                orderInfo.user_integral < orderInfo.integral_limit
-                                    ? '，满' + orderInfo.integral_limit + '可用'
-                                    : ''
-                            }}
-                            <view style="margin-top: 10rpx" @tap.stop="dialogIntegralDesc">
-                                <u-icon
-                                    class="ml10"
-                                    color="#999"
-                                    size="30"
-                                    name="question-circle"
-                                ></u-icon>
-                            </view>
-                        </view>
-                        <checkbox
-                            :disabled="
-                                orderInfo.user_integral < orderInfo.integral_limit ||
-                                orderInfo.integral_config == 0
-                            "
-                            :checked="Boolean(useIntegral)"
-                        >
-                        </checkbox>
-                    </view>
-                </view>
-
-                <view class="price contain">
-                    <view class="item row-between">
-                        <view>商品金额</view>
-                        <view>¥{{ orderInfo.total_goods_price }}</view>
-                    </view>
-                    <view class="item row-between">
-                        <view>运费</view>
-                        <view>¥{{ orderInfo.shipping_price }}</view>
-                    </view>
-                    <view class="item row-between" v-if="orderInfo.discount_amount">
-                        <view>优惠券</view>
-                        <view class="primary">-¥{{ orderInfo.discount_amount }}</view>
-                    </view>
-                    <view class="item row-between" v-if="orderInfo.integral_amount">
-                        <view>积分抵扣</view>
-                        <view class="primary">-¥{{ orderInfo.integral_amount }}</view>
-                    </view>
+                <view class="tips-row">
+                    <image
+                        class="tips-icon"
+                        src="https://lanhu-oss-proxy.lanhuapp.com/ff33c2922125b8c5475cc7e97121c885"
+                        mode="scaleToFill"
+                    ></image>
+                    <text class="tips-text">温馨提示：请确认订单信息、收货地址和支付方式后再完成付款</text>
                 </view>
             </view>
-            <view class="footer bg-white row-between fixed">
-                <view class="all-price lg row">
-                    <text>合计：</text>
-                    <view class="primary">
+
+            <scroll-view class="confirm-con" scroll-y>
+                <view class="order-card main-card">
+                    <view v-if="addressTabsList.length > 1" class="delivery-tabs">
+                        <view
+                            v-for="(item, index) in addressTabsList"
+                            :key="item.id"
+                            class="delivery-tab"
+                            :class="{ active: addressTabsIndex === index }"
+                            @tap="changeDelivery(index)"
+                        >
+                            {{ item.name }}
+                        </view>
+                    </view>
+
+                    <view
+                        v-show="addressTabsList[addressTabsIndex]['sign'] === 'express'"
+                        class="address-row"
+                        @tap="onAddressExpress"
+                    >
+                        <image class="address-icon" src="/static/images/icon_address.png" mode="scaleToFill"></image>
+                        <view class="address-content">
+                            <template v-if="address.id">
+                                <view class="address-person">
+                                    <text>{{ address.contact }}</text>
+                                    <text class="phone">{{ address.telephone }}</text>
+                                </view>
+                                <view class="address-detail">
+                                    {{ address.province + address.city + address.district + address.address }}
+                                </view>
+                            </template>
+                            <template v-else>
+                                <view class="address-empty">下单前请填写收货地址</view>
+                            </template>
+                        </view>
+                        <image class="arrow-icon" src="/static/images/arrow_right.png" mode="scaleToFill"></image>
+                    </view>
+
+                    <view
+                        v-show="addressTabsList[addressTabsIndex]['sign'] === 'store'"
+                        class="address-row"
+                        @tap="onAddressStore"
+                    >
+                        <image class="address-icon" src="/static/images/icon_address.png" mode="scaleToFill"></image>
+                        <view class="address-content">
+                            <template v-if="storeInfo.id">
+                                <view class="address-person">{{ storeInfo.name }}</view>
+                                <view class="address-detail">{{ storeInfo.shop_address }}</view>
+                            </template>
+                            <template v-else>
+                                <view class="address-empty">请选择门店地址</view>
+                            </template>
+                        </view>
+                        <image class="arrow-icon" src="/static/images/arrow_right.png" mode="scaleToFill"></image>
+                    </view>
+
+                    <view v-show="addressTabsList[addressTabsIndex]['sign'] === 'store'" class="store-form">
+                        <view class="store-field">
+                            <text>提货人</text>
+                            <u-input
+                                v-model="userConsignee"
+                                class="field-input"
+                                type="text"
+                                input-align="right"
+                                :clearable="false"
+                                placeholder="请输入提货人"
+                            />
+                        </view>
+                        <view class="store-field">
+                            <text>联系方式</text>
+                            <u-input
+                                v-model="userMobile"
+                                class="field-input"
+                                type="text"
+                                input-align="right"
+                                :clearable="false"
+                                placeholder="请输入联系方式"
+                            />
+                        </view>
+                    </view>
+
+                    <view class="divider"></view>
+                    <view class="shop-row">
+                        <view class="shop-logo"></view>
+                        <text class="shop-name">{{ shopName }}</text>
+                    </view>
+                    <view class="divider"></view>
+
+                    <view v-for="(item, index) in goodsLists" :key="index" class="goods-row">
+                        <custom-image
+                            class="goods-image"
+                            width="160rpx"
+                            height="160rpx"
+                            radius="8rpx"
+                            lazy-load
+                            :src="item.image_str || item.image"
+                        ></custom-image>
+                        <view class="goods-info">
+                            <view class="goods-name line1">{{ item.goods_name || item.name }}</view>
+                            <view class="goods-spec">{{ item.spec_value_str || item.spec_value }}</view>
+                            <view class="goods-price">
+                                <price-format
+                                    :weight="500"
+                                    :subscript-size="26"
+                                    :first-size="37"
+                                    :second-size="26"
+                                    :price="item.original_price || item.goods_price"
+                                ></price-format>
+                            </view>
+                        </view>
+                        <text class="goods-num">X{{ item.goods_num || item.num || 1 }}</text>
+                    </view>
+
+                    <view class="divider"></view>
+                    <view class="summary-row">
+                        <text>运费</text>
+                        <text class="muted-value">{{ freightText }}</text>
+                    </view>
+                </view>
+
+                <view class="remark-card">
+                    <text class="label">买家留言</text>
+                    <u-input
+                        v-model="userRemark"
+                        class="remark-input"
+                        :clearable="false"
+                        input-align="right"
+                        placeholder="选填"
+                    ></u-input>
+                </view>
+
+                <view class="order-card price-card">
+                    <view class="summary-row">
+                        <text>商品总价</text>
+                        <text>¥{{ orderInfo.total_goods_price || '0.00' }}</text>
+                    </view>
+                    <view class="divider"></view>
+                    <view class="summary-row">
+                        <text>运费合计</text>
+                        <text class="muted-value">{{ freightText }}</text>
+                    </view>
+                    <view class="divider" v-if="orderInfo.order_type == 0"></view>
+                    <view class="summary-row" v-if="orderInfo.order_type == 0" @tap="showCoupon = true">
+                        <text>优惠券</text>
+                        <view class="row-value">
+                            <text :class="orderInfo.discount_amount ? 'red-value' : 'muted-value'">{{ couponText }}</text>
+                            <image class="small-arrow" src="/static/images/arrow_right.png" mode="scaleToFill"></image>
+                        </view>
+                    </view>
+                    <template v-if="orderInfo.integral_switch">
+                        <view class="divider"></view>
+                        <view class="summary-row" @tap="changeIntegral">
+                            <text>总积分</text>
+                            <view class="row-value">
+                                <text class="orange-value">{{ orderInfo.user_integral || 0 }}</text>
+                                <checkbox
+                                    class="integral-check"
+                                    :disabled="
+                                        orderInfo.user_integral < orderInfo.integral_limit ||
+                                        orderInfo.integral_config == 0
+                                    "
+                                    :checked="Boolean(useIntegral)"
+                                ></checkbox>
+                            </view>
+                        </view>
+                    </template>
+                </view>
+
+                <view class="pay-section">
+                    <view class="section-title-row">
+                        <view class="title-mark"></view>
+                        <text>选择付款方式</text>
+                    </view>
+                    <view class="pay-card">
+                        <view class="pay-item active">
+                            <image
+                                class="pay-icon"
+                                src="https://lanhu-oss-proxy.lanhuapp.com/34f5d621b59abc567bcabd522381293f"
+                                mode="scaleToFill"
+                            ></image>
+                            <text>微信支付</text>
+                            <view class="pay-radio"></view>
+                        </view>
+                        <view class="divider"></view>
+                        <view class="pay-item">
+                            <image
+                                class="pay-icon bank"
+                                src="https://lanhu-oss-proxy.lanhuapp.com/bf1f6b760680089957df01cc0be7ea9e"
+                                mode="scaleToFill"
+                            ></image>
+                            <text>银行卡支付</text>
+                            <view class="pay-radio"></view>
+                        </view>
+                    </view>
+                </view>
+            </scroll-view>
+
+            <view class="footer">
+                <view class="all-price">
+                    <text class="total-label">合计：</text>
+                    <view class="total-price">
                         <price-format
-                            :first-size="36"
-                            :second-size="36"
-                            :price="orderInfo.order_amount"
+                            :subscript-size="35"
+                            :first-size="50"
+                            :second-size="35"
+                            :price="orderInfo.order_amount || 0"
+                            :weight="500"
                         ></price-format>
                     </view>
                 </view>
-                <button class="btn br60 white" size="md" hover-class="none" @tap="onSubmitOrder">
-                    提交订单
-                </button>
+                <button class="pay-btn" hover-class="none" @tap="onSubmitOrder">立即支付</button>
             </view>
         </view>
         <loading-view v-if="showLoading" background-color="transparent" :size="50"></loading-view>
@@ -300,6 +319,21 @@ export default {
     computed: {
         delivery() {
             return this.addressTabsList[this.addressTabsIndex]['id']
+        },
+        shopName() {
+            const firstGoods = this.goodsLists[0] || {}
+            return firstGoods.shop_name || firstGoods.store_name || this.orderInfo.shop_name || '店铺名称'
+        },
+        freightText() {
+            if (!this.address.id && this.addressTabsList[this.addressTabsIndex]['sign'] === 'express') {
+                return '填写地址后自动算运费'
+            }
+            return `¥${this.orderInfo.shipping_price || '0.00'}`
+        },
+        couponText() {
+            if (this.orderInfo.discount_amount) return `-¥${this.orderInfo.discount_amount}`
+            if (this.usableCoupon.length) return `${this.usableCoupon.length}张可用`
+            return '没有可用的优惠券'
         }
     },
 
@@ -377,6 +411,10 @@ export default {
     },
 
     methods: {
+        goBack() {
+            uni.navigateBack()
+        },
+
         // 更改配送方式
         changeDelivery(index) {
             this.addressTabsIndex = index
@@ -606,77 +644,441 @@ export default {
     }
 }
 </script>
-<style>
-.confirm-order .confirm-con {
-    overflow: hidden;
-    padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+<style lang="scss">
+page {
+    min-height: 100%;
+    background: #f5f5f5;
 }
 
-.confirm-order .contain {
-    border-radius: 14rpx;
-    margin: 20rpx 20rpx 0;
-    background-color: #fff;
-    overflow: hidden;
+.confirm-order-page,
+.confirm-order {
+    min-height: 100vh;
+    background: #f5f5f5;
 }
 
-.confirm-order .img-line {
-    height: 1.5px;
+.page-head {
+    background: #f5f5f5;
+}
+
+.nav-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 109rpx;
+    padding: 45rpx 24rpx 0;
+    box-sizing: border-box;
+}
+
+.back-icon {
+    position: relative;
+    width: 42rpx;
+    height: 64rpx;
+}
+
+.back-icon::after {
+    content: '';
+    position: absolute;
+    left: 14rpx;
+    top: 20rpx;
+    width: 18rpx;
+    height: 18rpx;
+    border-left: 4rpx solid #222222;
+    border-bottom: 4rpx solid #222222;
+    transform: rotate(45deg);
+}
+
+.nav-title {
+    position: absolute;
+    left: 50%;
+    bottom: 13rpx;
+    transform: translateX(-50%);
+    font-size: 36rpx;
+    font-weight: 500;
+    line-height: 36rpx;
+    color: #222222;
+}
+
+.tips-row {
+    display: flex;
+    align-items: center;
+    min-height: 96rpx;
+    padding: 14rpx 24rpx;
+    background: #ffebd8;
+    box-sizing: border-box;
+}
+
+.tips-icon {
+    flex: none;
+    width: 68rpx;
+    height: 68rpx;
+}
+
+.tips-text {
+    margin-left: 14rpx;
+    font-size: 24rpx;
+    line-height: 28rpx;
+    color: #f1790e;
+}
+
+.confirm-con {
+    height: calc(100vh - 205rpx - 154rpx - env(safe-area-inset-bottom));
+    padding: 0 24rpx 32rpx;
+    box-sizing: border-box;
+}
+
+.order-card,
+.remark-card,
+.pay-card {
     width: 100%;
-    display: block;
+    background: #ffffff;
+    border-radius: 15rpx;
+    box-sizing: border-box;
 }
 
-.confirm-order .coupons {
-    height: 100rpx;
+.main-card {
+    margin-top: 20rpx;
+}
+
+.delivery-tabs {
+    display: flex;
+    padding: 20rpx 28rpx 0;
+}
+
+.delivery-tab {
+    height: 52rpx;
     padding: 0 24rpx;
+    margin-right: 18rpx;
+    border-radius: 26rpx;
+    background: #f5f7fb;
+    font-size: 24rpx;
+    line-height: 52rpx;
+    color: #666666;
 }
 
-.goods .title {
-    padding: 22rpx 24rpx;
-    border-bottom: 1px solid #f6f6f6;
+.delivery-tab.active {
+    color: #037dfa;
+    background: #e9f3ff;
 }
 
-.goods .all-num {
-    padding: 22rpx 24rpx;
-    border-bottom: 1px dotted #f6f6f6;
+.address-row {
+    display: flex;
+    align-items: center;
+    min-height: 91rpx;
+    padding: 31rpx 31rpx 31rpx 27rpx;
+    box-sizing: border-box;
 }
 
-.confirm-order .footer {
+.address-icon {
+    flex: none;
+    width: 25rpx;
+    height: 29rpx;
+}
+
+.address-content {
+    flex: 1;
+    margin-left: 17rpx;
+    overflow: hidden;
+}
+
+.address-person,
+.address-empty {
+    font-size: 26rpx;
+    font-weight: 500;
+    line-height: 30rpx;
+    color: #222222;
+}
+
+.address-person .phone {
+    margin-left: 12rpx;
+}
+
+.address-detail {
+    margin-top: 10rpx;
+    font-size: 24rpx;
+    line-height: 32rpx;
+    color: #666666;
+}
+
+.arrow-icon,
+.small-arrow {
+    flex: none;
+    width: 10rpx;
+    height: 17rpx;
+}
+
+.store-form {
+    padding: 0 29rpx 12rpx;
+}
+
+.store-field {
+    display: flex;
+    align-items: center;
+    height: 78rpx;
+    border-top: 1rpx solid #f0f0f0;
+    font-size: 26rpx;
+    color: #222222;
+}
+
+.field-input {
+    flex: 1;
+    margin-left: 20rpx;
+}
+
+.divider {
+    height: 1rpx;
+    background: #eeeeee;
+}
+
+.shop-row {
+    display: flex;
+    align-items: center;
+    height: 111rpx;
+    padding: 0 29rpx;
+}
+
+.shop-logo {
+    width: 63rpx;
+    height: 63rpx;
+    border-radius: 5rpx;
+    background: #eaeaea;
+}
+
+.shop-name {
+    margin-left: 18rpx;
+    font-size: 26rpx;
+    line-height: 26rpx;
+    color: #222222;
+}
+
+.goods-row {
+    display: flex;
+    min-height: 202rpx;
+    padding: 18rpx 29rpx 23rpx 24rpx;
+    box-sizing: border-box;
+}
+
+.goods-image {
+    flex: none;
+}
+
+.goods-info {
+    flex: 1;
+    min-width: 0;
+    margin: 17rpx 0 0 26rpx;
+}
+
+.goods-name {
+    font-size: 26rpx;
+    line-height: 30rpx;
+    color: #222222;
+}
+
+.goods-spec {
+    margin-top: 18rpx;
+    font-size: 24rpx;
+    line-height: 28rpx;
+    color: #999999;
+}
+
+.goods-price {
+    margin-top: 34rpx;
+    color: #ff1919;
+}
+
+.goods-num {
+    align-self: flex-end;
+    margin: 0 0 3rpx 18rpx;
+    font-size: 24rpx;
+    line-height: 24rpx;
+    color: #999999;
+}
+
+.summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 97rpx;
+    padding: 0 31rpx 0 29rpx;
+    font-size: 26rpx;
+    font-weight: 500;
+    color: #222222;
+    box-sizing: border-box;
+}
+
+.muted-value {
+    font-size: 24rpx;
+    font-weight: 400;
+    color: #999999;
+}
+
+.red-value {
+    font-size: 24rpx;
+    color: #ff1919;
+}
+
+.orange-value {
+    font-size: 24rpx;
+    font-weight: 500;
+    color: #ff7417;
+}
+
+.remark-card {
+    display: flex;
+    align-items: center;
+    height: 88rpx;
+    margin-top: 19rpx;
+    padding: 0 31rpx 0 29rpx;
+}
+
+.remark-card .label {
+    flex: none;
+    font-size: 26rpx;
+    font-weight: 500;
+    color: #222222;
+}
+
+.remark-input {
+    flex: 1;
+    margin-left: 20rpx;
+}
+
+.price-card {
+    margin-top: 19rpx;
+}
+
+.row-value {
+    display: flex;
+    align-items: center;
+}
+
+.row-value .small-arrow {
+    margin-left: 17rpx;
+}
+
+.integral-check {
+    margin-left: 18rpx;
+    transform: scale(0.72);
+}
+
+.pay-section {
+    padding: 41rpx 0 0;
+}
+
+.section-title-row {
+    display: flex;
+    align-items: center;
+    height: 32rpx;
+    font-size: 32rpx;
+    font-weight: 500;
+    line-height: 32rpx;
+    color: #222222;
+}
+
+.title-mark {
+    width: 11rpx;
+    height: 29rpx;
+    margin-right: 13rpx;
+    background: #037dfa;
+}
+
+.pay-card {
+    margin-top: 32rpx;
+    margin-bottom: 41rpx;
+    padding: 0 0 1rpx;
+}
+
+.pay-item {
+    display: flex;
+    align-items: center;
+    height: 108rpx;
+    padding: 0 40rpx 0 36rpx;
+    font-size: 28rpx;
+    font-weight: 500;
+    color: #222222;
+    box-sizing: border-box;
+}
+
+.pay-icon {
+    flex: none;
+    width: 47rpx;
+    height: 42rpx;
+    margin-right: 37rpx;
+}
+
+.pay-icon.bank {
+    width: 55rpx;
+    height: 43rpx;
+    margin-right: 30rpx;
+}
+
+.pay-radio {
+    width: 37rpx;
+    height: 37rpx;
+    margin-left: auto;
+    border: 3rpx solid #d6d6d6;
+    border-radius: 50%;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.pay-item.active .pay-radio {
+    border: 10rpx solid #037dfa;
+}
+
+.footer {
     position: fixed;
-    bottom: 0;
     left: 0;
     right: 0;
-    height: 100rpx;
-    padding: 0 30rpx;
-    box-sizing: content-box;
+    bottom: 0;
+    z-index: 9;
+    display: flex;
+    align-items: flex-start;
+    height: 154rpx;
+    padding: 32rpx 24rpx 0;
     padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: content-box;
+    border-radius: 34rpx 34rpx 0 0;
+    background: #ffffff;
+    box-shadow: 0 -2rpx 21rpx rgba(82, 82, 82, 0.08);
 }
 
-.confirm-order .price {
-    padding: 28rpx 20rpx;
+.all-price {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    padding-top: 20rpx;
 }
 
-.confirm-order .price .item:not(:last-of-type) {
-    margin-bottom: 20rpx;
+.total-label {
+    flex: none;
+    font-size: 28rpx;
+    font-weight: 500;
+    line-height: 28rpx;
+    color: #222222;
 }
 
-.confirm-order .goods > .item,
-.confirm-order .benefit > .item {
-    padding: 0 24rpx;
-    height: 80rpx;
+.total-price {
+    margin-left: 19rpx;
+    color: #ff1919;
 }
 
-.confirm-order .btn {
-    background: linear-gradient(90deg, rgba(249, 95, 47, 1) 0%, rgba(255, 44, 60, 1) 100%);
-    padding: 0 50rpx;
-}
-
-.confirm-order .van-cell:after {
+.pay-btn {
+    flex: none;
+    width: 282rpx;
+    height: 81rpx;
+    margin-left: 24rpx;
     border: none;
+    border-radius: 40rpx;
+    background: #037dfa;
+    font-size: 28rpx;
+    font-weight: 500;
+    line-height: 81rpx;
+    color: #ffffff;
 }
 
-.goods .shop-icon {
-    width: 40rpx;
-    height: 40rpx;
+.pay-btn::after {
+    border: none;
 }
 
 .pop-title {
@@ -689,41 +1091,5 @@ export default {
     font-size: 34rpx;
     font-weight: bold;
     line-height: 36rpx;
-}
-
-.receiving-way {
-    margin: 20rpx 20rpx 0 20rpx;
-    border-radius: 7px;
-    background-color: #ffffff;
-    overflow: hidden;
-}
-
-.receiving-card {
-    display: flex;
-    align-items: center;
-    min-height: 160rpx;
-    padding: 20rpx;
-    border-top: 1px solid #f2f2f2;
-}
-
-.receiving-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.store-from {
-    padding: 0 20rpx;
-    font-size: 28rpx;
-}
-
-.store-from-item {
-    display: flex;
-    align-items: center;
-    height: 100rpx;
-}
-
-.store-from-item:nth-child(n + 2) {
-    border-top: 1px dashed #f2f2f2;
 }
 </style>

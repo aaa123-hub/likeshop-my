@@ -1,9 +1,10 @@
 import request from "@/utils/request";
+import { resolveImage } from "@/utils/image-placeholder";
 
 let latestSubmitToken = "";
 
 function normalizeOrderItem(item = {}) {
-  const image = item.image || item.imageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage || "";
+  const image = resolveImage(item.image || item.imageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage, "goods");
   const price = item.goods_price || item.goodsPrice || item.salePrice || item.unitPrice || item.price || 0;
   return {
     ...item,
@@ -219,7 +220,8 @@ export async function getOrderDetail(id) {
 //取消订单
 export function cancelOrder(id) {
   return request.post(`miniapp/orders/${id}/cancel`, {
-    reason: "用户取消"
+    reason: "用户取消",
+    idempotentKey: `cancel-order-${id}-${Date.now()}`
   });
 }
 
@@ -230,7 +232,9 @@ export function orderTraces(id) {
 
 //确认收货
 export function confirmOrder(id) {
-  return request.post(`miniapp/orders/${id}/confirm-receipt`);
+  return request.post(`miniapp/orders/${id}/confirm-receipt`, {
+    idempotentKey: `confirm-order-${id}-${Date.now()}`
+  });
 }
 
 //下单获取优惠券
@@ -243,7 +247,8 @@ export function getOrderCoupon(data) {
     quantity: data?.quantity || data?.goods_num || goodsList[0]?.quantity || goodsList[0]?.num,
     addressId: data?.addressId || data?.address_id || '',
     couponIds: data?.couponIds || (data?.coupon_id ? [data.coupon_id] : []),
-    remark: data?.remark || ''
+    remark: data?.remark || '',
+    idempotentKey: data?.idempotentKey || `order-preview-${Date.now()}`
   }).then((res) => {
     if (res.code == 1 && res.data) {
       return {
@@ -267,12 +272,18 @@ export function getVerifyLists(data) {
 }
 // 核销详情
 export function verification(data) {
-  return request.post("miniapp/orders/" + data.id + "/verify", data);
+  return request.post("miniapp/orders/" + data.id + "/verify", {
+    ...data,
+    idempotentKey: data.idempotentKey || `order-verify-${data.id}-${Date.now()}`
+  });
 }
 
 // 确认核销
 export function verificationConfirm(data) {
-  return request.post("miniapp/orders/" + data.id + "/verify/confirm", data);
+  return request.post("miniapp/orders/" + data.id + "/verify/confirm", {
+    ...data,
+    idempotentKey: data.idempotentKey || `order-verify-confirm-${data.id}-${Date.now()}`
+  });
 }
 //确认收货组件
 export function getwxReceiveDetail(params) {

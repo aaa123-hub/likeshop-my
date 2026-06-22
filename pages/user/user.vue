@@ -2,22 +2,18 @@
     <view class="my-page">
         <image class="my-page__page-bg" :src="designAssets.myPageBg" mode="scaleToFill"></image>
         <view class="my-page__screen">
-            <image class="my-page__header-bg" :src="designAssets.myHeaderBg" mode="scaleToFill"></image>
-            <image class="my-page__status" :src="designAssets.myStatusBar" mode="aspectFit"></image>
-
             <view class="my-page__top">
                 <view class="my-page__title">我的</view>
-                <image class="my-page__menu" :src="designAssets.myMenuCapsule" mode="aspectFit"></image>
             </view>
 
             <view class="my-page__profile">
                 <image
                     class="my-page__avatar"
                     @tap="goLogin"
-                    :src="isLogin ? userInfo.avatar : designAssets.myAvatarDefault"
+                    :src="isLogin ? resolveAvatar(userInfo.avatar) : designAssets.myAvatarDefault"
                     mode="aspectFill"
                 ></image>
-                <view class="my-page__profile-text">
+                <view class="my-page__profile-text" @tap="goLogin">
                     <view class="my-page__nickname">{{ isLogin ? userInfo.nickname : '点击登录' }}</view>
                     <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
                     <view class="my-page__member-id" v-else>登录体验更多功能</view>
@@ -131,30 +127,58 @@
             </view>
         </view>
 
-        <view class="my-page__tab-spacer"></view>
+        <view v-if="showServiceModal" class="service-modal">
+            <view class="service-modal__mask" @tap="closeServiceModal"></view>
+            <view class="service-sheet">
+                <image class="service-sheet__bg" src="/static/lanhu/assets/customer_service/service_wechat.png" mode="scaleToFill"></image>
+                <view class="service-sheet__head">
+                    <view class="service-sheet__title">平台客服</view>
+                    <image class="service-sheet__hero" :src="serviceHeroImage" mode="aspectFit"></image>
+                </view>
+                <view
+                    v-for="item in serviceContacts"
+                    :key="item.type"
+                    class="service-contact"
+                >
+                    <image class="service-contact__icon" :src="item.icon" mode="aspectFit"></image>
+                    <view class="service-contact__info">
+                        <view class="service-contact__name">{{ item.type }}</view>
+                        <view class="service-contact__value">{{ item.value }}</view>
+                    </view>
+                    <view class="service-contact__btn" @tap="contactService(item)">联系</view>
+                </view>
+                <view class="service-sheet__cancel" @tap="closeServiceModal">取消</view>
+            </view>
+        </view>
+
     </view>
 </template>
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
-import { getMenu } from '@/api/store'
 import { toLogin } from '@/utils/login'
-import { menuJump, copy, setTabbar } from '@/utils/tools'
+import { copy, setTabbar } from '@/utils/tools'
 import Cache from '@/utils/cache'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
+import { resolveImage } from '@/utils/image-placeholder'
 
 export default {
     data() {
         return {
-            menuList: [],
             businessRoutes,
-            designAssets
+            designAssets,
+            showServiceModal: false,
+			serviceHeroImage: '/static/lanhu/assets/customer_service/service_hero.png',
+            serviceContacts: [
+				{ type: '微信', value: '133 1212 1313', icon: '/static/lanhu/assets/customer_service/service_phone.png' },
+				{ type: 'QQ', value: '133 1212 1313', icon: '/static/lanhu/assets/customer_service/service_message.png' },
+				{ type: '手机号', value: '133 1212 1313', icon: '/static/lanhu/assets/customer_service/service_email.png' }
+            ]
         }
     },
     onLoad() {
         setTabbar()
-        this.getMenuFun()
     },
     onShow() {
         this.getUser()
@@ -164,7 +188,6 @@ export default {
         this.getUser().then(() => {
             uni.stopPullDownRefresh()
         })
-        this.getMenuFun()
     },
     onShareAppMessage() {
         const shareInfo = Cache.get('shareInfo')
@@ -176,6 +199,9 @@ export default {
     },
     methods: {
         ...mapActions(['getCartNum', 'getUser']),
+        resolveAvatar(avatar) {
+            return resolveImage(avatar, 'avatar')
+        },
         goLogin() {
             if (this.isLogin) {
                 uni.navigateTo({ url: '/bundle/pages/user_set/user_set' })
@@ -183,26 +209,39 @@ export default {
             }
             toLogin()
         },
-        goPage(url) {
+        goPage(target) {
             if (!this.isLogin) return toLogin()
-            uni.navigateTo({ url })
+            const route = typeof target === 'string' ? { url: target } : target
+            if (!route?.url) return
+            if (route.openType === 'switchTab') {
+                uni.switchTab({ url: route.url })
+                return
+            }
+            uni.navigateTo({ url: route.url })
         },
         openFree(item) {
             openBusinessRoute(item)
         },
-        tapMenu(item) {
-            if (!this.isLogin) return toLogin()
-            menuJump(item)
-        },
         openEntry(item) {
             if (!this.isLogin) return toLogin()
+            if (item.action === 'service') {
+                this.openServiceModal()
+                return
+            }
             openBusinessRoute(item)
         },
-        async getMenuFun() {
-            const { data, code } = await getMenu({ type: 2 })
-            if (code == 1) {
-                this.menuList = data
+        openServiceModal() {
+            this.showServiceModal = true
+        },
+        closeServiceModal() {
+            this.showServiceModal = false
+        },
+        contactService(item) {
+            if (item.type === '手机号') {
+                uni.makePhoneCall({ phoneNumber: item.value.replace(/\s/g, '') })
+                return
             }
+            copy(item.value)
         },
         onCopy() {
             copy(this.userInfo.sn)
@@ -236,7 +275,7 @@ export default {
                 { name: '待领取\n线上订单', url: '/pages/user_order/user_order', image: designAssets.myValueOnline },
                 { name: '待领取\n线下订单', url: '/bundle/pages/business_pages/face_pay', image: designAssets.myValueOffline },
                 { name: '联盟订单', url: '/pages/street/street', image: designAssets.myValueAlliance, openType: 'switchTab' },
-                { name: '领取积分\n设置', url: '/bundle/pages/business_pages/auto_points', image: designAssets.myValueSetting }
+                { name: '领取积分\n设置', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints }
             ]
         },
         featureEntries() {
@@ -246,7 +285,7 @@ export default {
                 { name: '反馈意见', url: businessRoutes.pages.feedback.url, image: designAssets.myFeedback },
                 { name: '生态应用', url: businessRoutes.pages.ecoApp.url, image: designAssets.myEcology },
                 { name: '关于我们', url: businessRoutes.pages.aboutUs.url, image: designAssets.myAbout },
-                { name: '平台客服', url: businessRoutes.pages.myService.url, image: designAssets.myService }
+                { name: '平台客服', action: 'service', image: designAssets.myService }
             ]
         }
     }
@@ -257,37 +296,38 @@ export default {
 .my-page {
     position: relative;
     min-height: 100vh;
+    padding-bottom: calc(40rpx + var(--window-bottom));
     background: #f4f6ff;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .my-page__page-bg {
     position: absolute;
     left: 0;
     top: 0;
-    width: 750rpx;
-    height: 2565rpx;
+    width: 100%;
+    height: 100%;
 }
 
 .my-page__screen {
     position: relative;
-    width: 750rpx;
-    height: 2565rpx;
-    overflow: hidden;
+    width: 100%;
+    min-height: calc(2266rpx + var(--status-bar-height));
+    overflow: visible;
 }
 
 .my-page__header-bg {
     position: absolute;
     left: 0;
     top: 0;
-    width: 750rpx;
+    width: 100%;
     height: 574rpx;
 }
 
 .my-page__status {
     position: absolute;
     left: 30rpx;
-    top: 40rpx;
+    top: var(--status-bar-height);
     width: 690rpx;
     height: 26rpx;
 }
@@ -295,8 +335,8 @@ export default {
 .my-page__top {
     position: absolute;
     left: 25rpx;
-    top: 105rpx;
-    width: 669rpx;
+    right: 31rpx;
+    top: calc(var(--status-bar-height) + 28rpx);
     height: 58rpx;
     display: flex;
     align-items: center;
@@ -311,16 +351,11 @@ export default {
     line-height: 24rpx;
 }
 
-.my-page__menu {
-    width: 159rpx;
-    height: 58rpx;
-}
-
 .my-page__profile {
     position: absolute;
     left: 36rpx;
-    top: 186rpx;
-    width: 680rpx;
+    right: 34rpx;
+    top: calc(var(--status-bar-height) + 104rpx);
     height: 142rpx;
     display: flex;
     align-items: center;
@@ -333,7 +368,8 @@ export default {
 }
 
 .my-page__profile-text {
-    width: 265rpx;
+    flex: 1;
+    min-width: 0;
     margin-left: 33rpx;
 }
 
@@ -342,31 +378,178 @@ export default {
     font-size: 34rpx;
     font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
     font-weight: 500;
-    line-height: 24rpx;
+    line-height: 44rpx;
+    min-height: 44rpx;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .my-page__member-id {
-    margin-top: 23rpx;
+    margin-top: 11rpx;
     color: rgba(102, 102, 102, 1);
     font-size: 24rpx;
     font-family: PingFangSC-Regular, sans-serif;
     font-weight: normal;
-    line-height: 24rpx;
+    line-height: 34rpx;
+    min-height: 34rpx;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.service-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 120;
+}
+
+.service-modal__mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.service-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 704rpx;
+    padding: 9rpx 30rpx calc(55rpx + env(safe-area-inset-bottom));
+    background: none url('/static/lanhu/assets/customer_service/service_wechat.png') no-repeat center top;
+    background-size: 100% 100%;
+    border-radius: 32rpx 32rpx 0 0;
+    box-sizing: border-box;
+}
+
+.service-sheet__bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 32rpx 32rpx 0 0;
+}
+
+.service-sheet__head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 157rpx;
+}
+
+.service-sheet__title {
+    margin-top: 44rpx;
+    color: #222222;
+    font-size: 38rpx;
+    font-weight: 700;
+    line-height: 42rpx;
+    white-space: nowrap;
+}
+
+.service-sheet__hero {
+    width: 170rpx;
+    height: 157rpx;
+}
+
+.service-sheet__message {
+    position: absolute;
+    right: 130rpx;
+    top: 22rpx;
+    width: 58rpx;
+    height: 58rpx;
+}
+
+.service-contact {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    height: 72rpx;
+    margin-top: 58rpx;
+}
+
+.service-contact:first-of-type {
+    margin-top: 38rpx;
+}
+
+.service-contact__icon {
+    flex: none;
+    width: 72rpx;
+    height: 72rpx;
+}
+
+.service-contact__info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 25rpx;
+}
+
+.service-contact__name {
+    color: #222222;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 32rpx;
+    white-space: nowrap;
+}
+
+.service-contact__value {
+    margin-top: 20rpx;
+    color: #999999;
+    font-size: 28rpx;
+    line-height: 32rpx;
+    white-space: nowrap;
+}
+
+.service-contact__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 153rpx;
+    height: 54rpx;
+    color: #ffffff;
+    font-size: 23rpx;
+    font-weight: 600;
+    line-height: 26rpx;
+    background: #037dfa;
+    border-radius: 27rpx;
+    white-space: nowrap;
+}
+
+.service-sheet__cancel {
+    position: relative;
+    z-index: 1;
+    margin-top: 84rpx;
+    color: #666666;
+    font-size: 29rpx;
+    font-weight: 600;
+    line-height: 34rpx;
+    text-align: center;
     white-space: nowrap;
 }
 
 .my-page__setting {
     width: 37rpx;
     height: 42rpx;
-    margin-left: 203rpx;
+    margin-left: 24rpx;
     flex: none;
 }
 
 .my-page__merchant {
     position: absolute;
     left: 47rpx;
-    top: 381rpx;
+    top: calc(var(--status-bar-height) + 299rpx);
     width: 656rpx;
     height: 157rpx;
 }
@@ -416,7 +599,7 @@ export default {
 .my-page__asset-panel {
     position: absolute;
     left: 26rpx;
-    top: 477rpx;
+    top: calc(var(--status-bar-height) + 395rpx);
     width: 698rpx;
     height: 349rpx;
     background: rgba(255, 255, 255, 1);
@@ -527,7 +710,7 @@ export default {
 .my-page__strategy {
     position: absolute;
     left: 26rpx;
-    top: 862rpx;
+    top: calc(var(--status-bar-height) + 780rpx);
     width: 698rpx;
     height: 135rpx;
 }
@@ -541,8 +724,10 @@ export default {
 }
 
 .my-section--online {
-    top: 1023rpx;
-    height: 213rpx;
+    top: calc(var(--status-bar-height) + 941rpx);
+    min-height: 213rpx;
+    padding-bottom: 28rpx;
+    box-sizing: border-box;
 }
 
 .my-section--pair {
@@ -550,21 +735,25 @@ export default {
 }
 
 .my-section--pair-1 {
-    top: 1257rpx;
+    top: calc(var(--status-bar-height) + 1175rpx);
 }
 
 .my-section--pair-2 {
-    top: 1491rpx;
+    top: calc(var(--status-bar-height) + 1409rpx);
 }
 
 .my-section--value {
-    top: 1725rpx;
-    height: 237rpx;
+    top: calc(var(--status-bar-height) + 1643rpx);
+    min-height: 237rpx;
+    padding-bottom: 28rpx;
+    box-sizing: border-box;
 }
 
 .my-section--feature {
-    top: 1984rpx;
-    height: 322rpx;
+    top: calc(var(--status-bar-height) + 1902rpx);
+    min-height: 322rpx;
+    padding-bottom: 28rpx;
+    box-sizing: border-box;
 }
 
 .my-section__head {
@@ -606,16 +795,18 @@ export default {
 
 .my-order-grid {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
-    justify-content: space-between;
-    padding: 41rpx 32rpx 0 32rpx;
+    padding: 41rpx 20rpx 0;
 }
 
 .my-order-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 82rpx;
+    width: 20%;
+    margin-bottom: 28rpx;
+    box-sizing: border-box;
 }
 
 .my-order-icon-wrap {
@@ -654,7 +845,10 @@ export default {
     font-weight: normal;
     line-height: 22rpx;
     text-align: center;
+    width: 100%;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .my-pair-grid {
@@ -693,16 +887,18 @@ export default {
 
 .my-value-grid {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
-    justify-content: space-between;
-    padding: 42rpx 41rpx 0;
+    padding: 42rpx 20rpx 0;
 }
 
 .my-value-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 87rpx;
+    width: 20%;
+    margin-bottom: 28rpx;
+    box-sizing: border-box;
 }
 
 .my-value-icon {
@@ -718,23 +914,25 @@ export default {
     font-weight: normal;
     line-height: 29rpx;
     text-align: center;
+    width: 100%;
     white-space: pre-wrap;
+    overflow: hidden;
 }
 
 .my-feature-grid {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
-    justify-content: space-between;
-    padding: 42rpx 41rpx 0;
+    padding: 42rpx 20rpx 0;
 }
 
 .my-feature-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 87rpx;
+    width: 20%;
     margin-bottom: 32rpx;
+    box-sizing: border-box;
 }
 
 .my-feature-icon {
@@ -750,17 +948,10 @@ export default {
     font-weight: normal;
     line-height: 22rpx;
     text-align: center;
+    width: 100%;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.my-page__tab-spacer {
-    position: absolute;
-    left: 0;
-    top: 2412rpx;
-    width: 750rpx;
-    height: 153rpx;
-    box-shadow: 0px -3px 16px 0px rgba(224, 224, 224, 0.67);
-    background-color: rgba(255, 255, 255, 1);
-    border-radius: 21rpx;
-}
 </style>

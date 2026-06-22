@@ -1,9 +1,10 @@
 <template>
   <view class="notice-page">
+    <image class="notice-bg" :src="noticeBgUrl" mode="widthFix"></image>
     <navbar
       title="消息通知"
       :borderBottom="false"
-      :background="{ background: '#dce9ff' }"
+      :background="{ background: 'transparent' }"
     ></navbar>
 
     <view class="notice-body">
@@ -13,9 +14,7 @@
         class="notice-item"
         @tap="openDetail(item)"
       >
-        <view class="notice-icon">
-          <u-icon name="bell-fill" color="#ffffff" size="54"></u-icon>
-        </view>
+        <image class="notice-icon" :src="noticeIconUrl" mode="aspectFit"></image>
         <view class="notice-content">
           <view class="notice-head">
             <text class="notice-title line1">{{ item.title }}</text>
@@ -46,6 +45,7 @@
 <script>
 import { getNoticeLists } from "@/api/store";
 import { loadingType } from "@/utils/type";
+import { getDesignAsset } from "@/utils/design-assets";
 import navbar from "@/components/navbar/navbar.vue";
 
 export default {
@@ -58,6 +58,8 @@ export default {
       loadingStatus: loadingType.LOADING,
       loadingType,
       lists: [],
+      noticeBgUrl: getDesignAsset('/static/lanhu/assets/notice/notice_top_bg.png'),
+      noticeIconUrl: getDesignAsset('/static/lanhu/assets/notice/notice_message_icon.png'),
       type: "system",
     };
   },
@@ -104,11 +106,23 @@ export default {
 
 <style lang="scss">
 .notice-page {
+  position: relative;
   min-height: 100vh;
-  background: linear-gradient(180deg, #dce9ff 0, #ffffff 220rpx);
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.notice-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 750rpx;
+  z-index: 0;
 }
 
 .notice-body {
+  position: relative;
+  z-index: 1;
   min-height: calc(100vh - 176rpx);
   padding: 12rpx 24rpx 40rpx;
   box-sizing: border-box;
@@ -123,13 +137,8 @@ export default {
 }
 
 .notice-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 104rpx;
-  height: 104rpx;
-  border-radius: 52rpx;
-  background: #4c8dff;
+  width: 105rpx;
+  height: 105rpx;
   flex: none;
 }
 

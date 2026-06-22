@@ -43,11 +43,10 @@
                     </navigator>
                     
             </view>
-            <loading-footer slot-empty :status="status">
-                <view slot="empty" class="data-null column-center" style="padding-top: 500rpx">
-                        <image class="img-null" src="/static/images/goods_null.png"></image>
-                        <view class="lighter">暂无活动商品～</view>
-                    </view>
+			<loading-footer slot-empty :status="status">
+				<view slot="empty" class="data-null column-center" style="padding-top: 500rpx">
+						<view class="lighter">暂无活动商品～</view>
+					</view>
             </loading-footer>
         </view>
     </view>

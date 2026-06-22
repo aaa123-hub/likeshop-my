@@ -21,7 +21,7 @@
                     <image class="balance-image" :src="designAssets.homeBalanceBill" mode="aspectFit"></image>
                 </navigator>
 
-            <view class="feature-stack">
+                <view class="feature-stack">
                     <view class="feature-card" @tap="openBusinessPage(businessRoutes.pages.notice)">
                         <view>
                             <view class="feature-title">扫一扫</view>
@@ -54,7 +54,8 @@
                     class="quick-item"
                     @tap="openShortcut(item)"
                 >
-                    <image class="quick-image" :src="item.image" mode="aspectFill"></image>
+                    <view v-if="isEmptyImage(item.image)" class="quick-image image-placeholder">无</view>
+                    <image v-else class="quick-image" :src="displayImage(item.image)" mode="aspectFill"></image>
                     <view class="quick-name line1">{{ item.name }}</view>
                 </view>
                 <view class="quick-item quick-more" @tap="switchTab('/pages/sort/sort')">
@@ -67,7 +68,8 @@
             <scroll-view v-if="recentVisitList.length" class="recent-scroll" scroll-x>
                 <view class="recent-list">
                     <view v-for="(item, index) in recentVisitList" :key="index" class="recent-card" @tap="handleVisitTap(item)">
-                        <image class="recent-card__image" :src="item.cover || designAssets.homeHeroFigure" mode="aspectFill"></image>
+                        <view v-if="isEmptyImage(item.cover)" class="recent-card__image image-placeholder">无</view>
+                        <image v-else class="recent-card__image" :src="displayImage(item.cover)" mode="aspectFill"></image>
                         <view class="recent-card__title line1">{{ item.title || item.name || '最近访问' }}</view>
                     </view>
                 </view>
@@ -78,7 +80,8 @@
                 <view v-for="(item, index) in hotActivityList" :key="index" class="activity-card" @tap="handleActivityTap(item)">
                     <view class="activity-card__title line1">{{ item.title || item.name || '热门活动' }}</view>
                     <view class="activity-card__desc line2">{{ item.desc || item.subTitle || '活动内容待补充' }}</view>
-                    <image class="activity-card__image" :src="item.cover || designAssets.homeEcologyIcon" mode="aspectFill"></image>
+                    <view v-if="isEmptyImage(item.cover)" class="activity-card__image image-placeholder">无</view>
+                    <image v-else class="activity-card__image" :src="displayImage(item.cover)" mode="aspectFill"></image>
                 </view>
             </view>
 
@@ -91,7 +94,8 @@
                     hover-class="none"
                     :url="'/pages/goods_details/goods_details?id=' + (item.id || item.goods_id)"
                 >
-                    <image class="goods-card__image" :src="item.image || item.goods_image || designAssets.homeHeroFigure" mode="aspectFill"></image>
+                    <view v-if="isEmptyImage(item.image || item.goods_image)" class="goods-card__image image-placeholder">无</view>
+                    <image v-else class="goods-card__image" :src="displayImage(item.image || item.goods_image, 'goods')" mode="aspectFill"></image>
                     <view class="goods-card__name line2">{{ item.name }}</view>
                     <view class="goods-card__price">¥{{ item.price || 0 }}</view>
                 </navigator>
@@ -105,7 +109,8 @@
                     class="shop-card"
                     @tap="handleShopTap(item)"
                 >
-                    <image class="shop-card__logo" :src="item.shopLogo || item.logo || designAssets.homeHeroFigure" mode="aspectFill"></image>
+                    <view v-if="isEmptyImage(getShopImage(item))" class="shop-card__logo image-placeholder">无</view>
+                    <image v-else class="shop-card__logo" :src="displayImage(getShopImage(item))" mode="aspectFill"></image>
                     <view class="shop-card__body">
                         <view class="shop-card__name line1">{{ item.shopName || item.name || '默认门店' }}</view>
                         <view class="shop-card__address line2">{{ item.detailAddress || item.address || '地址待补充' }}</view>
@@ -142,13 +147,15 @@ import { mapActions, mapGetters } from 'vuex'
 import { getHome } from '@/api/store'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets, designAssetList } from '@/utils/design-assets'
+import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 
 export default {
     data() {
         return {
             homeData: {},
             designAssets,
-            businessRoutes
+            businessRoutes,
+            homeLoaded: false
         }
     },
     computed: {
@@ -169,11 +176,12 @@ export default {
         bannerList() {
             return (this.homeData.banners || []).map((item, index) => ({
                 ...item,
-                image: item.image || item.cover || item.pic || item.banner || designAssets.homeHeroBg,
+                image: resolveImage(item.image || item.imageUrl || item.cover || item.pic || item.banner),
                 url: item.url || item.link || item.jumpUrl || '',
                 type: item.type || item.linkType || item.jumpType || '',
-                title: item.title || item.name || `banner-${index}`
-            }))
+                title: item.title || item.name || `banner-${index}`,
+                hasImage: !!(item.image || item.imageUrl || item.cover || item.pic || item.banner)
+            })).filter(item => item.hasImage)
         },
         shortcutList() {
             return this.quickEntryList.slice(0, 5)
@@ -192,16 +200,21 @@ export default {
         },
         homeShortcutFallback() {
             return [
-                { name: '分类', image: designAssetList.homeShortcuts[0], url: '/pages/sort/sort', type: 'switchTab' },
-                { name: '订单', image: designAssetList.homeShortcuts[1], url: '/pages/user_order/user_order' },
-                { name: '消息', image: designAssetList.homeShortcuts[2], url: '/bundle/pages/notice/notice' },
-                { name: '活动', image: designAssets.homeHeroBg, url: '/bundle/pages/business_pages/activity_center' },
-                { name: '门店', image: designAssets.homeHeroFigure, url: '/bundle/pages/business_pages/store_detail' }
+                { name: '分类', image: '', url: '/pages/sort/sort', type: 'switchTab' },
+                { name: '订单', image: '', url: '/pages/user_order/user_order' },
+                { name: '消息', image: '', url: '/bundle/pages/notice/notice' },
+                { name: '活动', image: '', url: '/bundle/pages/business_pages/activity_center' },
+                { name: '门店', image: '', url: '/bundle/pages/business_pages/store_detail' }
             ]
         }
     },
     onLoad() {
         this.getHomeFun()
+    },
+    onShow() {
+        if (this.homeLoaded) {
+            this.getHomeFun()
+        }
     },
     onPullDownRefresh() {
         this.getHomeFun().finally(() => {
@@ -210,35 +223,69 @@ export default {
     },
     methods: {
         async getHomeFun() {
-            const res = await getHome()
-            if (res.code == 1) {
-                this.homeData = res.data || {}
+            try {
+                const res = await getHome(this.buildHomeParams())
+                if (res.code == 1) {
+                    this.homeData = res.data || {}
+                    this.homeLoaded = true
+                }
+            } catch (error) {}
+        },
+        resolveImage,
+        isEmptyImage(src) {
+            return isPlaceholderImage(src)
+        },
+        displayImage(src, type = 'common') {
+            return resolveImage(src, type)
+        },
+        getShopImage(item = {}) {
+            return item.shopLogo || item.logo || item.logoUrl || item.image || item.cover || item.avatarUrl || item.shopImage || item.shopPic || ''
+        },
+        buildHomeParams() {
+            const lat = this.userInfo.lat ?? this.userInfo.latitude
+            const lng = this.userInfo.lng ?? this.userInfo.longitude
+            const params = {
+                pageScene: 'HOME',
+                userRole: this.userInfo.userRole || this.userInfo.user_role || this.userInfo.role || 'USER',
+                lat: lat !== undefined && lat !== null && lat !== '' ? lat : 23.1291,
+                lng: lng !== undefined && lng !== null && lng !== '' ? lng : 113.2644
             }
+            return params
         },
         normalizeQuickEntry(item = {}) {
             const code = String(item.code || '').toUpperCase()
             const quickEntryMap = {
                 CATEGORY: {
                     name: item.title || '分类',
-                    image: designAssetList.homeShortcuts[0],
-                    url: '/pages/sort/sort',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/category/index' ? item.pagePath : '/pages/sort/sort',
                     type: 'switchTab'
                 },
                 ORDER: {
                     name: item.title || '订单',
-                    image: designAssetList.homeShortcuts[1],
-                    url: '/pages/user_order/user_order'
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/order/list' ? item.pagePath : '/pages/user_order/user_order'
                 },
                 MESSAGE: {
                     name: item.title || '消息',
-                    image: designAssetList.homeShortcuts[2],
-                    url: '/bundle/pages/notice/notice'
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/message/list' ? item.pagePath : '/bundle/pages/notice/notice'
+                },
+                COUPON: {
+                    name: item.title || '优惠券',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/coupon/list' ? item.pagePath : '/pages/user_coupon/user_coupon'
+                },
+                WALLET: {
+                    name: item.title || '钱包',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/wallet/index' ? item.pagePath : '/bundle/pages/user_wallet/user_wallet'
                 }
             }
             return quickEntryMap[code] || {
                 name: item.title || item.code || '入口',
-                image: designAssets.homeMoreIcon,
-                url: ''
+                image: resolveImage(item.iconUrl || ''),
+                url: item.pagePath || ''
             }
         },
         goPage(url) {
@@ -322,7 +369,7 @@ export default {
 .home-hero {
     position: relative;
     min-height: 496rpx;
-    padding: calc(var(--status-bar-height) + 98rpx) 24rpx 0;
+    padding: calc(var(--status-bar-height) + 64rpx) 24rpx 0;
     overflow: hidden;
     background: linear-gradient(180deg, #1688ff 0%, #74b2ff 100%);
 }
@@ -348,10 +395,10 @@ export default {
 
 .home-hero__image {
     position: absolute;
-    right: -24rpx;
-    top: 110rpx;
-    width: 412rpx;
-    height: 300rpx;
+    right: -18rpx;
+    top: calc(var(--status-bar-height) + 44rpx);
+    width: 456rpx;
+    height: 366rpx;
     z-index: 1;
 }
 
@@ -360,7 +407,7 @@ export default {
     left: 24rpx;
     right: 24rpx;
     bottom: 30rpx;
-    z-index: 2;
+    z-index: 3;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -385,24 +432,27 @@ export default {
 }
 
 .banner-swiper {
-    height: 180rpx;
+    height: 220rpx;
     border-radius: 18rpx;
     overflow: hidden;
+    background: #f1f2f5;
 }
 
 .banner-image {
     width: 100%;
-    height: 180rpx;
+    height: 220rpx;
 }
 
 .feature-grid {
     display: flex;
+    gap: 24rpx;
     justify-content: space-between;
 }
 
 .balance-card {
     position: relative;
-    width: 324rpx;
+    flex: 1 1 0;
+    min-width: 0;
     height: 326rpx;
     padding: 40rpx 28rpx;
     overflow: hidden;
@@ -428,17 +478,26 @@ export default {
 
 .balance-image {
     position: absolute;
-    right: 30rpx;
-    bottom: 24rpx;
-    width: 138rpx;
-    height: 138rpx;
+    right: 18rpx;
+    bottom: 14rpx;
+    width: 156rpx;
+    height: 156rpx;
+    opacity: 0.92;
+    z-index: 0;
+}
+
+.feature-label,
+.balance-amount {
+    position: relative;
+    z-index: 1;
 }
 
 .feature-stack {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    width: 354rpx;
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .feature-card {
@@ -474,6 +533,7 @@ export default {
 .quick-strip {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     height: 144rpx;
     margin-top: 22rpx;
     padding: 0 22rpx;
@@ -483,11 +543,15 @@ export default {
 }
 
 .quick-item {
-    width: 116rpx;
+    flex: 1 1 0;
+    min-width: 0;
     text-align: center;
 }
 
 .quick-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 66rpx;
     height: 66rpx;
     margin: 0 auto;
@@ -496,8 +560,8 @@ export default {
 }
 
 .quick-more__icon {
-    width: 66rpx;
-    height: 66rpx;
+    width: 52rpx;
+    height: 52rpx;
     margin: 0 auto;
 }
 
@@ -535,6 +599,9 @@ export default {
 }
 
 .recent-card__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 148rpx;
     height: 148rpx;
     border-radius: 18rpx;
@@ -547,6 +614,17 @@ export default {
     font-size: 24rpx;
     line-height: 32rpx;
     text-align: center;
+}
+
+.home-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150rpx;
+    color: #999999;
+    font-size: 26rpx;
+    border-radius: 18rpx;
+    background: #ffffff;
 }
 
 .activity-list {
@@ -583,8 +661,19 @@ export default {
     position: absolute;
     right: 16rpx;
     bottom: 14rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 112rpx;
     height: 112rpx;
+}
+
+.image-placeholder {
+    color: #9ca3af;
+    font-size: 22rpx;
+    line-height: 28rpx;
+    text-align: center;
+    background: #eef1f5;
 }
 
 .goods-grid {
@@ -601,6 +690,9 @@ export default {
 }
 
 .goods-card__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     height: 220rpx;
     border-radius: 14rpx;
@@ -639,6 +731,10 @@ export default {
 }
 
 .shop-card__logo {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 96rpx;
     height: 96rpx;
     margin-right: 18rpx;

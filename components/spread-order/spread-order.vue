@@ -32,7 +32,6 @@
           </view>
           <loading-footer slotEmpty :status="loadingStatus">              
               <view slot="empty" class="data-null column-center">
-                <image class="img-null" src="/static/images/news_null.png"></image>
                 <text class="sm muted">暂无其他评价～</text>
               </view>
           </loading-footer>

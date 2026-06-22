@@ -2,7 +2,6 @@
 <view class="user-getcoupon">
     <coupon-list v-if="!showNull" :list="couponList" :btn-type="3" @reflash="getCouponListFun"></coupon-list>
     <view v-else class="column-center" style="padding-top: 200rpx">
-        <image class="img-null" src="/static/images/coupon_null.png"></image>
         <text class="muted">暂无优惠券可领～</text>
     </view>
 </view>

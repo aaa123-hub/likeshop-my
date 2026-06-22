@@ -25,14 +25,12 @@
 		</view>
 		<loading-footer :status="status" slot-empty>
 			<view class="data-null column-center" slot="empty">
-				<image class="img-null" src="/static/images/order_null.png"></image>
 				<text class="nr muted">暂无直播~</text>
 			</view>
 		</loading-footer>
 		<!-- #endif -->
 		<!-- #ifndef MP-WEIXIN -->
 		<view class="data-null column-center" style="padding-top: 400rpx;">
-			<image class="img-null" src="/static/images/order_null.png"></image>
 			<text class="nr muted">非小程序端暂不支持直播~</text>
 		</view>
 		<!-- #endif -->

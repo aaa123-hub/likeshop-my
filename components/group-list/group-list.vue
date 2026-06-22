@@ -37,7 +37,6 @@
 		</navigator>
 		<loading-footer :status="status" :slot-empty="true" @refresh="reload">
 			<view slot="empty" class="column-center" style="padding-top: 200rpx">
-				<image class="img-null" src="/static/images/goods_null.png"></image>
 				<text class="lighter">暂无拼团</text>
 			</view>
 		</loading-footer>

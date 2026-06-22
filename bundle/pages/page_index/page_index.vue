@@ -3,7 +3,7 @@
         <navbar title="页面总览"></navbar>
         <view class="page-index__body">
             <view class="page-index__summary">
-                <view class="page-index__title">商城小程序 · 36页映射</view>
+                <view class="page-index__title">商城小程序 · {{ designList.length }}页映射</view>
                 <view class="page-index__meta">业务页 {{ businessCount }} · 场景页 {{ sceneCount }}</view>
             </view>
 

@@ -1,5 +1,6 @@
 <template>
 	<view>
+		<navbar title="用户充值"></navbar>
 		<!-- pages/user_payment/user_payment.wxml -->
 		<view class="user-payment">
 			<form report-submit="true">
@@ -210,7 +211,7 @@
 <style lang="scss">
 	/* pages/user_payment/user_payment.wxss */
 	.user-payment {
-		padding: 20rpx 30rpx;
+		padding: 20rpx 30rpx 0;
 
 		.payment {
 			text-align: center;

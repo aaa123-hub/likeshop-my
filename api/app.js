@@ -2,15 +2,10 @@ import request from "@/utils/request";
 import wechath5 from "@/utils/wechath5";
 import { client } from "@/utils/tools";
 
-export const miniappTestLoginPayload = {
-  loginCode: "demo-openid-0001",
-  channelCode: "wechat-miniapp",
-  deviceId: "dev-001",
-};
-
 function normalizeMiniappLoginResult(res) {
   const payload = res && res.data ? res.data : res;
   const accessToken = payload && (payload.accessToken || payload.token);
+  const userId = payload && (payload.userId || payload.user_id || payload.id || payload.user?.userId || payload.user?.id);
 
   if (!accessToken) return res;
 
@@ -23,7 +18,9 @@ function normalizeMiniappLoginResult(res) {
       token: accessToken,
       refresh_token: payload.refreshToken,
       expire_in: payload.expireIn,
-      user_id: payload.userId,
+      userId,
+      user_id: userId,
+      id: userId,
       openid: payload.openId,
       session_key: payload.sessionKey,
       user_status: payload.userStatus,
@@ -35,13 +32,17 @@ function normalizeMiniappLoginResult(res) {
 }
 
 function buildMiniappLoginPayload(data = {}) {
-  const { loginCode, channelCode, deviceId } = data;
+  const { loginCode } = data;
 
   return {
-    loginCode: loginCode || miniappTestLoginPayload.loginCode,
-    channelCode: channelCode || miniappTestLoginPayload.channelCode,
-    deviceId: deviceId || miniappTestLoginPayload.deviceId,
+    loginCode,
+    channelCode: "wechat-miniapp",
   };
+}
+
+function shouldFallbackMiniappLogin(res) {
+  const code = res && (res.rawCode || res.code);
+  return code === "A0110" || code === "A0108";
 }
 
 function normalizePayMethod(method) {
@@ -120,13 +121,26 @@ function normalizeBubbleListsResponse(res) {
 
 //小程序授权登录
 export async function authLogin(data) {
-  const res = await request.post("miniapp/auth/wechat-login", buildMiniappLoginPayload(data));
-  return normalizeMiniappLoginResult(res);
+  const payload = buildMiniappLoginPayload(data);
+  if (!payload.loginCode) {
+    return Promise.resolve({
+      code: 0,
+      msg: "缺少微信登录凭证 code",
+      message: "缺少微信登录凭证 code",
+      data: null,
+    });
+  }
+  const res = await request.post("miniapp/auth/wechat-login", payload);
+  const normalized = normalizeMiniappLoginResult(res);
+  if (normalized && normalized.code == 1) return normalized;
+  if (!shouldFallbackMiniappLogin(normalized)) return normalized;
+
+  const fallbackRes = await request.post("miniapp/auth/login", payload);
+  return normalizeMiniappLoginResult(fallbackRes);
 }
 //小程序静默登录
 export async function silentLogin(data) {
-  const res = await request.post("miniapp/auth/wechat-login", buildMiniappLoginPayload(data));
-  return normalizeMiniappLoginResult(res);
+  return authLogin(data);
 }
 
 //更新小程序头像昵称
@@ -135,7 +149,7 @@ export function updateUser(data, token) {
 }
 // app登录
 export function opLogin(data) {
-  return authLogin({ ...data, channelCode: "wechat-miniapp", deviceId: "dev-001" });
+  return authLogin(data);
 }
 
 //预支付接口

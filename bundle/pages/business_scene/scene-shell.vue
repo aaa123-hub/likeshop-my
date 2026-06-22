@@ -3,7 +3,11 @@
         :class="[
             'business-scene',
             scene === 'user-kyc' ? 'business-scene--user-kyc' : '',
-            scene === 'feedback' ? 'business-scene--feedback' : ''
+            scene === 'feedback' ? 'business-scene--feedback' : '',
+            scene === 'about-us' ? 'business-scene--about-us' : '',
+            scene === 'activity-center' ? 'business-scene--activity-center' : '',
+            scene === 'intro-card' ? 'business-scene--intro-card' : '',
+            scene === 'recent-visits' ? 'business-scene--recent-visits' : ''
         ]"
     >
         <navbar v-if="!isFullScene" :title="sceneConfig.title"></navbar>
@@ -11,12 +15,11 @@
             <template v-if="scene === 'user-kyc'">
                 <view class="user-kyc-page">
                     <view class="user-kyc-page__hero">
-                        <image class="user-kyc-page__status" :src="kycStatusBar" mode="widthFix"></image>
                         <view class="user-kyc-page__topbar">
                             <view class="user-kyc-page__back" @tap="goBack">
                                 <u-icon name="arrow-left" size="34" color="#222222"></u-icon>
                             </view>
-                            <image class="user-kyc-page__capsule" :src="kycMenuCapsule" mode="aspectFit"></image>
+                            <view class="user-kyc-page__topbar-space"></view>
                         </view>
 
                         <view class="user-kyc-page__hero-body">
@@ -26,19 +29,7 @@
                             </view>
 
                             <view class="user-kyc-page__illustration">
-                                <view class="user-kyc-page__illustration-back"></view>
-                                <view class="user-kyc-page__illustration-sheet">
-                                    <view class="user-kyc-page__illustration-sheet-tab">★★★★</view>
-                                    <view class="user-kyc-page__illustration-line user-kyc-page__illustration-line--one"></view>
-                                    <view class="user-kyc-page__illustration-line user-kyc-page__illustration-line--two"></view>
-                                    <view class="user-kyc-page__illustration-line user-kyc-page__illustration-line--three"></view>
-                                </view>
-                                <view class="user-kyc-page__illustration-front"></view>
-                                <view class="user-kyc-page__illustration-arrow">
-                                    <u-icon name="arrow-right" size="28" color="#49b27d"></u-icon>
-                                </view>
-                                <view class="user-kyc-page__illustration-cloud user-kyc-page__illustration-cloud--left"></view>
-                                <view class="user-kyc-page__illustration-cloud user-kyc-page__illustration-cloud--right"></view>
+                                <image style="width: 100%;height: 100%;" :src="user_kyc"></image>
                             </view>
                         </view>
                     </view>
@@ -46,7 +37,7 @@
                     <view class="user-kyc-page__sheet">
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">姓名</text>
-                            <input class="user-kyc-page__input" placeholder="请输入真实姓名" placeholder-class="user-kyc-page__placeholder"></input>
+                            <input v-model="kycForm.realName" class="user-kyc-page__input" placeholder="请输入真实姓名" placeholder-class="user-kyc-page__placeholder"></input>
                         </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">证件类型</text>
@@ -54,37 +45,22 @@
                         </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">证件号码</text>
-                            <input class="user-kyc-page__input" placeholder="请输入证件号码" placeholder-class="user-kyc-page__placeholder"></input>
+                            <input v-model="kycForm.certNo" class="user-kyc-page__input" placeholder="请输入证件号码" placeholder-class="user-kyc-page__placeholder"></input>
                         </view>
 
                         <view class="user-kyc-page__section-title">证件照片</view>
                         <view class="user-kyc-page__photo-row">
-                            <view class="user-kyc-page__photo-card user-kyc-page__photo-card--front">
-                                <view class="user-kyc-page__photo-preview">
-                                    <view class="user-kyc-page__photo-preview-line user-kyc-page__photo-preview-line--long"></view>
-                                    <view class="user-kyc-page__photo-preview-line"></view>
-                                    <view class="user-kyc-page__photo-preview-line"></view>
-                                    <view class="user-kyc-page__photo-avatar"></view>
-                                    <view class="user-kyc-page__photo-avatar-body"></view>
-                                </view>
-                                <view class="user-kyc-page__photo-action">
-                                    <u-icon name="camera-fill" size="30" color="#ffffff"></u-icon>
-                                </view>
+                            <view class="user-kyc-page__photo-card user-kyc-page__photo-card--front" @tap="chooseKycImage('front')">
+                                <image style="width: 100%;height: 100%;" :src="kycForm.certFrontPreview || left_icon" mode="aspectFill"></image>
+                                <image v-if="!kycForm.certFrontPreview" style="width: 34.5px;height: 34.5px;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
                             </view>
-                            <view class="user-kyc-page__photo-card user-kyc-page__photo-card--back">
-                                <view class="user-kyc-page__photo-preview user-kyc-page__photo-preview--certificate">
-                                    <view class="user-kyc-page__photo-badge"></view>
-                                    <view class="user-kyc-page__photo-preview-line user-kyc-page__photo-preview-line--full"></view>
-                                    <view class="user-kyc-page__photo-preview-line user-kyc-page__photo-preview-line--full"></view>
-                                    <view class="user-kyc-page__photo-preview-line user-kyc-page__photo-preview-line--short"></view>
-                                </view>
-                                <view class="user-kyc-page__photo-action">
-                                    <u-icon name="camera-fill" size="30" color="#ffffff"></u-icon>
-                                </view>
+                            <view class="user-kyc-page__photo-card user-kyc-page__photo-card--back" @tap="chooseKycImage('back')">
+                                <image style="width: 100%;height: 100%;" :src="kycForm.certBackPreview || right_icon" mode="aspectFill"></image>
+                                <image v-if="!kycForm.certBackPreview" style="width: 34.5px;height: 34.5px;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
                             </view>
                         </view>
 
-                        <view class="user-kyc-page__submit">提交申请</view>
+                        <view class="user-kyc-page__submit" @tap="submitKycForm">提交申请</view>
                     </view>
                 </view>
             </template>
@@ -96,7 +72,7 @@
                             <view class="feedback-back" @tap="goBack">
                                 <u-icon name="arrow-left" size="36" color="#222222"></u-icon>
                             </view>
-                            <image class="feedback-menu" :src="designAssets.myMenuCapsule" mode="aspectFit"></image>
+                            <view class="feedback-menu-space"></view>
                         </view>
 
                         <view class="feedback-hero__body">
@@ -104,16 +80,12 @@
                                 <view class="feedback-hero__title">意见反馈</view>
                                 <view class="feedback-hero__subtitle">我们认真聆听您的心声</view>
                             </view>
-                            <view class="feedback-hero__illustration">
-                                <view class="feedback-hero__smile"></view>
-                                <view class="feedback-hero__eye feedback-hero__eye--left"></view>
-                                <view class="feedback-hero__eye feedback-hero__eye--right"></view>
-                            </view>
+                            <image class="feedback-hero__illustration" :src="feedbackHeroImage" mode="aspectFit"></image>
                         </view>
                     </view>
 
                     <view class="feedback-body">
-                        <view class="feedback-card">
+                        <view class="feedback-card feedback-card--types">
                             <view class="feedback-card__title">选择问题类型</view>
                             <view class="feedback-tag-grid">
                                 <view
@@ -130,7 +102,7 @@
                             </view>
                         </view>
 
-                        <view class="feedback-card">
+                        <view class="feedback-card feedback-card--form">
                             <view class="feedback-card__title">请输入您想说的话</view>
                             <view class="feedback-textarea-shell">
                                 <textarea
@@ -140,9 +112,8 @@
                                     placeholder=" "
                                     :placeholder-style="'color: transparent;'"
                                 ></textarea>
-                                <view class="feedback-upload">
-                                    <u-icon name="image" size="40" color="#5f5f5f"></u-icon>
-                                    <view class="feedback-upload__plus">+</view>
+                                <view class="feedback-upload" @tap="chooseFeedbackImage">
+                                    <image class="feedback-upload__icon" :src="feedbackUploadIcon" mode="aspectFit"></image>
                                 </view>
                                 <view class="feedback-textarea__count">{{ feedbackContent.length }}/300</view>
                             </view>
@@ -158,7 +129,7 @@
                             </view>
                         </view>
 
-                        <view class="feedback-submit">提交</view>
+                        <view class="feedback-submit" @tap="submitFeedbackForm">提交</view>
                     </view>
                 </view>
             </template>
@@ -197,7 +168,7 @@
                                 <u-icon name="arrow-left" size="34" color="#ffffff"></u-icon>
                             </view>
                             <view class="store-detail-hero__title">店铺详情</view>
-                            <image class="store-detail-hero__capsule" :src="storeDetailCapsuleImage" mode="aspectFit"></image>
+                            <view class="store-detail-hero__right-space"></view>
                         </view>
                     </view>
 
@@ -257,23 +228,36 @@
                             @tap="goStoreDetailGroupItem(item)"
                         >
                             <view class="store-detail-group-card__image-shell">
-                                <image class="store-detail-group-card__image" :src="item.image" mode="aspectFill"></image>
+                                <view v-if="isEmptyImage(item.image)" class="store-detail-group-card__image image-placeholder">无</view>
+                                <image v-else class="store-detail-group-card__image" :src="item.image" mode="aspectFill"></image>
                             </view>
                             <view class="store-detail-group-card__body">
                                 <view class="store-detail-group-card__title line1">{{ item.name }}</view>
                                 <view class="store-detail-group-card__meta">{{ item.meta }}</view>
-                                <view class="store-detail-group-card__foot">
-                                    <view class="store-detail-group-card__price">
-                                        <text class="store-detail-group-card__price-symbol">¥</text>
-                                        <text class="store-detail-group-card__price-value">{{ item.priceText }}</text>
+                                <view class="store-detail-group-card__rating">
+                                    <view class="store-detail-group-card__stars">
+                                        <image
+                                            v-for="starIndex in 5"
+                                            :key="starIndex"
+                                            class="store-detail-group-card__star"
+                                            :src="storeDetailStarIcon"
+                                            mode="aspectFit"
+                                        ></image>
                                     </view>
-                                    <view class="store-detail-group-card__action">去拼团</view>
+                                    <text class="store-detail-group-card__score">{{ item.scoreText }}</text>
                                 </view>
+                                <view class="store-detail-group-card__price">
+                                    <text class="store-detail-group-card__price-symbol">¥</text>
+                                    <text class="store-detail-group-card__price-value">{{ item.priceText }}</text>
+                                </view>
+                            </view>
+                            <view class="store-detail-group-card__action-wrap">
+                                <view class="store-detail-group-card__action">立即抢</view>
                             </view>
                         </view>
                     </view>
 
-                    <view v-else-if="storeDetailActiveTab === 'album'" class="store-detail-album-wrap">
+                    <view v-else-if="storeDetailActiveTab === 'album'" class="store-detail-media-wrap">
                         <view v-if="storeDetailAlbumImages.length" class="store-detail-album-grid">
                             <view
                                 v-for="(item, index) in storeDetailAlbumImages"
@@ -284,33 +268,118 @@
                                 <image class="store-detail-album-card__image" :src="item.url" mode="aspectFill"></image>
                             </view>
                         </view>
-                        <view v-else class="store-detail-album-empty">
+                        <view v-else class="store-detail-media-empty">
                             <image
-                                class="store-detail-album-empty__image"
+                                class="store-detail-media-empty__image"
                                 :src="storeDetailAlbumEmptyImage"
                                 mode="aspectFit"
                             ></image>
-                            <view class="store-detail-album-empty__text">暂无数据</view>
+                            <view class="store-detail-media-empty__title">暂无相册</view>
+                            <view class="store-detail-media-empty__desc">商家暂未上传门店照片</view>
+                        </view>
+                    </view>
+
+                    <view v-else-if="storeDetailActiveTab === 'video'" class="store-detail-media-wrap">
+                        <view v-if="storeDetailVideos.length" class="store-detail-video-grid">
+                            <view
+                                v-for="(item, index) in storeDetailVideos"
+                                :key="item.id || index"
+                                class="store-detail-video-card"
+                                @tap="previewStoreDetailVideo(item)"
+                            >
+                                <image class="store-detail-video-card__cover" :src="item.cover" mode="aspectFill"></image>
+                                <view class="store-detail-video-card__mask">
+                                    <view class="store-detail-video-card__play"></view>
+                                </view>
+                                <view class="store-detail-video-card__title line1">{{ item.title }}</view>
+                            </view>
+                        </view>
+                        <view v-else class="store-detail-media-empty">
+                            <image
+                                class="store-detail-media-empty__image"
+                                :src="storeDetailAlbumEmptyImage"
+                                mode="aspectFit"
+                            ></image>
+                            <view class="store-detail-media-empty__title">暂无视频</view>
+                            <view class="store-detail-media-empty__desc">商家暂未上传门店视频</view>
+                        </view>
+                    </view>
+
+                    <view v-else-if="storeDetailActiveTab === 'comment'" class="store-detail-comment-list">
+                        <view
+                            v-for="(item, index) in storeDetailComments"
+                            :key="item.id || index"
+                            class="store-detail-comment-card"
+                        >
+                            <view class="store-detail-comment-card__head">
+                                <image
+                                    v-if="item.avatar"
+                                    class="store-detail-comment-card__avatar-image"
+                                    :src="item.avatar"
+                                    mode="aspectFill"
+                                ></image>
+                                <view v-else class="store-detail-comment-card__avatar"></view>
+                                <view class="store-detail-comment-card__meta">
+                                    <view class="store-detail-comment-card__name line1">{{ item.name }}</view>
+                                    <view class="store-detail-comment-card__date">{{ item.date }}</view>
+                                </view>
+                            </view>
+                            <view class="store-detail-comment-card__content line2">{{ item.content }}</view>
                         </view>
                     </view>
                 </view>
             </template>
 
             <template v-else-if="scene === 'store-qr' || scene === 'goods-qr'">
-                <view class="qr-wrap">
-                    <view class="qr-card">
-                        <view class="qr-card__title">
-                            {{ scene === 'store-qr' ? '店铺二维码' : '商品二维码' }}
+                <view :class="['qr-page', scene === 'goods-qr' ? 'qr-page--goods' : 'qr-page--store']">
+                    <view class="qr-shop-card">
+                        <view class="qr-shop-card__logo"></view>
+                        <view class="qr-shop-card__body">
+                            <view class="qr-shop-card__name">叮咚生活家</view>
+                            <view class="qr-shop-card__rating">
+                                <image v-for="item in 3" :key="item" class="qr-shop-card__star" :src="streetStarIcon" mode="aspectFit"></image>
+                                <text class="qr-shop-card__score">5.0</text>
+                            </view>
+                            <view class="qr-shop-card__time">
+                                <image class="qr-shop-card__time-icon" :src="streetTimeIcon" mode="aspectFit"></image>
+                                <text>营业时间：8:00-16:00</text>
+                            </view>
                         </view>
-                        <tki-qrcode
-                            ref="qrcode"
-                            :val="scene === 'store-qr' ? 'store-demo-001' : 'goods-demo-001'"
-                            :size="420"
-                            unit="upx"
-                            :showLoading="false"
-                        />
-                        <view class="qr-card__desc">
-                            {{ scene === 'store-qr' ? '扫码进入店铺主页' : '扫码查看商品详情' }}
+                    </view>
+
+                    <image
+                        class="qr-page__mark"
+                        :src="scene === 'goods-qr' ? qrGoodsMarkIcon : qrStoreMarkIcon"
+                        mode="aspectFit"
+                    ></image>
+
+                    <view v-if="scene === 'store-qr'" class="qr-store-panel">
+                        <view class="qr-code-box qr-code-box--store">
+                            <tki-qrcode ref="qrcode" val="store-demo-001" :size="275" unit="upx" :showLoading="false" />
+                        </view>
+                        <view class="qr-store-panel__desc">扫一扫，即可查看公域线下店信息</view>
+                        <view class="qr-action-row qr-action-row--store">
+                            <view class="qr-action qr-action--cyan">保存二维码</view>
+                            <view class="qr-action">分享店铺</view>
+                        </view>
+                    </view>
+
+                    <view v-else class="qr-goods-panel">
+                        <view class="qr-goods-main"></view>
+                        <view class="qr-goods-info">
+                            <view class="qr-goods-copy">
+                                <view class="qr-goods-price">
+                                    <text class="qr-goods-price__symbol">¥</text><text class="qr-goods-price__main">299</text><text class="qr-goods-price__decimal">.00</text>
+                                </view>
+                                <view class="qr-goods-tip">长按保存二维码</view>
+                            </view>
+                            <view class="qr-code-box qr-code-box--goods">
+                                <tki-qrcode ref="qrcode" val="goods-demo-001" :size="124" unit="upx" :showLoading="false" />
+                            </view>
+                        </view>
+                        <view class="qr-action-row qr-action-row--goods">
+                            <view class="qr-action qr-action--cyan">保存图片</view>
+                            <view class="qr-action">分享商品</view>
                         </view>
                     </view>
                 </view>
@@ -320,7 +389,8 @@
                 <view class="card">
                     <view class="section-title">团购专区</view>
                     <view class="group-item" v-for="(item, index) in groupList" :key="index">
-                        <image class="group-item__image" :src="item.image" mode="aspectFill"></image>
+                        <view v-if="isEmptyImage(item.image)" class="group-item__image image-placeholder">无</view>
+                        <image v-else class="group-item__image" :src="item.image" mode="aspectFill"></image>
                         <view class="group-item__content">
                             <view class="group-item__title line2">{{ item.name }}</view>
                             <view class="group-item__meta">{{ item.people }}人团 · 已拼{{ item.joined }}件</view>
@@ -353,12 +423,18 @@
                     <view class="street-header">
                         <view class="street-header__top">
                             <view class="street-header__title">商街</view>
-                            <image class="street-header__capsule" :src="streetCapsuleImage" mode="aspectFit"></image>
                         </view>
 
                         <view class="street-search">
-                            <view class="street-search__placeholder">{{ streetSearchText }}</view>
-                            <view class="street-search__icon">
+                            <input
+                                v-model="streetKeyword"
+                                class="street-search__input"
+                                confirm-type="search"
+                                :placeholder="streetSearchText"
+                                placeholder-class="street-search__placeholder"
+                                @confirm="onStreetSearch"
+                            />
+                            <view class="street-search__icon" @tap="onStreetSearch">
                                 <image class="street-search__icon-image" :src="streetSearchIcon" mode="aspectFit"></image>
                             </view>
                         </view>
@@ -373,7 +449,8 @@
                                 @tap="goPage(item.url)"
                             >
                                 <view class="street-service-item__icon-shell">
-                                    <image class="street-service-item__image" :src="item.image" mode="aspectFit"></image>
+                                    <view v-if="isEmptyImage(item.image)" class="street-service-item__image image-placeholder">无</view>
+                                    <image v-else class="street-service-item__image" :src="item.image" mode="aspectFit"></image>
                                 </view>
                                 <text class="street-service-item__text">{{ item.name }}</text>
                             </view>
@@ -387,7 +464,8 @@
                                 @tap="goPage(item.url)"
                             >
                                 <view class="street-merchant-card__image-shell">
-                                    <image class="street-merchant-card__image" :src="item.image" mode="aspectFill"></image>
+                                    <view v-if="isEmptyImage(item.image)" class="street-merchant-card__image image-placeholder">无</view>
+                                    <image v-else class="street-merchant-card__image" :src="item.image" mode="aspectFill"></image>
                                 </view>
                                 <view class="street-merchant-card__body">
                                     <view class="street-merchant-card__title line1">{{ item.name }}</view>
@@ -414,29 +492,89 @@
                 </view>
             </template>
 
-            <template v-else-if="scene === 'street-goods' || scene === 'recent-visits'">
+            <template v-else-if="scene === 'street-goods'">
                 <view class="list-page">
                     <view class="search-shell">
-                        <u-search
-                            :value="''"
-                            :disabled="true"
-                            :show-action="false"
-                            bg-color="#ffffff"
+                        <input
+                            v-model="listKeyword"
+                            class="search-shell__input"
+                            confirm-type="search"
                             placeholder="输入关键词"
-                        ></u-search>
+                            placeholder-class="search-shell__placeholder"
+                            @confirm="onListSearch"
+                        />
+                        <view class="search-shell__icon" @tap="onListSearch">
+                            <image class="search-shell__icon-image" :src="streetSearchIcon" mode="aspectFit"></image>
+                        </view>
                     </view>
                     <view class="merchant-list">
                         <view
                             class="merchant-list__item"
-                            v-for="(item, index) in merchantList"
+                            v-for="(item, index) in filteredMerchantList"
                             :key="index"
                             @tap="goPage(index === 0 ? '/bundle/pages/business_pages/store_detail' : '/bundle/pages/business_pages/street_goods')"
                         >
-                            <image class="merchant-list__image" :src="item.image" mode="aspectFill"></image>
+                            <view v-if="isEmptyImage(item.image)" class="merchant-list__image image-placeholder">无</view>
+                            <image v-else class="merchant-list__image" :src="item.image" mode="aspectFill"></image>
                             <view class="merchant-list__body">
                                 <view class="merchant-list__title line1">{{ item.name }}</view>
                                 <view class="merchant-list__stars">★★★★★ 5.0</view>
                                 <view class="merchant-list__time">营业时间：8:00-16:00</view>
+                            </view>
+                        </view>
+                    </view>
+                </view>
+            </template>
+
+            <template v-else-if="scene === 'intro-card'">
+                <view class="intro-card-page">
+                    <image class="intro-card-page-bg" src="/static/lanhu/assets/business_pages/intro_card_page_bg.png" mode="scaleToFill"></image>
+                    <view class="intro-card-topbar">
+                        <image class="intro-card-back" :src="introCardBackIcon" mode="aspectFit" @tap="goBack"></image>
+                        <view class="intro-card-title">联盟码</view>
+                    </view>
+
+                    <view class="intro-card-panel">
+                        <image class="intro-card-panel-bg" src="/static/lanhu/assets/business_pages/intro_card_panel_bg.png" mode="scaleToFill"></image>
+                        <view class="intro-card-user">
+                            <view class="intro-card-avatar"></view>
+                            <view class="intro-card-info">
+                                <view class="intro-card-name">yokosurizzz</view>
+                                <view class="intro-card-line">
+                                    <text class="intro-card-line__text">ID:93002244</text>
+                                    <image class="intro-card-copy" :src="introCardCopyIcon" mode="aspectFit" @tap="copyIntroCardText('ID:93002244')"></image>
+                                </view>
+                                <view class="intro-card-line intro-card-line--account">
+                                    <text class="intro-card-line__text">账户:3242342342342</text>
+                                    <image class="intro-card-copy" :src="introCardCopyIconAlt" mode="aspectFit" @tap="copyIntroCardText('3242342342342')"></image>
+                                </view>
+                            </view>
+                        </view>
+                        <image class="intro-card-qr" :src="introCardQrImage" mode="aspectFit"></image>
+                    </view>
+                </view>
+            </template>
+
+            <template v-else-if="scene === 'recent-visits'">
+                <view class="recent-visits-page">
+                    <view class="recent-visits-topbar">
+                        <image class="recent-visits-back" :src="recentVisitsBackIcon" mode="aspectFit" @tap="goBack"></image>
+                        <view class="recent-visits-title">最近访问</view>
+                    </view>
+
+                    <view class="recent-visits-list">
+                        <view
+                            v-for="(item, index) in recentVisitItems"
+                            :key="index"
+                            class="recent-visits-item"
+                        >
+                            <view class="recent-visits-thumb"></view>
+                            <view class="recent-visits-info">
+                                <view class="recent-visits-name">{{ item.name }}</view>
+                                <view class="recent-visits-time">{{ item.time }} 访问过的商家</view>
+                            </view>
+                            <view :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']">
+                                {{ item.subscribed ? '已订阅' : '+订阅' }}
                             </view>
                         </view>
                     </view>
@@ -448,16 +586,8 @@
                     <view class="payment-summary-card">
                         <view class="payment-summary-card__head">
                             <view class="payment-summary-card__title">付款合计</view>
-                            <view class="payment-summary-card__filter" @tap="goPage('/bundle/pages/business_pages/payment_filter')">
-                                <view class="payment-summary-card__filter-icon">
-                                    <view class="payment-summary-card__filter-icon-top"></view>
-                                    <view class="payment-summary-card__filter-icon-bottom"></view>
-                                </view>
-                                <view class="payment-summary-card__filter-lines">
-                                    <view></view>
-                                    <view></view>
-                                    <view></view>
-                                </view>
+                            <view class="payment-summary-card__filter" @tap="openPaymentFilter">
+                                <image class="payment-summary-card__filter-image" :src="paymentRecordFilterIcon" mode="aspectFit"></image>
                             </view>
                         </view>
 
@@ -486,9 +616,113 @@
                         </view>
                     </view>
 
-                    <view class="payment-record-empty">
-                        <image class="payment-record-empty__image" :src="paymentRecordEmptyImage" mode="aspectFit"></image>
+                    <view v-if="!paymentRecordList.length" class="payment-record-empty">
+                        <view class="payment-record-empty__icon">
+                            <view class="payment-record-empty__card"></view>
+                        </view>
                         <view class="payment-record-empty__text">暂无数据</view>
+                    </view>
+
+                    <view v-else class="payment-record-list">
+                        <view v-for="item in paymentRecordList" :key="item.id || item.create_time" class="payment-record-item">
+                            <view class="payment-record-item__main">
+                                <view class="payment-record-item__title">{{ item.type_desc || item.source_type || '付款记录' }}</view>
+                                <view class="payment-record-item__time">{{ item.create_time || item.change_time || '' }}</view>
+                            </view>
+                            <view :class="['payment-record-item__amount', item.change_type == 1 ? 'is-plus' : '']">
+                                {{ item.change_type == 1 ? '+' : '-' }}{{ formatPaymentRecordAmount(item.change_amount) }}
+                            </view>
+                        </view>
+                    </view>
+
+                    <view v-if="showPaymentFilter" class="payment-filter-modal">
+                        <view class="payment-filter-modal__mask" @tap="closePaymentFilter"></view>
+                        <view class="payment-filter-sheet">
+                            <view class="payment-filter-sheet__head">
+                                <text class="payment-filter-sheet__title">筛选</text>
+                                <view class="payment-filter-sheet__close" @tap="closePaymentFilter">
+                                    <u-icon name="close" size="48" color="#111111"></u-icon>
+                                </view>
+                            </view>
+
+                            <view class="payment-filter-sheet__search">
+                                <view class="payment-filter-sheet__search-icon">
+                                    <u-icon name="search" size="34" color="#111111"></u-icon>
+                                </view>
+                                <text class="payment-filter-sheet__search-placeholder">输入关键词</text>
+                            </view>
+
+                            <view class="payment-filter-sheet__section">
+                                <view class="payment-filter-sheet__section-title">付款方式</view>
+                                <view class="payment-filter-sheet__option-row payment-filter-sheet__option-row--two">
+                                    <view
+                                        v-for="item in paymentMethodOptions"
+                                        :key="item.label"
+                                        :class="['payment-filter-sheet__option', item.active ? 'payment-filter-sheet__option--active' : '']"
+                                        @tap="selectPaymentFilterOption(paymentMethodOptions, item)"
+                                    >
+                                        {{ item.label }}
+                                    </view>
+                                </view>
+                            </view>
+
+                            <view class="payment-filter-sheet__section">
+                                <view class="payment-filter-sheet__section-title">付款状态</view>
+                                <view class="payment-filter-sheet__status-row payment-filter-sheet__option-row--three">
+                                    <view
+                                        v-for="item in paymentStatusOptions"
+                                        :key="item.label"
+                                        :class="['payment-filter-sheet__option', item.active ? 'payment-filter-sheet__option--active' : '']"
+                                        @tap="selectPaymentFilterOption(paymentStatusOptions, item)"
+                                    >
+                                        {{ item.label }}
+                                    </view>
+                                </view>
+                            </view>
+
+                            <view class="payment-filter-sheet__section">
+                                <view class="payment-filter-sheet__section-title">自定义时间</view>
+                                <view class="payment-filter-sheet__date-row">
+                                    <view class="payment-filter-sheet__date-field">开始时间</view>
+                                    <text class="payment-filter-sheet__date-separator">—</text>
+                                    <view class="payment-filter-sheet__date-field">结束时间</view>
+                                </view>
+                                <view class="payment-filter-sheet__picker">
+                                    <view class="payment-filter-sheet__picker-col">
+                                        <text
+                                            v-for="item in paymentDateColumns.years"
+                                            :key="item.label"
+                                            :class="['payment-filter-sheet__picker-item', item.active ? 'payment-filter-sheet__picker-item--active' : '']"
+                                        >
+                                            {{ item.label }}
+                                        </text>
+                                    </view>
+                                    <view class="payment-filter-sheet__picker-col">
+                                        <text
+                                            v-for="item in paymentDateColumns.months"
+                                            :key="item.label"
+                                            :class="['payment-filter-sheet__picker-item', item.active ? 'payment-filter-sheet__picker-item--active' : '']"
+                                        >
+                                            {{ item.label }}
+                                        </text>
+                                    </view>
+                                    <view class="payment-filter-sheet__picker-col">
+                                        <text
+                                            v-for="item in paymentDateColumns.days"
+                                            :key="item.label"
+                                            :class="['payment-filter-sheet__picker-item', item.active ? 'payment-filter-sheet__picker-item--active' : '']"
+                                        >
+                                            {{ item.label }}
+                                        </text>
+                                    </view>
+                                </view>
+                            </view>
+
+                            <view class="payment-filter-sheet__actions">
+                                <view class="payment-filter-sheet__action payment-filter-sheet__action--ghost" @tap="resetPaymentFilter">重置</view>
+                                <view class="payment-filter-sheet__action" @tap="closePaymentFilter">确定</view>
+                            </view>
+                        </view>
                     </view>
                 </view>
             </template>
@@ -628,15 +862,80 @@
                 </view>
             </template>
 
+            <template v-else-if="scene === 'activity-center'">
+                <view class="activity-center-page">
+                    <image class="activity-center-bg" src="/static/lanhu/assets/business_pages/activity_center_bg.png" mode="scaleToFill"></image>
+                    <view class="activity-center-hero">
+                        <view class="activity-center-topbar">
+                            <view class="activity-center-back" @tap="goBack"></view>
+                        </view>
+
+                        <view class="activity-center-list">
+                            <view
+                                v-for="(item, index) in activityCenterItems"
+                                :key="index"
+                                class="activity-center-card"
+                            >
+                                <image class="activity-center-card__image" :src="item.image" mode="aspectFit"></image>
+                                <view class="activity-center-card__body">
+                                    <view class="activity-center-card__title">{{ item.title }}</view>
+                                    <view class="activity-center-card__desc">{{ item.desc }}</view>
+                                    <view class="activity-center-card__bottom">
+                                        <text class="activity-center-card__date">{{ item.date }}</text>
+                                        <view class="activity-center-card__btn" @tap="openActivityExchange(item)">{{ item.buttonText }}</view>
+                                    </view>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
+
+                    <view v-if="showActivityExchangeModal" class="activity-exchange-modal">
+                        <view class="activity-exchange-modal__mask" @tap="closeActivityExchange"></view>
+                        <view class="activity-exchange-dialog">
+                            <view class="activity-exchange-dialog__title">积分兑换游戏卡</view>
+                            <view class="activity-exchange-dialog__points">500积分</view>
+                            <view class="activity-exchange-dialog__label">应付积分</view>
+                            <view class="activity-exchange-dialog__balance">
+                                <text>当前剩余积分</text>
+                                <text>200</text>
+                            </view>
+                            <view class="activity-exchange-dialog__email-label">收件邮箱</view>
+                            <view class="activity-exchange-dialog__email">yokosurizzz@gmail.com</view>
+                            <view class="activity-exchange-dialog__button">积分不足</view>
+                        </view>
+                    </view>
+                </view>
+            </template>
+
+            <template v-else-if="scene === 'about-us'">
+                <view class="about-us-page">
+                    <view class="about-us-hero">
+                        <view class="about-us-topbar">
+                            <view class="about-us-back" @tap="goBack"></view>
+                        </view>
+                        <view class="about-us-logo">LOGO</view>
+                        <view class="about-us-version">V1.00</view>
+                    </view>
+
+                    <view class="about-us-card">
+                        <view
+                            v-for="(item, index) in aboutMenuItems"
+                            :key="item.title"
+                            class="about-us-row"
+                            @tap="item.url && goPage(item.url)"
+                        >
+                            <text class="about-us-row__title">{{ item.title }}</text>
+                            <image class="about-us-row__arrow" :src="aboutArrowIcon" mode="aspectFit"></image>
+                            <view v-if="index < aboutMenuItems.length - 1" class="about-us-row__line"></view>
+                        </view>
+                    </view>
+                </view>
+            </template>
+
             <template
                 v-else-if="
-                    scene === 'about-us' ||
-                    scene === 'intro-card' ||
-                    scene === 'my-service' ||
                     scene === 'eco-app' ||
-                    scene === 'activity-center' ||
-                    scene === 'activity-exchange' ||
-                    scene === 'auto-points'
+                    scene === 'activity-exchange'
                 "
             >
                 <view class="card">
@@ -645,12 +944,6 @@
                         <view class="info-block__title">{{ item.title }}</view>
                         <view class="info-block__desc">{{ item.desc }}</view>
                     </view>
-                    <template v-if="scene === 'auto-points'">
-                        <view class="switch-row">
-                            <text>自动领取积分</text>
-                            <u-switch v-model="autoPoints"></u-switch>
-                        </view>
-                    </template>
                 </view>
                 <view class="primary-btn">{{ sceneConfig.buttonText }}</view>
             </template>
@@ -659,7 +952,8 @@
                 <view class="card">
                     <view class="section-title">待付款订单</view>
                     <view class="pending-card" v-for="(item, index) in demoGoods" :key="index">
-                        <image class="pending-card__image" :src="item.image"></image>
+                        <view v-if="isEmptyImage(item.image)" class="pending-card__image image-placeholder">无</view>
+                        <image v-else class="pending-card__image" :src="item.image"></image>
                         <view class="pending-card__body">
                             <view class="pending-card__title line2">{{ item.name }}</view>
                             <view class="pending-card__meta">订单编号：2026051000{{ index + 1 }}</view>
@@ -677,7 +971,10 @@
 
 <script>
 import { getShopDetail, getStreetIndex } from '@/api/store'
+import { getAccountLog, submitFeedback, submitKyc } from '@/api/user'
 import { getDesignAsset, designAssetList, designAssets } from '@/utils/design-assets'
+import { isPlaceholderImage } from '@/utils/image-placeholder'
+import { copy, tabbarList, uploadFile } from '@/utils/tools'
 
 export default {
     props: {
@@ -696,18 +993,72 @@ export default {
             selectedTag: '其他',
             feedbackContent: '',
             feedbackContact: '',
+			feedbackImages: [],
+			feedbackHeroImage: 'https://lanhu-oss-proxy.lanhuapp.com/17e52b5f7f7af0e92c09f57bd56f679e',
+			feedbackUploadIcon: '/static/lanhu/assets/business_pages/feedback_upload_icon.png',
+			paymentRecordFilterIcon: 'https://lanhu-oss-proxy.lanhuapp.com/b2636d4f8db726053805211c9457c120',
+			aboutArrowIcon: 'https://lanhu-oss-proxy.lanhuapp.com/d35bb9407ef16b8d704effe295ad7e27',
+			activityCenterBackIcon: '',
+			introCardBackIcon: '/static/lanhu/assets/business_pages/intro_card_back.png',
+			introCardCopyIcon: '/static/lanhu/assets/business_pages/intro_card_copy.png',
+			introCardCopyIconAlt: '/static/lanhu/assets/business_pages/intro_card_copy_alt.png',
+			introCardQrImage: '/static/lanhu/assets/business_pages/intro_card_qr.png',
+			recentVisitsBackIcon: 'https://lanhu-oss-proxy.lanhuapp.com/6c1b9219335c90eb81ddc57cd6d0016e',
+			user_kyc:'/static/lanhu/assets/business_pages/user_kyc.png',
+			right_icon:'/static/lanhu/assets/business_pages/right_icon.png',
+			left_icon:'/static/lanhu/assets/business_pages/left_icon.png',
+			icon_conter:'/static/lanhu/assets/business_pages/icon_conter.png',
+            kycForm: {
+                realName: '',
+                certNo: '',
+                certFrontUrl: '',
+                certBackUrl: '',
+                certFrontPreview: '',
+                certBackPreview: ''
+            },
+            qrStoreMarkIcon: 'https://lanhu-oss-proxy.lanhuapp.com/3180ae811deadda0dbd6b79667bc5bb1',
+            qrGoodsMarkIcon: 'https://lanhu-oss-proxy.lanhuapp.com/676d68646053824b88f084648bfc6594',
             feedbackTags: ['下载/加载问题', '体验功能', '平台问题', '新功能建议', '其他', '违规举报'],
-            autoPoints: true,
+            aboutMenuItems: [
+                { title: 'Cookie政策' },
+                { title: '反洗钱与反恐融资政策' },
+                { title: '服务条款' },
+                { title: '关于我们' },
+                { title: '隐私政策' }
+            ],
+            showActivityExchangeModal: false,
+            activityCenterItems: [
+                {
+                    image: getDesignAsset('/static/lanhu/assets/business_pages/activity_center.png'),
+                    title: '积分兑换游戏',
+                    desc: '辅助标题辅助标题辅助标题',
+                    date: '2026-01-01',
+                    buttonText: '积分兑卡密'
+                },
+                {
+                    image: getDesignAsset('/static/lanhu/assets/business_pages/activity_center.png'),
+                    title: '积分兑换游戏',
+                    desc: '辅助标题辅助标题辅助标题',
+                    date: '2026-01-01',
+                    buttonText: '积分兑卡密'
+                }
+            ],
+            recentVisitItems: [
+                { name: '数码投影仪专卖店', time: '18:00', subscribed: false },
+                { name: '数码投影仪专卖店', time: '18:00', subscribed: true },
+                { name: '数码投影仪专卖店', time: '18:00', subscribed: false },
+                { name: '数码投影仪专卖店', time: '18:00', subscribed: true }
+            ],
             demoGoods: [
                 {
                     name: '黑白灰色运动鞋',
                     price: '2300',
-                    image: '/static/images/goods_null.png'
+                    image: ''
                 },
                 {
                     name: '轻便舒适跑步鞋',
                     price: '1899',
-                    image: '/static/images/goods_null.png'
+                    image: ''
                 }
             ],
             groupList: [
@@ -716,14 +1067,14 @@ export default {
                     people: 2,
                     joined: 129,
                     price: '128',
-                    image: '/static/images/goods_null.png'
+                    image: ''
                 },
                 {
                     name: '家庭超值套餐',
                     people: 4,
                     joined: 76,
                     price: '268',
-                    image: '/static/images/goods_null.png'
+                    image: ''
                 }
             ],
             albumImages: [
@@ -732,22 +1083,38 @@ export default {
             merchantList: [
                 {
                     name: '广州市越秀区斌记面家',
-                    image: getDesignAsset('/static/lanhu/designs/27-search-list.png')
+                    image: ''
                 },
                 {
                     name: '广州市越秀区斌记面家',
-                    image: getDesignAsset('/static/lanhu/designs/27-search-list.png')
+                    image: ''
                 },
                 {
                     name: '广州市越秀区斌记面家',
-                    image: getDesignAsset('/static/lanhu/designs/27-search-list.png')
+                    image: ''
                 }
             ],
             storeDetailCapsuleImage: getDesignAsset('/static/lanhu/slices/street/image_2.png'),
-            storeDetailAddressIcon: getDesignAsset('/static/lanhu/slices/street/label_1.png'),
+            storeDetailAddressIcon: getDesignAsset('/static/lanhu/assets/store/store_detail_address_icon.png'),
             storeDetailStarIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_star.png'),
-            storeDetailTimeIcon: getDesignAsset('/static/lanhu/slices/street/label_3.png'),
-            storeDetailAlbumEmptyImage: getDesignAsset('/static/lanhu/assets/store/store_album_empty.png'),
+            storeDetailTimeIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_time.png'),
+            storeDetailAlbumEmptyImage: getDesignAsset('/static/lanhu/assets/store/store_media_empty.png'),
+            storeDetailComments: [
+                {
+                    id: 'comment-default-1',
+                    name: '1296644543',
+                    date: '2025-12-23',
+                    content: '评价内容填充文案评价内容填充文案评价内容填充文案',
+                    avatar: ''
+                },
+                {
+                    id: 'comment-default-2',
+                    name: '1296644543',
+                    date: '2025-12-23',
+                    content: '评价内容填充文案评价内容填充文案评价内容填充文案',
+                    avatar: ''
+                }
+            ],
             storeDetailLoadedShopId: '',
             storeDetailActiveTab: 'detail',
             storeDetailData: {
@@ -791,7 +1158,9 @@ export default {
             streetTimeIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_time.png'),
             streetSearchText: '输入关键词',
             streetKeyword: '',
+            listKeyword: '',
             streetLoaded: false,
+            navigating: false,
             streetMerchants: [
                 {
                     name: '广州市越秀区斌记面家',
@@ -822,39 +1191,26 @@ export default {
                     url: '/bundle/pages/business_pages/store_detail'
                 }
             ],
-            kycStatusBar: getDesignAsset('/static/lanhu/assets/my/my_status_bar@2x.png'),
-            kycMenuCapsule: getDesignAsset('/static/lanhu/assets/my/my_menu_capsule@2x.png'),
             streetCategories: [
                 { name: '美食餐饮', image: getDesignAsset('/static/lanhu/slices/street/image_4.png'), url: '/bundle/pages/business_pages/street_goods' },
                 { name: '休闲娱乐', image: getDesignAsset('/static/lanhu/slices/street/image_4_2.png'), url: '/bundle/pages/business_pages/street_goods' },
                 { name: '美容美发', image: getDesignAsset('/static/lanhu/slices/street/image_4_3.png'), url: '/bundle/pages/business_pages/street_goods' },
                 { name: '体育运动', image: getDesignAsset('/static/lanhu/slices/street/image_4_4.png'), url: '/bundle/pages/business_pages/street_goods' },
                 { name: '酒店住宿', image: getDesignAsset('/static/lanhu/slices/street/image_4_5.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '生活服务', image: getDesignAsset('/static/lanhu/slices/street/image_4_6.png'), url: '/bundle/pages/business_pages/street_goods' },
+                { name: '本地生活', image: '', url: '/bundle/pages/business_pages/street_goods' },
                 { name: '百货日用', image: getDesignAsset('/static/lanhu/slices/street/image_4_7.png'), url: '/bundle/pages/business_pages/street_goods' },
-                { name: '养生保健', image: getDesignAsset('/static/lanhu/slices/street/image_4_8.png'), url: '/bundle/pages/business_pages/street_goods' }
+                { name: '粮油饮品', image: '', url: '/bundle/pages/business_pages/street_goods' }
             ],
-            walletRecords: [
-                {
-                    title: '订单支付',
-                    time: '2026-05-10 10:23:00',
-                    amount: '123.00',
-                    type: 0
-                },
-                {
-                    title: '账户充值',
-                    time: '2026-05-08 18:10:00',
-                    amount: '200.00',
-                    type: 1
-                }
-            ],
+            walletRecords: [],
             paymentRecordSummary: {
-                totalAmount: '¥123.34',
-                totalCount: '213',
-                fiatAmount: '¥123.34',
-                digitalAmount: '¥123.34'
+                totalAmount: '¥0.00',
+                totalCount: '0',
+                fiatAmount: '¥0.00',
+                digitalAmount: '¥0.00'
             },
+            paymentRecordList: [],
             paymentRecordEmptyImage: getDesignAsset('/static/lanhu/designs/28-address-empty.png'),
+            showPaymentFilter: false,
             paymentMethodOptions: [
                 { label: '全部', active: true },
                 { label: '法币', active: false }
@@ -978,23 +1334,6 @@ export default {
                         { title: '面对面支付', desc: '支持线下付款单号核销。' }
                     ]
                 },
-                'auto-points': {
-                    title: '自动领取积分设置',
-                    subtitle: '积分设置',
-                    buttonText: '保存设置',
-                    items: [
-                        { title: '自动领取规则', desc: '订单完成后自动到账，避免漏领。' }
-                    ]
-                },
-                'my-service': {
-                    title: '我的-客服',
-                    subtitle: '客服服务',
-                    buttonText: '联系在线客服',
-                    items: [
-                        { title: '在线客服', desc: '7x12 小时人工响应。' },
-                        { title: '电话支持', desc: '支持电话咨询与问题回访。' }
-                    ]
-                },
                 'user-kyc': {
                     title: '用户KYC',
                     subtitle: '副标题副标题副标题副标题副标题',
@@ -1008,7 +1347,7 @@ export default {
     },
     computed: {
         isFullScene() {
-            return this.scene === 'street' || this.scene === 'store-detail' || this.scene === 'user-kyc' || this.scene === 'feedback'
+            return this.scene === 'street' || this.scene === 'store-detail' || this.scene === 'store-qr' || this.scene === 'goods-qr' || this.scene === 'user-kyc' || this.scene === 'feedback' || this.scene === 'about-us' || this.scene === 'activity-center' || this.scene === 'intro-card' || this.scene === 'recent-visits'
         },
         sceneConfig() {
             return this.sceneMap[this.scene] || this.sceneMap.feedback
@@ -1045,6 +1384,17 @@ export default {
                 }))
                 .filter(item => item.url)
         },
+        storeDetailVideos() {
+            return (this.storeDetailData.videos || [])
+                .map((item, index) => ({
+                    ...item,
+                    id: item.id || index,
+                    title: item.title || item.name || '门店视频',
+                    cover: item.cover || item.image || this.storeDetailHeroImage,
+                    url: item.url || item.videoUrl || item.video || ''
+                }))
+                .filter(item => item.cover || item.url)
+        },
         storeDetailBusinessHoursText() {
             if (this.storeDetailView.businessHours) {
                 return `营业时间：${this.storeDetailView.businessHours}`
@@ -1054,13 +1404,13 @@ export default {
         storeDetailTabs() {
             const groupCount = this.storeDetailData.groupBuyProducts?.length || 0
             const albumCount = this.storeDetailData.albums?.length || 0
-            const videoCount = this.storeDetailData.videos?.length || 0
+            const videoCount = this.storeDetailVideos.length
             return [
                 { key: 'detail', label: '商家详情', active: this.storeDetailActiveTab === 'detail' },
                 { key: 'group', label: '团购', active: this.storeDetailActiveTab === 'group' },
                 { key: 'album', label: '相册', active: this.storeDetailActiveTab === 'album', count: albumCount },
                 { key: 'video', label: '视频', active: this.storeDetailActiveTab === 'video', count: videoCount },
-                { key: 'comment', label: '评价(0)', active: this.storeDetailActiveTab === 'comment' }
+                { key: 'comment', label: `评价(${this.storeDetailComments.length})`, active: this.storeDetailActiveTab === 'comment' }
             ]
         },
         storeDetailGroupProducts() {
@@ -1073,11 +1423,20 @@ export default {
                 name: item.name || item.goods_name || '团购套餐',
                 image: item.image || item.goods_image || getDesignAsset('/static/lanhu/slices/street/merchant_thumb.png'),
                 meta: this.getStoreDetailGroupMeta(item),
+                scoreText: this.formatStreetScore(item.score ?? item.shopScore ?? item.commentScore ?? 5),
                 priceText: this.formatStoreDetailPrice(item.price)
             }))
         },
         storeDetailPayUrl() {
             return this.appendShopId('/bundle/pages/business_pages/face_pay')
+        },
+        filteredMerchantList() {
+            const keyword = (this.listKeyword || '').trim().toLowerCase()
+            if (!keyword) return this.merchantList
+            return this.merchantList.filter(item => {
+                const name = (item.name || '').toLowerCase()
+                return name.includes(keyword)
+            })
         }
     },
     watch: {
@@ -1090,6 +1449,9 @@ export default {
                 if (value === 'store-detail') {
                     this.loadStoreDetail()
                 }
+                if (value === 'payment-record') {
+                    this.loadPaymentRecords()
+                }
             }
         }
     },
@@ -1099,6 +1461,129 @@ export default {
         }
     },
     methods: {
+        chooseUploadedImage() {
+            return new Promise((resolve, reject) => {
+                uni.chooseImage({
+                    count: 1,
+                    sizeType: ['compressed'],
+                    success: async (res) => {
+                        try {
+                            const localPath = res.tempFilePaths[0]
+                            const result = await uploadFile(localPath)
+                            resolve({
+                                localPath,
+                                fileUrl: result.file_url || result.url || result.uri
+                            })
+                        } catch (error) {
+                            reject(error)
+                        }
+                    },
+                    fail: reject
+                })
+            })
+        },
+        async chooseKycImage(type) {
+            const result = await this.chooseUploadedImage()
+            if (type === 'front') {
+                this.kycForm.certFrontUrl = result.fileUrl
+                this.kycForm.certFrontPreview = result.localPath
+                return
+            }
+            this.kycForm.certBackUrl = result.fileUrl
+            this.kycForm.certBackPreview = result.localPath
+        },
+        async submitKycForm() {
+            if (!this.kycForm.realName || !this.kycForm.certNo || !this.kycForm.certFrontUrl || !this.kycForm.certBackUrl) {
+                uni.showToast({ title: '请填写完整认证信息', icon: 'none' })
+                return
+            }
+            const res = await submitKyc({
+                ...this.kycForm,
+                certType: 'ID_CARD'
+            })
+            if (res.code == 1) {
+                uni.showToast({ title: '提交成功', icon: 'success' })
+            }
+        },
+        async chooseFeedbackImage() {
+            const result = await this.chooseUploadedImage()
+            this.feedbackImages = [result.fileUrl]
+        },
+        async submitFeedbackForm() {
+            const content = (this.feedbackContent || '').trim()
+            if (!content) {
+                uni.showToast({ title: '请输入反馈内容', icon: 'none' })
+                return
+            }
+            const res = await submitFeedback({
+                feedbackType: this.selectedTag,
+                content,
+                contact: this.feedbackContact,
+                imageUrls: this.feedbackImages
+            })
+            if (res.code == 1) {
+                uni.showToast({ title: '提交成功', icon: 'success' })
+                this.feedbackContent = ''
+                this.feedbackContact = ''
+                this.feedbackImages = []
+            }
+        },
+        copyIntroCardText(text) {
+            copy(text)
+        },
+        openPaymentFilter() {
+            this.showPaymentFilter = true
+        },
+        closePaymentFilter() {
+            this.showPaymentFilter = false
+        },
+        openActivityExchange() {
+            this.showActivityExchangeModal = true
+        },
+        closeActivityExchange() {
+            this.showActivityExchangeModal = false
+        },
+        selectPaymentFilterOption(options, selected) {
+            options.forEach(item => {
+                item.active = item.label === selected.label
+            })
+        },
+        resetPaymentFilter() {
+            this.paymentMethodOptions.forEach((item, index) => {
+                item.active = index === 0
+            })
+            this.paymentStatusOptions.forEach((item, index) => {
+                item.active = index === 0
+            })
+        },
+        async loadPaymentRecords() {
+            try {
+                const res = await getAccountLog({
+                    pageNo: 1,
+                    pageSize: 20
+                })
+                if (res.code != 1) return
+                const list = res.data?.lists || res.data?.records || res.data?.list || []
+                this.paymentRecordList = Array.isArray(list) ? list : []
+                const totalAmount = this.paymentRecordList.reduce((sum, item) => {
+                    const amount = Number(item.change_amount ?? item.amount ?? item.changeAmount ?? item.money ?? 0)
+                    return Number.isNaN(amount) ? sum : sum + Math.abs(amount)
+                }, 0)
+                this.paymentRecordSummary = {
+                    totalAmount: `¥${totalAmount.toFixed(2)}`,
+                    totalCount: String(res.data?.count || res.data?.total || this.paymentRecordList.length || 0),
+                    fiatAmount: `¥${totalAmount.toFixed(2)}`,
+                    digitalAmount: '¥0.00'
+                }
+            } catch (error) {
+                console.error('[payment-record] load failed:', error)
+            }
+        },
+        formatPaymentRecordAmount(value) {
+            const amount = Number(value || 0)
+            if (Number.isNaN(amount)) return value || '0.00'
+            return Math.abs(amount).toFixed(2)
+        },
         getCurrentPageOptions() {
             const pages = getCurrentPages()
             const currentPage = pages[pages.length - 1] || {}
@@ -1112,7 +1597,7 @@ export default {
         syncStoreDetailActiveTab() {
             const options = this.getCurrentPageOptions()
             const tab = options.tab || options.activeTab || this.storeDetailDefaultTab || ''
-            const validTabs = ['detail', 'group', 'album']
+            const validTabs = ['detail', 'group', 'album', 'video', 'comment']
             this.storeDetailActiveTab = validTabs.includes(tab) ? tab : 'detail'
         },
         async loadStoreDetail() {
@@ -1159,9 +1644,13 @@ export default {
                 urls: this.storeDetailAlbumImages.map(item => item.url)
             })
         },
+        previewStoreDetailVideo(item = {}) {
+            if (!item.url) return
+            this.goPage(item.url)
+        },
         onStoreDetailTab(tab) {
             if (!tab || tab.active) return
-            if (tab.key === 'detail' || tab.key === 'group' || tab.key === 'album') {
+            if (tab.key === 'detail' || tab.key === 'group' || tab.key === 'album' || tab.key === 'video' || tab.key === 'comment') {
                 this.storeDetailActiveTab = tab.key
                 return
             }
@@ -1197,7 +1686,7 @@ export default {
                 ...fallback,
                 ...item,
                 name: item.name || fallback.name || '',
-                image: item.image || fallback.image || '',
+                image: this.shouldUseEmptyServiceImage(item.name || fallback.name) ? '' : (item.image || fallback.image || ''),
                 categoryId,
                 url: categoryId
                     ? `/bundle/pages/business_pages/street_goods?categoryId=${categoryId}`
@@ -1223,6 +1712,12 @@ export default {
                     : (fallback.url || '/bundle/pages/business_pages/store_detail')
             }
         },
+        isEmptyImage(src) {
+            return isPlaceholderImage(src)
+        },
+        shouldUseEmptyServiceImage(name = '') {
+            return ['服装', '本地生活', '粮油饮品'].some(item => String(name).includes(item))
+        },
         formatStreetScore(value) {
             if (value === '' || value === null || value === undefined) return '5.0'
             const score = Number(value)
@@ -1235,6 +1730,18 @@ export default {
             if (status === 'CLOSED') return '未营业'
             if (status === 'REST') return '休息中'
             return status
+        },
+        onStreetSearch() {
+            const keyword = (this.streetKeyword || '').trim()
+            this.streetKeyword = keyword
+            this.streetLoaded = false
+            uni.hideKeyboard()
+            this.loadStreetIndex()
+        },
+        onListSearch() {
+            const keyword = (this.listKeyword || '').trim()
+            this.listKeyword = keyword
+            uni.hideKeyboard()
         },
         goBack() {
             const pages = getCurrentPages()
@@ -1271,133 +1778,1033 @@ export default {
     background: #f2f2f2;
 }
 
+.business-scene--about-us {
+    background: #f7f8fb;
+}
+
+.business-scene--activity-center {
+    background: #f7f8fb url('/static/lanhu/assets/business_pages/activity_center_bg.png') no-repeat center top;
+    background-size: 100% 100%;
+}
+
+.business-scene--intro-card,
+.business-scene--recent-visits {
+    background: #ffffff;
+}
+
 .business-scene__scroll {
     height: calc(100vh - 88rpx - var(--status-bar-height));
 }
 
 .business-scene__scroll--full {
-    height: 100vh;
+    height: calc(100vh - env(safe-area-inset-bottom));
+}
+
+.qr-page {
+    position: relative;
+    width: 100%;
+    max-width: 750rpx;
+    min-height: 1626rpx;
+    margin: 0 auto;
+    overflow: hidden;
+    background-repeat: no-repeat;
+    background-position: center top;
+    background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.qr-page--store {
+    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/0ccc30c9033828fd3e3723f5e43765e1');
+}
+
+.qr-page--goods {
+    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/1812900c299d281cdd4adcd80e9d02fd');
+}
+
+.qr-page__mark {
+    position: absolute;
+    left: 351rpx;
+    width: 48rpx;
+    height: 48rpx;
+}
+
+.qr-page--store .qr-page__mark {
+    top: 1175rpx;
+}
+
+.qr-page--goods .qr-page__mark {
+    top: 1398rpx;
+}
+
+.qr-shop-card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    width: 540rpx;
+    height: 373rpx;
+    margin-left: 106rpx;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.qr-page--store .qr-shop-card {
+    margin-top: 436rpx;
+    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/264731ffd33531cb16f5c72f042fe14b');
+}
+
+.qr-page--goods .qr-shop-card {
+    margin-top: 329rpx;
+    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/03b1646c905f30fb5cc4b12a3a1df372');
+}
+
+.qr-shop-card__logo {
+    flex: none;
+    width: 147rpx;
+    height: 147rpx;
+    margin: 23rpx 0 0 29rpx;
+    background: #ffffff;
+    border-radius: 10rpx;
+}
+
+.qr-shop-card__body {
+    flex: 1;
+    min-width: 0;
+    margin: 38rpx 43rpx 0 27rpx;
+}
+
+.qr-shop-card__name {
+    color: #ffffff;
+    font-size: 28rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    line-height: 28rpx;
+    white-space: nowrap;
+}
+
+.qr-shop-card__rating {
+    display: flex;
+    align-items: center;
+    height: 23rpx;
+    margin-top: 16rpx;
+}
+
+.qr-shop-card__star {
+    width: 52rpx;
+    height: 23rpx;
+    margin-right: 3rpx;
+}
+
+.qr-shop-card__star:nth-child(3) {
+    width: 24rpx;
+}
+
+.qr-shop-card__score {
+    margin: 3rpx 0 0 6rpx;
+    color: #ffffff;
+    font-size: 24rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.qr-shop-card__time {
+    display: flex;
+    align-items: center;
+    margin-top: 31rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    line-height: 26rpx;
+    white-space: nowrap;
+}
+
+.qr-shop-card__time-icon {
+    flex: none;
+    width: 25rpx;
+    height: 25rpx;
+    margin-right: 6rpx;
+}
+
+.qr-store-panel,
+.qr-goods-panel {
+    position: absolute;
+    z-index: 2;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.qr-store-panel {
+    left: 106rpx;
+    top: 628rpx;
+    width: 540rpx;
+    height: 518rpx;
+    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/2f63b8336e9bcbd0397b8bc4f7b1eba0');
+}
+
+.qr-code-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #d5d5d5;
+}
+
+.qr-code-box--store {
+    width: 275rpx;
+    height: 275rpx;
+    margin: 58rpx 0 0 128rpx;
+    border-radius: 23rpx;
+}
+
+.qr-store-panel__desc {
+    margin-top: 36rpx;
+    color: #222222;
+    font-size: 26rpx;
+    line-height: 26rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.qr-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.qr-action-row--store {
+    width: 498rpx;
+    margin: 24rpx 0 0 13rpx;
+}
+
+.qr-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 243rpx;
+    height: 81rpx;
+    color: #ffffff;
+    font-size: 28rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    line-height: 28rpx;
+    background: #037dfa;
+    border-radius: 40rpx;
+    white-space: nowrap;
+}
+
+.qr-action--cyan {
+    background: #03acfa;
+}
+
+.qr-goods-panel {
+    left: 66rpx;
+    top: 521rpx;
+    width: 620rpx;
+    height: 838rpx;
+    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/f32ca2939042b3472f400311bd2edccd');
+}
+
+.qr-goods-main {
+    width: 562rpx;
+    height: 510rpx;
+    margin: 35rpx 0 0 29rpx;
+    background: #d5d5d5;
+    border-radius: 23rpx;
+}
+
+.qr-goods-info {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 559rpx;
+    height: 124rpx;
+    margin: 19rpx 0 0 31rpx;
+}
+
+.qr-goods-copy {
+    margin-top: 28rpx;
+}
+
+.qr-goods-price {
+    display: flex;
+    align-items: baseline;
+    height: 39rpx;
+    color: #ff1919;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.qr-goods-price__symbol,
+.qr-goods-price__decimal {
+    font-size: 26rpx;
+    line-height: 26rpx;
+}
+
+.qr-goods-price__main {
+    font-size: 51rpx;
+    line-height: 51rpx;
+}
+
+.qr-goods-tip {
+    margin-top: 21rpx;
+    color: #666666;
+    font-size: 24rpx;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.qr-code-box--goods {
+    width: 124rpx;
+    height: 124rpx;
+    border-radius: 6rpx;
+}
+
+.qr-action-row--goods {
+    width: 531rpx;
+    margin: 33rpx 0 0 45rpx;
+}
+
+.about-us-page {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #f7f8fb;
+    box-sizing: border-box;
+}
+
+.about-us-hero {
+    position: relative;
+    height: 750rpx;
+    padding-top: calc(var(--status-bar-height) + 45rpx);
+    background: linear-gradient(180deg, #1688ff 0%, #037dfa 54%, #f7f8fb 100%);
+    box-sizing: border-box;
+}
+
+.about-us-topbar {
+    display: flex;
+    align-items: center;
+    width: calc(100% - 48rpx);
+    height: 64rpx;
+    margin: 0 24rpx;
+}
+
+.about-us-back {
+    position: relative;
+    width: 48rpx;
+    height: 64rpx;
+}
+
+.about-us-back::after {
+    content: '';
+    position: absolute;
+    left: 8rpx;
+    top: 20rpx;
+    width: 18rpx;
+    height: 18rpx;
+    border-left: 4rpx solid #ffffff;
+    border-bottom: 4rpx solid #ffffff;
+    transform: rotate(45deg);
+}
+
+.about-us-logo {
+    margin-top: 80rpx;
+    color: #ffffff;
+    font-size: 55rpx;
+    font-weight: 600;
+    line-height: 60rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.about-us-version {
+    margin-top: 25rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    line-height: 30rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.about-us-card {
+    position: absolute;
+    left: 24rpx;
+    right: 23rpx;
+    top: 393rpx;
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 15rpx;
+    box-shadow: 0 14rpx 34rpx rgba(20, 63, 107, 0.06);
+}
+
+.about-us-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 97rpx;
+    padding: 0 33rpx 0 29rpx;
+    box-sizing: border-box;
+}
+
+.about-us-row__title {
+    flex: 1;
+    min-width: 0;
+    color: #222222;
+    font-size: 26rpx;
+    font-weight: 500;
+    line-height: 30rpx;
+    white-space: nowrap;
+}
+
+.about-us-row__arrow {
+    flex: none;
+    width: 10rpx;
+    height: 17rpx;
+    margin-left: 24rpx;
+}
+
+.about-us-row__line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1rpx;
+    background: #f0f0f0;
+}
+
+.activity-center-page {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #f7f8fb url('/static/lanhu/assets/business_pages/activity_center_bg.png') no-repeat center top;
+    background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.activity-center-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.activity-center-hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    padding-top: calc(var(--status-bar-height) + 45rpx);
+    background: transparent;
+    box-sizing: border-box;
+}
+
+.activity-center-topbar {
+    display: flex;
+    align-items: center;
+    width: calc(100% - 48rpx);
+    height: 64rpx;
+    margin: 0 24rpx;
+}
+
+.activity-center-back {
+    position: relative;
+    width: 42rpx;
+    height: 64rpx;
+}
+
+.activity-center-back::after {
+    content: '';
+    position: absolute;
+    left: 14rpx;
+    top: 20rpx;
+    width: 18rpx;
+    height: 18rpx;
+    border-left: 4rpx solid #222222;
+    border-bottom: 4rpx solid #222222;
+    transform: rotate(45deg);
+}
+
+.activity-center-list {
+    display: flex;
+    flex-direction: column;
+    gap: 25rpx;
+    margin: 439rpx 24rpx 0;
+}
+
+.activity-center-card {
+    display: flex;
+    min-height: 271rpx;
+    padding: 30rpx 24rpx 30rpx 30rpx;
+    background: #ffffff;
+    border: 3rpx solid #ffffff;
+    border-radius: 20rpx;
+    box-sizing: border-box;
+}
+
+.activity-center-card__image {
+    flex: none;
+    width: 170rpx;
+    height: 204rpx;
+    border-radius: 12rpx;
+    object-fit: cover;
+}
+
+.activity-center-card__body {
+    flex: 1;
+    min-width: 0;
+    margin: 21rpx 0 0 34rpx;
+}
+
+.activity-center-card__title {
+    color: #222222;
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 34rpx;
+    white-space: nowrap;
+}
+
+.activity-center-card__desc {
+    margin-top: 22rpx;
+    color: #999999;
+    font-size: 24rpx;
+    line-height: 28rpx;
+    white-space: nowrap;
+}
+
+.activity-center-card__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 45rpx;
+}
+
+.activity-center-card__date {
+    color: #999999;
+    font-size: 24rpx;
+    line-height: 30rpx;
+    white-space: nowrap;
+}
+
+.activity-center-card__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 199rpx;
+    height: 64rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    font-weight: 600;
+    line-height: 30rpx;
+    background: #037dfa;
+    border-radius: 32rpx;
+    white-space: nowrap;
+}
+
+.activity-exchange-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 120;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.activity-exchange-modal__mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.58);
+}
+
+.activity-exchange-dialog {
+    position: relative;
+    z-index: 1;
+    width: 553rpx;
+    min-height: 727rpx;
+    padding: 208rpx 11rpx 32rpx;
+    background: #ffffff url('/static/lanhu/designs/17-activity-exchange.png') no-repeat center top;
+    background-size: 100% 100%;
+    border-radius: 24rpx;
+    box-sizing: border-box;
+    box-shadow: 0 24rpx 70rpx rgba(0, 0, 0, 0.18);
+}
+
+.activity-exchange-dialog__title {
+    color: #222222;
+    font-size: 34rpx;
+    font-weight: 700;
+    line-height: 38rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.activity-exchange-dialog__points {
+    margin-top: 41rpx;
+    color: #ff0d0d;
+    font-size: 34rpx;
+    font-weight: 700;
+    line-height: 38rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.activity-exchange-dialog__label {
+    margin-top: 24rpx;
+    color: #666666;
+    font-size: 24rpx;
+    line-height: 28rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.activity-exchange-dialog__balance {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80rpx;
+    margin-top: 33rpx;
+    padding: 0 34rpx 0 29rpx;
+    color: #666666;
+    font-size: 24rpx;
+    line-height: 28rpx;
+    background: #ffffff;
+    border-radius: 5rpx;
+    box-sizing: border-box;
+}
+
+.activity-exchange-dialog__balance text:last-child {
+    color: #222222;
+    font-weight: 600;
+}
+
+.activity-exchange-dialog__email-label {
+    margin: 35rpx 0 0 28rpx;
+    color: #666666;
+    font-size: 24rpx;
+    line-height: 28rpx;
+    white-space: nowrap;
+}
+
+.activity-exchange-dialog__email {
+    margin: 26rpx 0 0 27rpx;
+    color: #222222;
+    font-size: 24rpx;
+    font-weight: 600;
+    line-height: 28rpx;
+    white-space: nowrap;
+}
+
+.activity-exchange-dialog__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 510rpx;
+    height: 81rpx;
+    margin: 33rpx auto 0;
+    color: #ffffff;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 32rpx;
+    background: rgba(3, 125, 250, 0.3);
+    border-radius: 40rpx;
+    white-space: nowrap;
+}
+
+.intro-card-page {
+    position: relative;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
+    padding-top: calc(var(--status-bar-height) + 45rpx);
+    background: #0d83ff url('/static/lanhu/assets/business_pages/intro_card_page_bg.png') no-repeat center top;
+    background-size: 100% 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.intro-card-page-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.intro-card-topbar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    height: 64rpx;
+    margin: 0 24rpx;
+}
+
+.intro-card-back {
+    width: 14rpx;
+    height: 24rpx;
+    padding: 20rpx 28rpx 20rpx 0;
+}
+
+.intro-card-title {
+    position: absolute;
+    left: 50%;
+    top: 17rpx;
+    color: #ffffff;
+    font-size: 36rpx;
+    font-weight: 500;
+    line-height: 40rpx;
+    white-space: nowrap;
+    transform: translateX(-50%);
+}
+
+.intro-card-panel {
+    position: relative;
+    z-index: 1;
+    width: 650rpx;
+    min-height: 860rpx;
+    margin: 196rpx auto 0;
+    padding: 45rpx 36rpx 56rpx;
+    background: url('/static/lanhu/assets/business_pages/intro_card_panel_bg.png') no-repeat center top;
+    background-size: 100% 100%;
+    border-radius: 0;
+    box-sizing: border-box;
+    box-shadow: 0 24rpx 70rpx rgba(18, 98, 200, 0.18);
+    overflow: hidden;
+}
+
+.intro-card-panel-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.intro-card-user {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    margin-left: 0;
+}
+
+.intro-card-avatar {
+    flex: none;
+    width: 126rpx;
+    height: 126rpx;
+    background: #ffffff;
+    border: 2rpx solid #ffffff;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.intro-card-info {
+    flex: 1;
+    min-width: 0;
+    margin: 18rpx 0 0 33rpx;
+}
+
+.intro-card-name {
+    color: #ffffff;
+    font-size: 34rpx;
+    font-weight: 600;
+    line-height: 36rpx;
+    white-space: nowrap;
+}
+
+.intro-card-line {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    max-width: 100%;
+    margin-top: 25rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    line-height: 28rpx;
+    white-space: nowrap;
+}
+
+.intro-card-line--account {
+    width: 100%;
+    margin-top: 24rpx;
+}
+
+.intro-card-line__text {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.intro-card-copy {
+    flex: none;
+    width: 24rpx;
+    height: 23rpx;
+    margin-left: 16rpx;
+}
+
+.intro-card-qr {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 372rpx;
+    height: 372rpx;
+    margin: 184rpx auto 0;
+    background: #ffffff;
+    border-radius: 18rpx;
+}
+
+.recent-visits-page {
+    min-height: 100vh;
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
+    padding-top: calc(var(--status-bar-height) + 45rpx);
+    background: #ffffff url('https://lanhu-oss-proxy.lanhuapp.com/d8467d9a62a60ccdbb6908777aebe692') no-repeat center top;
+    background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.recent-visits-topbar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: calc(100% - 48rpx);
+    height: 64rpx;
+    margin: 0 24rpx;
+}
+
+.recent-visits-back {
+    width: 14rpx;
+    height: 24rpx;
+    padding: 20rpx 28rpx 20rpx 0;
+}
+
+.recent-visits-title {
+    position: absolute;
+    left: 50%;
+    top: 17rpx;
+    color: #222222;
+    font-size: 36rpx;
+    font-weight: 600;
+    line-height: 40rpx;
+    white-space: nowrap;
+    transform: translateX(-50%);
+}
+
+.recent-visits-list {
+    margin: 36rpx 24rpx 0 23rpx;
+}
+
+.recent-visits-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 181rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+    box-sizing: border-box;
+}
+
+.recent-visits-item:first-child {
+    height: 157rpx;
+    align-items: flex-start;
+}
+
+.recent-visits-thumb {
+    flex: none;
+    width: 128rpx;
+    height: 128rpx;
+    background: #d5d5d5;
+    border-radius: 8rpx;
+}
+
+.recent-visits-info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 24rpx;
+}
+
+.recent-visits-name {
+    color: #222222;
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 34rpx;
+    white-space: nowrap;
+}
+
+.recent-visits-time {
+    margin-top: 30rpx;
+    color: #999999;
+    font-size: 26rpx;
+    line-height: 30rpx;
+    white-space: nowrap;
+}
+
+.recent-visits-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 150rpx;
+    height: 58rpx;
+    margin-left: 24rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    font-weight: 600;
+    line-height: 30rpx;
+    background: #037dfa;
+    border-radius: 29rpx;
+    white-space: nowrap;
+}
+
+.recent-visits-btn--subscribed {
+    color: #037dfa;
+    background: #d0e7ff;
 }
 
 .feedback-page {
     min-height: 100vh;
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
+    overflow-x: hidden;
     background: #f2f2f2;
+    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/e9e114d902b93769e318427edddce2a8');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    box-sizing: border-box;
 }
 
 .feedback-hero {
-    padding: calc(var(--status-bar-height) + 10rpx) 30rpx 40rpx;
+    min-height: 300rpx;
+    padding: calc(var(--status-bar-height) + 20rpx) 26rpx 20rpx;
     background: #ffffff;
+    box-sizing: border-box;
 }
 
 .feedback-hero__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 58rpx;
+    min-height: 52rpx;
 }
 
 .feedback-back {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    width: 58rpx;
-    height: 58rpx;
+    width: 64rpx;
+    height: 52rpx;
 }
 
-.feedback-menu {
-    width: 159rpx;
-    height: 58rpx;
+.feedback-menu-space {
+    width: 144rpx;
+    height: 52rpx;
+    flex: none;
 }
 
 .feedback-hero__body {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    margin-top: 78rpx;
-}
-
-.feedback-hero__text {
-    width: 390rpx;
-    padding-top: 14rpx;
-}
-
-.feedback-hero__title {
-    color: #222222;
-    font-size: 58rpx;
-    font-weight: 600;
-    line-height: 1.08;
-}
-
-.feedback-hero__subtitle {
-    margin-top: 18rpx;
-    color: #222222;
-    font-size: 29rpx;
-    line-height: 1.3;
-}
-
-.feedback-hero__illustration {
-    position: relative;
-    width: 208rpx;
-    height: 174rpx;
-    margin-top: 8rpx;
-}
-
-.feedback-hero__smile {
-    position: absolute;
-    left: 8rpx;
-    top: 40rpx;
-    width: 156rpx;
-    height: 156rpx;
-    border: 10rpx solid #0f7cf7;
-    border-top-color: transparent;
-    border-left-color: #0f7cf7;
-    border-right-color: #0f7cf7;
-    border-radius: 50%;
-    transform: rotate(180deg);
+    margin-top: 72rpx;
+    padding: 0 30rpx 0 15rpx;
     box-sizing: border-box;
 }
 
-.feedback-hero__eye {
-    position: absolute;
-    top: 4rpx;
-    width: 22rpx;
-    height: 54rpx;
-    background: #0f7cf7;
-    border-radius: 14rpx;
+.feedback-hero__text {
+    flex: 1;
+    min-width: 0;
+    padding-right: 24rpx;
 }
 
-.feedback-hero__eye--left {
-    left: 52rpx;
+.feedback-hero__title {
+    color: #1d1d1d;
+    font-size: 49rpx;
+    font-family: AlimamaShuHeiTi-Bold, PingFangSC-Medium, sans-serif;
+    font-weight: 700;
+    line-height: 49rpx;
+    white-space: nowrap;
 }
 
-.feedback-hero__eye--right {
-    left: 110rpx;
+.feedback-hero__subtitle {
+    margin-top: 30rpx;
+    color: #1d1d1d;
+    font-size: 26rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    line-height: 26rpx;
+    white-space: nowrap;
+}
+
+.feedback-hero__illustration {
+    flex: none;
+    width: 164rpx;
+    height: 124rpx;
 }
 
 .feedback-body {
-    padding: 22rpx 24rpx 0;
+    padding: 39rpx 21rpx 0;
+    box-sizing: border-box;
 }
 
 .feedback-card {
-    padding: 32rpx 28rpx 28rpx;
+    width: 100%;
+    padding: 32rpx 37rpx;
     margin-bottom: 18rpx;
     background: #ffffff;
-    border-radius: 32rpx;
+    border-radius: 24rpx;
+    box-sizing: border-box;
+}
+
+.feedback-card--types {
+    min-height: 274rpx;
+}
+
+.feedback-card--form {
+    min-height: 699rpx;
 }
 
 .feedback-card__title,
 .feedback-contact__title {
-    color: #222222;
-    font-size: 32rpx;
-    font-weight: 700;
-    line-height: 1.2;
+    color: #1d1d1d;
+    font-size: 26rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    line-height: 26rpx;
+    white-space: nowrap;
 }
 
 .feedback-tag-grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    margin-top: 32rpx;
+    row-gap: 18rpx;
+    margin-top: 38rpx;
 }
 
 .feedback-tag {
@@ -1405,37 +2812,42 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: calc((100% - 36rpx) / 3);
+    width: calc((100% - 48rpx) / 3);
     height: 62rpx;
-    margin-bottom: 20rpx;
     background: #ffffff;
-    border: 1rpx solid #d4d4d4;
-    border-radius: 6rpx;
+    border: 2rpx solid #cfcfcf;
+    border-radius: 7rpx;
     overflow: hidden;
     box-sizing: border-box;
 }
 
 .feedback-tag--active {
-    border-width: 2rpx;
-    border-color: #222222;
+    border-color: #037dfa;
+    background: rgba(3, 125, 250, 0.08);
 }
 
 .feedback-tag__text {
-    color: #222222;
-    font-size: 28rpx;
+    color: #1d1d1d;
+    font-size: 24rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
     line-height: 1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .feedback-tag__check {
     position: absolute;
-    right: -2rpx;
-    bottom: -2rpx;
+    right: 0;
+    bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 52rpx;
     height: 36rpx;
-    background: #222222;
+    background: #037dfa;
     border-radius: 8rpx 0 8rpx 0;
 }
 
@@ -1448,20 +2860,20 @@ export default {
 
 .feedback-textarea-shell {
     position: relative;
-    min-height: 376rpx;
-    margin-top: 24rpx;
-    padding: 18rpx 18rpx 20rpx;
-    background: #f4f4f4;
-    border-radius: 24rpx;
+    height: 379rpx;
+    margin-top: 27rpx;
+    padding: 18rpx 21rpx 20rpx;
+    background: #f3f3f3;
+    border-radius: 16rpx;
     box-sizing: border-box;
 }
 
 .feedback-textarea {
     width: 100%;
-    height: 290rpx;
+    height: 214rpx;
     padding: 0;
-    color: #222222;
-    font-size: 28rpx;
+    color: #1d1d1d;
+    font-size: 26rpx;
     line-height: 38rpx;
     background: transparent;
     box-sizing: border-box;
@@ -1469,56 +2881,53 @@ export default {
 
 .feedback-upload {
     position: absolute;
-    left: 18rpx;
-    bottom: 18rpx;
+    left: 21rpx;
+    bottom: 24rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 120rpx;
-    height: 120rpx;
+    width: 113rpx;
+    height: 113rpx;
     background: #ffffff;
-    border: 1rpx dashed #d7d7d7;
-    border-radius: 16rpx;
+    border: 1rpx dashed #c1c1c1;
+    border-radius: 9rpx;
     box-sizing: border-box;
 }
 
-.feedback-upload__plus {
-    position: absolute;
-    right: 20rpx;
-    bottom: 18rpx;
-    color: #666666;
-    font-size: 28rpx;
-    font-weight: 600;
-    line-height: 1;
+.feedback-upload__icon {
+    width: 41rpx;
+    height: 35rpx;
 }
 
 .feedback-textarea__count {
     position: absolute;
-    right: 20rpx;
-    bottom: 18rpx;
-    color: #9d9d9d;
-    font-size: 26rpx;
-    line-height: 1;
+    right: 23rpx;
+    bottom: 23rpx;
+    color: #999999;
+    font-size: 28rpx;
+    font-family: PingFangSC-Medium, sans-serif;
+    font-weight: 500;
+    line-height: 28rpx;
 }
 
 .feedback-contact__title {
-    margin-top: 40rpx;
+    margin-top: 56rpx;
 }
 
 .feedback-contact-shell {
-    height: 96rpx;
-    margin-top: 24rpx;
+    height: 99rpx;
+    margin-top: 23rpx;
     padding: 0 22rpx;
-    background: #f4f4f4;
-    border-radius: 24rpx;
+    background: #f3f3f3;
+    border-radius: 16rpx;
     box-sizing: border-box;
 }
 
 .feedback-contact {
     width: 100%;
-    height: 96rpx;
-    color: #222222;
-    font-size: 28rpx;
+    height: 99rpx;
+    color: #1d1d1d;
+    font-size: 26rpx;
     background: transparent;
 }
 
@@ -1526,15 +2935,32 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 540rpx;
-    height: 88rpx;
-    margin: 40rpx auto 54rpx;
+    width: 515rpx;
+    max-width: calc(100vw - 120rpx);
+    height: 78rpx;
+    margin: 43rpx auto 79rpx;
     color: #ffffff;
-    font-size: 32rpx;
+    font-size: 28rpx;
+    font-family: PingFangSC-Medium, sans-serif;
     font-weight: 600;
-    background: #0f7cf7;
-    border-radius: 44rpx;
-    box-shadow: 0 10rpx 22rpx rgba(15, 124, 247, 0.18);
+    line-height: 28rpx;
+    background: #037dfa;
+    border-radius: 39rpx;
+}
+
+@media screen and (max-width: 360px) {
+    .feedback-card {
+        padding-left: 28rpx;
+        padding-right: 28rpx;
+    }
+
+    .feedback-tag {
+        width: calc((100% - 24rpx) / 3);
+    }
+
+    .feedback-tag__text {
+        font-size: 22rpx;
+    }
 }
 
 .card,
@@ -1543,6 +2969,52 @@ export default {
 .wallet-mode,
 .list-page {
     margin: 24rpx;
+}
+
+.list-page {
+    min-height: calc(100vh - 48rpx - 88rpx - var(--status-bar-height));
+}
+
+.search-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+    height: 65rpx;
+    padding: 0 18rpx 0 34rpx;
+    background: #ffffff;
+    border-radius: 33rpx;
+    box-shadow: 0 8rpx 22rpx rgba(31, 122, 244, 0.08);
+    box-sizing: border-box;
+}
+
+.search-shell__input {
+    flex: 1;
+    min-width: 0;
+    height: 61rpx;
+    padding-right: 18rpx;
+    color: #222222;
+    font-size: 26rpx;
+    line-height: 61rpx;
+}
+
+.search-shell__placeholder {
+    color: #b7b7b7;
+    font-size: 26rpx;
+}
+
+.search-shell__icon {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56rpx;
+    height: 56rpx;
+}
+
+.search-shell__icon-image {
+    width: 34rpx;
+    height: 34rpx;
 }
 
 .card,
@@ -1823,6 +3295,17 @@ export default {
     padding: 20rpx 24rpx;
 }
 
+.merchant-list {
+    margin-top: 20rpx;
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 24rpx;
+}
+
+.merchant-list__item {
+    align-items: center;
+}
+
 .group-item + .group-item,
 .record-row + .record-row,
 .pending-card + .pending-card,
@@ -1836,9 +3319,20 @@ export default {
 .pending-card__image,
 .album-grid__item {
     flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 180rpx;
     height: 180rpx;
     border-radius: 16rpx;
+    background: #eef1f5;
+}
+
+.image-placeholder {
+    color: #9ca3af;
+    font-size: 24rpx;
+    line-height: 32rpx;
+    text-align: center;
     background: #eef1f5;
 }
 
@@ -1846,6 +3340,12 @@ export default {
 .pending-card__body {
     flex: 1;
     padding-left: 20rpx;
+}
+
+.merchant-list__body {
+    flex: 1;
+    min-width: 0;
+    padding-left: 22rpx;
 }
 
 .group-item__title,
@@ -1888,13 +3388,17 @@ export default {
 }
 
 .street-page {
+    width: 100%;
+    max-width: 900rpx;
     min-height: 100vh;
+    margin: 0 auto;
     background: linear-gradient(180deg, #377df2 0%, #68a3f7 266rpx, #f8f8f8 266rpx, #f8f8f8 100%);
-    padding-bottom: 128rpx;
+    padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
+    box-sizing: border-box;
 }
 
 .street-header {
-    padding: calc(var(--status-bar-height) + 18rpx) 24rpx 22rpx;
+    padding: calc(var(--status-bar-height) + 12rpx) 24rpx 20rpx;
 }
 
 .street-header__top {
@@ -1927,24 +3431,36 @@ export default {
     justify-content: space-between;
     height: 65rpx;
     margin-top: 13rpx;
-    padding: 0 29rpx 0 39rpx;
+    padding: 0 18rpx 0 34rpx;
     background: #ffffff;
     border: 2rpx solid rgba(255, 255, 255, 1);
-    border-radius: 32rpx 0 32rpx 32rpx;
+    border-radius: 33rpx;
+    box-shadow: 0 8rpx 24rpx rgba(24, 91, 192, 0.12);
+    box-sizing: border-box;
+}
+
+.street-search__input {
+    flex: 1;
+    min-width: 0;
+    height: 61rpx;
+    padding-right: 18rpx;
+    color: #222222;
+    font-size: 26rpx;
+    line-height: 61rpx;
 }
 
 .street-search__placeholder {
-    font-size: 22rpx;
     color: #b7b7b7;
-    line-height: 22rpx;
+    font-size: 26rpx;
 }
 
 .street-search__icon {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34rpx;
-    height: 34rpx;
+    width: 56rpx;
+    height: 56rpx;
 }
 
 .street-search__icon-image {
@@ -1953,7 +3469,8 @@ export default {
 }
 
 .street-sheet {
-    margin-top: 25rpx;
+    min-height: calc(100vh - 266rpx);
+    margin-top: 20rpx;
     background: #f8f8f8;
     border-top-left-radius: 21rpx;
     border-top-right-radius: 21rpx;
@@ -1963,15 +3480,16 @@ export default {
 .street-service-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 35rpx 84rpx;
-    padding: 56rpx 45rpx 0;
+    justify-content: space-between;
+    row-gap: 34rpx;
+    padding: 48rpx 42rpx 0;
 }
 
 .street-service-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 102rpx;
+    width: 25%;
 }
 
 .street-service-item__icon-shell {
@@ -1996,7 +3514,7 @@ export default {
 }
 
 .street-merchant-list {
-    padding: 40rpx 24rpx 14rpx;
+    padding: 40rpx 24rpx 24rpx;
 }
 
 .street-merchant-card {
@@ -2006,6 +3524,7 @@ export default {
     margin-bottom: 26rpx;
     background: #ffffff;
     border-radius: 15rpx;
+    overflow: hidden;
 }
 
 .street-merchant-card__image-shell {
@@ -2019,6 +3538,9 @@ export default {
 }
 
 .street-merchant-card__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 189rpx;
     height: 189rpx;
 }
@@ -2080,6 +3602,24 @@ export default {
     line-height: 26rpx;
 }
 
+@media screen and (min-width: 768px) {
+    .street-service-grid {
+        justify-content: flex-start;
+        column-gap: 32rpx;
+        padding-left: 48rpx;
+        padding-right: 48rpx;
+    }
+
+    .street-service-item {
+        width: calc((100% - 96rpx) / 4);
+    }
+
+    .street-merchant-list {
+        padding-left: 32rpx;
+        padding-right: 32rpx;
+    }
+}
+
 .store-detail-page {
     min-height: 100vh;
     padding-bottom: 56rpx;
@@ -2123,16 +3663,17 @@ export default {
     height: 64rpx;
 }
 
+.store-detail-hero__right-space {
+    width: 60rpx;
+    height: 64rpx;
+    flex: none;
+}
+
 .store-detail-hero__title {
     color: #ffffff;
     font-size: 36rpx;
     font-weight: 500;
     line-height: 36rpx;
-}
-
-.store-detail-hero__capsule {
-    width: 168rpx;
-    height: 64rpx;
 }
 
 .store-detail-summary-card,
@@ -2319,18 +3860,21 @@ export default {
     padding: 31rpx 24rpx 40rpx;
 }
 
-.store-detail-album-wrap {
+.store-detail-media-wrap {
     min-height: 900rpx;
     padding: 24rpx 24rpx 40rpx;
 }
 
-.store-detail-album-grid {
+.store-detail-album-grid,
+.store-detail-video-grid {
     display: flex;
     flex-wrap: wrap;
     margin: 0 -9rpx;
 }
 
-.store-detail-album-card {
+.store-detail-album-card,
+.store-detail-video-card {
+    position: relative;
     width: calc(50% - 18rpx);
     height: 220rpx;
     margin: 0 9rpx 18rpx;
@@ -2340,32 +3884,138 @@ export default {
     box-shadow: 0 10rpx 24rpx rgba(34, 34, 34, 0.05);
 }
 
-.store-detail-album-card__image {
+.store-detail-album-card__image,
+.store-detail-video-card__cover {
     width: 100%;
     height: 100%;
 }
 
-.store-detail-album-empty {
+.store-detail-video-card__mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.store-detail-video-card__play {
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    position: relative;
+}
+
+.store-detail-video-card__play::after {
+    content: '';
+    position: absolute;
+    left: 26rpx;
+    top: 20rpx;
+    width: 0;
+    height: 0;
+    border-top: 12rpx solid transparent;
+    border-bottom: 12rpx solid transparent;
+    border-left: 18rpx solid #2a7aff;
+}
+
+.store-detail-video-card__title {
+    position: absolute;
+    left: 18rpx;
+    right: 18rpx;
+    bottom: 16rpx;
+    color: #ffffff;
+    font-size: 24rpx;
+    font-weight: 500;
+    line-height: 28rpx;
+    text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.28);
+}
+
+.store-detail-media-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 160rpx;
+    min-height: 620rpx;
+    border-radius: 18rpx;
+    box-sizing: border-box;
 }
 
-.store-detail-album-empty__image {
-    width: 430rpx;
-    height: 548rpx;
-}
-
-.store-detail-album-empty__text {
-    margin-top: 28rpx;
-    color: #6f6f6f;
+.store-detail-media-empty__title {
+    margin-top: 10rpx;
+    color: #222222;
     font-size: 32rpx;
     font-weight: 600;
     line-height: 44rpx;
 }
 
+.store-detail-media-empty__desc {
+    margin-top: 12rpx;
+    color: #999999;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.store-detail-comment-list {
+    padding: 21rpx 24rpx 40rpx;
+}
+
+.store-detail-comment-card {
+    min-height: 185rpx;
+    margin-bottom: 18rpx;
+    padding: 25rpx 24rpx 24rpx;
+    background: #ffffff;
+    border-radius: 13rpx;
+    box-sizing: border-box;
+}
+
+.store-detail-comment-card__head {
+    display: flex;
+    align-items: flex-start;
+}
+
+.store-detail-comment-card__avatar,
+.store-detail-comment-card__avatar-image {
+    flex: none;
+    width: 92rpx;
+    height: 92rpx;
+    border-radius: 7rpx;
+    background: #666666;
+}
+
+.store-detail-comment-card__avatar-image {
+    overflow: hidden;
+}
+
+.store-detail-comment-card__meta {
+    flex: 1;
+    min-width: 0;
+    margin: 18rpx 0 0 18rpx;
+}
+
+.store-detail-comment-card__name {
+    color: #222222;
+    font-size: 28rpx;
+    font-weight: 500;
+    line-height: 28rpx;
+}
+
+.store-detail-comment-card__date {
+    margin-top: 19rpx;
+    color: #999999;
+    font-size: 22rpx;
+    font-weight: 300;
+    line-height: 22rpx;
+}
+
+.store-detail-comment-card__content {
+    margin-top: 19rpx;
+    color: #666666;
+    font-size: 22rpx;
+    line-height: 30rpx;
+}
+
 .store-detail-group-card {
+    position: relative;
     display: flex;
     min-height: 236rpx;
     margin-bottom: 20rpx;
@@ -2384,6 +4034,9 @@ export default {
 }
 
 .store-detail-group-card__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 200rpx;
     height: 200rpx;
 }
@@ -2391,7 +4044,7 @@ export default {
 .store-detail-group-card__body {
     flex: 1;
     min-width: 0;
-    padding: 32rpx 20rpx 0 21rpx;
+    padding: 32rpx 184rpx 0 21rpx;
 }
 
 .store-detail-group-card__title {
@@ -2399,6 +4052,7 @@ export default {
     font-size: 28rpx;
     font-weight: 500;
     line-height: 28rpx;
+    text-align: left;
 }
 
 .store-detail-group-card__meta {
@@ -2406,18 +4060,38 @@ export default {
     color: #999999;
     font-size: 24rpx;
     line-height: 24rpx;
+    white-space: nowrap;
 }
 
-.store-detail-group-card__foot {
+.store-detail-group-card__rating {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-top: 56rpx;
+    margin-top: 26rpx;
+}
+
+.store-detail-group-card__stars {
+    display: flex;
+    align-items: center;
+}
+
+.store-detail-group-card__star {
+    width: 24rpx;
+    height: 23rpx;
+    margin-right: 3rpx;
+}
+
+.store-detail-group-card__score {
+    margin-left: 9rpx;
+    color: rgba(248, 104, 33, 1);
+    font-size: 24rpx;
+    font-weight: 500;
+    line-height: 24rpx;
 }
 
 .store-detail-group-card__price {
     display: flex;
     align-items: flex-end;
+    margin-top: 27rpx;
     color: rgba(245, 34, 34, 1);
     line-height: 1;
 }
@@ -2449,6 +4123,12 @@ export default {
     line-height: 24rpx;
 }
 
+.store-detail-group-card__action-wrap {
+    position: absolute;
+    right: 20rpx;
+    bottom: 18rpx;
+}
+
 .user-kyc-page {
     min-height: 100vh;
     background: linear-gradient(180deg, #cbdaf0 0%, #e3ebf7 23%, #ffffff 43%, #ffffff 100%);
@@ -2456,12 +4136,12 @@ export default {
 
 .user-kyc-page__hero {
     position: relative;
-    min-height: 420rpx;
-    padding: 0 24rpx 0;
+    min-height: 360rpx;
+    padding: var(--status-bar-height) 24rpx 0;
 }
 
 .user-kyc-page__status {
-    display: block;
+    display: none;
     width: 100%;
     height: 44rpx;
 }
@@ -2471,7 +4151,6 @@ export default {
     align-items: center;
     justify-content: space-between;
     height: 88rpx;
-    margin-top: 18rpx;
 }
 
 .user-kyc-page__back {
@@ -2482,9 +4161,10 @@ export default {
     height: 68rpx;
 }
 
-.user-kyc-page__capsule {
+.user-kyc-page__topbar-space {
     width: 190rpx;
     height: 82rpx;
+    flex: none;
 }
 
 .user-kyc-page__hero-body {
@@ -2802,7 +4482,7 @@ export default {
     justify-content: center;
     width: 610rpx;
     height: 98rpx;
-    margin: 290rpx auto 0;
+    margin: 30rpx auto 0;
     color: #ffffff;
     font-size: 34rpx;
     font-weight: 700;
@@ -2901,8 +4581,27 @@ export default {
 }
 
 .payment-record-page {
+    position: relative;
     min-height: 100vh;
     padding: 24rpx 24rpx 0;
+}
+
+.payment-filter-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 99;
+}
+
+.payment-filter-modal__mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.48);
 }
 
 .payment-summary-card {
@@ -2929,8 +4628,13 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 74rpx;
-    height: 54rpx;
+    width: 32rpx;
+    height: 32rpx;
+}
+
+.payment-summary-card__filter-image {
+    width: 32rpx;
+    height: 32rpx;
 }
 
 .payment-summary-card__filter-icon {
@@ -3039,9 +4743,57 @@ export default {
     padding-top: 180rpx;
 }
 
-.payment-record-empty__image {
-    width: 430rpx;
-    height: 300rpx;
+.payment-record-empty__icon {
+    position: relative;
+    width: 260rpx;
+    height: 220rpx;
+}
+
+.payment-record-empty__icon::before {
+    content: '';
+    position: absolute;
+    left: 38rpx;
+    top: 16rpx;
+    width: 118rpx;
+    height: 42rpx;
+    background: #f1f3f7;
+    border-radius: 42rpx;
+    box-shadow: 54rpx 40rpx 0 -9rpx #eef1f6;
+}
+
+.payment-record-empty__card {
+    position: absolute;
+    left: 48rpx;
+    top: 84rpx;
+    width: 164rpx;
+    height: 92rpx;
+    background: linear-gradient(180deg, #eef1f5 0%, #dfe4eb 100%);
+    border-radius: 16rpx;
+    transform: rotate(-6deg);
+}
+
+.payment-record-empty__card::before {
+    content: '';
+    position: absolute;
+    left: 24rpx;
+    top: 24rpx;
+    width: 92rpx;
+    height: 10rpx;
+    background: rgba(255, 255, 255, 0.86);
+    border-radius: 10rpx;
+    box-shadow: 0 24rpx 0 rgba(255, 255, 255, 0.68);
+}
+
+.payment-record-empty__card::after {
+    content: '';
+    position: absolute;
+    right: -34rpx;
+    bottom: -20rpx;
+    width: 72rpx;
+    height: 12rpx;
+    background: #d7dde6;
+    border-radius: 12rpx;
+    transform: rotate(42deg);
 }
 
 .payment-record-empty__text {
@@ -3050,6 +4802,49 @@ export default {
     font-weight: 600;
     color: #666666;
     line-height: 44rpx;
+}
+
+.payment-record-list {
+    margin-top: 24rpx;
+}
+
+.payment-record-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 116rpx;
+    padding: 24rpx;
+    margin-bottom: 18rpx;
+    background: #ffffff;
+    border-radius: 20rpx;
+    box-sizing: border-box;
+}
+
+.payment-record-item__main {
+    flex: 1;
+    min-width: 0;
+}
+
+.payment-record-item__title {
+    color: #222222;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 40rpx;
+}
+
+.payment-record-item__time {
+    margin-top: 10rpx;
+    color: #999999;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.payment-record-item__amount {
+    flex: none;
+    margin-left: 24rpx;
+    color: #222222;
+    font-size: 30rpx;
+    font-weight: 600;
 }
 
 .payment-filter-page {

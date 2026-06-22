@@ -26,9 +26,15 @@ const state = {
 };
 
 const mutations = {
-	LOGIN(state, opt) {
+	LOGIN(state, opt = {}) {
+		const userId = opt.userId || opt.user_id || opt.id || state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
 		state.token = opt.token;
+		state.userInfo = {
+			...state.userInfo,
+			...(userId ? { userId, user_id: userId, id: userId } : {})
+		}
 		Cache.set(TOKEN, opt.token, 59 * 24 * 60 * 60);
+		Cache.set(USER_INFO, state.userInfo)
 		this.dispatch('getUser')
 	},
 	LOGOUT(state) {
@@ -96,8 +102,10 @@ const actions = {
 		})
 	},
 
-	getUser({ commit }) {
+	getUser({ state, commit }) {
 		return new Promise(resolve => {
+			const userId = state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
+			if (!state.token || !userId) return resolve()
 			getUser().then(res => {
 				if (res.code == 1) {
 					commit('SETUSERINFO', res.data || {})

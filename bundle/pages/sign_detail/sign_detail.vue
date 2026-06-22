@@ -2,6 +2,7 @@
 <!--pages/sign_detail/sign_detail.wxml-->
 
 <view class="sign-detail-container">
+  <navbar title="积分明细"></navbar>
   <view v-for="(item, index) in detailList" :key="index">
     <view class="sign-item row-between">
       <view class="flexnone">
@@ -19,7 +20,6 @@
   </view>
   <loading-footer :status="loadingStatus" slotEmpty>
     <view class="data-null column-center" slot="empty">
-      <image src="/static/images/order_null.png" class="img-null"></image>
       <view class="muted sm">暂无其他记录～</view>
     </view>
   </loading-footer>

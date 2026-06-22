@@ -34,9 +34,9 @@
                 转账记录</navigator
             >
         </view>
-        <view class="user contain bg-white mt20" v-if="transferList.length">
+        <view class="user contain bg-white mt20">
             <view class="lg bold">最近转账</view>
-            <view class="list">
+            <view v-if="transferList.length" class="list">
                 <view
                     class="item row"
                     v-for="(item, index) in transferList"
@@ -50,6 +50,7 @@
                     </view>
                 </view>
             </view>
+            <view v-else class="transfer-empty">暂无转账记录</view>
         </view>
         <u-modal
             :value="showTransferInfo"
@@ -217,6 +218,15 @@ export default {
             &:not(:last-of-type) {
                 border-bottom: $solid-border;
             }
+        }
+
+        .transfer-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 160rpx;
+            color: #999999;
+            font-size: 26rpx;
         }
     }
 

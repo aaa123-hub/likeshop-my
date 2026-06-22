@@ -41,6 +41,7 @@
 			"style": {
 				"navigationBarTitleText": "分类",
 				"navigationStyle": "custom",
+				"enablePullDownRefresh": false,
 				"disableScroll": true
 			}
 		},
@@ -48,14 +49,16 @@
 			"path": "pages/shop_cart/shop_cart",
 			"style": {
 				"navigationBarTitleText": "购物车",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
 			"path": "pages/street/street",
 			"style": {
 				"navigationBarTitleText": "商街",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
@@ -98,7 +101,8 @@
 		{
 			"path": "pages/user_coupon/user_coupon",
 			"style": {
-				"navigationBarTitleText": "我的优惠券"
+				"navigationBarTitleText": "我的优惠券",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -176,7 +180,7 @@
 		{
 			"path": "pages/webview/webview",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "网页"
 			}
 		},
 		{
@@ -208,7 +212,8 @@
 			{
 				"path": "pages/goods_comment_list/goods_comment_list",
 				"style": {
-					"navigationBarTitleText": "商品评价列表"
+					"navigationBarTitleText": "商品评价列表",
+					"navigationStyle": "custom"
 				}
 			},
 			{
@@ -219,7 +224,9 @@
 			},
 			{
 				"path": "pages/activity_detail/activity_detail",
-				"style": {}
+				"style": {
+					"navigationBarTitleText": "活动详情"
+				}
 			},
 			{
 				"path": "pages/goods_combination/goods_combination",
@@ -245,13 +252,15 @@
 			{
 				"path": "pages/user_sign/user_sign",
 				"style": {
-					"navigationBarTitleText": "签到"
+					"navigationBarTitleText": "签到",
+					"navigationStyle": "custom"
 				}
 			},
 			{
 				"path": "pages/sign_detail/sign_detail",
 				"style": {
-					"navigationBarTitleText": "签到详情"
+					"navigationBarTitleText": "积分明细",
+					"navigationStyle": "custom"
 				}
 			},
 			{
@@ -336,7 +345,7 @@
 			{
 				"path": "pages/server_explan/server_explan",
 				"style": {
-
+					"navigationBarTitleText": "服务说明"
 				}
 			},
 			{
@@ -374,7 +383,8 @@
 			{
 				"path": "pages/post_sale/post_sale",
 				"style": {
-					"navigationBarTitleText": "退款/售后"
+					"navigationBarTitleText": "退款/售后",
+					"navigationStyle": "custom"
 				}
 			},
 			{
@@ -691,7 +701,7 @@
 	},
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "",
+		"navigationBarTitleText": "商城",
 		"navigationBarBackgroundColor": "#FFFFFF",
 		"backgroundColor": "#F8F8F8",
 		"h5": {

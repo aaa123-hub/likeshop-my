@@ -11,9 +11,29 @@ function emptyPage() {
     }
 }
 
+function normalizeActivityPage(res = {}) {
+    if (res.code != 1) return res
+    const data = res.data || {}
+    const list = Array.isArray(data) ? data : (data.list || data.items || data.rows || [])
+    return {
+        ...res,
+        data: {
+            ...(!Array.isArray(data) ? data : {}),
+            list,
+            lists: list,
+            pageNo: data.pageNo || data.page_no || 1,
+            page_no: data.pageNo || data.page_no || 1,
+            pageSize: data.pageSize || data.page_size || list.length || 10,
+            total: data.total || list.length,
+            hasNext: data.hasNext ?? data.more ?? false,
+            more: data.hasNext ?? data.more ?? false
+        }
+    }
+}
+
 export function getGoodsCoupon(data) {
-    return request.get(`miniapp/coupons/${data.id || data.couponId || 0}/receive`, {
-        params: data
+    return request.post(`miniapp/coupons/${data.id || data.couponId || 0}/receive`, {
+        receiveScene: data.receiveScene || data.receive_scene || 'APP'
     })
 }
 
@@ -22,24 +42,39 @@ export function getCouponList(data) {
 }
 
 export function getActivityGoodsLists(data) {
-    return request.get('miniapp/activity/list', { params: data }).then((res) => {
-        if (res.code == 1) {
-            return { ...res, data: res.data || emptyPage() }
+    return request.get('miniapp/activity/list', {
+        params: {
+            activityType: data.activityType || data.type,
+            pageNo: data.pageNo || data.page_no || data.page || 1,
+            pageSize: data.pageSize || data.page_size || 10
         }
-        return res
-    })
+    }).then(normalizeActivityPage)
 }
 
 export function getSeckillTime() {
-    return request.get('miniapp/activity/list')
+    return request.get('miniapp/activity/list', {
+        params: { activityType: 'SECKILL', pageNo: 1, pageSize: 10 }
+    }).then(normalizeActivityPage)
 }
 
 export function getSeckillGoods(params) {
-    return request.get('miniapp/activity/list', { params })
+    return request.get('miniapp/activity/list', {
+        params: {
+            activityType: params?.activityType || 'SECKILL',
+            pageNo: params?.pageNo || params?.page_no || params?.page || 1,
+            pageSize: params?.pageSize || params?.page_size || 10
+        }
+    }).then(normalizeActivityPage)
 }
 
 export function getGroupList(params) {
-    return request.get('miniapp/activity/list', { params })
+    return request.get('miniapp/activity/list', {
+        params: {
+            activityType: params?.activityType || 'GROUP_BUY',
+            pageNo: params?.pageNo || params?.page_no || params?.page || 1,
+            pageSize: params?.pageSize || params?.page_size || 10
+        }
+    }).then(normalizeActivityPage)
 }
 
 export function getUserGroup(params) {

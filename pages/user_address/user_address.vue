@@ -52,14 +52,7 @@
             </template>
             <template v-else>
                 <view class="empty-wrap">
-                    <u-empty
-                        mode="address"
-                        text="暂无数据"
-                        :icon-size="240"
-                        :font-size="56"
-                        color="#666666"
-                        :margin-top="280"
-                    ></u-empty>
+                    <view class="address-empty__text">暂无数据</view>
                 </view>
             </template>
         </view>
@@ -270,7 +263,8 @@ export default {
     min-height: 100vh;
     padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
     background: #f7f8fa;
-
+	
+	
     .address-body {
         min-height: calc(100vh - 220rpx);
     }
@@ -354,7 +348,26 @@ export default {
     }
 
     .empty-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         min-height: calc(100vh - 360rpx);
+        padding-bottom: 120rpx;
+        box-sizing: border-box;
+    }
+
+    .address-empty__image {
+        width: 320rpx;
+        height: 260rpx;
+    }
+
+    .address-empty__text {
+        margin-top: 22rpx;
+        color: #666666;
+        font-size: 28rpx;
+        font-weight: 500;
+        line-height: 36rpx;
     }
 
     .footer {

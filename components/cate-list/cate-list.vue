@@ -58,7 +58,6 @@
 					</view>
 					<loading-footer :status="status" :slot-empty="true">
 						<view slot="empty" class="column-center" style="padding: 200rpx 0">
-							<image class="img-null" src="/static/images/goods_null.png"></image>
 							<text class="lighter">暂无商品</text>
 						</view>
 					</loading-footer>

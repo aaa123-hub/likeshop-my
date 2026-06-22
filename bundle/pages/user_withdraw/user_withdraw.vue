@@ -339,7 +339,8 @@
 					money_qr_code: qrCode,
 					remark: remark,
 					bank,
-					subbank
+					subbank,
+					idempotentKey: `withdraw-${Date.now()}`
 				};
 				applyWithdraw(data).then(res => {
 					if (res.code == 1) {

@@ -17,7 +17,6 @@
         </view>
         <loading-footer :status="status" slotEmpty>
             <view class="data-null column-center" slot="empty">
-                <image src="/static/images/profit_null.png" class="img-null" />
                 <text class="sm muted">暂无收藏～</text>
             </view>
         </loading-footer>

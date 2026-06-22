@@ -1,5 +1,6 @@
 <template>
     <view class="post-sale">
+      <navbar title="退款/售后"></navbar>
       <view class="contain">
         <tabs :active="active" :line-width="40" @change="onChange" sticky>
           <tab v-for="(item, index) in afterSale" :key="index" :title="item.name">

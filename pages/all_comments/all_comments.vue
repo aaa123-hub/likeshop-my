@@ -72,7 +72,6 @@
         </view>
         <loading-footer :status="status" slotEmpty>
             <view slot="empty" class="column-center" style="padding-top: 200rpx">
-                <image class="img-null" src="/static/images/goods_null.png"></image>
                 <text class="lighter">暂无评价</text>
             </view>
         </loading-footer>

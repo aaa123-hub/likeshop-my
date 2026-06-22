@@ -1,6 +1,6 @@
 <template>
     <view class="address-edit">
-        <navbar :title="addressId ? '添加地址' : '添加地址'"></navbar>
+        <navbar :title="pageTitle"></navbar>
         <form @submit="formSubmit" report-submit="true">
             <view class="form-card">
                 <view class="form-row">
@@ -312,6 +312,9 @@ export default {
             set(value) {
                 this.addressObj.is_default = value ? 1 : 0
             }
+        },
+        pageTitle() {
+            return this.addressId ? '编辑地址' : '添加地址'
         }
     }
 }
@@ -347,7 +350,7 @@ export default {
     .form-row--textarea {
         align-items: flex-start;
         min-height: 320rpx;
-        padding-top: 24rpx;
+        padding-top: 26rpx;
     }
 
     .form-row__label {

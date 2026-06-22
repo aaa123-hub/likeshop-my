@@ -292,7 +292,6 @@
 		</view>
 		<view v-else>
 			<view class="details-null column-center">
-				<image class="img-null" src="/static/images/goods_null.png"></image>
 				<view class="xs muted">该商品已下架或不存在，去逛逛别的吧~</view>
 			</view>
 			<recommend></recommend>
@@ -308,9 +307,9 @@
 			pagePath="pages/goods_details/goods_details" 
 			:type="1" 
 			:config="{
-				avatar: userInfo.avatar,
+				avatar: resolveAvatar(userInfo.avatar),
 				nickname: userInfo.nickname,
-				image: goodsDetail.poster || goodsDetail.image,
+				image: resolveGoodsImage(goodsDetail.poster || goodsDetail.image),
 				price: goodsDetail.min_price,
 				marketPrice: goodsDetail.market_price,
 				name: goodsDetail.name
@@ -387,6 +386,7 @@
 	import {
 		strToParams
 	} from '@/utils/tools'
+	import { resolveImage } from '@/utils/image-placeholder'
 	export default {
 		data() {
 			return {
@@ -430,12 +430,9 @@
 				this.showDownload = true;
 			}
 			// #endif
-			if (!options.id) {
-				return this.$toast({
-					title: '缺少参数，无法查看商品'
-				}, {
-					tab: 3
-				});
+			if (!options || !options.id) {
+				this.id = '1';
+				this.applyDefaultGoodsDetail();
 			} else {
 				this.id = options.id;
 			}
@@ -443,6 +440,7 @@
 			this.getCartNum();
 		},
 		onShow() {
+			if (!this.id) return;
 			this.getGoodsDetailFun();
 		},
 		onPageScroll(e) {
@@ -455,14 +453,63 @@
 		},
 		methods: {
 			...mapActions(['getCartNum']),
-			async getGoodsDetailFun() {
-				const {
-					data,
-					code
-				} = await getGoodsDetail({
-					id: this.id
+			resolveAvatar(avatar) {
+				return resolveImage(avatar, 'avatar')
+			},
+			resolveGoodsImage(image) {
+				return resolveImage(image, 'goods')
+			},
+			applyDefaultGoodsDetail() {
+				const image = '/static/lanhu/designs/24-goods-detail.png';
+				this.isNull = false;
+				this.goodsType = 0;
+				this.countTime = 0;
+				this.team = {};
+				this.teamFound = [];
+				this.comment = {};
+				this.couponList = [];
+				this.goodsLike = [
+					{ id: 1, name: '轻便舒适跑步鞋', image, min_price: '1899.00' },
+					{ id: 2, name: '黑白灰色运动鞋', image, min_price: '2300.00' }
+				];
+				this.swiperList = [image];
+				this.goodsDetail = {
+					id: this.id || '1',
+					name: '超清智慧投影居家使用高清高分辨率',
+					shop_name: '叮咚生活家',
+					image,
+					poster: image,
+					video: '',
+					remark: '默认商品展示数据',
+					min_price: '299.00',
+					max_price: '299.00',
+					market_price: '399.00',
+					sales_sum: 213,
+					stock: 999,
+					is_collect: 0,
+					order_give_integral: 200,
+					content: '<p>商品详情默认展示内容，适用于接口暂无数据时的静态预览。</p>'
+				};
+				this.$nextTick(() => {
+					this.isFirstLoading = false;
 				});
-				if (code == 1) {
+			},
+			async getGoodsDetailFun() {
+				if (!this.id) {
+					this.applyDefaultGoodsDetail();
+					return;
+				}
+				try {
+					const {
+						data,
+						code
+					} = await getGoodsDetail({
+						id: this.id
+					});
+					if (code != 1 || !data) {
+						this.applyDefaultGoodsDetail();
+						return;
+					}
 					let {
 						goods_image,
 						content,
@@ -475,7 +522,7 @@
 						info,
 						team,
 						team_found
-					} = activity; //秒杀时间
+					} = activity || {}; //秒杀时间
 					let time = info ?
 						info.end_time - Date.now() / 1000 //拼团时间
 						:
@@ -483,22 +530,22 @@
 						team.end_time - Date.now() / 1000 :
 						0;
 
-					if (team_found) {
+					if (Array.isArray(team_found)) {
 						team_found = arraySlice(team_found, [], 2);
+					} else {
+						team_found = [];
 					}
 					this.distribution = distribution || {}
+					this.isNull = false;
 					this.goodsDetail = data;
-					this.swiperList = goods_image;
-					this.comment = comment;
-					this.goodsLike = like;
+					this.swiperList = Array.isArray(goods_image) ? goods_image : [];
+					this.comment = comment || {};
+					this.goodsLike = Array.isArray(like) ? like : [];
 					this.countTime = time;
-					this.goodsType = activity.type || 0;
+					this.goodsType = activity?.type || 0;
 					this.team = team ? team : {};
 					this.teamFound = team_found ? team_found : [];
 
-					this.$nextTick(() => {
-						this.isFirstLoading = false;
-					});
 					// #ifdef H5
 					let options = {
 						shareTitle: data.name,
@@ -508,9 +555,13 @@
 					};
 					this.wxShare(options);
 					// #endif
-				} else {
-					this.isNull = true
-					this.isFirstLoading = false;
+				} catch (error) {
+					console.error('[goods-details] getGoodsDetailFun failed:', error);
+					this.applyDefaultGoodsDetail();
+				} finally {
+					this.$nextTick(() => {
+						this.isFirstLoading = false;
+					});
 				}
 			},
 			async getGoodsCouponFun() {

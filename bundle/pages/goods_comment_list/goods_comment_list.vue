@@ -1,5 +1,6 @@
 <template>
 <view class="goods-comment-list">
+    <navbar title="商品评价列表"></navbar>
     <tabs :active="active" line-width="40" @change="changeActive">
         <tab title="待评价">
             <comment-list type="1" v-if="active == 0"></comment-list>

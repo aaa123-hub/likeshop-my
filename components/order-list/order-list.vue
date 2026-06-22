@@ -168,9 +168,11 @@ author: likeshop.cn.team //
           </view>
         </view>
       </navigator>
-      <loading-footer :status="status" :slot-empty="true" @refresh="reload">
-        <view slot="empty" class="column-center" style="padding-top: 200rpx">
-          <image class="img-null" src="/static/images/goods_null.png"></image>
+      <view v-if="showPlaceholder" class="order-placeholder column-center">
+        <text class="lighter">{{ placeholderText }}</text>
+      </view>
+      <loading-footer v-else :status="status" :slot-empty="true" @refresh="reload">
+        <view slot="empty" class="column-center order-placeholder">
           <text class="lighter">暂无订单</text>
         </view>
       </loading-footer>
@@ -389,13 +391,23 @@ export default {
 
     async getOrderListFun() {
       let { page, orderType, orderList, status } = this;
-      const data = await loadingFun(getOrderList, page, orderList, status, {
-        type: orderType,
-      });
-      if (!data) return;
-      this.page = data.page;
-      this.orderList = data.dataList;
-      this.status = data.status;
+      try {
+        const data = await loadingFun(getOrderList, page, orderList, status, {
+          type: orderType,
+        });
+        if (!data) {
+          if (!this.orderList.length && this.status === loadingType.LOADING) {
+            this.status = loadingType.EMPTY;
+          }
+          return;
+        }
+        this.page = data.page;
+        this.orderList = data.dataList;
+        this.status = data.status;
+      } catch (error) {
+        console.error('[order-list] getOrderListFun failed:', error);
+        this.status = this.orderList.length ? loadingType.FINISHED : loadingType.ERROR;
+      }
     },
     goPage(url) {
       uni.navigateTo({
@@ -438,6 +450,12 @@ export default {
     getCancelTime() {
       return (time) => time - Date.now() / 1000;
     },
+    showPlaceholder() {
+      return !this.orderList.length && (this.status === loadingType.EMPTY || this.status === loadingType.ERROR);
+    },
+    placeholderText() {
+      return this.status === loadingType.ERROR ? '加载失败，请稍后重试' : '暂无订单';
+    },
   },
 };
 </script>
@@ -475,5 +493,11 @@ export default {
       }
     }
   }
+}
+
+.order-placeholder {
+  min-height: 520rpx;
+  padding-top: 160rpx;
+  box-sizing: border-box;
 }
 </style>

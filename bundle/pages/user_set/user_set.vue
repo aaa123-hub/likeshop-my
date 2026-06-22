@@ -1,5 +1,6 @@
 <template>
     <view class="user-profile-container mt10">
+        <navbar title="个人资料"></navbar>
         <view class="user-profile">
             <view class="user-avatar-box column-center">
                 <button
@@ -284,12 +285,6 @@ export default {
                 url: '/bundle/pages/server_explan/server_explan?type=' + value
             })
         },
-        goLicense() {
-            uni.navigateTo({
-                url: '/bundle/pages/license/license'
-            })
-        },
-
         toSetPayPwd() {
             if (!this.userInfo.mobile)
                 return this.$toast({

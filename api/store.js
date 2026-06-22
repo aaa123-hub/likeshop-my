@@ -1,6 +1,7 @@
 import request from '@/utils/request'
 import { client } from '@/utils/tools'
 import { getMessages } from '@/api/user'
+import { resolveImage } from '@/utils/image-placeholder'
 
 function parseSpecJson(specJson) {
     if (!specJson) return []
@@ -39,8 +40,8 @@ function normalizeCategory(item = {}) {
         id: item.id || item.categoryId,
         pid: item.pid ?? item.parentId ?? 0,
         name: item.name || item.categoryName || '',
-        image: item.image || item.iconUrl || '',
-        icon: item.icon || item.iconUrl || '',
+        image: resolveImage(item.image || item.iconUrl),
+        icon: resolveImage(item.icon || item.iconUrl),
         level: item.level || item.categoryLevel || 1,
         sort: item.sort ?? item.sortNo ?? 0,
         status: item.status || item.categoryStatus || '',
@@ -56,8 +57,8 @@ function normalizeGoodsListItem(item = {}) {
         spu_id: item.spu_id || item.spuId || item.productId || item.id,
         name: item.name || item.spuName || item.productName || item.title || item.goods_name,
         goods_name: item.goods_name || item.spuName || item.productName || item.title || item.name,
-        image: item.image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || (item.images && item.images[0]) || (item.goods_image && item.goods_image[0]?.uri) || '',
-        goods_image: item.goods_image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || item.image || '',
+        image: resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || (item.images && item.images[0]) || (item.goods_image && item.goods_image[0]?.uri), 'goods'),
+        goods_image: resolveImage(item.goods_image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || item.image, 'goods'),
         price: item.price || item.salePrice || item.minPrice || item.payAmount || item.amount || item.market_price || item.min_price || 0,
         market_price: item.market_price || item.marketPrice || item.originPrice || item.maxPrice || item.max_price || item.price || 0,
         origin_price: item.origin_price || item.originPrice || item.market_price || 0,
@@ -76,7 +77,7 @@ function normalizeSkuItem(item = {}, index = 0) {
         const valueName = spec.valueName || spec.value || spec.name
         return buildSpecValueId(spec, groupName, valueName, `${index}-${specIndex}`)
     }).join(',')
-    const image = item.image || item.imageUrl || item.imageUrls?.[0] || ''
+    const image = resolveImage(item.image || item.imageUrl || item.imageUrls?.[0], 'goods')
 
     return {
         ...item,
@@ -152,13 +153,13 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         shop_name: detail.shop_name || detail.shopName || detail.storeName || detail.shopInfo?.shopName || '',
         name: detail.name || detail.spuName || detail.productName || detail.title || '',
         goods_name: detail.goods_name || detail.spuName || detail.productName || detail.title || detail.name || '',
-        image: detail.image || detail.mainImageUrl || detail.cover || images[0] || '',
+        image: resolveImage(detail.image || detail.mainImageUrl || detail.cover || images[0], 'goods'),
         video: detail.video || '',
         price: detail.price || detail.minPrice || detail.salePrice || 0,
         min_price: detail.min_price || detail.minPrice || detail.salePrice || 0,
         max_price: detail.max_price || detail.maxPrice || detail.salePrice || detail.minPrice || 0,
         market_price: detail.market_price || detail.originPrice || detail.maxPrice || 0,
-        goods_image: images,
+        goods_image: images.length ? images : [resolveImage('', 'goods')],
         coupon_list: detail.coupon_list || detail.couponList || [],
         comment: detail.comment || detail.commentSummary || {},
         shop: detail.shop || detail.shopInfo || {},
@@ -183,7 +184,7 @@ function normalizeGoodsDetail(detail = {}, spuId) {
 
 function normalizeCartItem(item = {}) {
     const normalized = normalizeGoodsListItem(item)
-    const image = item.img || item.image || item.imageUrl || item.mainImageUrl || item.cover || normalized.image
+    const image = resolveImage(item.img || item.image || item.imageUrl || item.mainImageUrl || item.cover || normalized.image, 'goods')
     const quantity = item.goods_num ?? item.quantity ?? item.num ?? 1
     const cartId = item.cart_id || item.cartItemId || item.id
     return {
@@ -213,13 +214,13 @@ function normalizeCommentItem(item = {}) {
     return {
         ...item,
         id: item.id || item.commentId,
-        avatar: item.avatar || item.userAvatar || item.headimgurl || '',
+        avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl, 'avatar'),
         nickname: item.nickname || item.userName || item.memberName || '匿名用户',
         goods_comment: item.goods_comment || item.score || item.star || item.rating || 5,
         create_time: item.create_time || item.createdAt || item.createTime || '',
         spec_value_str: item.spec_value_str || item.skuName || item.specValue || '',
         comment: item.comment || item.content || '',
-        image: images,
+        image: images.length ? images : [resolveImage('', 'goods')],
         reply: item.reply || item.merchantReply || item.replyContent || ''
     }
 }
@@ -263,12 +264,14 @@ function normalizeHomeData(data = {}) {
 }
 
 function normalizeStreetCategory(item = {}) {
+    const name = item.name || item.categoryName || item.title || ''
+    const useEmptyImage = ['服装', '本地生活', '粮油饮品'].some(keyword => String(name).includes(keyword))
     return {
         ...item,
         id: item.id || item.categoryId || item.recommendId || '',
         categoryId: item.categoryId || item.id || item.recommendId || '',
-        name: item.name || item.categoryName || item.title || '',
-        image: item.image || item.icon || item.iconUrl || item.cover || ''
+        name,
+        image: useEmptyImage ? '' : resolveImage(item.image || item.icon || item.iconUrl || item.cover)
     }
 }
 
@@ -277,7 +280,7 @@ function normalizeStreetShop(item = {}) {
         ...item,
         shopId: item.shopId || item.id || item.shop_id || '',
         shopName: item.shopName || item.shop_name || item.storeName || item.name || '',
-        shopLogo: item.shopLogo || item.logo || item.image || item.cover || '',
+        shopLogo: resolveImage(item.shopLogo || item.logo || item.image || item.cover),
         shopScore: item.shopScore ?? item.score ?? item.star ?? '',
         detailAddress: item.detailAddress || item.address || item.detail_address || '',
         openStatus: item.openStatus || item.status || ''
@@ -300,8 +303,8 @@ function normalizeShopMediaItem(item = {}) {
     return {
         ...item,
         id: item.id || item.albumId || item.videoId || '',
-        url: item.url || item.imageUrl || item.videoUrl || item.cover || item.thumbnail || item.image || '',
-        cover: item.cover || item.thumbnail || item.imageUrl || item.image || item.url || ''
+        url: resolveImage(item.url || item.imageUrl || item.videoUrl || item.cover || item.thumbnail || item.image),
+        cover: resolveImage(item.cover || item.thumbnail || item.imageUrl || item.image || item.url)
     }
 }
 
@@ -313,12 +316,12 @@ function normalizeShopDetail(data = {}) {
             ...base,
             shopId: base.shopId || base.id || base.shop_id || '',
             shopName: base.shopName || base.shop_name || base.storeName || base.name || '',
-            shopLogo: base.shopLogo || base.logo || base.avatarUrl || base.image || '',
+            shopLogo: resolveImage(base.shopLogo || base.logo || base.avatarUrl || base.image),
             shopScore: base.shopScore ?? base.score ?? base.star ?? '',
             businessHours: base.businessHours || base.openHours || base.business_hours || '',
             detailAddress: base.detailAddress || base.address || base.detail_address || '',
             openStatus: base.openStatus || base.status || '',
-            avatarUrl: base.avatarUrl || base.shopLogo || base.logo || base.image || '',
+            avatarUrl: resolveImage(base.avatarUrl || base.shopLogo || base.logo || base.image, 'avatar'),
             contactPhone: base.contactPhone || base.phone || base.mobile || '',
             provinceName: base.provinceName || '',
             cityName: base.cityName || '',
@@ -345,8 +348,16 @@ function normalizeGoodsList(data = {}) {
 }
 
 // 首页聚合
-export function getHome() {
-    return request.get('miniapp/home/index').then((res) => {
+export function getHome(data = {}) {
+    const lat = data.lat ?? data.latitude
+    const lng = data.lng ?? data.longitude
+    return request.get('miniapp/home/index', {
+        params: {
+            ...data,
+            lat: lat !== undefined && lat !== null && lat !== '' ? lat : 23.1291,
+            lng: lng !== undefined && lng !== null && lng !== '' ? lng : 113.2644
+        }
+    }).then((res) => {
         if (res.code == 1) {
             return {
                 ...res,

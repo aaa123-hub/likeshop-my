@@ -17,9 +17,11 @@
 // +----------------------------------------------------------------------
 <template>
 <view class="user-order">
-	<navbar title="全部订单"></navbar>
     <view class="order-top">
         <view class="order-switch">
+            <view class="order-switch__back" @tap="goBack">
+                <u-icon name="arrow-left" size="36" color="#222222"></u-icon>
+            </view>
             <view :class="['order-switch__item', activeTop === 0 ? 'is-active' : '']" @tap="activeTop = 0">
                 全部订单
             </view>
@@ -39,14 +41,17 @@
         </view>
     </view>
     <view class="order-content">
-		<order-list
+        <block
             v-for="(item, index) in order"
-            v-show="active === index"
-            v-if="item.isShow"
             :key="item.type"
-            :order-type="item.type"
-            :ref="'order' + item.type"
-        ></order-list>
+        >
+            <order-list
+                v-if="item.isShow"
+                v-show="active === index"
+                :order-type="item.type"
+                :ref="'order' + item.type"
+            ></order-list>
+        </block>
     </view>
 </view>
 </template>
@@ -112,6 +117,14 @@ export default {
 			this.order[index].isShow = true
 		}
     },
+    goBack() {
+      const pages = getCurrentPages();
+      if (pages.length > 1) {
+        uni.navigateBack({ delta: 1 });
+        return;
+      }
+      uni.switchTab({ url: '/pages/user/user' });
+    },
   }
 };
 </script>
@@ -125,15 +138,29 @@ export default {
   position: sticky;
   top: 0;
   z-index: 9;
+  padding-top: var(--status-bar-height);
   background: #ffffff;
 }
 
 .order-switch {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 96rpx;
-  padding: 0 120rpx;
+  padding: 0 156rpx;
+}
+
+.order-switch__back {
+  position: absolute;
+  left: 24rpx;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  transform: translateY(-50%);
 }
 
 .order-switch__item {

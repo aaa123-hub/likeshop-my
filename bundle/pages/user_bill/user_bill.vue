@@ -18,7 +18,6 @@
             </view>
             <loading-footer :status="loadingStatus" slotEmpty>
                 <view class="data-null column-center" slot="empty">
-                    <image class="img-null" src="/static/images/order_null.png" />
                     <text class="nr muted">暂无记录～</text>
                 </view>
             </loading-footer>
@@ -40,7 +39,6 @@
             </view>
             <loading-footer :status="loadingStatus" slotEmpty>
                 <view class="data-null column-center" slot="empty">
-                    <image class="img-null" src="/static/images/order_null.png" />
                     <text class="nr muted">暂无支出记录～</text>
                 </view>
             </loading-footer>
@@ -61,7 +59,6 @@
             </view>
             <loading-footer :status="loadingStatus" slotEmpty>
                 <view class="data-null column-center" slot="empty">
-                    <image class="img-null" src="/static/images/order_null.png"></image>
                     <text class="nr muted">暂无收入记录～</text>
                 </view>
             </loading-footer>
