@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "中奖名单",
-  "usingComponents": {
-    "u-image": "/bundle/components/uview-ui/components/u-image/u-image",
-    "loading-footer": "/bundle/components/loading-footer/loading-footer"
-  }
-}

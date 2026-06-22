@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "门店自提",
+  "usingComponents": {
+    "loading-footer": "/bundle-goods/components/loading-footer/loading-footer"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "我的粉丝",
+  "usingComponents": {
+    "u-search": "/bundle-user-a/components/uview-ui/components/u-search/u-search",
+    "trigonometry": "/bundle-user-a/components/trigonometry/trigonometry",
+    "u-image": "/bundle-user-a/components/uview-ui/components/u-image/u-image",
+    "loading-footer": "/bundle-user-a/components/loading-footer/loading-footer"
+  }
+}

@@ -1,0 +1,1 @@
+Component({options:{multipleSlots:true},properties:{scene:{type:String,value:""},title:{type:String,value:""},config:{type:Object,value:{}}}});

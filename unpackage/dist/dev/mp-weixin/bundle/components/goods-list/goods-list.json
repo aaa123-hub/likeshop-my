@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "custom-image": "/bundle/components/custom-image/custom-image",
-    "price-format": "/bundle/components/price-format/price-format"
-  }
-}

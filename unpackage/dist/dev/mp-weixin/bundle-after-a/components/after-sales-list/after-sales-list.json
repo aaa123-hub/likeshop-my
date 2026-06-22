@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "usingComponents": {
+    "custom-image": "/bundle-after-a/components/custom-image/custom-image",
+    "price-format": "/bundle-after-a/components/price-format/price-format",
+    "loading-footer": "/bundle-after-a/components/loading-footer/loading-footer",
+    "u-modal": "/bundle-after-a/components/uview-ui/components/u-modal/u-modal"
+  }
+}

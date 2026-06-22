@@ -1,6 +1,0 @@
-{
-  "usingComponents": {
-    "u-modal": "/main-subpkg/components/uview-ui/components/u-modal/u-modal"
-  },
-  "component": true
-}

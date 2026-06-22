@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "我的收藏",
+  "usingComponents": {
+    "custom-image": "/main-user/components/custom-image/custom-image",
+    "price-format": "/main-user/components/price-format/price-format",
+    "loading-footer": "/main-user/components/loading-footer/loading-footer",
+    "u-modal": "/main-user/components/uview-ui/components/u-modal/u-modal"
+  }
+}

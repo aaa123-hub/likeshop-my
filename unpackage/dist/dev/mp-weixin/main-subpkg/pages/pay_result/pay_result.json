@@ -1,6 +1,0 @@
-{
-  "navigationBarTitleText": "支付详情",
-  "usingComponents": {
-    "price-format": "/main-subpkg/components/price-format/price-format"
-  }
-}

@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "幸运抽奖",
-  "usingComponents": {
-    "my-lottery": "/bundle/components/my-lottery/my-lottery",
-    "u-popup": "/bundle/components/uview-ui/components/u-popup/u-popup"
-  }
-}

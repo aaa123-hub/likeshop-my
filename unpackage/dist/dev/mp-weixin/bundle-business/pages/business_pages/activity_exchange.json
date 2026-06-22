@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "活动中心-兑换",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "business-wrapper-page": "/bundle-business/pages/business_scene/business-wrapper-page"
+  }
+}

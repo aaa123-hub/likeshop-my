@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "充值记录",
+  "enablePullDownRefresh": false,
+  "usingComponents": {
+    "loading-footer": "/bundle-after-b/components/loading-footer/loading-footer"
+  }
+}

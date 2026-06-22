@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "提现",
-  "usingComponents": {
-    "tabs": "/bundle/components/tabs/tabs",
-    "tab": "/bundle/components/tab/tab",
-    "uploader": "/bundle/components/uploader/uploader"
-  }
-}

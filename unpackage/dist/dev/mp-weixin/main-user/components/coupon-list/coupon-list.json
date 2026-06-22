@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "price-format": "/main-user/components/price-format/price-format",
+    "u-icon": "/main-user/components/uview-ui/components/u-icon/u-icon"
+  },
+  "component": true
+}

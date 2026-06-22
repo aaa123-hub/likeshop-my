@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "付款记录-筛选",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "business-wrapper-page": "/bundle/pages/business_scene/business-wrapper-page"
-  }
-}

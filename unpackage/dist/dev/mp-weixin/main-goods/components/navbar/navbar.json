@@ -1,0 +1,7 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-navbar": "/main-goods/components/uview-ui/components/u-navbar/u-navbar",
+    "u-icon": "/main-goods/components/uview-ui/components/u-icon/u-icon"
+  }
+}

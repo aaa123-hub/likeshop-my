@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "全部评价",
-  "usingComponents": {
-    "u-rate": "/main-subpkg/components/uview-ui/components/u-rate/u-rate",
-    "custom-image": "/main-subpkg/components/custom-image/custom-image",
-    "loading-footer": "/main-subpkg/components/loading-footer/loading-footer"
-  }
-}

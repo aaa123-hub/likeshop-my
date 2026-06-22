@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "砍价活动",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/bundle-after-b/components/navbar/navbar",
+    "custom-image": "/bundle-after-b/components/custom-image/custom-image",
+    "price-format": "/bundle-after-b/components/price-format/price-format",
+    "loading-footer": "/bundle-after-b/components/loading-footer/loading-footer"
+  }
+}

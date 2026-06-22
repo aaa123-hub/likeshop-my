@@ -1,0 +1,1 @@
+<view class="business-wrapper-page"><slot></slot></view>

@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "商品评价",
-  "usingComponents": {
-    "order-goods": "/bundle/components/order-goods/order-goods",
-    "u-rate": "/bundle/components/uview-ui/components/u-rate/u-rate",
-    "u-input": "/bundle/components/uview-ui/components/u-input/u-input",
-    "uploader": "/bundle/components/uploader/uploader"
-  }
-}

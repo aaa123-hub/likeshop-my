@@ -1,0 +1,1 @@
+<view class="{{['loading '+(type=='flex'?'flex':'')]}}" style="{{'background-color:'+(backgroundColor)+';'}}"><loading vue-id="c60dcf7c-1" color="{{color}}" size="{{size}}" bind:__l="__l"></loading></view>

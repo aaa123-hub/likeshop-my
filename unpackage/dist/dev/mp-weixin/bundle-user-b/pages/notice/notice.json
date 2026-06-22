@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "消息通知",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navbar": "/bundle-user-b/components/navbar/navbar",
+    "u-empty": "/bundle-user-b/components/uview-ui/components/u-empty/u-empty",
+    "loading-footer": "/bundle-user-b/components/loading-footer/loading-footer"
+  }
+}

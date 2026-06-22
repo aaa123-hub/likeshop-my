@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-icon": "/bundle-user-a/components/uview-ui/components/u-icon/u-icon"
+  }
+}

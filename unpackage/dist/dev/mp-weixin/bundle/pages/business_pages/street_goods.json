@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "商街-商品",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "business-wrapper-page": "/bundle/pages/business_scene/business-wrapper-page"
-  }
-}

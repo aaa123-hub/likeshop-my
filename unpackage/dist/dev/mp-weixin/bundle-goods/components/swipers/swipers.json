@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-image": "/bundle-goods/components/uview-ui/components/u-image/u-image"
+  }
+}

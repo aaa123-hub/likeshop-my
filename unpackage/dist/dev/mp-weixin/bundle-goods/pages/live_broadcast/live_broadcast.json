@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "商城直播",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "u-image": "/bundle-goods/components/uview-ui/components/u-image/u-image",
+    "u-icon": "/bundle-goods/components/uview-ui/components/u-icon/u-icon",
+    "loading-footer": "/bundle-goods/components/loading-footer/loading-footer"
+  }
+}

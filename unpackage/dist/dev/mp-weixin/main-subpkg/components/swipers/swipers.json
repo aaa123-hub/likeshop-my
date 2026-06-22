@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "u-image": "/main-subpkg/components/uview-ui/components/u-image/u-image"
-  }
-}

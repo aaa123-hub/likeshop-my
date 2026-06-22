@@ -1,8 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "navbar": "/components/navbar/navbar",
-    "u-icon": "/components/uview-ui/components/u-icon/u-icon",
-    "tki-qrcode": "/components/tki-qrcode/tki-qrcode"
-  }
-}

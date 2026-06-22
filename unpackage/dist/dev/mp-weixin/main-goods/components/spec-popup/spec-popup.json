@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-popup": "/main-goods/components/uview-ui/components/u-popup/u-popup",
+    "custom-image": "/main-goods/components/custom-image/custom-image",
+    "price-format": "/main-goods/components/price-format/price-format",
+    "u-number-box": "/main-goods/components/uview-ui/components/u-number-box/u-number-box"
+  }
+}

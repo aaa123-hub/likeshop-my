@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "物流详情",
-  "usingComponents": {
-    "recommend": "/bundle/components/recommend/recommend",
-    "loading-view": "/bundle/components/loading-view/loading-view"
-  }
-}

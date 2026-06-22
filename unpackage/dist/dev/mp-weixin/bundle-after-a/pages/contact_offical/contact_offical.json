@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "联系客服",
+  "usingComponents": {
+    "u-modal": "/bundle-after-a/components/uview-ui/components/u-modal/u-modal"
+  }
+}

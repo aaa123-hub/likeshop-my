@@ -1,6 +1,0 @@
-{
-  "usingComponents": {
-    "price-format": "/main-subpkg/components/price-format/price-format"
-  },
-  "component": true
-}

@@ -1,0 +1,6 @@
+{
+  "usingComponents": {
+    "coupon-list": "/main-user/components/coupon-list/coupon-list"
+  },
+  "component": true
+}

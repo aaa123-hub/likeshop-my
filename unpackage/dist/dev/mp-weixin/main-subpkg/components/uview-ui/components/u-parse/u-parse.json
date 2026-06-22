@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "trees": "/main-subpkg/components/uview-ui/components/u-parse/libs/trees"
-  }
-}

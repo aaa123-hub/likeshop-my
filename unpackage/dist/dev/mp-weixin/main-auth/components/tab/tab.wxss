@@ -1,0 +1,9 @@
+
+.tab.active {
+	height: auto;
+}
+.tab.inactive {
+	height: 0;
+	overflow: visible;
+}
+

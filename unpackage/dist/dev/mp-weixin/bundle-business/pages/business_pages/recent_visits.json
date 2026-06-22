@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "最近访问",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "business-wrapper-page": "/bundle-business/pages/business_scene/business-wrapper-page"
+  }
+}

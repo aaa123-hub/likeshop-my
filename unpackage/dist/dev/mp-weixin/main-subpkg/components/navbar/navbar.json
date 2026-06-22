@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "u-navbar": "/main-subpkg/components/uview-ui/components/u-navbar/u-navbar",
-    "u-icon": "/main-subpkg/components/uview-ui/components/u-icon/u-icon"
-  }
-}

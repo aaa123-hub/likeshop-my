@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "scene-shell": "/bundle/pages/business_scene/scene-shell"
-  }
-}

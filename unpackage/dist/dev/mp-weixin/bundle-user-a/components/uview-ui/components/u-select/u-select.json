@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-popup": "/bundle-user-a/components/uview-ui/components/u-popup/u-popup"
+  }
+}

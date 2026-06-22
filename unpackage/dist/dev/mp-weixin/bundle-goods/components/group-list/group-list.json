@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-count-down": "/bundle-goods/components/uview-ui/components/u-count-down/u-count-down",
+    "order-goods": "/bundle-goods/components/order-goods/order-goods",
+    "price-format": "/bundle-goods/components/price-format/price-format",
+    "loading-footer": "/bundle-goods/components/loading-footer/loading-footer"
+  }
+}

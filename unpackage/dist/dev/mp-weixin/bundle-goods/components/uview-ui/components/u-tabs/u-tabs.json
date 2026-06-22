@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "u-badge": "/bundle-goods/components/uview-ui/components/u-badge/u-badge"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "loading": "/bundle-after-b/components/loading/loading"
+  }
+}

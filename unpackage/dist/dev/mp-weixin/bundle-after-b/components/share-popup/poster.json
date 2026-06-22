@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "usingComponents": {
+    "l-painter": "/bundle-after-b/components/lime-painter/components/l-painter/l-painter",
+    "l-painter-image": "/bundle-after-b/components/lime-painter/components/l-painter-image/l-painter-image",
+    "l-painter-text": "/bundle-after-b/components/lime-painter/components/l-painter-text/l-painter-text",
+    "l-painter-view": "/bundle-after-b/components/lime-painter/components/l-painter-view/l-painter-view"
+  }
+}
