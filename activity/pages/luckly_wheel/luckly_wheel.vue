@@ -59,7 +59,7 @@
 			</view>
 			<view class="xs row-center" style="color: #FFF2D9;margin-top: 30rpx">本活动的所有奖品，均由商城提供</view>
 		</view>
-		<view v-model="showResult" mode="center">
+		<u-popup v-model="showResult" mode="center">
 			<view class="result-popup column-center">
 				<view class="result-container column-between">
 					<view class="row-center" style="padding:0 118rpx;margin-top: 90rpx">
@@ -75,7 +75,7 @@
 					<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_close.png" style="width: 62rpx;height: 62rpx;"></image>
 				</view>
 			</view>
-		</view>
+		</u-popup>
 	</view>
 </template>
 

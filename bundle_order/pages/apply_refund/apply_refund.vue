@@ -102,7 +102,7 @@
       </view>
     </view>
 
-    <view id="popup" v-model="showPop" mode="bottom">
+    <u-popup id="popup" v-model="showPop" mode="bottom">
       <view class="pop-container bg-white">
         <view class="pop-header row-center md normal"> 退款原因 </view>
         <scroll-view style="height: 800rpx" :scroll-y="true">
@@ -123,7 +123,7 @@
           </view>
         </scroll-view>
       </view>
-    </view>
+    </u-popup>
   </view>
 </template>
 

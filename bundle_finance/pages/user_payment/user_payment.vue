@@ -32,7 +32,7 @@
 				</view>
 			</view>
 		</view>
-		<view class="pay-popup" v-model="showPopup" closeable round mode="center">
+		<u-popup class="pay-popup" v-model="showPopup" closeable round mode="center">
 			<view class="content bg-white">
 				<image class="img-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/recharge_success.png"></image>
 				<view class="xxl bold mt10">充值成功</view>
@@ -43,7 +43,7 @@
 							class="primary">{{rechargeInfo.give_growth}}</text>成长值</text></view>
 				<button class="br60 btn" type="primary" size="md" @tap="onShowPopup">好的，谢谢</button>
 			</view>
-		</view>
+		</u-popup>
 		<loading-view id="van-toast" v-if="showLoading" backgroundColor="rgba(0, 0, 0, 0)"></loading-view>
 	</view>
 </template>

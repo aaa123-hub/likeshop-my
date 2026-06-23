@@ -29,7 +29,7 @@ author: likeshop.cn.team //
               style="line-height: 26rpx"
               v-if="cancelTime > 0"
               >支付剩余
-              <view
+              <u-count-down
                 separator="zh"
                 :timestamp="cancelTime"
                 separator-color="#fff"
@@ -37,7 +37,7 @@ author: likeshop.cn.team //
                 :separator-size="26"
                 :font-size="26"
                 bg-color="transparent"
-              ></view>
+              ></u-count-down>
               自动关闭</view
             >
           </view>

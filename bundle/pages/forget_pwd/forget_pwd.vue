@@ -36,7 +36,7 @@
               @click="sendSmsFun()"
             >
               <view v-show="canSendSms">获取验证码</view>
-              <view
+              <u-count-down
                 ref="countDown"
                 :show-days="false"
                 :timestamp="time"

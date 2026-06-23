@@ -37,8 +37,8 @@
 				</view>
 				<view class="down column-center">
 					<view class="xxs primary mb10">距活动结束仅剩</view>
-					<view :timestamp="countTime" @end="getGoodsDetailFun" color="#fff" bg-color="#FF2C3C"
-						separator-color="#FF2C3C" font-size="24" height="36" separator-size="26"></view>
+					<u-count-down :timestamp="countTime" @end="getGoodsDetailFun" color="#fff" bg-color="#FF2C3C"
+						separator-color="#FF2C3C" font-size="24" height="36" separator-size="26"></u-count-down>
 				</view>
 			</view>
 			<!-- 拼团 -->
@@ -60,8 +60,8 @@
 					</view>
 					<view class="down column-center">
 						<view class="xxs primary mb10">距活动结束仅剩</view>
-						<view :timestamp="countTime" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C"
-							font-size="24" height="36" separator-size="26" @end="getGoodsDetailFun"></view>
+						<u-count-down :timestamp="countTime" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C"
+							font-size="24" height="36" separator-size="26" @end="getGoodsDetailFun"></u-count-down>
 					</view>
 				</view>
 			</view>
@@ -172,7 +172,7 @@
 						<view :class="['row coupons', {mb30: goodsDetail.order_give_integral > 0}]"
 							v-if="couponList.length" @tap="showCouponFun">
 							<view class="flexnone">
-								<view text="领券" size="mini" type="primary" mode="plain" />
+							<u-tag text="领券" size="mini" type="primary" mode="plain" />
 							</view>
 							<view class="con row ml20" style="flex: 1">
 								<view v-for="(item, index) in couponList" :key="index" class="coupons-item  mr20">
@@ -188,7 +188,7 @@
 						<view class="row integral" style="align-items: flex-start;"
 							v-if="goodsDetail.order_give_integral">
 							<view class="flexnone">
-								<view text="积分" size="mini" type="primary" mode="plain" />
+							<u-tag text="积分" size="mini" type="primary" mode="plain" />
 							</view>
 							<view class="ml20">下单最多可获得{{goodsDetail.order_give_integral}}积分</view>
 						</view>
@@ -214,9 +214,9 @@
 									</text>
 									<view class="muted xs">
 										剩余
-										<view :timestamp="getTeamCountTime(item.found_end_time)"
-											separator-color="#999" color="#999" :separator-size="24" :font-size="24"
-											bg-color="transparent" @end="getGoodsDetailFun"></view>
+						<u-count-down :timestamp="getTeamCountTime(item.found_end_time)"
+							separator-color="#999" color="#999" :separator-size="24" :font-size="24"
+							bg-color="transparent" @end="getGoodsDetailFun"></u-count-down>
 									</view>
 								</view>
 								<view class="group-btn br60 white row-center" @tap="showSpecFun(3, item.id)">去参团</view>
@@ -297,7 +297,7 @@
 				<view class="btn cart column-center" @tap="goCartPage">
 					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp/4f8db4b7921d4f819d8053ba1c3baee4/08d3b1d2deda71069a912ba2d2cc9435.png"></image>
 					<text class="xxs lighter">购物车</text>
-					<view v-if="cartNum" bgColor="#FF2C3C" :offset="[8, 10]" :count="cartNum"></view>
+					<u-badge v-if="cartNum" bgColor="#FF2C3C" :offset="[8, 10]" :count="cartNum"></u-badge>
 				</view>
 				<view class="footer-action" @tap="showSpecFun(0)">
 					<view class="footer-action__avatars">
@@ -323,7 +323,7 @@
 			:group="Boolean(isGroup)" :red-btn-text="btnText.red" :yellow-btn-text="btnText.yellow"
 			@confirm="onConfirm"></spec-popup>
 
-		<view v-model="showShareBtn" mode="center" border-radius="24" :closeable="true" :mask-close-able="true" @open="prepareGoodsShareQrcode">
+		<u-popup v-model="showShareBtn" mode="center" border-radius="24" :closeable="true" :mask-close-able="true" @open="prepareGoodsShareQrcode">
 			<view class="goods-share-card">
 				<view class="goods-share-card__title">商品二维码</view>
 				<view class="goods-share-card__goods">
@@ -341,9 +341,9 @@
 				</view>
 				<view class="goods-share-card__tip">长按识别二维码查看商品</view>
 			</view>
-		</view>
+		</u-popup>
 		<!-- 领券 -->
-		<view v-model="showCoupon" mode="bottom" border-radius="14">
+		<u-popup v-model="showCoupon" mode="bottom" border-radius="14">
 			<view>
 				<view class="row-between" style="padding: 30rpx">
 					<view class="title md bold">领券</view>
@@ -369,7 +369,7 @@
 					</scroll-view>
 				</view>
 			</view>
-		</view>
+		</u-popup>
 
 		<view class="share-money" :class="{ show: showCommission && enableCommission}">
 			<view class="row-end">
@@ -387,7 +387,7 @@
 			</view>
 		</view>
 
-		<view :scroll-top="scrollTop" :top="1000" :customStyle="{ backgroundColor: '#FFF', color: '#000', boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)'}"></view>
+		<u-back-top :scroll-top="scrollTop" :top="1000" :customStyle="{ backgroundColor: '#FFF', color: '#000', boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)'}"></u-back-top>
 
 	</view>
 </template>

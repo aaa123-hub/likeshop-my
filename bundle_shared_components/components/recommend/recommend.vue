@@ -34,7 +34,7 @@
 // +----------------------------------------------------------------------
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
-import { getBestList } from '../../api/store';
+import { getBestList } from '@/api/store';
 import goodsList from "../goods-list/goods-list";
 
 export default {

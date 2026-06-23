@@ -6,7 +6,7 @@
             <view :class="'bar-item row-center ' + (active == 'first' ? 'item-active' : '')" @tap="changeTab" data-active="first">一级粉丝</view>
             <view :class="'bar-item row-center ' + (active == 'second' ? 'item-active' : '')" @tap="changeTab" data-active="second">二级粉丝</view>
         </view>
-        <view
+        <u-search
             v-model="keyword"
             shape="round"
             background="white"

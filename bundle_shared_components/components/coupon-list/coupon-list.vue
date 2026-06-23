@@ -49,7 +49,7 @@
 // +----------------------------------------------------------------------
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
-import { getCoupon } from '../../api/user';
+import { getCoupon } from '@/api/user';
 
 export default {
   data() {

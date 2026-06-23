@@ -42,7 +42,7 @@
               @click="sendSmsFun()"
             >
               <view v-show="canSendSms">获取验证码</view>
-              <view
+              <u-count-down
                 ref="countDown"
                 :show-days="false"
                 :timestamp="time"
@@ -98,7 +98,7 @@
           />
         </view>
       </view>
-      <view v-model="isAgree" shape="circle" class="mt20">
+      <u-checkbox v-model="isAgree" shape="circle" class="mt20">
         <view class="sm row">
           已阅读并同意
           <navigator
@@ -117,7 +117,7 @@
             >《隐私协议》</navigator
           >
         </view>
-      </view>
+      </u-checkbox>
       <button
         class="btn white bg-primary row-center"
         @click="registerFun"

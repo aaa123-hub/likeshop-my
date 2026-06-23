@@ -64,7 +64,7 @@
                 <view class="md row" style="flex: 1">{{ userInfo.create_time }}</view>
             </view>
         </view>
-        <view type="center" closeable v-model="showMobile" mode="center" border-radius="14">
+        <u-popup type="center" closeable v-model="showMobile" mode="center" border-radius="14">
             <view class="modify-container column-center bg-white" v-show="showMobile">
                 <view class="title xl">{{ userInfo.mobile ? '更换手机号' : '绑定手机号' }}</view>
                 <view class="modify-row row" v-if="userInfo.mobile">
@@ -104,10 +104,10 @@
                 >
                 <view class="btn bg-primary white row-center" @click="$changeUserMobile">确定</view>
             </view>
-        </view>
+        </u-popup>
 
         <!-- 昵称修改组件 -->
-        <view
+        <u-popup
             v-model="showNickName"
             :closeable="true"
             :maskCloseAble="false"
@@ -133,8 +133,8 @@
                     <button class="btn bg-primary white row-center" form-type="submit">确定</button>
                 </form>
             </view>
-        </view>
-        <view v-model="showPwd" closeable mode="center" border-radius="14">
+        </u-popup>
+        <u-popup v-model="showPwd" closeable mode="center" border-radius="14">
             <view class="modify-container column-center bg-white" v-show="showPwd">
                 <view class="title xl">设置密码</view>
                 <view class="modify-row row">
@@ -169,14 +169,14 @@
                 </view>
                 <view class="btn bg-primary white row-center" @click="$forgetPwd">确定</view>
             </view>
-        </view>
-        <view
+        </u-popup>
+        <u-picker
             mode="selector"
             v-model="showPicker"
             :default-selector="[0]"
             :range="sexList"
             @confirm="onConfirm"
-        />
+         />
     </view>
 </template>
 

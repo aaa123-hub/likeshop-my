@@ -1,6 +1,6 @@
 <template>
 	<view class="">
-		<view class="share-popup" v-model="showshare" mode="bottom" border-radius="14" :closeable="true"
+		<u-popup class="share-popup" v-model="showshare" mode="bottom" border-radius="14" :closeable="true"
 			:safe-area-inset-bottom="true" :mask-close-able="false">
 			<view class="row row-center md bold mt30 mb30">分享至</view>
 			<view class="row row-around share-tab">
@@ -22,8 +22,8 @@
 				<!-- #endif -->
 			</view>
 			<view class="row row-center bg-body cancel xl" @tap="showshare=false">取消</view>
-		</view>
-		<view class="share-poster" v-model="showPoster" mode="center" :closeable="true"
+		</u-popup>
+		<u-popup class="share-poster" v-model="showPoster" mode="center" :closeable="true"
 			:safe-area-inset-bottom="true">
 			<!-- #ifndef H5 -->
 			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
@@ -39,9 +39,9 @@
 				长按保存图片到相册
 				<!-- #endif -->
 			</button>
-		</view>
+		</u-popup>
 		<!-- #ifdef H5 -->
-		<view :custom-style="{'background': 'none'}"  class="share-tips" v-model="showTips" mode="top">
+		<u-popup :custom-style="{'background': 'none'}"  class="share-tips" v-model="showTips" mode="top">
 			<view style="overflow: hidden;">
 				<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/share_arrow.png" class="share-arrow" />
 				<view class="white" style="text-align: center;margin-top: 280rpx;">
@@ -49,7 +49,7 @@
 					<view class="sm m-t-10">点击屏幕右上角将本页面分享给好友</view>
 				</view>
 			</view>
-		</view>
+		</u-popup>
 		<!-- #endif -->
 		<poster v-if="enablePoster" :type="type" :share-id="shareId" :config="config"
 			:qrcode="mnpQrcode" :link="getLink" @success="handleSuccess" @fail="handleFail"

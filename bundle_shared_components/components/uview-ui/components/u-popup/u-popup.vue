@@ -2,7 +2,7 @@
 	<view v-if="visibleSync" :style="[{
 		zIndex: uZindex - 1
 	}]" class="u-drawer" hover-stop-propagation>
-		<view :duration="duration" :custom-style="maskCustomStyle" :maskClickAble="maskCloseAble" :z-index="uZindex - 2" :show="showDrawer && mask" @click="maskClick"></view>
+		<u-mask :duration="duration" :custom-style="maskCustomStyle" :maskClickAble="maskCloseAble" :z-index="uZindex - 2" :show="showDrawer && mask" @click="maskClick"></u-mask>
 		<view
 			class="u-drawer-content"
 			@tap="modeCenterClose(mode)"

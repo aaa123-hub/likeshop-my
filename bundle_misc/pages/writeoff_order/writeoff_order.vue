@@ -1,7 +1,7 @@
 <template>
 	<view class="writeoff-order">
-		<view :list="order" :active-color="primaryColor" inactive-color="#333" :is-scroll="false" :current="current"
-			@change="changeCurrent"></view>
+		<u-tabs :list="order" :active-color="primaryColor" inactive-color="#333" :is-scroll="false" :current="current"
+			@change="changeCurrent"></u-tabs>
 		<view class="list">
 			<view class="item bg-white" v-for="(item, index) in orderList" :key="index">
 				<view class="row-between title">

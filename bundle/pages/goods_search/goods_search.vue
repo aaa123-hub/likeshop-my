@@ -98,7 +98,7 @@
 				</view>
 			</loading-footer>
 		</view>
-		<view v-model="showFilter" mode="bottom" border-radius="24" safe-area-inset-bottom>
+		<u-popup v-model="showFilter" mode="bottom" border-radius="24" safe-area-inset-bottom>
 			<view class="filter-panel">
 				<view class="filter-panel__title">更多筛选</view>
 				<view class="filter-group">
@@ -118,12 +118,12 @@
 						<view :class="['filter-chip', sortType === 'SALES_DESC' ? 'active' : '']" @tap="sortType = 'SALES_DESC'">销量优先</view>
 					</view>
 				</view>
-				<view class="filter-actions">
+			<view class="filter-actions">
 					<view class="filter-action reset" @tap="resetFilter">重置</view>
 					<view class="filter-action confirm" @tap="applyFilter">确定</view>
 				</view>
 			</view>
-		</view>
+		</u-popup>
 	</view>
 </template>
 

@@ -160,7 +160,7 @@
             </view>
         </view>
     </view>
-    <view v-model="showPop" @close="onClose" closeable mode="center" border-radius="30">
+    <u-popup v-model="showPop" @close="onClose" closeable mode="center" border-radius="30">
         <view class="inviteformContain column-center">
             <view class="title xl">填写上级分销商</view>
             <view class="input-row row">
@@ -169,8 +169,8 @@
             </view>
             <view class="btn bg-primary white row-center" @tap="inputInviteCodeFun">确定</view>
         </view>
-    </view>
-    <view v-model="showRegion" mode="mutil-column-auto" @confirm="regionChange" :list="regionLists" ></view>
+    </u-popup>
+    <u-select v-model="showRegion" mode="mutil-column-auto" @confirm="regionChange" :list="regionLists" ></u-select>
 </view>
 </template>
 

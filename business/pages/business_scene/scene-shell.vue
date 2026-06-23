@@ -1002,7 +1002,7 @@
                 </view>
             </template>
         </scroll-view>
-        <view v-model="showStoreSharePopup" mode="center" border-radius="0" :mask-close-able="true" :custom-style="{ background: 'transparent' }">
+        <u-popup v-model="showStoreSharePopup" mode="center" border-radius="0" :mask-close-able="true" :custom-style="{ background: 'transparent' }">
             <view class="store-share-popup">
                 <view class="store-share-shop-card">
                     <image class="store-share-shop-card__logo" :src="storeDetailView.shopLogo" mode="aspectFill"></image>
@@ -1035,7 +1035,7 @@
                     </view>
                 </view>
             </view>
-        </view>
+        </u-popup>
     </view>
 </template>
 

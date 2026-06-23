@@ -83,7 +83,7 @@
                                 原价 ¥{{bargainObj.price || 0}}
                             </view>
                             <view class="row" v-show="showCountDown" v-if="timestamp > 0">
-                                <view
+                                <u-count-down
                                     :timestamp="timestamp"
                                     :bg-color="primaryColor"
                                     color="#fff"
@@ -209,7 +209,7 @@
         </view>
         <loading-view v-if="showLoadingView" />
         <goods-bargain v-if="status != -1" ref="goodsBargain" />
-        <view v-model="showBargainPop" mode="center">
+        <u-popup v-model="showBargainPop" mode="center">
             <view class="bargain-pop-container">
                 <view class="md normal bold row-center" style="padding-top: 64rpx;">
                     恭喜您成功砍下<text class="primary lg">{{knifePrice || 0}}</text>元
@@ -234,7 +234,7 @@
             <view class="close-icon row-center" @click="closeBargainPop" mode="bottom">
                 <u-icon name="close-circle" size="68rpx" color="#fff"></u-icon>
             </view>
-        </view>
+        </u-popup>
         <spec-popup
         :show="showPop"
         :goods="activityObj"

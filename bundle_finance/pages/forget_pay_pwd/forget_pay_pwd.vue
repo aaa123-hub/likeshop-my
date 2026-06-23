@@ -10,7 +10,7 @@
                 <input class="flex1" v-model="code" placeholder="请输入验证码" />
                 <view class="get-code xs br60 row-center primary" @tap="sendSms">
                     <view v-show="!showCount">获取验证码</view>
-                    <view
+                    <u-count-down
                         v-show="showCount"
                         ref="countDown"
                         :show-days="false"

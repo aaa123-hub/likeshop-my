@@ -1,11 +1,11 @@
 <template>
 	<view class="navbar">
-		<view :background="background" :title="title" :title-color="titleColor" :border-bottom="borderBottom"
+		<u-navbar :background="background" :title="title" :title-color="titleColor" :border-bottom="borderBottom"
 			:immersive="immersive" :title-bold="true" :is-back="false">
 			<view class="navbar-left" slot="left">
 				<u-icon :name="backIcon" :size="36" @click="goBack"></u-icon>
 			</view>
-		</view>
+		</u-navbar>
 	</view>
 </template>
 

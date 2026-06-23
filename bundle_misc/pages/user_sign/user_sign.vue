@@ -61,7 +61,7 @@
     </view>
 </view>
 
-    <view v-model="showPop" mode="center">
+    <u-popup v-model="showPop" mode="center">
         <view class="pop-container">
             <view class="header-score row-center mt20">+{{addIntegral}}</view>
             <view class="box column-center">
@@ -77,7 +77,7 @@
                 <view class="bg-primary white br60 primary-btn" style="margin-top: 26rpx" @tap="onClose">确定</view>
             </view>
         </view>
-    </view>
+    </u-popup>
 </view>
 </template>
 

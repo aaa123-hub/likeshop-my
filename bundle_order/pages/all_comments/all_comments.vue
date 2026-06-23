@@ -29,12 +29,12 @@
                         <view class="user-info row">
                             <image class="avatar mr20" :src="item.avatar"></image>
                             <view class="user-name md mr10">{{ item.nickname }}</view>
-                            <view
+                            <u-rate
                                 disabled
                                 size="26rpx"
                                 color="#FF2C3C"
                                 v-model="item.goods_comment"
-                            ></view>
+                            ></u-rate>
                         </view>
                         <view class="muted xs mt10">
                             <text class="mr20">{{ item.create_time }}</text>

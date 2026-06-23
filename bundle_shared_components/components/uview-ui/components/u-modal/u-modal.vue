@@ -1,6 +1,6 @@
 <template>
 	<view>
-		<view :zoom="zoom" mode="center" :popup="false" :z-index="uZIndex" v-model="value" :length="width"
+		<u-popup :zoom="zoom" mode="center" :popup="false" :z-index="uZIndex" v-model="value" :length="width"
 		 :mask-close-able="maskCloseAble" :border-radius="borderRadius" @close="popupClose" :negative-top="negativeTop">
 			<view class="u-model">
 				<view v-if="showTitle" class="u-model__title u-line-1" :style="[titleStyle]">{{ title }}</view>
@@ -19,7 +19,7 @@
 					 class="u-model__footer__button hairline-left" :style="[confirmBtnStyle]" @tap="confirm">
 						<slot v-if="$slots['confirm-button']" name="confirm-button"></slot>
 						<block v-else>
-							<view mode="circle" :color="confirmColor" v-if="loading"></view>
+							<u-loading mode="circle" :color="confirmColor" v-if="loading"></u-loading>
 							<block v-else>
 								{{confirmText}}
 							</block>
@@ -27,7 +27,7 @@
 					</view>
 				</view>
 			</view>
-		</view>
+		</u-popup>
 	</view>
 </template>
 

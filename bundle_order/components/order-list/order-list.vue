@@ -28,7 +28,7 @@ author: likeshop.cn.team //
         <view class="order-header row-between">
           <view class="row">
             <view v-if="item.delivery_type == 2" class="mr10">
-              <view
+              <u-tag
                 text="自提"
                 size="mini"
                 type="primary"
@@ -37,13 +37,13 @@ author: likeshop.cn.team //
               />
             </view>
             <view v-if="item.order_type == 1" class="mr10">
-              <view text="秒杀" size="mini" type="primary" mode="plain" />
+              <u-tag text="秒杀" size="mini" type="primary" mode="plain" />
             </view>
             <view v-if="item.order_type == 2" class="mr10">
-              <view text="拼团" size="mini" type="primary" mode="plain" />
+              <u-tag text="拼团" size="mini" type="primary" mode="plain" />
             </view>
             <view v-if="item.order_type == 3" class="mr10">
-              <view text="砍价" size="mini" type="primary" mode="plain" />
+              <u-tag text="砍价" size="mini" type="primary" mode="plain" />
             </view>
             订单编号：{{ item.order_sn }}
           </view>
@@ -85,7 +85,7 @@ author: likeshop.cn.team //
               class="primary sm row"
               style="line-height: 26rpx"
               v-if="getCancelTime(item.order_cancel_time) > 0"
-              ><view
+              ><u-count-down
                 separator="zh"
                 :timestamp="getCancelTime(item.order_cancel_time)"
                 separator-color="#FF2C3C"
@@ -94,8 +94,8 @@ author: likeshop.cn.team //
                 :font-size="26"
                 bg-color="transparent"
                 @end="reflesh"
-              ></view
-            ></view>
+              ></u-count-down>
+            </view>
           </view>
           <view v-if="item.cancel_btn">
             <button

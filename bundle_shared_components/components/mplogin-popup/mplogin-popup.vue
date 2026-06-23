@@ -1,6 +1,6 @@
 <template>
     <view>
-        <view
+        <u-popup
             v-model="showPop"
             mode="bottom"
             border-radius="14"
@@ -54,8 +54,8 @@
                     </form>
                 </view>
             </view>
-        </view>
-    </view>
+	</view>
+    </u-popup>
 </template>
 
 <script>

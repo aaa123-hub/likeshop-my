@@ -73,23 +73,23 @@
             </view>
             <view class="default-card">
                 <view class="default-card__label">设置为默认地址</view>
-                <view
+                <u-switch
                     v-model="isDefaultSwitch"
                     active-color="#1F7AF4"
                     inactive-color="#d2d4da"
                     @change="onSwitchChange"
-                ></view>
+                ></u-switch>
             </view>
             <button class="submit-btn" form-type="submit">
                 {{ addressId ? '保存' : '保存' }}
             </button>
         </form>
-        <view
+        <u-select
             v-model="showRegion"
             mode="mutil-column-auto"
             @confirm="regionChange"
             :list="lists"
-        ></view>
+        ></u-select>
     </view>
 </template>
 

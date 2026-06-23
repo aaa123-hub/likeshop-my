@@ -13,7 +13,7 @@
                 </view>
                 <view class="goods-info ml20 flex1">
                     <view class="goods-name line2 mb10">
-                        <view
+                        <u-tag
                             class="mr10"
                             v-if="team.need"
                             :text="team.need + '人团'"

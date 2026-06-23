@@ -46,7 +46,7 @@
                 </loading-footer>
         </view>
     </view>
-    <view v-model="showPop" :list="months" mode="single-column" @confirm="changeMonths" ></view>
+    <u-select v-model="showPop" :list="months" mode="single-column" @confirm="changeMonths" ></u-select>
 </view>
 </template>
 

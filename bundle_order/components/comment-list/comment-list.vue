@@ -32,7 +32,7 @@
                         </view>
                         <view v-show="!(type == 1)" class="row mt20">
                             <view class="sm mr10">评分</view>
-                            <view
+                            <u-rate
                                 :disabled="true"
                                 v-model="item.goods_comment"
                                 active-color="#FF2C3C"

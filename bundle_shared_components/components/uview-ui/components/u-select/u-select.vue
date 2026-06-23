@@ -9,7 +9,7 @@
 				<u-icon name="arrow-down-fill" size="26" color="#c0c4cc"></u-icon>
 			</view>
 		</view> -->
-		<view :maskCloseAble="maskCloseAble" mode="bottom" :popup="false" v-model="value" length="auto" :safeAreaInsetBottom="safeAreaInsetBottom" @close="close" :z-index="uZIndex">
+		<u-popup :maskCloseAble="maskCloseAble" mode="bottom" :popup="false" v-model="value" length="auto" :safeAreaInsetBottom="safeAreaInsetBottom" @close="close" :z-index="uZIndex">
 			<view class="u-select">
 				<view class="u-select__header" @touchmove.stop.prevent="">
 					<view
@@ -45,7 +45,7 @@
 					</picker-view>
 				</view>
 			</view>
-		</view>
+		</u-popup>
 	</view>
 </template>
 

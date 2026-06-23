@@ -242,7 +242,7 @@ likeshop.cn.team // +-----------------------------------------------------------
         </view>
         <loading-view v-if="showLoading" background-color="transparent" :size="50"></loading-view>
         <loading-view v-if="isFirstLoading"></loading-view>
-        <view v-model="showCoupon" border-radius="14" mode="bottom" closeable>
+        <u-popup v-model="showCoupon" border-radius="14" mode="bottom" closeable>
             <view class="pop-title row-between">
                 <view class="title">优惠券</view>
             </view>
@@ -265,7 +265,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                     </tab>
                 </tabs>
             </view>
-        </view>
+        </u-popup>
     </view>
 </template>
 

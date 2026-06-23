@@ -25,7 +25,7 @@
 				<template v-if="timeout > 0">
 					<view class="payment-count-down">
 						<text>支付剩余时间</text>
-						<view :timestamp="timeout" :font-size="22" />
+						<u-count-down :timestamp="timeout" :font-size="22" />
 					</view>
 				</template>
 			</view>
@@ -34,7 +34,7 @@
 			<view class="payment-main">
 				<view class="payway-container u-skeleton-fillet">
 					<!-- Payway -->
-					<view v-model="payway" style="width: 100%;">
+					<u-radio-group v-model="payway" style="width: 100%;">
 						<view class="payway">
 							<view class="payway-item" v-for="(item, index) in paywayList" :key="item.id"
 								@click="changePayway(item.pay_way)">
@@ -43,10 +43,10 @@
 									<text class="payway-item-content-name">{{ item.name }}</text>
 									<text class="payway-item-content-tips">{{ item.extra }}</text>
 								</view>
-								<view shape="circle" :name="item.pay_way" :active-color="primaryColor" />
+								<u-radio shape="circle" :name="item.pay_way" :active-color="primaryColor" />
 							</view>
 						</view>
-					</view>
+					</u-radio-group>
 					<template v-if="!paywayList.length">
 						<view class="payway-empty">暂无支付方式</view>
 					</template>
@@ -56,14 +56,14 @@
 			<!-- Footer -->
 			<view class="payment-footer u-skeleton-fillet">
 				<view :class="['payment-submit', {'payment-submit--disabled': loadingPay}]" @tap="handlePrepay">
-					<view mode="circle" :show="loadingPay" />
+					<u-loading mode="circle" :show="loadingPay" />
 					<text v-show="!loadingPay">立即支付</text>
 				</view>
 			</view>
 
 		</view>
 
-		<view :loading="loadingSkeleton" :animation="true" bgColor="#FFF" />
+		<u-skeleton :loading="loadingSkeleton" :animation="true" bgColor="#FFF" />
 	</view>
 
 </template>

@@ -1,5 +1,5 @@
 <template>
-	<view :maskCloseAble="maskCloseAble" mode="bottom" :popup="false" v-model="value" length="auto" :safeAreaInsetBottom="safeAreaInsetBottom" @close="close" :z-index="uZIndex">
+	<u-popup :maskCloseAble="maskCloseAble" mode="bottom" :popup="false" v-model="value" length="auto" :safeAreaInsetBottom="safeAreaInsetBottom" @close="close" :z-index="uZIndex">
 		<view class="u-datetime-picker">
 			<view class="u-picker-header" @touchmove.stop.prevent="">
 				<view class="u-btn-picker u-btn-picker--tips"
@@ -92,7 +92,7 @@
 				</picker-view>
 			</view>
 		</view>
-	</view>
+	</u-popup>
 </template>
 
 <script>

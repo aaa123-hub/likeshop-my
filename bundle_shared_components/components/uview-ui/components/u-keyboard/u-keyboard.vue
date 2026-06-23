@@ -1,5 +1,5 @@
 <template>
-	<view class="" :mask="mask" :maskCloseAble="maskCloseAble" mode="bottom" :popup="false" v-model="value" length="auto"
+	<u-popup class="" :mask="mask" :maskCloseAble="maskCloseAble" mode="bottom" :popup="false" v-model="value" length="auto"
 	 :safeAreaInsetBottom="safeAreaInsetBottom" @close="popupClose" :zIndex="uZIndex">
 		<slot />
 		<view class="u-tooltip" v-if="tooltip">
@@ -19,7 +19,7 @@
 		<block v-else>
 			<u-car-keyboard :random="random" @backspace="backspace" @change="change"></u-car-keyboard>
 		</block>
-	</view>
+	</u-popup>
 </template>
 
 <script>

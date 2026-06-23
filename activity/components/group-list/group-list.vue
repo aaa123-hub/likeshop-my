@@ -7,8 +7,8 @@
 					<view v-else>
 						<view class="row" v-if="getTeamCountTime(item) >= 0">
 							<view class="sm mr10">距离结束</view>
-							<view :timestamp="getTeamCountTime(item)" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C" font-size="24"
-							 height="36" separator-size="26" @end="reflesh"></view>
+							<u-count-down :timestamp="getTeamCountTime(item)" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C" font-size="24"
+							 height="36" separator-size="26" @end="reflesh"></u-count-down>
 						</view>
 					</view>
 				</view>

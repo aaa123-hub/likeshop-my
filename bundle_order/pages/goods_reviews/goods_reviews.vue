@@ -3,7 +3,7 @@
         <order-goods :list="goods"></order-goods>
         <view class="goods-evaluate row">
             <view class="lable">商品评价</view>
-            <view
+            <u-rate
                 name="goodsRate"
                 :count="5"
                 :size="42"
@@ -21,15 +21,15 @@
         <view class="rate bg-white">
             <view class="item row mb20">
                 <view class="lable">描述相符</view>
-                <view name="descRate" :size="42" active-color="#FF2C3C" v-model="descRate" />
+                <u-rate name="descRate" :size="42" active-color="#FF2C3C" v-model="descRate" />
             </view>
             <view class="item row mb20">
                 <view class="lable">服务态度</view>
-                <view name="serverRate" :size="42" active-color="#FF2C3C" v-model="serverRate" />
+                <u-rate name="serverRate" :size="42" active-color="#FF2C3C" v-model="serverRate" />
             </view>
             <view class="item row">
                 <view class="lable">配送服务</view>
-                <view
+                <u-rate
                     name="deliveryRate"
                     :size="42"
                     active-color="#FF2C3C"
