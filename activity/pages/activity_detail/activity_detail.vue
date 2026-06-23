@@ -41,7 +41,7 @@
                             </view>
                         </view>
                     </navigator>
-                    
+
             </view>
 			<loading-footer slot-empty :status="status">
 				<view slot="empty" class="data-null column-center" style="padding-top: 500rpx">
@@ -84,7 +84,7 @@ export default {
   },
 
 
-  
+
   onReachBottom: function () {
     this.getActivityGoodsListsFun();
   },

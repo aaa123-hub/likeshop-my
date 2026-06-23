@@ -70,7 +70,7 @@ export default {
 			priceSlice.second = price[1];
 			this.priceSlice = priceSlice
 		}
-		
+
 	}
   }
 };

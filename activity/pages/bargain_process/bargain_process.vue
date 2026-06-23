@@ -35,7 +35,7 @@
                         请选择商品规格
                     </view>
                     <view class="choose-content row-between" @click="showSpecPop">
-                        <view class="row">                        
+                        <view class="row">
                             <view class="muted sm">已选：</view>
                             <view class="md normal">
                                 {{userSpecText}}
@@ -50,13 +50,13 @@
         <view v-show="status != -1">
             <view class="bargain-process-header">
                 <view class="mt20 status-container row">
-                    <custom-image 
-                    v-if="bargainObj.share_avatar" 
-                    width="80rpx" 
-                    height="80rpx" 
-                    :src="bargainObj.share_avatar" 
-                    round 
-                    :customStyle="{'border': '2rpx solid #fff'}" 
+                    <custom-image
+                    v-if="bargainObj.share_avatar"
+                    width="80rpx"
+                    height="80rpx"
+                    :src="bargainObj.share_avatar"
+                    round
+                    :customStyle="{'border': '2rpx solid #fff'}"
                     />
                     <view class="column ml20">
                         <view class="white xxl">
@@ -82,8 +82,8 @@
                             <view class="xs muted">
                                 原价 ¥{{bargainObj.price || 0}}
                             </view>
-                            <view class="row" v-show="showCountDown" v-if="timestamp > 0">                                
-                                <u-count-down
+                            <view class="row" v-show="showCountDown" v-if="timestamp > 0">
+                                <view
                                     :timestamp="timestamp"
                                     :bg-color="primaryColor"
                                     color="#fff"
@@ -166,7 +166,7 @@
                 <!-- end -->
                 <!-- 被邀请状态 -->
                 <view class="shared-panel" v-if="status == 5" >
-                    <view class="btn-container">                        
+                    <view class="btn-container">
                         <view class="nr muted row-center">
                             {{bargainObj.status_tips}}
                         </view>
@@ -209,7 +209,7 @@
         </view>
         <loading-view v-if="showLoadingView" />
         <goods-bargain v-if="status != -1" ref="goodsBargain" />
-        <u-popup v-model="showBargainPop" mode="center">
+        <view v-model="showBargainPop" mode="center">
             <view class="bargain-pop-container">
                 <view class="md normal bold row-center" style="padding-top: 64rpx;">
                     恭喜您成功砍下<text class="primary lg">{{knifePrice || 0}}</text>元
@@ -225,7 +225,7 @@
                         <view class="progress-bar" :style="{'width': precent + '%'}" />
                     </view>
                 </view>
-                <view class="row-center">                    
+                <view class="row-center">
                     <view class="invite-btn row-center md" @click="shareToBargain">
                         {{isHelpKnife ? '确定' : '邀请好友帮砍'}}
                     </view>
@@ -234,39 +234,39 @@
             <view class="close-icon row-center" @click="closeBargainPop" mode="bottom">
                 <u-icon name="close-circle" size="68rpx" color="#fff"></u-icon>
             </view>
-        </u-popup>
+        </view>
         <spec-popup
         :show="showPop"
         :goods="activityObj"
         :isBargain="true"
-        :show-add="false" 
-        :show-buy="false" 
+        :show-add="false"
+        :show-buy="false"
         :showConfirm="true"
         :disabledNumberBox="true"
         :showStock="false"
         @confirm="chooseSpec"
         @close="showPop=false"
         />
-       <!-- <share-popup 
-			:show="showSharePop" 
-			@close="showSharePop = false" 
-			:goodsId="bargainId" 
-			:isBargain="true" 
-			:shareTitle="bargainObj.share_titles || bargainObj.name" 
-			:summary="bargainObj.share_intros || bargainObj.simple_tips" 
-			:img-url="bargainObj.image" 
+       <!-- <share-popup
+			:show="showSharePop"
+			@close="showSharePop = false"
+			:goodsId="bargainId"
+			:isBargain="true"
+			:shareTitle="bargainObj.share_titles || bargainObj.name"
+			:summary="bargainObj.share_intros || bargainObj.simple_tips"
+			:img-url="bargainObj.image"
 		/> -->
-		<share-popup 
-			v-model="showSharePop" 
+		<share-popup
+			v-model="showSharePop"
 			:share-id="bargainId"
-			pagePath="bundle/pages/bargain_process/bargain_process" 
+			pagePath="bundle/pages/bargain_process/bargain_process"
 			:config="{
 				avatar: userInfo.avatar,
 				nickname: userInfo.nickname,
 				image: bargainObj.image,
 				name: bargainObj.name ||bargainObj.share_titles,
-			}" 
-			:type="2" 
+			}"
+			:type="2"
 		/>
 	</view>
 </template>
@@ -348,11 +348,11 @@ import {getBargainDetail, launchBargain, getBargainActivityDetail, helpBargain, 
             }
         },
         // #endif
-		
+
 		computed: {
 			...mapGetters(['userInfo']),
 		},
-		
+
         methods: {
             showSpecPop() {
                 this.showPop = true;
@@ -459,7 +459,7 @@ import {getBargainDetail, launchBargain, getBargainActivityDetail, helpBargain, 
                 helpBargain({
                     id: this.bargainId
                 }).then(res => {
-                    if(res.code == 1) {                        
+                    if(res.code == 1) {
                         this.knifePrice = res.data.knife_price;
                         this.precent = res.data.progress * 100;
                         if(this.precent > 100) {
@@ -594,7 +594,7 @@ import {getBargainDetail, launchBargain, getBargainActivityDetail, helpBargain, 
                 .bargain-code-content {
                     margin-top: 62rpx;
                     .bargain-code-title {
-                        
+
                     }
                     .code-content {
                         margin-top: 30rpx;
@@ -625,7 +625,7 @@ import {getBargainDetail, launchBargain, getBargainActivityDetail, helpBargain, 
                 .code-content {
                     margin-top: 30rpx;
                     padding: 27rpx 24rpx;
-                    background-color: $color-white;                       
+                    background-color: $color-white;
                     .user-item {
                         padding: 15rpx 0;
                         margin-top: 10rpx;
@@ -666,7 +666,7 @@ import {getBargainDetail, launchBargain, getBargainActivityDetail, helpBargain, 
                 }
                 .spec-item {
                     padding: 8rpx 28rpx;
-                    background-color: #F4F4F4;                    
+                    background-color: #F4F4F4;
                 }
                 .spec-active-item {
                     padding: 8rpx 28rpx;

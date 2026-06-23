@@ -126,9 +126,9 @@ class Wechath5 {
 				});
 			});
 		})
-		
+
 	}
-	
+
 	getWxAddress() {
 		return new Promise((reslove, reject) => {
 			weixin.ready(() => {

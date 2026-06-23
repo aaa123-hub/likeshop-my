@@ -101,7 +101,7 @@
 		.data-null {
 			padding-top: 150rpx;
 		}
-		
+
 	}
 
 </style>

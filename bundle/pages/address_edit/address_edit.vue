@@ -44,6 +44,7 @@
                         v-model="addressObj.telephone"
                         class="form-row__input"
                         type="number"
+                        maxlength="11"
                         placeholder="请输入电话"
                     />
                 </view>
@@ -72,23 +73,23 @@
             </view>
             <view class="default-card">
                 <view class="default-card__label">设置为默认地址</view>
-                <u-switch
+                <view
                     v-model="isDefaultSwitch"
                     active-color="#1F7AF4"
                     inactive-color="#d2d4da"
                     @change="onSwitchChange"
-                ></u-switch>
+                ></view>
             </view>
             <button class="submit-btn" form-type="submit">
                 {{ addressId ? '保存' : '保存' }}
             </button>
         </form>
-        <u-select
+        <view
             v-model="showRegion"
             mode="mutil-column-auto"
             @confirm="regionChange"
             :list="lists"
-        ></u-select>
+        ></view>
     </view>
 </template>
 
@@ -186,6 +187,10 @@ export default {
                 return this.$toast({
                     title: '请填写手机号码'
                 })
+            if (!/^1\d{10}$/.test(String(value.telephone)))
+                return this.$toast({
+                    title: '请输入正确的11位手机号'
+                })
             if (!value.region)
                 return this.$toast({
                     title: '请选择省、市、区'
@@ -214,11 +219,13 @@ export default {
                                     url: 1
                                 }
                             )
+                        } else {
+                            this.$toast({ title: res.msg || '保存失败' })
                         }
                     })
                     .catch((err) => {
                         return this.$toast({
-                            title: err
+                            title: err?.msg || err?.message || '保存失败'
                         })
                     })
             } else {
@@ -227,18 +234,20 @@ export default {
                         if (res.code == 1) {
                             this.$toast(
                                 {
-                                    title: res.msg
+                                    title: res.msg || '添加成功'
                                 },
                                 {
                                     tab: 3,
                                     url: 1
                                 }
                             )
+                        } else {
+                            this.$toast({ title: res.msg || '添加失败' })
                         }
                     })
                     .catch((err) => {
                         return this.$toast({
-                            title: err
+                            title: err?.msg || err?.message || '添加失败'
                         })
                     })
             }
@@ -395,7 +404,7 @@ export default {
         font-size: 32rpx;
         line-height: 44rpx;
         color: #222222;
-        padding-top: 6rpx;
+        padding-top: 0;
     }
 
     .default-card {

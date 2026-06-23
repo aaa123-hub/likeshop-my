@@ -40,33 +40,33 @@ import { getEcoApplications } from '@/api/app'
 import { resolveImage } from '@/utils/image-placeholder'
 
 const cardBackgrounds = [
-    'https://lanhu-oss-proxy.lanhuapp.com/be7cc876b2094b74ee0eba29ef07b145',
-    'https://lanhu-oss-proxy.lanhuapp.com/d4c33ec474b6bbd7d39c0203a548fb40',
-    'https://lanhu-oss-proxy.lanhuapp.com/af2bbdf994fa3c0ef35cc2e313008722',
-    'https://lanhu-oss-proxy.lanhuapp.com/ef5de8906549dcff1344adc4bd30f99e',
-    'https://lanhu-oss-proxy.lanhuapp.com/0413578f349662726395145504d86344',
-    'https://lanhu-oss-proxy.lanhuapp.com/aa437949540bc4253ca48ef9fd839e2a',
-    'https://lanhu-oss-proxy.lanhuapp.com/fa48364177ff3653867cbdb9c8da0f01',
-    'https://lanhu-oss-proxy.lanhuapp.com/81c2c956434428e9896b8063bfc9a72a'
+    'https://shengyuan.store/api/miniapp/files/miniapp/55370f24e008455485dc898d18fdfa24/be7cc876b2094b74ee0eba29ef07b145.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/9b8c35e5c8104d3cb05952ea783243ca/d4c33ec474b6bbd7d39c0203a548fb40.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/a121bc996fcf466c9f5d257adbb52d24/af2bbdf994fa3c0ef35cc2e313008722.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/935c3d850461481db3c763bebda4598b/ef5de8906549dcff1344adc4bd30f99e.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/0cd54acef85c4c93a90846b9ac0a060f/0413578f349662726395145504d86344.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/4de939cd2bbc43758f02d45abdd45717/aa437949540bc4253ca48ef9fd839e2a.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/91784135f9ff436689fdcc349f84f4e3/fa48364177ff3653867cbdb9c8da0f01.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/a364ccd4e9ab41308545d26055fd5862/81c2c956434428e9896b8063bfc9a72a.png'
 ]
 
 const arrowImages = [
-    'https://lanhu-oss-proxy.lanhuapp.com/5f7942136bf528b7f933552a0d63aeaf',
-    'https://lanhu-oss-proxy.lanhuapp.com/d34cf0e062a2622299d7bbbdfcaee748',
-    'https://lanhu-oss-proxy.lanhuapp.com/2bf6f361e9ad935d35e6b5c91fe92e99',
-    'https://lanhu-oss-proxy.lanhuapp.com/32fadc5465767727fd4a49dc8ddb377a',
-    'https://lanhu-oss-proxy.lanhuapp.com/bbc08b0b6626f28391202b013859163b',
-    'https://lanhu-oss-proxy.lanhuapp.com/cb0d48c1bdf5ae493d0e3c8ab0327b9b',
-    'https://lanhu-oss-proxy.lanhuapp.com/adf3250c832fea164c3d1b2946302dbb',
-    'https://lanhu-oss-proxy.lanhuapp.com/a232c7c25a8a69a30c18152f3aba48cf'
+    'https://shengyuan.store/api/miniapp/files/miniapp/2e0f54ff5ce44fae92a05c608af43c18/5f7942136bf528b7f933552a0d63aeaf.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/901c75e37f9d4956b9ba47f9f3eb192f/d34cf0e062a2622299d7bbbdfcaee748.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/ca52b45ad8d84b9ba0053e11d20dfd48/2bf6f361e9ad935d35e6b5c91fe92e99.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/21c999987fce41fbb7161e0c26bf09b9/32fadc5465767727fd4a49dc8ddb377a.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/2ed55f056262429db66806e3bed9cb9d/bbc08b0b6626f28391202b013859163b.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/111939b312c14abc9d3fc5499cb0c76f/cb0d48c1bdf5ae493d0e3c8ab0327b9b.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/27872562621b447ead8ae1c1f222ceaf/adf3250c832fea164c3d1b2946302dbb.png',
+    'https://shengyuan.store/api/miniapp/files/miniapp/f750dd79203e44a19f12b6ca2b2371e7/a232c7c25a8a69a30c18152f3aba48cf.png'
 ]
 
 export default {
     data() {
         return {
-            statusImage: 'https://lanhu-oss-proxy.lanhuapp.com/4d93cd1c8d542d2e086451b42c6ea382',
-            backImage: 'https://lanhu-oss-proxy.lanhuapp.com/c073f61c3357ea0c4fb34f91dc409aad',
-            capsuleImage: 'https://lanhu-oss-proxy.lanhuapp.com/78088a7223eda53dc8e5a5bc96c57cb1',
+            statusImage: 'https://shengyuan.store/api/miniapp/files/miniapp/d97fce7aadd0496b8e58e01bd571f4d1/4d93cd1c8d542d2e086451b42c6ea382.png',
+            backImage: 'https://shengyuan.store/api/miniapp/files/miniapp/1e966ff6836d403e9e02d28a41c8086e/c073f61c3357ea0c4fb34f91dc409aad.png',
+            capsuleImage: 'https://shengyuan.store/api/miniapp/files/miniapp/6e76ad947def4030aa266217fbb05e99/78088a7223eda53dc8e5a5bc96c57cb1.png',
             loading: false,
             loopData0: []
         }

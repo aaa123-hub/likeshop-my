@@ -311,15 +311,22 @@ export function getAfterSaleGuar() {
 //客服
 export function getService() {
   return request.get("miniapp/eco-applications").then((res) => {
-    const list = res.data?.list || [];
-    const service = list.find((item) => String(item.appCode || "").toLowerCase().includes("service")) || {};
+    const payload = res.data || {};
+    const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || []);
+    const service = list.find((item) => {
+      const text = `${item.appCode || ""}${item.appName || ""}${item.name || ""}${item.title || ""}`.toLowerCase();
+      return text.includes("service") || text.includes("客服") || text.includes("contact");
+    }) || payload.service || payload.customerService || payload.contact || {};
+    const qrCode = service.qrCode || service.qrCodeUrl || service.qrcode || service.wechatQrCode || service.imageUrl || service.iconUrl || payload.qrCodeUrl || payload.serviceQrCode;
     return {
       ...res,
+      code: res.code == 1 ? 1 : res.code,
       data: {
-        image: resolveImage(service.iconUrl, "avatar"),
-        wechat: service.appCode || "",
-        phone: service.contactPhone || "",
-        time: service.appDesc || "",
+        image: resolveImage(qrCode, "avatar"),
+        qrcode: resolveImage(qrCode, "avatar"),
+        wechat: service.wechat || service.wechatNo || service.wechatAccount || service.appCode || payload.wechat || "",
+        phone: service.contactPhone || service.phone || service.mobile || payload.phone || "",
+        time: service.appDesc || service.desc || service.description || payload.time || "工作日 09:00-18:00",
         list,
       },
     };
@@ -330,7 +337,7 @@ export function getEcoApplications(params = {}) {
   return request.get("miniapp/eco-applications", { params }).then((res) => {
     if (res.code != 1) return res;
     const payload = res.data || {};
-    const list = Array.isArray(payload) ? payload : (payload.list || payload.rows || payload.records || []);
+    const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || []);
     return {
       ...res,
       data: list.map(normalizeEcoApplication),
@@ -340,7 +347,15 @@ export function getEcoApplications(params = {}) {
 
 // 足迹气泡
 export function getBubbleLists() {
-  return request.get("miniapp/home/recent-visits").then(normalizeBubbleListsResponse);
+  return request.get("miniapp/home/recent-visits")
+    .then(normalizeBubbleListsResponse)
+    .catch(() => ({
+      code: 1,
+      data: {
+        lists: [],
+        time: Math.floor(Date.now() / 1000),
+      },
+    }));
 }
 
 // 用户自定义分享

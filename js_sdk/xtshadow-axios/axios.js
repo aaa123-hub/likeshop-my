@@ -2,7 +2,7 @@
   * uni-axios-ts
   * library v0.0.4
   * github address https://gitee.com/codeweb/uni-axios-ts.git
-  * 
+  *
   * (c) 2019.12 xtshadow
   */
 

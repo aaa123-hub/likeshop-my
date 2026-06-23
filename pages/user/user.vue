@@ -22,7 +22,7 @@
                     class="my-page__setting"
                     :src="designAssets.mySetting"
                     mode="aspectFit"
-                    @tap="goPage('/bundle/pages/user_profile/user_profile')"
+                    @tap="goPage('/bundle_user/pages/user_profile/user_profile')"
                 ></image>
             </view>
 
@@ -44,12 +44,12 @@
                     <view class="my-page__card-number my-page__card-number--gift">{{ userInfo.coupon || 0 }}张</view>
                 </view>
                 <view class="my-page__asset-right">
-                    <view class="my-page__asset-item my-page__asset-item--points" @tap="goPage('/bundle/pages/user_sign/user_sign')">
+                    <view class="my-page__asset-item my-page__asset-item--points" @tap="goPage('/bundle_misc/pages/user_sign/user_sign')">
                         <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myPointsCard" mode="scaleToFill"></image>
                         <view class="my-page__card-name my-page__card-name--points">我的积分</view>
                         <view class="my-page__card-number my-page__card-number--points">{{ userInfo.user_integral || 0 }}</view>
                     </view>
-                    <view class="my-page__asset-item my-page__asset-item--coupon" @tap="goPage('/bundle/pages/user_coupon/user_coupon')">
+                    <view class="my-page__asset-item my-page__asset-item--coupon" @tap="goPage('/bundle_user/pages/user_coupon/user_coupon')">
                         <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myCouponCard" mode="scaleToFill"></image>
                         <view class="my-page__card-name my-page__card-name--coupon">我的优惠券</view>
                         <view class="my-page__card-number my-page__card-number--coupon">{{ userInfo.coupon || 0 }}张</view>
@@ -62,7 +62,7 @@
             <view class="my-section my-section--online">
                 <view class="my-section__head">
                     <text class="my-section__title">线上订单</text>
-                    <view class="my-section__more" @tap="goPage('/bundle/pages/user_order/user_order')">
+                    <view class="my-section__more" @tap="goPage('/bundle_order/pages/user_order/user_order')">
                         <text>全部</text>
                         <image class="my-section__more-icon" :src="designAssets.myArrowCircle" mode="aspectFit"></image>
                     </view>
@@ -204,7 +204,7 @@ export default {
         },
         goLogin() {
             if (this.isLogin) {
-                uni.navigateTo({ url: '/bundle/pages/user_set/user_set' })
+                uni.navigateTo({ url: '/bundle_user/pages/user_set/user_set' })
                 return
             }
             toLogin()
@@ -251,11 +251,11 @@ export default {
         ...mapGetters(['cartNum', 'userInfo', 'inviteCode', 'appConfig']),
         onlineOrderEntries() {
             return [
-                { name: '待付款', url: '/bundle/pages/user_order/user_order?type=pay', image: designAssets.myOrderPay, badge: this.userInfo.wait_pay },
-                { name: '待发货', url: '/bundle/pages/user_order/user_order?type=delivery', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
-                { name: '待收货/核销', url: '/bundle/pages/user_order/user_order?type=delivery', image: designAssets.myOrderReceive, badge: this.userInfo.wait_take },
-                { name: '待取积分', url: '/bundle/pages/goods_comment_list/goods_comment_list', image: designAssets.myOrderPoints, badge: this.userInfo.wait_comment },
-                { name: '售后', url: '/bundle/pages/post_sale/post_sale', image: designAssets.myOrderAfterSale, badge: this.userInfo.after_sale }
+                { name: '待付款', url: '/bundle_order/pages/user_order/user_order?type=pay', image: designAssets.myOrderPay, badge: this.userInfo.wait_pay },
+                { name: '待发货', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
+                { name: '待收货/核销', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myOrderReceive, badge: this.userInfo.wait_take },
+                { name: '待取积分', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints, badge: this.userInfo.wait_comment },
+                { name: '售后', url: '/bundle_order/pages/post_sale/post_sale', image: designAssets.myOrderAfterSale, badge: this.userInfo.after_sale }
             ]
         },
         offlineOrderEntries() {
@@ -267,12 +267,12 @@ export default {
         allianceEntries() {
             return [
                 { name: '联盟码', url: '/business/pages/business_pages/intro_card', image: designAssets.myAllianceCode },
-                { name: '订单记录', url: '/bundle/pages/user_order/user_order', image: designAssets.myAllianceRecord }
+                { name: '订单记录', url: '/bundle_order/pages/user_order/user_order', image: designAssets.myAllianceRecord }
             ]
         },
         valueEntries() {
             return [
-                { name: '待领取\n线上订单', url: '/bundle/pages/user_order/user_order', image: designAssets.myValueOnline },
+                { name: '待领取\n线上订单', url: '/bundle_order/pages/user_order/user_order', image: designAssets.myValueOnline },
                 { name: '待领取\n线下订单', url: '/business/pages/business_pages/face_pay', image: designAssets.myValueOffline },
                 { name: '联盟订单', url: '/pages/street/street', image: designAssets.myValueAlliance, openType: 'switchTab' },
                 { name: '领取积分\n设置', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints }

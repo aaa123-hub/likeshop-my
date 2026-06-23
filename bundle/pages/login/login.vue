@@ -37,7 +37,7 @@
                         <navigator
                             class="company-login__link"
                             hover-class="none"
-                            url="/bundle/pages/server_explan/server_explan?type=0"
+                            url="/bundle_user/pages/server_explan/server_explan?type=0"
                             @tap.stop
                         >
                             《服务协议》
@@ -46,7 +46,7 @@
                         <navigator
                             class="company-login__link"
                             hover-class="none"
-                            url="/bundle/pages/server_explan/server_explan?type=1"
+                            url="/bundle_user/pages/server_explan/server_explan?type=1"
                             @tap.stop
                         >
                             《隐私协议》
@@ -81,7 +81,7 @@
                     <navigator
                         class="company-login__link"
                         hover-class="none"
-                        url="/bundle/pages/server_explan/server_explan?type=0"
+                        url="/bundle_user/pages/server_explan/server_explan?type=0"
                     >
                         《服务协议》
                     </navigator>
@@ -89,7 +89,7 @@
                     <navigator
                         class="company-login__link"
                         hover-class="none"
-                        url="/bundle/pages/server_explan/server_explan?type=1"
+                        url="/bundle_user/pages/server_explan/server_explan?type=1"
                     >
                         《隐私协议》
                     </navigator>

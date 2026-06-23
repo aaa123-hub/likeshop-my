@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import navbar from '@/components/navbar/navbar.vue'
+import navbar from '@/bundle_shared_components/components/navbar/navbar.vue'
 import { pageDesignMap } from './page-map'
 
 export default {

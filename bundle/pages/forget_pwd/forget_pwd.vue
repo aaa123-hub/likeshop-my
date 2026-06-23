@@ -1,29 +1,29 @@
 <template>
   <view>
     <!-- #ifndef  H5 -->
-    <u-sticky offset-top="0" h5-nav-height="0" bg-color="transparent">
-      <u-navbar
+    <view offset-top="0" h5-nav-height="0" bg-color="transparent">
+      <view
         :is-back="true"
         title="忘记密码"
         :title-bold="true"
         :is-fixed="false"
         :border-bottom="false"
         :background="{ background: 'rgba(256,256, 256,0)' }"
-      ></u-navbar>
-    </u-sticky>
+      ></view>
+    </view>
     <!-- #endif -->
     <view class="forget-pwd-container">
       <view class="forget-input-container">
         <view class="xxl bold">忘记登录密码</view>
         <view class="input row" style="padding: 15rpx">
-          <u-input
+          <input
             v-model="mobile"
             placeholder="请输入手机号码"
             type="number"
           />
         </view>
         <view class="input row" style="padding: 15rpx">
-          <u-input
+          <input
             v-model="smsCode"
             style="flex: 1"
             placeholder="请输入验证码"
@@ -36,7 +36,7 @@
               @click="sendSmsFun()"
             >
               <view v-show="canSendSms">获取验证码</view>
-              <u-count-down
+              <view
                 ref="countDown"
                 :show-days="false"
                 :timestamp="time"
@@ -55,7 +55,7 @@
         </view>
 
         <view class="input row" style="padding: 15rpx">
-          <u-input
+          <input
             type="password"
             v-model="resetPwd"
             placeholder="请输入新密码"

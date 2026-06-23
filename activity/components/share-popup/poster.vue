@@ -12,7 +12,7 @@
 				</l-painter-view>
 				<l-painter-image :src="config.image"
 					css="object-fit: cover; object-position: center; width: 560rpx; height: 560rpx;margin-top: 15rpx;" />
-		
+
 				<l-painter-view css="margin-top: 30rpx;">
 					<!-- 商品分享海报文字内容 -->
 					<l-painter-view :css="`display: ${type == 1 ? 'inline-block' : 'none'}; width: 400rpx;`">
@@ -30,7 +30,7 @@
 								:text="config.name"></l-painter-text>
 						</l-painter-view>
 					</l-painter-view>
-					
+
 					<!-- 砍价分享海报文字内容 -->
 					<l-painter-view :css="`display: ${type == 2 ? 'inline-block' : 'none'}; width: 400rpx;`">
 						<l-painter-view>
@@ -49,7 +49,7 @@
 								:text="config.name"></l-painter-text>
 						</l-painter-view>
 					</l-painter-view>
-					
+
 					<l-painter-view css="display: inline-block;">
 						<!-- #ifdef H5 || APP-PLUS -->
 						<l-painter-qrcode css="width: 168rpx; height: 168rpx;" :text="link">
@@ -68,7 +68,7 @@
 </template>
 
 <script>
-	
+
 	import lPainter from '@/activity/components/lime-painter/components/l-painter/l-painter.vue'
 	import lPainterImage from '@/activity/components/lime-painter/components/l-painter-image/l-painter-image.vue'
 	import lPainterText from '@/activity/components/lime-painter/components/l-painter-text/l-painter-text.vue'
@@ -96,7 +96,7 @@
 				type: [String],
 				default: ''
 			},
-			// pagePath:{  
+			// pagePath:{
 			// 	type: String,
 			// 	default: ''
 			// },
@@ -108,7 +108,7 @@
 				type: [String, Number],
 				default: 1,
 			},
-			
+
 			bShareTitle: {  // 分享海报标题
 				type: String,
 				default: '我正在参与砍价 还差一步',
@@ -120,7 +120,7 @@
 		},
 		data() {
 			return {
-				
+
 			};
 		},
 		computed: {

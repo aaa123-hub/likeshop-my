@@ -48,13 +48,13 @@ export default {
  	let index = group.findIndex(item => item.type == type)
    this.changeShow(index);
  },
- 
+
  onPullDownRefresh: function () {
   const {active, group} = this
   console.log(this.$refs['group' + group[active].type])
   this.$refs['group' + group[active].type][0].reflesh()
  },
- 
+
  onReachBottom: function () {
  	  const {active, group} = this
  	console.log(this.$refs['group' + group[active].type])

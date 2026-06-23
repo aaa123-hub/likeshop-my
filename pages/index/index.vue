@@ -15,14 +15,14 @@
 
         <view class="home-content">
             <view class="feature-grid">
-                <navigator class="balance-card" hover-class="none" url="/bundle/pages/user_wallet/user_wallet">
+                <navigator class="balance-card" hover-class="none" url="/bundle_finance/pages/user_wallet/user_wallet">
                     <view class="feature-label">我的余额</view>
                     <view class="balance-amount">¥{{ walletBalanceText }}</view>
                     <image class="balance-image" :src="designAssets.homeBalanceBill" mode="aspectFit"></image>
                 </navigator>
 
                 <view class="feature-stack">
-                    <view class="feature-card" @tap="openBusinessPage(businessRoutes.pages.notice)">
+                    <view class="feature-card" @tap="openScan">
                         <view>
                             <view class="feature-title">扫一扫</view>
                             <view class="feature-desc">辅助文案填充</view>
@@ -123,7 +123,7 @@
             </view>
 
             <view class="identity-title">请选择您的身份</view>
-            <view class="identity-card identity-card--seller" @tap="goPage('/bundle/pages/license/license')">
+            <view class="identity-card identity-card--seller" @tap="goPage('/bundle_user/pages/license/license')">
                 <view>
                     <view class="identity-card__title">卖货</view>
                     <view class="identity-card__desc">我是来卖货的</view>
@@ -201,8 +201,8 @@ export default {
         homeShortcutFallback() {
             return [
                 { name: '分类', image: '', url: '/pages/sort/sort', type: 'switchTab' },
-                { name: '订单', image: '', url: '/bundle/pages/user_order/user_order' },
-                { name: '消息', image: '', url: '/bundle/pages/notice/notice' },
+                { name: '订单', image: '', url: '/bundle_order/pages/user_order/user_order' },
+                { name: '消息', image: '', url: '/bundle_misc/pages/notice/notice' },
                 { name: '活动', image: '', url: '/business/pages/business_pages/activity_center' },
                 { name: '门店', image: '', url: '/business/pages/business_pages/store_detail' }
             ]
@@ -252,6 +252,26 @@ export default {
             }
             return params
         },
+        openScan() {
+            uni.scanCode({
+                onlyFromCamera: false,
+                success: (res) => {
+                    const result = res.result || res.path || ''
+                    if (result && /^\//.test(result)) {
+                        uni.navigateTo({ url: result })
+                        return
+                    }
+                    if (result) {
+                        uni.showToast({ title: '扫码成功', icon: 'success' })
+                        return
+                    }
+                    uni.showToast({ title: '未识别到内容', icon: 'none' })
+                },
+                fail: () => {
+                    uni.showToast({ title: '扫一扫未完成', icon: 'none' })
+                }
+            })
+        },
         normalizeQuickEntry(item = {}) {
             const code = String(item.code || '').toUpperCase()
             const quickEntryMap = {
@@ -264,22 +284,22 @@ export default {
                 ORDER: {
                     name: item.title || '订单',
                     image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/order/list' ? item.pagePath : '/bundle/pages/user_order/user_order'
+                    url: item.pagePath && item.pagePath !== '/pages/order/list' ? item.pagePath : '/bundle_order/pages/user_order/user_order'
                 },
                 MESSAGE: {
                     name: item.title || '消息',
                     image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/message/list' ? item.pagePath : '/bundle/pages/notice/notice'
+                    url: item.pagePath && item.pagePath !== '/pages/message/list' ? item.pagePath : '/bundle_misc/pages/notice/notice'
                 },
                 COUPON: {
                     name: item.title || '优惠券',
                     image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/coupon/list' ? item.pagePath : '/bundle/pages/user_coupon/user_coupon'
+                    url: item.pagePath && item.pagePath !== '/pages/coupon/list' ? item.pagePath : '/bundle_user/pages/user_coupon/user_coupon'
                 },
                 WALLET: {
                     name: item.title || '钱包',
                     image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/wallet/index' ? item.pagePath : '/bundle/pages/user_wallet/user_wallet'
+                    url: item.pagePath && item.pagePath !== '/pages/wallet/index' ? item.pagePath : '/bundle_finance/pages/user_wallet/user_wallet'
                 }
             }
             return quickEntryMap[code] || {
@@ -348,11 +368,11 @@ export default {
                 return
             }
             if (code === 'ORDER' || item.name === '订单') {
-                this.goPage('/bundle/pages/user_order/user_order')
+                this.goPage('/bundle_order/pages/user_order/user_order')
                 return
             }
             if (code === 'MESSAGE' || item.name === '消息') {
-                this.goPage('/bundle/pages/notice/notice')
+                this.goPage('/bundle_misc/pages/notice/notice')
             }
         }
     }

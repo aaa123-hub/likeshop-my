@@ -69,7 +69,7 @@
         </u-modal>
         <view class="footer">
             <!-- #ifdef H5 || MP-WEIXIN -->
-            <view v-if="isWeixin && hasAddress" class="footer__ghost" @click="getWxAddressFun">
+            <view v-if="isWeixin" class="footer__ghost" @click="getWxAddressFun">
                 微信导入
             </view>
             <!-- #endif -->
@@ -263,8 +263,8 @@ export default {
     min-height: 100vh;
     padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
     background: #f7f8fa;
-	
-	
+
+
     .address-body {
         min-height: calc(100vh - 220rpx);
     }

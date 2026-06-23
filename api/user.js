@@ -699,7 +699,8 @@ export function submitFeedback(data = {}) {
     return request.post('miniapp/feedback', {
         feedbackType: data.feedbackType || data.feedback_type || data.type || 'OTHER',
         content: data.content || '',
-        contactInfo: data.contactInfo || data.contact_info || data.contact || ''
+        contactInfo: data.contactInfo || data.contact_info || data.contact || '',
+        imageUrls: data.imageUrls || data.image_urls || data.images || []
     })
 }
 

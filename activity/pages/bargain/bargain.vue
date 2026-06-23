@@ -24,7 +24,7 @@
                             <view class="column">
                                 <view class="xs" style="color: #F95F2F;">
                                     最低可砍至
-                                    <price-format 
+                                    <price-format
                                         showSubscript
                                         :subscriptSize="26"
                                         :firstSize="34"
@@ -74,7 +74,7 @@
         methods: {
             $getBargainList() {
                 let {page, loadingStatus, lists} = this;
-                
+
                 loadingFun(getBargainList, page, lists, loadingStatus).then(res => {
                     if(res) {
                         this.page = res.page;

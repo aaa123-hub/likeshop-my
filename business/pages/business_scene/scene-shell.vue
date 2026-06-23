@@ -117,6 +117,12 @@
                                 </view>
                                 <view class="feedback-textarea__count">{{ feedbackContent.length }}/300</view>
                             </view>
+                            <view v-if="feedbackImages.length" class="feedback-preview-row">
+                                <view v-for="(item, index) in feedbackImages" :key="item.url || index" class="feedback-preview">
+                                    <image class="feedback-preview__image" :src="item.preview || item.url" mode="aspectFill"></image>
+                                    <view class="feedback-preview__close" @tap="removeFeedbackImage(index)">×</view>
+                                </view>
+                            </view>
 
                             <view class="feedback-contact__title">联系方式</view>
                             <view class="feedback-contact-shell">
@@ -147,13 +153,14 @@
                     <view class="face-pay-shell">
                         <view class="face-pay-shell__field">
                             <text class="face-pay-shell__label">付款单号</text>
-                            <input class="face-pay-shell__input" placeholder="请输入付款单号" />
+                            <input v-model="facePayCode" class="face-pay-shell__input" placeholder="请输入付款单号" />
                         </view>
-                        <view class="face-pay-shell__scan">
+                        <view class="face-pay-shell__scan" @tap="scanFacePayCode">
                             <u-icon name="scan" color="#222222" size="54"></u-icon>
                             <text>扫一扫</text>
                         </view>
                     </view>
+                    <view class="face-pay-submit" @tap="submitFacePay">确认付款</view>
                 </view>
             </template>
 
@@ -168,7 +175,7 @@
                                 <u-icon name="arrow-left" size="34" color="#ffffff"></u-icon>
                             </view>
                             <view class="store-detail-hero__title">店铺详情</view>
-                            <view class="store-detail-hero__right-space"></view>
+                            <view class="store-detail-hero__share" @tap="showStoreSharePopup = true">分享</view>
                         </view>
                     </view>
 
@@ -197,7 +204,7 @@
                         </view>
                     </view>
 
-                    <view class="store-detail-address-card">
+                    <view class="store-detail-address-card" @tap="openStoreDetailMap">
                         <image class="store-detail-address-card__icon" :src="storeDetailAddressIcon" mode="aspectFit"></image>
                         <text class="store-detail-address-card__text line1">{{ storeDetailView.detailAddress }}</text>
                     </view>
@@ -251,7 +258,7 @@
                                     <text class="store-detail-group-card__price-value">{{ item.priceText }}</text>
                                 </view>
                             </view>
-                            <view class="store-detail-group-card__action-wrap">
+                            <view class="store-detail-group-card__action-wrap" @tap.stop.prevent="goStoreDetailGroupItem(item)">
                                 <view class="store-detail-group-card__action">立即抢</view>
                             </view>
                         </view>
@@ -351,16 +358,16 @@
             <template v-else-if="scene === 'store-qr' || scene === 'goods-qr'">
                 <view :class="['qr-page', scene === 'goods-qr' ? 'qr-page--goods' : 'qr-page--store']">
                     <view class="qr-shop-card">
-                        <view class="qr-shop-card__logo"></view>
+                        <image class="qr-shop-card__logo" :src="qrShopInfo.logo" mode="aspectFill"></image>
                         <view class="qr-shop-card__body">
-                            <view class="qr-shop-card__name">叮咚生活家</view>
+                            <view class="qr-shop-card__name">{{ qrShopInfo.name }}</view>
                             <view class="qr-shop-card__rating">
                                 <image v-for="item in 3" :key="item" class="qr-shop-card__star" :src="streetStarIcon" mode="aspectFit"></image>
-                                <text class="qr-shop-card__score">5.0</text>
+                                <text class="qr-shop-card__score">{{ qrShopInfo.score }}</text>
                             </view>
                             <view class="qr-shop-card__time">
                                 <image class="qr-shop-card__time-icon" :src="streetTimeIcon" mode="aspectFit"></image>
-                                <text>营业时间：8:00-16:00</text>
+                                <text>{{ qrShopInfo.timeText }}</text>
                             </view>
                         </view>
                     </view>
@@ -373,7 +380,7 @@
 
                     <view v-if="scene === 'store-qr'" class="qr-store-panel">
                         <view class="qr-code-box qr-code-box--store">
-                            <tki-qrcode ref="qrcode" val="store-demo-001" :size="275" unit="upx" :showLoading="false" />
+                            <tki-qrcode ref="qrcode" :val="qrStoreValue" :size="275" unit="upx" :showLoading="false" />
                         </view>
                         <view class="qr-store-panel__desc">扫一扫，即可查看公域线下店信息</view>
                         <view class="qr-action-row qr-action-row--store">
@@ -383,16 +390,16 @@
                     </view>
 
                     <view v-else class="qr-goods-panel">
-                        <view class="qr-goods-main"></view>
+                        <image class="qr-goods-main" :src="qrGoodsInfo.image" mode="aspectFill"></image>
                         <view class="qr-goods-info">
                             <view class="qr-goods-copy">
                                 <view class="qr-goods-price">
-                                    <text class="qr-goods-price__symbol">¥</text><text class="qr-goods-price__main">299</text><text class="qr-goods-price__decimal">.00</text>
+                                    <text class="qr-goods-price__symbol">¥</text><text class="qr-goods-price__main">{{ qrGoodsInfo.priceMain }}</text><text class="qr-goods-price__decimal">{{ qrGoodsInfo.priceDecimal }}</text>
                                 </view>
                                 <view class="qr-goods-tip">长按保存二维码</view>
                             </view>
                             <view class="qr-code-box qr-code-box--goods">
-                                <tki-qrcode ref="qrcode" val="goods-demo-001" :size="124" unit="upx" :showLoading="false" />
+                                <tki-qrcode ref="qrcode" :val="qrGoodsValue" :size="124" unit="upx" :showLoading="false" />
                             </view>
                         </view>
                         <view class="qr-action-row qr-action-row--goods">
@@ -406,7 +413,7 @@
             <template v-else-if="scene === 'store-group'">
                 <view class="card">
                     <view class="section-title">团购专区</view>
-                    <view class="group-item" v-for="(item, index) in storeDetailGroupProducts" :key="item.id || item.goods_id || index">
+                            <view class="group-item" v-for="(item, index) in storeDetailGroupProducts" :key="item.id || item.goods_id || index" @tap="goStoreDetailGroupItem(item)">
                         <view v-if="isEmptyImage(item.image)" class="group-item__image image-placeholder">无</view>
                         <image v-else class="group-item__image" :src="item.image" mode="aspectFill"></image>
                         <view class="group-item__content">
@@ -414,7 +421,7 @@
                             <view class="group-item__meta">{{ item.meta }}</view>
                             <view class="group-item__foot">
                                 <view class="group-item__price">¥{{ item.priceText }}</view>
-                                <view class="mini-btn" @tap="goStoreDetailGroupItem(item)">去拼团</view>
+                                <view class="mini-btn" @tap.stop.prevent="goStoreDetailGroupItem(item)">去拼团</view>
                             </view>
                         </view>
                     </view>
@@ -478,7 +485,7 @@
                                 <text class="street-service-item__text">{{ item.name }}</text>
                             </view>
                         </view>
- 
+
                         <view class="street-merchant-list">
                             <view
                                 v-for="(item, index) in streetMerchants"
@@ -534,16 +541,21 @@
                         <view
                             class="merchant-list__item"
                             v-for="(item, index) in filteredMerchantList"
-                            :key="index"
-                            @tap="goPage(index === 0 ? '/business/pages/business_pages/store_detail' : '/business/pages/business_pages/street_goods')"
+                            :key="item.id || item.goods_id || item.shopId || index"
+                            @tap="openStreetGoodsItem(item)"
                         >
-                            <view v-if="isEmptyImage(item.image)" class="merchant-list__image image-placeholder">无</view>
-                            <image v-else class="merchant-list__image" :src="item.image" mode="aspectFill"></image>
+                            <view v-if="isEmptyImage(item.image || item.shopLogo)" class="merchant-list__image image-placeholder">无</view>
+                            <image v-else class="merchant-list__image" :src="item.image || item.shopLogo" mode="aspectFill"></image>
                             <view class="merchant-list__body">
                                 <view class="merchant-list__title line1">{{ item.name }}</view>
-                                <view class="merchant-list__stars">★★★★★ 5.0</view>
-                                <view class="merchant-list__time">营业时间：8:00-16:00</view>
+                                <view class="merchant-list__stars">{{ item.priceText || item.scoreText }}</view>
+                                <view class="merchant-list__time">{{ item.meta || item.shopName || '商品信息待补充' }}</view>
                             </view>
+                        </view>
+                        <view v-if="!filteredMerchantList.length" class="store-detail-media-empty">
+                            <image class="store-detail-media-empty__image" :src="storeDetailAlbumEmptyImage" mode="aspectFit"></image>
+                            <view class="store-detail-media-empty__title">暂无数据</view>
+                            <view class="store-detail-media-empty__desc">换个关键词试试</view>
                         </view>
                     </view>
                 </view>
@@ -560,20 +572,21 @@
                     <view class="intro-card-panel">
                         <image class="intro-card-panel-bg" src="https://shengyuan.store/api/miniapp/files/miniapp/4a6ec42c3ad54de8a47300fb1a79d820/intro-card-panel-bg.png" mode="scaleToFill"></image>
                         <view class="intro-card-user">
-                            <view class="intro-card-avatar"></view>
+                            <image class="intro-card-avatar" :src="introCardInfo.avatar" mode="aspectFill"></image>
                             <view class="intro-card-info">
-                                <view class="intro-card-name">yokosurizzz</view>
+                                <view class="intro-card-name">{{ introCardInfo.nickname }}</view>
                                 <view class="intro-card-line">
-                                    <text class="intro-card-line__text">ID:93002244</text>
-                                    <image class="intro-card-copy" :src="introCardCopyIcon" mode="aspectFit" @tap="copyIntroCardText('ID:93002244')"></image>
+                                    <text class="intro-card-line__text">ID:{{ introCardInfo.userNo }}</text>
+                                    <image class="intro-card-copy" :src="introCardCopyIcon" mode="aspectFit" @tap="copyIntroCardText(introCardInfo.userNo)"></image>
                                 </view>
                                 <view class="intro-card-line intro-card-line--account">
-                                    <text class="intro-card-line__text">账户:3242342342342</text>
-                                    <image class="intro-card-copy" :src="introCardCopyIconAlt" mode="aspectFit" @tap="copyIntroCardText('3242342342342')"></image>
+                                    <text class="intro-card-line__text">联盟码:{{ introCardInfo.code }}</text>
+                                    <image class="intro-card-copy" :src="introCardCopyIconAlt" mode="aspectFit" @tap="copyIntroCardText(introCardInfo.code)"></image>
                                 </view>
                             </view>
                         </view>
-                        <image class="intro-card-qr" :src="introCardQrImage" mode="aspectFit"></image>
+                        <image v-if="introCardInfo.qrImage" class="intro-card-qr" :src="introCardInfo.qrImage" mode="aspectFit"></image>
+                        <view v-else class="intro-card-qr intro-card-qr--code">{{ introCardInfo.code }}</view>
                     </view>
                 </view>
             </template>
@@ -989,15 +1002,49 @@
                 </view>
             </template>
         </scroll-view>
+        <view v-model="showStoreSharePopup" mode="center" border-radius="0" :mask-close-able="true" :custom-style="{ background: 'transparent' }">
+            <view class="store-share-popup">
+                <view class="store-share-shop-card">
+                    <image class="store-share-shop-card__logo" :src="storeDetailView.shopLogo" mode="aspectFill"></image>
+                    <view class="store-share-shop-card__body">
+                        <view class="store-share-shop-card__name line1">{{ storeDetailView.shopName }}</view>
+                        <view class="store-share-shop-card__rating">
+                            <image v-for="item in 3" :key="item" class="store-share-shop-card__star" :src="streetStarIcon" mode="aspectFit"></image>
+                            <text class="store-share-shop-card__score">{{ storeDetailView.shopScore }}</text>
+                        </view>
+                        <view class="store-share-shop-card__time">
+                            <image class="store-share-shop-card__time-icon" :src="streetTimeIcon" mode="aspectFit"></image>
+                            <text class="line1">{{ storeDetailBusinessHoursText }}</text>
+                        </view>
+                    </view>
+                </view>
+                <image class="store-share-mark" :src="qrGoodsMarkIcon" mode="aspectFit"></image>
+                <view class="store-share-panel">
+                    <view class="store-share-qrcode">
+                        <tki-qrcode :val="qrStoreValue" :size="510" unit="upx" :showLoading="false" />
+                    </view>
+                    <view class="store-share-info">
+                        <view class="store-share-price">
+                            <text class="store-share-price__symbol">¥</text><text class="store-share-price__main">{{ storeSharePriceMain }}</text><text class="store-share-price__decimal">{{ storeSharePriceDecimal }}</text>
+                        </view>
+                        <view class="store-share-tip">长按保存二维码</view>
+                    </view>
+                    <view class="store-share-actions">
+                        <view class="store-share-action store-share-action--cyan" @tap="toastStoreShareSave">保存图片</view>
+                        <button class="store-share-action" open-type="share">分享店铺</button>
+                    </view>
+                </view>
+            </view>
+        </view>
     </view>
 </template>
 
 <script>
 import TkiQrcode from '@/business/components/tki-qrcode/tki-qrcode.vue'
-import { getShopDetail, getStreetIndex } from '@/api/store'
-import { getAccountLog, submitFeedback, submitKyc } from '@/api/user'
+import { getShopDetail, getStreetGoods, getStreetIndex } from '@/api/store'
+import { getAccountLog, getInviteInfo, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
 import { getDesignAsset, designAssetList, designAssets } from '@/utils/design-assets'
-import { isPlaceholderImage } from '@/utils/image-placeholder'
+import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, tabbarList, uploadFile } from '@/utils/tools'
 
 export default {
@@ -1021,16 +1068,25 @@ export default {
             feedbackContent: '',
             feedbackContact: '',
 			feedbackImages: [],
-			feedbackHeroImage: 'https://lanhu-oss-proxy.lanhuapp.com/17e52b5f7f7af0e92c09f57bd56f679e',
+			showStoreSharePopup: false,
+			facePayCode: '',
+			feedbackHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/c860e9e880ac44709ba98fb0844390c9/17e52b5f7f7af0e92c09f57bd56f679e.png',
 			feedbackUploadIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/e5d8d8724ebd49afbb6a747ff66f8d09/feedback-upload-icon.png',
-			paymentRecordFilterIcon: 'https://lanhu-oss-proxy.lanhuapp.com/b2636d4f8db726053805211c9457c120',
-			aboutArrowIcon: 'https://lanhu-oss-proxy.lanhuapp.com/d35bb9407ef16b8d704effe295ad7e27',
+			paymentRecordFilterIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png',
+			aboutArrowIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/6dcc63c37e6943bdbcf59e36cbe1ec28/d35bb9407ef16b8d704effe295ad7e27.png',
 			activityCenterBackIcon: '',
 			introCardBackIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/09dbe58e5283491f8bf3932d51ca6441/intro-card-back-icon.png',
 			introCardCopyIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/62f0790376274645b017cc64e7cae6b8/intro-card-copy-icon.png',
 			introCardCopyIconAlt: 'https://shengyuan.store/api/miniapp/files/miniapp/0d49e91085034160aa0280bd63f498cb/intro-card-copy-alt-icon.png',
 			introCardQrImage: 'https://shengyuan.store/api/miniapp/files/miniapp/343da0ec1adc42ff87a010eea8adfcbd/intro-card-qr-placeholder.png',
-			recentVisitsBackIcon: 'https://lanhu-oss-proxy.lanhuapp.com/6c1b9219335c90eb81ddc57cd6d0016e',
+			introCardInfo: {
+                nickname: '用户',
+                userNo: '--',
+                code: '--',
+                avatar: resolveImage('', 'avatar'),
+                qrImage: ''
+            },
+			recentVisitsBackIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/75ebea93daae4482b19647ffaa238858/6c1b9219335c90eb81ddc57cd6d0016e.png',
 			user_kyc:'https://shengyuan.store/api/miniapp/files/miniapp/205ef63eca8a4ecc9d880e2102394945/kyc-page-bg.png',
 			right_icon:'https://shengyuan.store/api/miniapp/files/miniapp/14ea8fb481864dbc9cf9bdea659d4734/kyc-cert-back-placeholder.png',
 			left_icon:'https://shengyuan.store/api/miniapp/files/miniapp/17cda3ae31a6439fbb0dbda78313bc3e/kyc-cert-front-placeholder.png',
@@ -1043,8 +1099,8 @@ export default {
                 certFrontPreview: '',
                 certBackPreview: ''
             },
-            qrStoreMarkIcon: 'https://lanhu-oss-proxy.lanhuapp.com/3180ae811deadda0dbd6b79667bc5bb1',
-            qrGoodsMarkIcon: 'https://lanhu-oss-proxy.lanhuapp.com/676d68646053824b88f084648bfc6594',
+            qrStoreMarkIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/ddc12d20f1064f9c949327f88bea0498/3180ae811deadda0dbd6b79667bc5bb1.png',
+            qrGoodsMarkIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
             feedbackTags: ['下载/加载问题', '体验功能', '平台问题', '新功能建议', '其他', '违规举报'],
             aboutMenuItems: [
                 { title: 'Cookie政策' },
@@ -1388,10 +1444,51 @@ export default {
                 shopScore: this.formatStreetScore(shopBase.shopScore),
                 businessHours: shopBase.businessHours || '',
                 detailAddress: shopBase.detailAddress || '地址待补充',
+                latitude: shopBase.latitude || shopBase.lat || shopBase.shopLatitude || shopBase.shop_latitude || '',
+                longitude: shopBase.longitude || shopBase.lng || shopBase.shopLongitude || shopBase.shop_longitude || '',
                 openStatus: shopBase.openStatus || '',
                 shopLogo: shopBase.shopLogo || shopBase.avatarUrl || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                 contactPhone: shopBase.contactPhone || ''
             }
+        },
+        qrShopInfo() {
+            return {
+                name: this.storeDetailView.shopName || '叮咚生活家',
+                logo: this.storeDetailView.shopLogo,
+                score: this.storeDetailView.shopScore,
+                timeText: this.storeDetailBusinessHoursText
+            }
+        },
+        qrGoodsInfo() {
+            const options = this.getCurrentPageOptions()
+            const price = this.formatStoreDetailPrice(options.price || options.minPrice || this.storeDetailGroupProducts[0]?.priceText || 0)
+            const [main, decimal = '00'] = String(price).split('.')
+            return {
+                id: options.goodsId || options.goods_id || options.id || this.storeDetailGroupProducts[0]?.goods_id || '',
+                image: resolveImage(options.image || this.storeDetailGroupProducts[0]?.image || '', 'goods'),
+                priceMain: main || '0',
+                priceDecimal: `.${decimal}`
+            }
+        },
+        qrStoreValue() {
+            const options = this.getCurrentPageOptions()
+            const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
+            return `/business/pages/business_pages/store_detail?shopId=${shopId}`
+        },
+        storeSharePriceText() {
+            const firstGroup = this.storeDetailGroupProducts[0] || {}
+            return this.formatStoreDetailPrice(firstGroup.priceText || firstGroup.price || firstGroup.groupPrice || firstGroup.teamPrice || 0).replace(/^¥/, '')
+        },
+        storeSharePriceMain() {
+            return String(this.storeSharePriceText || '0').split('.')[0] || '0'
+        },
+        storeSharePriceDecimal() {
+            const decimal = String(this.storeSharePriceText || '0').split('.')[1]
+            return `.${decimal || '00'}`
+        },
+        qrGoodsValue() {
+            const goodsId = this.qrGoodsInfo.id
+            return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : this.qrStoreValue
         },
         storeDetailHeroImage() {
             return this.storeDetailData.albums?.[0]?.url || this.storeDetailView.shopLogo
@@ -1455,15 +1552,16 @@ export default {
         storeDetailGroupProducts() {
             const groupProducts = this.storeDetailData.groupBuyProducts || []
             const source = groupProducts.length || this.storeDetailApiLoaded ? groupProducts : this.groupList
-            return source.map((item, index) => ({
+            return source.filter(Boolean).map((item, index) => ({
                 ...item,
-                id: item.id || item.goods_id || index,
+                id: item.id || item.goods_id || item.goodsId || item.spuId || item.productId || index,
                 goods_id: item.goods_id || item.goodsId || item.spuId || item.productId || item.id || '',
+                activity_id: item.activity_id || item.activityId || item.groupActivityId || item.groupBuyActivityId || item.team_id || item.teamId || '',
                 name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || '团购套餐',
                 image: item.image || item.goods_image || item.cover || item.mainImageUrl || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
                 meta: this.getStoreDetailGroupMeta(item),
                 scoreText: this.formatStreetScore(item.score ?? item.shopScore ?? item.commentScore ?? 5),
-                priceText: this.formatStoreDetailPrice(item.groupPrice ?? item.group_price ?? item.teamPrice ?? item.team_price ?? item.activityPrice ?? item.price)
+                priceText: this.formatStoreDetailPrice(item.groupPrice ?? item.group_price ?? item.teamPrice ?? item.team_price ?? item.activityPrice ?? item.salePrice ?? item.minPrice ?? item.price)
             }))
         },
         storeDetailPayUrl() {
@@ -1473,7 +1571,7 @@ export default {
             const keyword = (this.listKeyword || '').trim().toLowerCase()
             if (!keyword) return this.merchantList
             return this.merchantList.filter(item => {
-                const name = (item.name || '').toLowerCase()
+                const name = (item.name || item.shopName || item.goods_name || '').toLowerCase()
                 return name.includes(keyword)
             })
         }
@@ -1485,18 +1583,19 @@ export default {
                 if (value === 'street') {
                     this.loadStreetIndex()
                 }
-                if (value === 'store-detail' || value === 'store-group') {
+                if (value === 'street-goods') {
+                    this.loadStreetGoods()
+                }
+                if (value === 'store-detail' || value === 'store-group' || value === 'store-qr' || value === 'goods-qr') {
                     this.loadStoreDetail()
                 }
                 if (value === 'payment-record') {
                     this.loadPaymentRecords()
                 }
+                if (value === 'intro-card') {
+                    this.loadIntroCard()
+                }
             }
-        }
-    },
-    mounted() {
-        if (this.scene === 'store-detail' || this.scene === 'store-group') {
-            this.loadStoreDetail()
         }
     },
     methods: {
@@ -1546,7 +1645,11 @@ export default {
         },
         async chooseFeedbackImage() {
             const result = await this.chooseUploadedImage()
-            this.feedbackImages = [result.fileUrl]
+            this.feedbackImages = [{ url: result.fileUrl, preview: result.localPath }]
+            uni.showToast({ title: '图片上传成功', icon: 'success' })
+        },
+        removeFeedbackImage(index) {
+            this.feedbackImages.splice(index, 1)
         },
         async submitFeedbackForm() {
             const content = (this.feedbackContent || '').trim()
@@ -1558,13 +1661,57 @@ export default {
                 feedbackType: this.selectedTag,
                 content,
                 contact: this.feedbackContact,
-                imageUrls: this.feedbackImages
+                imageUrls: this.feedbackImages.map(item => item.url)
             })
             if (res.code == 1) {
                 uni.showToast({ title: '提交成功', icon: 'success' })
                 this.feedbackContent = ''
                 this.feedbackContact = ''
                 this.feedbackImages = []
+            }
+        },
+        scanFacePayCode() {
+            uni.scanCode({
+                onlyFromCamera: false,
+                success: (res) => {
+                    this.facePayCode = res.result || res.path || ''
+                    if (this.facePayCode) {
+                        this.submitFacePay()
+                    }
+                },
+                fail: () => {
+                    uni.showToast({ title: '扫一扫未完成', icon: 'none' })
+                }
+            })
+        },
+        async submitFacePay() {
+            const qrCode = (this.facePayCode || '').trim()
+            if (!qrCode) {
+                uni.showToast({ title: '请扫码或输入付款单号', icon: 'none' })
+                return
+            }
+            const options = this.getCurrentPageOptions()
+            const res = await scanOfflinePayment({
+                shopId: options.shopId || options.shop_id || this.storeDetailView.shopId,
+                qrCode
+            })
+            if (res.code == 1) {
+                uni.showToast({ title: res.msg || '付款成功', icon: 'success' })
+                return
+            }
+            uni.showToast({ title: res.msg || '付款失败', icon: 'none' })
+        },
+        async loadIntroCard() {
+            const res = await getInviteInfo()
+            if (res.code != 1) return
+            const data = res.data || {}
+            this.introCardInfo = {
+                ...this.introCardInfo,
+                nickname: data.nickname || data.nickName || data.userName || data.name || this.introCardInfo.nickname,
+                userNo: data.userNo || data.user_no || data.sn || data.userId || data.user_id || '--',
+                code: data.code || data.invite_code || data.allianceCode || '--',
+                avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar'),
+                qrImage: resolveImage(data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode || '')
             }
         },
         copyIntroCardText(text) {
@@ -1678,9 +1825,19 @@ export default {
             return Number.isInteger(price) ? String(price) : price.toFixed(2)
         },
         goStoreDetailGroupItem(item = {}) {
+            if (!item) {
+                uni.showToast({ title: '商品暂不可打开', icon: 'none' })
+                return
+            }
             const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || ''
-            if (!goodsId) return
-            this.goPage(`/bundle/pages/goods_details/goods_details?id=${goodsId}`)
+            if (!goodsId) {
+                uni.showToast({ title: '商品暂不可打开', icon: 'none' })
+                return
+            }
+            const params = [`id=${goodsId}`]
+            if (item.activity_id) params.push(`activityId=${item.activity_id}`)
+            if (item.priceText) params.push(`price=${item.priceText}`)
+            uni.navigateTo({ url: `/bundle/pages/goods_details/goods_details?${params.join('&')}` })
         },
         previewStoreDetailAlbum(index = 0) {
             if (!this.storeDetailAlbumImages.length) return
@@ -1699,6 +1856,24 @@ export default {
                 this.storeDetailActiveTab = tab.key
                 return
             }
+        },
+        openStoreDetailMap() {
+            const latitude = Number(this.storeDetailView.latitude)
+            const longitude = Number(this.storeDetailView.longitude)
+            if (!latitude || !longitude || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+                uni.showToast({ title: '暂无门店定位', icon: 'none' })
+                return
+            }
+            uni.openLocation({
+                latitude,
+                longitude,
+                name: this.storeDetailView.shopName,
+                address: this.storeDetailView.detailAddress || this.storeDetailView.shopName,
+                scale: 16
+            })
+        },
+        toastStoreShareSave() {
+            uni.showToast({ title: '请长按二维码保存', icon: 'none' })
         },
         async loadStreetIndex() {
             if (this.streetLoaded) return
@@ -1787,6 +1962,43 @@ export default {
             const keyword = (this.listKeyword || '').trim()
             this.listKeyword = keyword
             uni.hideKeyboard()
+            this.loadStreetGoods()
+        },
+        async loadStreetGoods() {
+            const options = this.getCurrentPageOptions()
+            const res = await getStreetGoods({
+                keyword: this.listKeyword,
+                categoryId: options.categoryId || options.category_id,
+                pageNo: 1,
+                pageSize: 30
+            })
+            if (res.code != 1) return
+            const list = res.data?.list || res.data?.records || res.data?.items || []
+            this.merchantList = list.map((item, index) => this.mapStreetGoodsItem(item, index))
+        },
+        mapStreetGoodsItem(item = {}, index = 0) {
+            const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || index
+            const shopId = item.shop_id || item.shopId || item.merchantShopId || ''
+            const price = item.price || item.salePrice || item.minPrice || item.min_price || item.groupPrice || item.teamPrice || 0
+            const sales = item.sales_sum || item.salesCount || item.sales_count || item.virtualSales || 0
+            const shopName = item.shop_name || item.shopName || item.storeName || item.shopInfo?.shopName || ''
+            return {
+                ...item,
+                id: goodsId,
+                goods_id: goodsId,
+                shopId,
+                name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || item.title || '商街商品',
+                image: resolveImage(item.image || item.goods_image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl, 'goods'),
+                priceText: `¥${this.formatStoreDetailPrice(price)}`,
+                scoreText: `¥${this.formatStoreDetailPrice(price)}`,
+                meta: [shopName, sales ? `${sales}人购买` : ''].filter(Boolean).join(' · ') || '商品信息待补充',
+                shopName,
+                url: `/bundle/pages/goods_details/goods_details?id=${goodsId}${shopId ? `&shopId=${shopId}` : ''}`
+            }
+        },
+        openStreetGoodsItem(item = {}) {
+            if (!item.url) return
+            this.goPage(item.url)
         },
         goBack() {
             const pages = getCurrentPages()
@@ -1859,11 +2071,11 @@ export default {
 }
 
 .qr-page--store {
-    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/0ccc30c9033828fd3e3723f5e43765e1');
+    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/7a33d041916e4203ad047d734bf13ede/0ccc30c9033828fd3e3723f5e43765e1.png');
 }
 
 .qr-page--goods {
-    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/1812900c299d281cdd4adcd80e9d02fd');
+    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/a560b109a63c4a4a8c9d490767674e13/1812900c299d281cdd4adcd80e9d02fd.png');
 }
 
 .qr-page__mark {
@@ -1896,12 +2108,12 @@ export default {
 
 .qr-page--store .qr-shop-card {
     margin-top: 436rpx;
-    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/264731ffd33531cb16f5c72f042fe14b');
+    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/bc28ff3e89a640a2b7b9c94fe99be721/264731ffd33531cb16f5c72f042fe14b.png');
 }
 
 .qr-page--goods .qr-shop-card {
     margin-top: 329rpx;
-    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/03b1646c905f30fb5cc4b12a3a1df372');
+    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png');
 }
 
 .qr-shop-card__logo {
@@ -1989,7 +2201,7 @@ export default {
     top: 628rpx;
     width: 540rpx;
     height: 518rpx;
-    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/2f63b8336e9bcbd0397b8bc4f7b1eba0');
+    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/b804285c02584e1f81deaae98321c28c/2f63b8336e9bcbd0397b8bc4f7b1eba0.png');
 }
 
 .qr-code-box {
@@ -2052,7 +2264,7 @@ export default {
     top: 521rpx;
     width: 620rpx;
     height: 838rpx;
-    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/f32ca2939042b3472f400311bd2edccd');
+    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png');
 }
 
 .qr-goods-main {
@@ -2623,13 +2835,26 @@ export default {
     border-radius: 18rpx;
 }
 
+.intro-card-qr--code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24rpx;
+    color: #0d83ff;
+    font-size: 34rpx;
+    font-weight: 600;
+    text-align: center;
+    word-break: break-all;
+    box-sizing: border-box;
+}
+
 .recent-visits-page {
     min-height: 100vh;
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
     padding-top: calc(var(--status-bar-height) + 45rpx);
-    background: #ffffff url('https://lanhu-oss-proxy.lanhuapp.com/d8467d9a62a60ccdbb6908777aebe692') no-repeat center top;
+    background: #ffffff url('https://shengyuan.store/api/miniapp/files/miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
 }
@@ -2738,7 +2963,7 @@ export default {
     margin: 0 auto;
     overflow-x: hidden;
     background: #f2f2f2;
-    background-image: url('https://lanhu-oss-proxy.lanhuapp.com/e9e114d902b93769e318427edddce2a8');
+    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/8cecc2f0ed3a4187a8803a2039ae7a05/e9e114d902b93769e318427edddce2a8.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     box-sizing: border-box;
@@ -2953,6 +3178,42 @@ export default {
     font-family: PingFangSC-Medium, sans-serif;
     font-weight: 500;
     line-height: 28rpx;
+}
+
+.feedback-preview-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 18rpx;
+}
+
+.feedback-preview {
+    position: relative;
+    width: 120rpx;
+    height: 120rpx;
+    margin-right: 18rpx;
+    border-radius: 12rpx;
+    overflow: hidden;
+    background: #f3f3f3;
+}
+
+.feedback-preview__image {
+    width: 100%;
+    height: 100%;
+}
+
+.feedback-preview__close {
+    position: absolute;
+    right: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34rpx;
+    height: 34rpx;
+    color: #ffffff;
+    font-size: 28rpx;
+    line-height: 34rpx;
+    background: rgba(0, 0, 0, 0.48);
 }
 
 .feedback-contact__title {
@@ -3224,6 +3485,19 @@ export default {
     margin-top: 10rpx;
 }
 
+.face-pay-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 86rpx;
+    margin: 42rpx 24rpx 0;
+    color: #ffffff;
+    font-size: 30rpx;
+    font-weight: 600;
+    background: #1f7af4;
+    border-radius: 43rpx;
+}
+
 .merchant-panel {
     margin-top: -36rpx;
     padding-bottom: 24rpx;
@@ -3443,7 +3717,7 @@ export default {
 }
 
 .street-header {
-    padding: calc(var(--status-bar-height) + 12rpx) 24rpx 20rpx;
+    padding: calc(var(--status-bar-height) + 24rpx) 24rpx 20rpx;
 }
 
 .street-header__top {
@@ -3525,7 +3799,7 @@ export default {
 .street-service-grid {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: flex-start;
     row-gap: 34rpx;
     padding: 48rpx 42rpx 0;
 }
@@ -3535,6 +3809,7 @@ export default {
     flex-direction: column;
     align-items: center;
     width: 25%;
+    flex: 0 0 25%;
 }
 
 .street-service-item__icon-shell {
@@ -3693,7 +3968,7 @@ export default {
     position: absolute;
     top: calc(var(--status-bar-height) + 18rpx);
     left: 24rpx;
-    right: 24rpx;
+    right: 180rpx;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -3714,11 +3989,206 @@ export default {
     flex: none;
 }
 
+.store-detail-hero__share {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80rpx;
+    height: 52rpx;
+    flex: none;
+    color: #ffffff;
+    font-size: 24rpx;
+    background: rgba(0, 0, 0, 0.28);
+    border-radius: 26rpx;
+}
+
 .store-detail-hero__title {
     color: #ffffff;
     font-size: 36rpx;
     font-weight: 500;
     line-height: 36rpx;
+}
+
+.store-share-popup {
+    position: relative;
+    width: 750rpx;
+    height: 1626rpx;
+    background: url('https://shengyuan.store/api/miniapp/files/miniapp/a560b109a63c4a4a8c9d490767674e13/1812900c299d281cdd4adcd80e9d02fd.png') no-repeat center;
+    background-size: 100% 100%;
+    transform: scale(0.82);
+    transform-origin: center center;
+}
+
+.store-share-shop-card {
+    position: absolute;
+    left: 106rpx;
+    top: 329rpx;
+    display: flex;
+    width: 540rpx;
+    height: 373rpx;
+    background: url('https://shengyuan.store/api/miniapp/files/miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png') no-repeat center;
+    background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.store-share-shop-card__logo {
+    flex: none;
+    width: 147rpx;
+    height: 147rpx;
+    margin: 23rpx 0 0 29rpx;
+    background: #ffffff;
+    border-radius: 10rpx;
+}
+
+.store-share-shop-card__body {
+    flex: 1;
+    min-width: 0;
+    margin: 38rpx 43rpx 0 27rpx;
+}
+
+.store-share-shop-card__name {
+    color: #ffffff;
+    font-size: 28rpx;
+    font-weight: 500;
+    line-height: 28rpx;
+}
+
+.store-share-shop-card__rating {
+    display: flex;
+    align-items: center;
+    height: 23rpx;
+    margin-top: 16rpx;
+}
+
+.store-share-shop-card__star {
+    width: 52rpx;
+    height: 23rpx;
+    margin-right: 3rpx;
+}
+
+.store-share-shop-card__star:nth-child(3) {
+    width: 24rpx;
+}
+
+.store-share-shop-card__score {
+    margin: 3rpx 0 0 6rpx;
+    color: #ffffff;
+    font-size: 24rpx;
+    font-weight: 500;
+    line-height: 24rpx;
+}
+
+.store-share-shop-card__time {
+    display: flex;
+    align-items: center;
+    margin-top: 31rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    font-weight: 500;
+    line-height: 26rpx;
+}
+
+.store-share-shop-card__time-icon {
+    flex: none;
+    width: 25rpx;
+    height: 25rpx;
+    margin-right: 6rpx;
+}
+
+.store-share-mark {
+    position: absolute;
+    left: 351rpx;
+    top: 1398rpx;
+    width: 48rpx;
+    height: 48rpx;
+}
+
+.store-share-panel {
+    position: absolute;
+    left: 66rpx;
+    top: 521rpx;
+    width: 620rpx;
+    height: 838rpx;
+    background: url('https://shengyuan.store/api/miniapp/files/miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png') no-repeat center;
+    background-size: 100% 100%;
+}
+
+.store-share-qrcode {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 562rpx;
+    height: 510rpx;
+    margin: 35rpx 0 0 29rpx;
+    background: #d5d5d5;
+    border-radius: 23rpx;
+    overflow: hidden;
+}
+
+.store-share-info {
+    width: 559rpx;
+    margin: 19rpx 0 0 31rpx;
+}
+
+.store-share-price {
+    display: flex;
+    align-items: baseline;
+    height: 39rpx;
+    margin-top: 28rpx;
+    color: #ff1919;
+    font-weight: 500;
+}
+
+.store-share-price__symbol,
+.store-share-price__decimal {
+    font-size: 26rpx;
+    line-height: 26rpx;
+}
+
+.store-share-price__main {
+    font-size: 51rpx;
+    line-height: 51rpx;
+}
+
+.store-share-tip {
+    margin-top: 21rpx;
+    color: #666666;
+    font-size: 24rpx;
+    line-height: 24rpx;
+}
+
+.store-share-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 531rpx;
+    height: 81rpx;
+    margin: 33rpx 0 0 45rpx;
+}
+
+.store-share-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 243rpx;
+    height: 81rpx;
+    margin: 0;
+    padding: 0;
+    color: #ffffff;
+    font-size: 28rpx;
+    font-weight: 500;
+    line-height: 81rpx;
+    background: #037dfa;
+    border: 0;
+    border-radius: 40rpx;
+}
+
+.store-share-action--cyan {
+    background: #03acfa;
+}
+
+.store-share-action::after {
+    border: 0;
 }
 
 .store-detail-summary-card,

@@ -29,7 +29,7 @@ author: likeshop.cn.team //
               style="line-height: 26rpx"
               v-if="cancelTime > 0"
               >支付剩余
-              <u-count-down
+              <view
                 separator="zh"
                 :timestamp="cancelTime"
                 separator-color="#fff"
@@ -37,7 +37,7 @@ author: likeshop.cn.team //
                 :separator-size="26"
                 :font-size="26"
                 bg-color="transparent"
-              ></u-count-down>
+              ></view>
               自动关闭</view
             >
           </view>
@@ -81,7 +81,7 @@ author: likeshop.cn.team //
           class="receiving-card contain"
           @click="onAddressExpress"
         >
-          <u-image
+          <image
             class="icon-md mr20"
             width="44"
             height="44"
@@ -104,7 +104,7 @@ author: likeshop.cn.team //
           v-if="orderDetail.delivery_type == 2"
           class="receiving-card contain"
         >
-          <u-image
+          <image
             class="icon-md mr20"
             width="44"
             height="44"
@@ -131,7 +131,7 @@ author: likeshop.cn.team //
         <!-- 扫码收货 -->
         <view v-if="orderDetail.delivery_type == 2" class="contain receive">
           <view v-if="orderDetail.verification_status" class="delivery--die">
-            <u-image
+            <image
               src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/delivery_die.png"
               width="134"
               height="98"
@@ -320,7 +320,7 @@ author: likeshop.cn.team //
             v-if="orderDetail.delivery_btn"
             hover-class="none"
             :url="
-              '/bundle/pages/goods_logistics/goods_logistics?id=' +
+              '/bundle_order/pages/goods_logistics/goods_logistics?id=' +
               orderDetail.id
             "
           >

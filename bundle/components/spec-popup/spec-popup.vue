@@ -1,5 +1,5 @@
 <template>
-  <u-popup
+  <view
     v-model="showPop"
     mode="bottom"
     border-radius="14"
@@ -12,8 +12,8 @@
         <custom-image
           class="goods-img mr20"
           radius="10rpx"
-          @tap="previewImage(checkedGoods.image)"
-          :src="checkedGoods.image"
+          @tap="previewImage(specImage)"
+          :src="specImage"
         ></custom-image>
         <view class="goods-info" v-if="!isBargain">
           <view class="primary row">
@@ -141,7 +141,7 @@
         </button>
       </view>
     </view>
-  </u-popup>
+  </view>
 </template>
 
 <script>
@@ -228,6 +228,9 @@ export default {
       if (this.checkedGoods?.stock != 0 && spec_str == "")
         return `已选择 ${this.checkedGoods.spec_value_str} ${this.goodsNum} 件`;
       else return `请选择 ${spec_str.slice(0, spec_str.length - 1)}`;
+    },
+    specImage() {
+      return this.checkedGoods.image || this.checkedGoods.imageUrl || this.checkedGoods.skuImage || this.goods?.image || this.goods?.poster || this.goods?.goods_image?.[0] || '';
     },
   },
 
@@ -388,6 +391,7 @@ export default {
 
     // 查看商品图片
     previewImage(current) {
+      if (!current) return;
       uni.previewImage({
         current,
         urls: [current], // 需要预览的图片http链接列表

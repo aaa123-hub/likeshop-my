@@ -8,7 +8,11 @@
 		<view class="contain" v-if="!isNull">
 			<bubble-tips top="180rpx"></bubble-tips>
 			<view class="hero-stage">
-				<product-swiper :imgUrls="swiperList" :video="goodsDetail.video"></product-swiper>
+				<swiper class="goods-hero-swiper" :current="activePreviewIndex" circular @change="onHeroSwiperChange">
+					<swiper-item v-for="(item, index) in swiperList" :key="index">
+						<image class="goods-hero-image" :src="item" mode="aspectFill"></image>
+					</swiper-item>
+				</swiper>
 			</view>
 			<!-- 秒杀 -->
 			<view class="seckill row-between" v-if="goodsType == 1">
@@ -33,8 +37,8 @@
 				</view>
 				<view class="down column-center">
 					<view class="xxs primary mb10">距活动结束仅剩</view>
-					<u-count-down :timestamp="countTime" @end="getGoodsDetailFun" color="#fff" bg-color="#FF2C3C"
-						separator-color="#FF2C3C" font-size="24" height="36" separator-size="26"></u-count-down>
+					<view :timestamp="countTime" @end="getGoodsDetailFun" color="#fff" bg-color="#FF2C3C"
+						separator-color="#FF2C3C" font-size="24" height="36" separator-size="26"></view>
 				</view>
 			</view>
 			<!-- 拼团 -->
@@ -56,8 +60,8 @@
 					</view>
 					<view class="down column-center">
 						<view class="xxs primary mb10">距活动结束仅剩</view>
-						<u-count-down :timestamp="countTime" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C"
-							font-size="24" height="36" separator-size="26" @end="getGoodsDetailFun"></u-count-down>
+						<view :timestamp="countTime" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C"
+							font-size="24" height="36" separator-size="26" @end="getGoodsDetailFun"></view>
 					</view>
 				</view>
 			</view>
@@ -68,7 +72,7 @@
 						<view class="merchant-card__name line1">{{ goodsDetail.shop_name || '萨洛蒙官方旗舰店' }}</view>
 						<u-icon name="arrow-right" size="22" color="#ffffff"></u-icon>
 					</view>
-					<view class="merchant-card__follow">+订阅</view>
+					<view class="merchant-card__follow" @tap.stop="toggleShopSubscribe">{{ shopSubscribed ? '已订阅' : '+订阅' }}</view>
 				</view>
 				<view class="merchant-card__body">
 					<view class="merchant-card__price-row row-between">
@@ -78,8 +82,8 @@
 								:weight="500"></price-format>
 							<text class="merchant-card__price-tag">{{ goodsType == 2 ? '拼团价' : '到手价' }}</text>
 						</view>
-						<view class="merchant-card__share" @tap="showShareBtn = true">
-							<u-icon name="share-fill" size="28" color="#ffffff"></u-icon>
+						<view class="merchant-card__share" @tap.stop="showShareBtn = true">
+							<image class="merchant-card__share-icon" src="https://shengyuan.store/api/miniapp/files/miniapp/d8f8eba765024dd7ad1bf7ced9c0ea8c/c2187248f261c091ca3024ebe0b55c41.png" mode="aspectFit"></image>
 							<text>分享</text>
 						</view>
 					</view>
@@ -88,35 +92,56 @@
 				</view>
 			</view>
 			<view class="option-panel bg-white">
-				<view class="option-panel__thumbs">
-					<view class="option-panel__menu">
-						<u-icon name="grid-fill" size="40" color="#222222"></u-icon>
+				<view class="option-panel__style-head">
+					<view class="option-panel__menu" @tap="toggleStyleViewMode">
+						<image class="option-panel__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/bba8c68921db42d4a52b6999f1309b4d/56950104d92fe6e3e45ac4657e744731.png" mode="aspectFit"></image>
+						<text>{{ styleViewMode === 'list' ? '列表' : '大图' }}</text>
 					</view>
-					<image
-						v-for="(item, index) in previewImages"
-						:key="index"
-						:class="['option-panel__thumb', index === 0 ? 'is-active' : '']"
-						:src="item"
-						mode="aspectFill"
-					></image>
 					<view class="option-panel__count">
 						<text>共{{ swiperList.length || 0 }}款</text>
 						<u-icon name="arrow-right" size="20" color="#999999"></u-icon>
 					</view>
 				</view>
+				<scroll-view v-if="styleViewMode === 'list'" scroll-x="true" class="option-panel__scroll" show-scrollbar="false">
+					<view class="option-panel__thumbs">
+						<image
+							v-for="(item, index) in previewImages"
+							:key="index"
+							:class="['option-panel__thumb', index === activePreviewIndex ? 'is-active' : '']"
+							:src="item"
+							mode="aspectFill"
+							@tap="selectPreviewImage(index)"
+						></image>
+					</view>
+				</scroll-view>
+				<view v-else class="option-panel__grid">
+					<view
+						v-for="(item, index) in previewImages"
+						:key="index"
+						:class="['option-panel__grid-item', index === activePreviewIndex ? 'is-active' : '']"
+						@tap="selectPreviewImage(index)"
+					>
+						<image class="option-panel__grid-image" :src="item" mode="aspectFill"></image>
+						<view class="option-panel__grid-text">款式{{ index + 1 }}</view>
+					</view>
+				</view>
 				<view class="option-panel__line"></view>
 				<view class="option-row">
-					<u-icon name="car" size="36" color="#222222"></u-icon>
+					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png" mode="aspectFit"></image>
 					<text class="option-row__text">{{ freightText }}</text>
 				</view>
 				<view class="option-panel__line"></view>
 				<view class="option-row option-row--between" @tap="showCouponFun">
 					<view class="option-row__left">
-						<u-icon name="coupon-fill" size="36" color="#222222"></u-icon>
-						<view class="coupon-badge">{{ primaryCouponText }}</view>
+						<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7f051b4aa3eb450c834bd06f53586c5d/26037f64b6984ded794031edbc6161b7.png" mode="aspectFit"></image>
+						<view v-if="couponList.length" class="coupon-badge">
+							<text class="coupon-badge__amount">{{ primaryCouponAmountText }}</text>
+							<text class="coupon-badge__condition">{{ primaryCouponConditionText }}</text>
+						</view>
+						<view v-else class="coupon-none">暂无优惠券</view>
 					</view>
 					<view class="option-row__action">
-						<text>{{ couponList.length ? '立即领取' : '查看优惠' }}</text>
+						<text>{{ couponList.length ? '立即领取' : '暂无可领' }}</text>
 						<u-icon name="arrow-right" size="20" color="#222222"></u-icon>
 					</view>
 				</view>
@@ -147,7 +172,7 @@
 						<view :class="['row coupons', {mb30: goodsDetail.order_give_integral > 0}]"
 							v-if="couponList.length" @tap="showCouponFun">
 							<view class="flexnone">
-								<u-tag text="领券" size="mini" type="primary" mode="plain" />
+								<view text="领券" size="mini" type="primary" mode="plain" />
 							</view>
 							<view class="con row ml20" style="flex: 1">
 								<view v-for="(item, index) in couponList" :key="index" class="coupons-item  mr20">
@@ -163,7 +188,7 @@
 						<view class="row integral" style="align-items: flex-start;"
 							v-if="goodsDetail.order_give_integral">
 							<view class="flexnone">
-								<u-tag text="积分" size="mini" type="primary" mode="plain" />
+								<view text="积分" size="mini" type="primary" mode="plain" />
 							</view>
 							<view class="ml20">下单最多可获得{{goodsDetail.order_give_integral}}积分</view>
 						</view>
@@ -189,9 +214,9 @@
 									</text>
 									<view class="muted xs">
 										剩余
-										<u-count-down :timestamp="getTeamCountTime(item.found_end_time)"
+										<view :timestamp="getTeamCountTime(item.found_end_time)"
 											separator-color="#999" color="#999" :separator-size="24" :font-size="24"
-											bg-color="transparent" @end="getGoodsDetailFun"></u-count-down>
+											bg-color="transparent" @end="getGoodsDetailFun"></view>
 									</view>
 								</view>
 								<view class="group-btn br60 white row-center" @tap="showSpecFun(3, item.id)">去参团</view>
@@ -205,24 +230,24 @@
 				<view class="line1 mr20" style="flex: 1;">{{ selectedSpecText }}</view>
 				<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 			</view>
-			<navigator class="mt20" hover-class="none" url="/bundle/pages/server_explan/server_explan?type=2">
+			<navigator class="mt20 service-row" hover-class="none" url="/bundle_user/pages/server_explan/server_explan?type=2">
 				<view class="row bg-white" style="padding: 24rpx 24rpx;">
 					<view class="text lighter flex1">售后保障</view>
 					<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 				</view>
 			</navigator>
 			<view class="evaluation bg-white mt20">
-				<navigator hover-class="none" :url="'/bundle/pages/all_comments/all_comments?id=' + goodsDetail.id"
+				<navigator hover-class="none" :url="'/bundle_order/pages/all_comments/all_comments?id=' + goodsDetail.id"
 					class="title row-between">
 					<view>
-						<text class="balck md mr10">商品评价({{ comment.total || 123 }})</text>
+						<text class="balck md mr10">商品评价({{ comment.total || 0 }})</text>
 					</view>
 					<view class="row">
 						<text class="lighter">查看全部</text>
 						<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 					</view>
 				</navigator>
-				<view class="con" v-if="comment.goods_rate">
+				<view class="con" v-if="comment.comment">
 					<view class="user-info row">
 						<image class="avatar mr20" :src="comment.avatar"></image>
 						<view class="user-name md mr10">{{ comment.nickname }}</view>
@@ -232,61 +257,57 @@
 					</view>
 					<view v-if="comment.comment" class="dec mt20">{{ comment.comment }}</view>
 				</view>
-				<view class="con row-center muted" v-else>暂无评价</view>
+				<view class="con empty-state" v-else>暂无评价</view>
 			</view>
 
-			<view class="group-record bg-white mt20" v-if="teamFound.length">
+			<view class="group-record bg-white mt20" v-if="groupRecords.length">
 				<view class="group-record__title">跟团记录</view>
-				<view v-for="(sitem, index) in teamFound" :key="index">
-					<view v-for="(item, index2) in sitem" :key="index2" class="group-record__item">
-						<custom-image :src="item.avatar" width="80rpx" height="80rpx" radius="50%"></custom-image>
-						<view class="group-record__content">
-							<view class="group-record__name">{{ item.nickname }}</view>
-							<view class="group-record__time">{{ item.create_time || '2026-01-01' }}</view>
-						</view>
-						<view class="group-record__plus">+1</view>
+				<view v-for="(item, index) in groupRecords" :key="item.id || index" class="group-record__item">
+					<custom-image v-if="item.avatar" :src="item.avatar" width="80rpx" height="80rpx" radius="50%"></custom-image>
+					<view v-else class="group-record__avatar"></view>
+					<view class="group-record__content">
+						<view class="group-record__name">{{ item.name }}</view>
+						<view class="group-record__time">{{ item.time || '刚刚跟团' }}</view>
 					</view>
+					<view class="group-record__plus">+{{ item.join || 1 }}</view>
 				</view>
 			</view>
 
+			<view class="group-record bg-white mt20" v-else>
+				<view class="group-record__title">跟团记录</view>
+				<view class="group-record__empty">
+					<view class="group-record__empty-icon"></view>
+					<view>暂无跟团记录</view>
+					<view class="group-record__empty-desc">成为第一个跟团的人吧</view>
+				</view>
+			</view>
 			<view class="goods-like mt20 bg-white" v-if="goodsLike.length">
 				<goods-like :list="goodsLike"></goods-like>
 			</view>
-			<view class="details mt20 bg-white">
-				<view class="title lg">商品详情</view>
-				<view class="content">
-					<u-parse :html="goodsDetail.content" :lazy-load="true" :show-with-animation="true"></u-parse>
-				</view>
-			</view>
 			<view class="footer row bg-white fixed">
 				<navigator class="btn column-center" hover-class="none"
-					url="/bundle/pages/contact_offical/contact_offical">
-					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_contact.png"></image>
+					url="/bundle_user/pages/contact_offical/contact_offical">
+					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp/5f50e710a7024d99a4ddef3544d73eaf/8b846285dc82397ecc5ec550e2c6a507.png"></image>
 					<text class="xxs lighter">客服</text>
 				</navigator>
-				<button class="btn column-center" hover-class="none" @tap="collectGoodsFun">
-					<image class="icon-md"
-						:src="goodsDetail.is_collect == 1 ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_collection_s.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_collection.png'">
-					</image>
-					<text class="xxs lighter">收藏</text>
-				</button>
-				<navigator class="btn cart column-center" hover-class="none" open-type="switchTab"
-					url="/pages/shop_cart/shop_cart">
-					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_cart.png"></image>
-					<text class="xxs lighter">购物车</text>
-					<u-badge v-if="cartNum" bgColor="#FF2C3C" :offset="[8, 10]" :count="cartNum"></u-badge>
+				<navigator class="btn column-center" hover-class="none" url="/bundle_order/pages/user_order/user_order">
+					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp/70ce92ac24bc45d6be6abc68a2a357af/6f6ac9799b01d21b02e90602db0dcb34.png"></image>
+					<text class="xxs lighter">订单</text>
 				</navigator>
-				<view class="footer-action" @tap="showSpecFun(2)">
-					<template v-if="goodsType == 2">
-						<view class="footer-action__avatars">
-							<view class="footer-action__avatar"></view>
-							<view class="footer-action__avatar footer-action__avatar--middle"></view>
-							<view class="footer-action__avatar"></view>
-						</view>
-						<view class="footer-action__count">{{ team.people_num || 155 }}人已跟团</view>
-						<view class="footer-action__divider"></view>
-					</template>
-					<view class="footer-action__text">{{ goodsType == 2 ? '跟团买' : btnText.red }}</view>
+				<view class="btn cart column-center" @tap="goCartPage">
+					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp/4f8db4b7921d4f819d8053ba1c3baee4/08d3b1d2deda71069a912ba2d2cc9435.png"></image>
+					<text class="xxs lighter">购物车</text>
+					<view v-if="cartNum" bgColor="#FF2C3C" :offset="[8, 10]" :count="cartNum"></view>
+				</view>
+				<view class="footer-action" @tap="showSpecFun(0)">
+					<view class="footer-action__avatars">
+						<view class="footer-action__avatar"></view>
+						<view class="footer-action__avatar footer-action__avatar--middle"></view>
+						<view class="footer-action__avatar"></view>
+					</view>
+					<view class="footer-action__count">{{ groupFooterCount }}人已跟团</view>
+					<image class="footer-action__divider" src="https://shengyuan.store/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png" mode="scaleToFill"></image>
+					<view class="footer-action__text">跟团买</view>
 				</view>
 			</view>
 		</view>
@@ -301,22 +322,28 @@
 			:showConfirm="popupType == 3" @buynow="onBuy" @addcart="onAddCart" @change="onChangeGoods"
 			:group="Boolean(isGroup)" :red-btn-text="btnText.red" :yellow-btn-text="btnText.yellow"
 			@confirm="onConfirm"></spec-popup>
-			
-		<share-popup v-model="showShareBtn" 
-			:share-id="id" 
-			pagePath="bundle/pages/goods_details/goods_details" 
-			:type="1" 
-			:config="{
-				avatar: resolveAvatar(userInfo.avatar),
-				nickname: userInfo.nickname,
-				image: resolveGoodsImage(goodsDetail.poster || goodsDetail.image),
-				price: goodsDetail.min_price,
-				marketPrice: goodsDetail.market_price,
-				name: goodsDetail.name
-		}">
-		</share-popup>
+
+		<view v-model="showShareBtn" mode="center" border-radius="24" :closeable="true" :mask-close-able="true" @open="prepareGoodsShareQrcode">
+			<view class="goods-share-card">
+				<view class="goods-share-card__title">商品二维码</view>
+				<view class="goods-share-card__goods">
+					<image class="goods-share-card__image" :src="resolveGoodsImage(goodsDetail.poster || goodsDetail.image)" mode="aspectFill"></image>
+					<view class="goods-share-card__info">
+						<view class="goods-share-card__name">{{ goodsDetail.name || '商品详情' }}</view>
+						<view class="goods-share-card__price">¥{{ goodsDetail.min_price || team.team_min_price || '0.00' }}</view>
+						<view v-if="goodsDetail.market_price" class="goods-share-card__market">原价 ¥{{ goodsDetail.market_price }}</view>
+					</view>
+				</view>
+				<view class="goods-share-card__qr-wrap">
+					<image v-if="shareQrcodeIsImage" class="goods-share-card__qr" :src="shareQrcode" mode="aspectFit"></image>
+					<tki-qrcode v-else-if="shareQrcode" cid="goods-detail-share-qrcode" :val="shareQrcode" :size="282" unit="upx" :showLoading="false" />
+					<view v-else class="goods-share-card__loading">二维码生成中</view>
+				</view>
+				<view class="goods-share-card__tip">长按识别二维码查看商品</view>
+			</view>
+		</view>
 		<!-- 领券 -->
-		<u-popup v-model="showCoupon" mode="bottom" border-radius="14">
+		<view v-model="showCoupon" mode="bottom" border-radius="14">
 			<view>
 				<view class="row-between" style="padding: 30rpx">
 					<view class="title md bold">领券</view>
@@ -326,11 +353,23 @@
 				</view>
 				<view class="content bg-body">
 					<scroll-view scroll-y="true" style="height: 700rpx">
-						<coupon-list :list="couponList" @reflash="getGoodsCouponFun" :btn-type="3"></coupon-list>
+						<view v-if="couponList.length" class="coupon-popup-list">
+							<view class="coupon-popup-ticket" v-for="(item, index) in couponList" :key="item.id || index">
+								<view class="coupon-popup-ticket__main">
+									<view class="coupon-popup-ticket__amount">{{ formatCouponAmount(item) }}</view>
+									<view class="coupon-popup-ticket__condition">{{ formatCouponCondition(item) }}</view>
+								</view>
+								<view class="coupon-popup-ticket__action" @tap="receiveCoupon(item)">{{ item.is_get ? '已领' : '领取' }}</view>
+							</view>
+						</view>
+						<view v-else class="coupon-empty">
+							<view class="coupon-empty__title">暂无可领取优惠券</view>
+							<view class="coupon-empty__desc">下单优惠会自动展示在结算页</view>
+						</view>
 					</scroll-view>
 				</view>
 			</view>
-		</u-popup>
+		</view>
 
 		<view class="share-money" :class="{ show: showCommission && enableCommission}">
 			<view class="row-end">
@@ -347,15 +386,15 @@
 				</view>
 			</view>
 		</view>
-		
-		<u-back-top :scroll-top="scrollTop" :top="1000" :customStyle="{ backgroundColor: '#FFF', color: '#000', boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)'}"></u-back-top>
-		
+
+		<view :scroll-top="scrollTop" :top="1000" :customStyle="{ backgroundColor: '#FFF', color: '#000', boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)'}"></view>
+
 	</view>
 </template>
 
 <script>
 	import SpecPopup from '@/bundle/components/spec-popup/spec-popup.vue'
-import SharePopup from '@/bundle/components/share-popup/share-popup.vue'
+	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 import {
 		getGoodsDetail,
 		addCart,
@@ -363,12 +402,15 @@ import {
 		getCartNum as fetchCartNum
 	} from '@/api/store';
 	import {
-		collectGoods
+		collectGoods,
+		getCoupon
 	} from '@/api/user';
 	import {
-		getGoodsCoupon,
 		teamCheck
 	} from '@/api/activity';
+	import {
+		getShareMnQrcode
+	} from '@/api/app';
 	import {
 		mapActions,
 		mapGetters
@@ -392,7 +434,7 @@ import {
 	export default {
 	components: {
 		SpecPopup,
-		SharePopup
+		TkiQrcode
 	},
 		data() {
 			return {
@@ -403,8 +445,13 @@ import {
 				showSpec: false,
 				showCoupon: false,
 				showShareBtn: false,
+				shareQrcode: '',
+				shareQrcodeIsImage: false,
 				showCommission: true,
+				shopSubscribed: false,
 				popupType: '',
+				activePreviewIndex: 0,
+				styleViewMode: 'list',
 				swiperList: [],
 				goodsDetail: {},
 				goodsLike: [],
@@ -422,6 +469,7 @@ import {
 				id: '',
 				showDownload: false,
 				distribution: {},
+				groupRecords: [],
 				fetchingDetail: false
 			};
 		},
@@ -459,6 +507,29 @@ import {
 		},
 		methods: {
 			...mapActions(['getCartNum']),
+			goodsShareLink() {
+				const inviteCode = this.userInfo.distribution_code || this.$store.getters.inviteCode || '';
+				return `/bundle/pages/goods_details/goods_details?id=${this.id}&invite_code=${inviteCode}`;
+			},
+			async prepareGoodsShareQrcode() {
+				if (this.shareQrcode) return;
+				try {
+					const res = await getShareMnQrcode({
+						id: this.id,
+						url: 'bundle/pages/goods_details/goods_details',
+						type: 1
+					});
+					const data = res && res.data ? res.data : {};
+					const qrcode = data.qr_code || data.qrCode || data.qrcode || data.image || data.url;
+					if (qrcode) {
+						this.shareQrcode = String(qrcode).replace(/\r\n/g, '');
+						this.shareQrcodeIsImage = true;
+						return;
+					}
+				} catch (e) {}
+				this.shareQrcode = this.goodsShareLink();
+				this.shareQrcodeIsImage = false;
+			},
 			resolveAvatar(avatar) {
 				return resolveImage(avatar, 'avatar')
 			},
@@ -470,15 +541,70 @@ import {
 				if (!shopId) return
 				uni.navigateTo({ url: `/business/pages/business_pages/store_detail?shopId=${shopId}` })
 			},
+			goCartPage() {
+				uni.switchTab({ url: '/pages/shop_cart/shop_cart' })
+			},
+			selectPreviewImage(index) {
+				this.activePreviewIndex = index;
+			},
+			toggleStyleViewMode() {
+				this.styleViewMode = this.styleViewMode === 'list' ? 'grid' : 'list';
+			},
+			onHeroSwiperChange(e) {
+				this.activePreviewIndex = e.detail.current || 0;
+			},
+			formatCouponAmount(item = {}) {
+				const amount = item.money || item.amount || item.discountAmount || item.couponAmount || item.value;
+				return amount ? `${amount}元` : (item.name || item.couponName || '优惠券');
+			},
+			formatCouponCondition(item = {}) {
+				return item.use_condition || item.useCondition || item.conditionText || item.condition || '下单可用';
+			},
+			resolveSkuPayload(detail = this.checkedGoods) {
+				const sku = detail || {};
+				const fallback = (this.goodsDetail.goods_item || [])[0] || {};
+				const itemId = sku.item_id || sku.sku_id || sku.skuId || sku.id || fallback.item_id || fallback.sku_id || fallback.skuId || fallback.id;
+				return {
+					itemId,
+					goodsNum: sku.goodsNum || sku.goods_num || sku.quantity || 1
+				};
+			},
+			validTeamId() {
+				return this.team.team_id || this.team.teamId || this.team.id || '';
+			},
+			flattenTeamRecords(teamFound = []) {
+				const source = Array.isArray(teamFound) ? teamFound : [];
+				return source.reduce((records, item) => {
+					if (Array.isArray(item)) return records.concat(item);
+					if (item && typeof item === 'object') records.push(item);
+					return records;
+				}, []).map((item, index) => ({
+					id: item.id || item.found_id || item.foundId || index,
+					avatar: item.avatar || item.user_avatar || item.userAvatar || '',
+					name: item.nickname || item.user_name || item.userName || item.name || '匿名用户',
+					time: item.create_time || item.createTime || item.found_time || item.foundTime || '',
+					join: item.join || item.join_num || item.joinNum || 1
+				}));
+			},
+			toggleShopSubscribe() {
+				if (!this.isLogin) return toLogin();
+				this.shopSubscribed = !this.shopSubscribed;
+				uni.showToast({
+					title: this.shopSubscribed ? '订阅成功' : '已取消订阅',
+					icon: 'none'
+				});
+			},
 			applyDefaultGoodsDetail() {
 				const image = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/designs/24-goods-detail.png';
 				this.isNull = false;
-				this.goodsType = 0;
+				this.goodsType = 2;
 				this.countTime = 0;
-				this.team = {};
+				this.team = { people_num: 155, team_min_price: '299.00', team_id: '' };
 				this.teamFound = [];
+				this.groupRecords = [];
 				this.comment = {};
 				this.couponList = [];
+				this.activePreviewIndex = 0;
 				this.goodsLike = [
 					{ id: 1, name: '轻便舒适跑步鞋', image, min_price: '1899.00' },
 					{ id: 2, name: '黑白灰色运动鞋', image, min_price: '2300.00' }
@@ -499,6 +625,7 @@ import {
 					stock: 999,
 					is_collect: 0,
 					order_give_integral: 200,
+					group_people_num: 155,
 					content: '<p>商品详情默认展示内容，适用于接口暂无数据时的静态预览。</p>'
 				};
 				this.$nextTick(() => {
@@ -536,6 +663,7 @@ import {
 						team,
 						team_found
 					} = activity || {}; //秒杀时间
+					team_found = team_found || data.team_found || data.teamFound || data.group_records || data.groupRecords || [];
 					let time = info ?
 						info.end_time - Date.now() / 1000 //拼团时间
 						:
@@ -552,6 +680,7 @@ import {
 					this.isNull = false;
 					this.goodsDetail = data;
 					this.swiperList = Array.isArray(goods_image) && goods_image.length ? goods_image : [data.image].filter(Boolean);
+					this.activePreviewIndex = 0;
 					this.comment = comment || {};
 					this.goodsLike = Array.isArray(like) ? like : [];
 					this.couponList = Array.isArray(data.coupon_list) ? data.coupon_list : [];
@@ -560,6 +689,7 @@ import {
 					this.goodsType = activity?.type || 0;
 					this.team = team ? team : {};
 					this.teamFound = team_found ? team_found : [];
+					this.groupRecords = this.flattenTeamRecords(team_found);
 
 					// #ifdef H5
 					let options = {
@@ -571,7 +701,6 @@ import {
 					this.wxShare(options);
 					// #endif
 				} catch (error) {
-					console.error('[goods-details] getGoodsDetailFun failed:', error);
 					this.applyDefaultGoodsDetail();
 				} finally {
 					this.fetchingDetail = false;
@@ -580,16 +709,14 @@ import {
 					});
 				}
 			},
-			async getGoodsCouponFun() {
-				if (!this.id) return;
-				const {
-					data,
-					code
-				} = await getGoodsCoupon({
-					id: this.id
-				});
-				if (code == 1) {
-					this.couponList = data;
+			async receiveCoupon(item) {
+				if (!item || item.is_get) return;
+				const couponId = item.id || item.couponId;
+				if (!couponId) return;
+				const res = await getCoupon(couponId);
+				if (res.code == 1) {
+					this.$toast({ title: res.msg || '领取成功' });
+					item.is_get = true;
 				}
 			},
 			async collectGoodsFun() {
@@ -629,7 +756,7 @@ import {
 			},
 			showSpecFun(type, id) {
 				if (!this.isLogin) return toLogin();
-				if (this.goodsType == 2 && [2, 3].includes(type)) {
+				if (this.goodsType == 2 && this.validTeamId() && [2, 3].includes(type)) {
 					this.isGroup = 1;
 					this.foundId = id;
 				} else {
@@ -647,7 +774,10 @@ import {
 					item_id,
 					goodsNum
 				} = e.detail;
-				const itemId = item_id || sku_id || skuId || id;
+				const resolved = this.resolveSkuPayload(e.detail);
+				const itemId = item_id || sku_id || skuId || id || resolved.itemId;
+				const quantity = goodsNum || resolved.goodsNum || 1;
+				if (!itemId) return this.$toast({ title: '请选择商品规格' });
 				const {
 					goodsType,
 					team
@@ -655,18 +785,19 @@ import {
 				let goods = [{
 					item_id: itemId,
 					skuId: itemId,
-					num: goodsNum
+					quantity,
+					num: quantity
 				}];
 				const params = {
 					goods,
 				};
 				this.showSpec = false;
-				goodsType == 2 ? (params.teamId = team.team_id) : '';
+				const teamId = this.validTeamId();
+				goodsType == 2 && teamId ? (params.teamId = teamId) : '';
 				this.foundId ? (params.foundId = this.foundId) : '';
 				uni.navigateTo({
 					url: '/bundle/pages/confirm_order/confirm_order?data=' + encodeURIComponent((JSON.stringify(params)))
 				})
-				console.log(1111)
 			},
 			onConfirm(e) {
 				const {
@@ -683,6 +814,28 @@ import {
 					}
 				});
 			},
+			async addSelectedGoodsToCart() {
+				if (!this.isLogin) return toLogin();
+				const { itemId, goodsNum } = this.resolveSkuPayload();
+				if (!itemId) return this.$toast({ title: '请选择商品规格' });
+				const { code, data, msg } = await addCart({
+					item_id: itemId,
+					skuId: itemId,
+					goods_num: goodsNum
+				});
+				if (code == 1) {
+					const cartCount = data?.cartCount ?? data?.count ?? data?.num ?? data?.total;
+					if (cartCount !== undefined && cartCount !== null) {
+						this.getCartNum(cartCount);
+					} else {
+						const cartRes = await fetchCartNum();
+						if (cartRes.code == 1) {
+							this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
+						}
+					}
+					this.$toast({ title: msg || '已加入购物车', icon: 'success' });
+				}
+			},
 			async onAddCart(e) {
 				let {
 					id,
@@ -691,22 +844,11 @@ import {
 					item_id,
 					goodsNum
 				} = e.detail;
-				const itemId = item_id || sku_id || skuId || id;
+				const resolved = this.resolveSkuPayload(e.detail);
+				const itemId = item_id || sku_id || skuId || id || resolved.itemId;
+				const quantity = goodsNum || resolved.goodsNum || 1;
+				if (!itemId) return this.$toast({ title: '请选择商品规格' });
 
-				if (this.goodsType == 2) {
-					// 拼团单独购买
-					let goods = [{
-						item_id: itemId,
-						skuId: itemId,
-						num: goodsNum
-					}];
-					uni.navigateTo({
-						url: '/bundle/pages/confirm_order/confirm_order?data=' + encodeURIComponent((JSON.stringify({
-							goods
-						})))
-					})
-					return
-				}
 				const {
 					code,
 					data,
@@ -714,7 +856,7 @@ import {
 				} = await addCart({
 					item_id: itemId,
 					skuId: itemId,
-					goods_num: goodsNum
+					goods_num: quantity
 				});
 				if (code == 1) {
 					const cartCount = data?.cartCount ?? data?.count ?? data?.num ?? data?.total;
@@ -760,8 +902,8 @@ import {
 						};
 					case 2:
 						return {
-							red: '立即开团',
-								yellow: '单独购买'
+							red: '立即购买',
+								yellow: '加入购物车'
 						};
 					default:
 						return {
@@ -784,16 +926,19 @@ import {
 				return goodsType == 0 && earnings > 0 && is_show == 1
 			},
 			previewImages() {
-				return (this.swiperList || []).slice(0, 4)
+				return this.swiperList || []
 			},
-			primaryCouponText() {
-				if (this.couponList.length) {
-					return this.couponList[0].use_condition || '50元优惠券'
-				}
-				if (this.goodsDetail.order_give_integral) {
-					return `下单送${this.goodsDetail.order_give_integral}积分`
-				}
-				return '50元优惠券'
+			showGroupFooter() {
+				return true
+			},
+			groupFooterCount() {
+				return this.team.people_num || this.team.join_num || this.team.joinNum || this.goodsDetail.group_people_num || this.goodsDetail.groupPeopleNum || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || 0
+			},
+			primaryCouponAmountText() {
+				return this.formatCouponAmount(this.couponList[0] || {})
+			},
+			primaryCouponConditionText() {
+				return this.formatCouponCondition(this.couponList[0] || {})
 			},
 			selectedSpecText() {
 				return this.checkedGoods.spec_value_str || this.checkedGoods.skuName || this.checkedGoods.name || '默认'
@@ -817,6 +962,19 @@ import {
 
 		.hero-stage {
 			position: relative;
+			height: 750rpx;
+			background: #eef4ff;
+		}
+
+		.goods-hero-swiper,
+		.goods-hero-image {
+			width: 100%;
+			height: 750rpx;
+		}
+
+		.goods-hero-image {
+			display: block;
+			background: #eef4ff;
 		}
 
 		.seckill {
@@ -861,7 +1019,7 @@ import {
 		.merchant-card {
 			position: relative;
 			z-index: 2;
-			margin: -32rpx 26rpx 0;
+			margin: -64rpx 26rpx 0;
 			padding: 0 14rpx 16rpx;
 			background: #037dfa;
 			border-radius: 24rpx;
@@ -947,6 +1105,11 @@ import {
 			}
 		}
 
+		.merchant-card__share-icon {
+			width: 26rpx;
+			height: 26rpx;
+		}
+
 		.merchant-card__title {
 			margin-top: 18rpx;
 			color: #222222;
@@ -962,35 +1125,95 @@ import {
 		}
 
 		.option-panel {
-			margin: 26rpx;
+			margin: 26rpx 26rpx 0;
 			padding: 18rpx 24rpx;
 			border-radius: 26rpx;
 		}
 
+		.option-panel__style-head,
 		.option-panel__thumbs {
 			display: flex;
 			align-items: center;
+		}
+
+		.option-panel__style-head {
+			justify-content: space-between;
+			margin-bottom: 16rpx;
 		}
 
 		.option-panel__menu {
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 52rpx;
-			height: 52rpx;
+			min-width: 112rpx;
+			height: 48rpx;
+			padding: 0 12rpx;
 			margin-right: 22rpx;
+			color: #222222;
+			font-size: 22rpx;
+			background: #f3f7ff;
+			border-radius: 24rpx;
+
+			text {
+				margin-left: 6rpx;
+			}
+		}
+
+		.option-panel__icon {
+			width: 28rpx;
+			height: 28rpx;
+		}
+
+		.option-panel__scroll {
+			width: 100%;
+			white-space: nowrap;
 		}
 
 		.option-panel__thumb {
-			width: 78rpx;
-			height: 78rpx;
+			display: inline-block;
+			width: 92rpx;
+			height: 92rpx;
 			margin-right: 14rpx;
-			border-radius: 8rpx;
+			border-radius: 14rpx;
 			border: 2rpx solid transparent;
 
 			&.is-active {
 				border-color: #037dfa;
 			}
+		}
+
+		.option-panel__grid {
+			display: flex;
+			flex-wrap: wrap;
+			margin: -8rpx;
+		}
+
+		.option-panel__grid-item {
+			width: calc(50% - 16rpx);
+			margin: 8rpx;
+			padding: 8rpx;
+			background: #f7f9fc;
+			border: 2rpx solid transparent;
+			border-radius: 18rpx;
+			box-sizing: border-box;
+
+			&.is-active {
+				border-color: #037dfa;
+				background: #eef6ff;
+			}
+		}
+
+		.option-panel__grid-image {
+			width: 100%;
+			height: 220rpx;
+			border-radius: 14rpx;
+		}
+
+		.option-panel__grid-text {
+			margin-top: 10rpx;
+			color: #333333;
+			font-size: 22rpx;
+			text-align: center;
 		}
 
 		.option-panel__count {
@@ -1018,8 +1241,18 @@ import {
 			align-items: center;
 		}
 
+		.option-row__left {
+			min-width: 0;
+		}
+
 		.option-row {
 			min-height: 50rpx;
+		}
+
+		.option-row__icon {
+			width: 38rpx;
+			height: 38rpx;
+			flex: none;
 		}
 
 		.option-row--between {
@@ -1033,15 +1266,110 @@ import {
 		}
 
 		.coupon-badge {
-			height: 46rpx;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 210rpx;
+			height: 64rpx;
 			margin-left: 18rpx;
-			padding: 0 24rpx;
+			padding: 0 22rpx 0 18rpx;
 			color: #ffffff;
+			background: url('https://shengyuan.store/api/miniapp/files/miniapp/2ea924839ffd492da81800a02655c339/c922c5cecffb59ce657b550342816bf3.png') center/100% 100% no-repeat;
+			box-sizing: border-box;
+		}
+
+		.coupon-badge__amount {
+			max-width: 96rpx;
+			font-size: 26rpx;
+			font-weight: 700;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.coupon-badge__condition {
+			max-width: 72rpx;
+			font-size: 18rpx;
+			line-height: 22rpx;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.coupon-none {
+			margin-left: 18rpx;
+			color: #999999;
+			font-size: 24rpx;
+		}
+
+		.coupon-popup-list {
+			padding: 18rpx 24rpx 34rpx;
+		}
+
+		.coupon-popup-ticket {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			height: 150rpx;
+			margin-bottom: 18rpx;
+			padding: 0 34rpx 0 36rpx;
+			color: #ffffff;
+			background: url('https://shengyuan.store/api/miniapp/files/miniapp/2ea924839ffd492da81800a02655c339/c922c5cecffb59ce657b550342816bf3.png') center/100% 100% no-repeat;
+			box-sizing: border-box;
+		}
+
+		.coupon-popup-ticket__main {
+			min-width: 0;
+		}
+
+		.coupon-popup-ticket__amount {
+			font-size: 44rpx;
+			font-weight: 700;
+			line-height: 54rpx;
+		}
+
+		.coupon-popup-ticket__condition {
+			max-width: 360rpx;
+			margin-top: 8rpx;
 			font-size: 22rpx;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.coupon-popup-ticket__action {
+			flex: none;
+			width: 104rpx;
+			height: 48rpx;
+			color: #ff4b4b;
+			font-size: 24rpx;
+			font-weight: 600;
+			line-height: 48rpx;
+			text-align: center;
+			background: #ffffff;
+			border-radius: 24rpx;
+		}
+
+		.coupon-empty {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			height: 700rpx;
+			padding: 0 48rpx;
+			text-align: center;
+		}
+
+		.coupon-empty__title {
+			color: #222222;
+			font-size: 30rpx;
 			font-weight: 500;
-			line-height: 46rpx;
-			background: linear-gradient(90deg, #ff6666 0%, #ff4b4b 100%);
-			border-radius: 10rpx;
+		}
+
+		.coupon-empty__desc {
+			margin-top: 16rpx;
+			color: #999999;
+			font-size: 24rpx;
 		}
 
 		.option-row__action {
@@ -1208,6 +1536,20 @@ import {
 			padding: 20rpx 26rpx 24rpx;
 		}
 
+		.group-record__avatar {
+			width: 80rpx;
+			height: 80rpx;
+			flex: none;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #e8f2ff 0%, #c7defc 100%);
+		}
+
+		.empty-state {
+			color: #999999;
+			font-size: 26rpx;
+			text-align: center;
+		}
+
 		.group-record__content {
 			flex: 1;
 			padding-left: 18rpx;
@@ -1229,6 +1571,30 @@ import {
 			color: #037dfa;
 			font-size: 26rpx;
 			font-weight: 500;
+		}
+
+		.group-record__empty {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			padding: 34rpx 24rpx 44rpx;
+			color: #999999;
+			font-size: 26rpx;
+		}
+
+		.group-record__empty-icon {
+			width: 88rpx;
+			height: 88rpx;
+			margin-bottom: 18rpx;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #edf5ff 0%, #d7e7fb 100%);
+		}
+
+		.group-record__empty-desc {
+			margin-top: 8rpx;
+			font-size: 22rpx;
+			color: #c0c4cc;
 		}
 
 		.details {
@@ -1265,24 +1631,35 @@ import {
 		}
 
 		.footer {
-			height: 110rpx;
+			height: 142rpx;
 			position: fixed;
 			bottom: 0;
 			left: 0;
 			right: 0;
 			box-sizing: content-box;
-			padding: 16rpx 26rpx env(safe-area-inset-bottom);
+			padding: 0 26rpx env(safe-area-inset-bottom);
 			align-items: center;
 			box-shadow: 0 -6rpx 14rpx rgba(128, 128, 128, 0.08);
 			border-top-left-radius: 20rpx;
 			border-top-right-radius: 20rpx;
 
 			.btn {
-				width: 80rpx;
-				height: 80rpx;
-				margin-right: 10rpx;
+				width: 64rpx;
+				height: 100%;
+				margin-right: 8rpx;
 				position: relative;
 				line-height: 1.3;
+				white-space: nowrap;
+
+				.icon-md {
+					width: 40rpx;
+					height: 40rpx;
+				}
+
+				text {
+					margin-top: 6rpx;
+					font-size: 20rpx;
+				}
 			}
 
 			.cart-num {
@@ -1294,9 +1671,11 @@ import {
 			.footer-action {
 				display: flex;
 				align-items: center;
-				flex: 1;
+				flex: none;
+				width: 425rpx;
 				height: 80rpx;
-				padding: 0 18rpx;
+				margin-left: 46rpx;
+				padding: 0;
 				color: #ffffff;
 				background: #037dfa;
 				border-radius: 40rpx;
@@ -1305,7 +1684,8 @@ import {
 			.footer-action__avatars {
 				display: flex;
 				align-items: center;
-				margin-right: 14rpx;
+				flex: none;
+				margin-left: 17rpx;
 			}
 
 			.footer-action__avatar {
@@ -1313,31 +1693,132 @@ import {
 				height: 42rpx;
 				background: #ffffff;
 				border-radius: 50%;
-				opacity: 0.95;
 			}
 
 			.footer-action__avatar--middle {
-				margin: 0 -8rpx;
-				background: #d1e6ff;
+				margin: 0 -42rpx;
+				background: #c7e3ff;
 			}
 
 			.footer-action__count {
+				width: 132rpx;
+				margin-left: 46rpx;
 				font-size: 24rpx;
 				font-weight: 500;
+				line-height: 24rpx;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
 			}
 
 			.footer-action__divider {
 				width: 1rpx;
-				height: 24rpx;
-				margin: 0 20rpx;
+				height: 20rpx;
+				flex: none;
+				margin-left: 35rpx;
 				background: rgba(255, 255, 255, 0.5);
 			}
 
 			.footer-action__text {
-				margin-left: auto;
+				flex: none;
+				margin-left: 30rpx;
 				font-size: 28rpx;
 				font-weight: 500;
+				line-height: 28rpx;
+				white-space: nowrap;
 			}
+
+		}
+
+		.goods-share-card {
+			width: 620rpx;
+			padding: 34rpx 30rpx 30rpx;
+			background: #ffffff;
+			border-radius: 24rpx;
+			box-sizing: border-box;
+		}
+
+		.goods-share-card__title {
+			color: #101010;
+			font-size: 32rpx;
+			font-weight: 600;
+			text-align: center;
+		}
+
+		.goods-share-card__goods {
+			display: flex;
+			align-items: center;
+			margin-top: 30rpx;
+			padding: 18rpx;
+			background: #f7f8fb;
+			border-radius: 18rpx;
+		}
+
+		.goods-share-card__image {
+			flex: none;
+			width: 128rpx;
+			height: 128rpx;
+			border-radius: 14rpx;
+			background: #edf1f5;
+		}
+
+		.goods-share-card__info {
+			min-width: 0;
+			margin-left: 18rpx;
+		}
+
+		.goods-share-card__name {
+			color: #222222;
+			font-size: 28rpx;
+			font-weight: 500;
+			line-height: 38rpx;
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+		}
+
+		.goods-share-card__price {
+			margin-top: 12rpx;
+			color: #ff2c3c;
+			font-size: 34rpx;
+			font-weight: 700;
+		}
+
+		.goods-share-card__market {
+			margin-top: 4rpx;
+			color: #999999;
+			font-size: 22rpx;
+			text-decoration: line-through;
+		}
+
+		.goods-share-card__qr-wrap {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 320rpx;
+			height: 320rpx;
+			margin: 34rpx auto 0;
+			background: #ffffff;
+			border: 2rpx solid #eef1f6;
+			border-radius: 20rpx;
+		}
+
+		.goods-share-card__qr {
+			width: 282rpx;
+			height: 282rpx;
+		}
+
+		.goods-share-card__loading {
+			color: #999999;
+			font-size: 24rpx;
+		}
+
+		.goods-share-card__tip {
+			margin-top: 18rpx;
+			color: #7a7a7a;
+			font-size: 24rpx;
+			text-align: center;
 		}
 
 		.group-play {

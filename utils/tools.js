@@ -241,7 +241,7 @@ export function menuJump(item) {
     case 2:
       // webview
       uni.navigateTo({
-        url: "/bundle/pages/webview/webview?url=" + link,
+        url: "/bundle_misc/pages/webview/webview?url=" + link,
       });
       break;
 

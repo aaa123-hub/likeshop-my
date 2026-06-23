@@ -21,7 +21,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                 <view class="tips-row">
                     <image
                         class="tips-icon"
-                        src="https://lanhu-oss-proxy.lanhuapp.com/ff33c2922125b8c5475cc7e97121c885"
+                        src="https://shengyuan.store/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png"
                         mode="scaleToFill"
                     ></image>
                     <text class="tips-text">温馨提示：请确认订单信息、收货地址和支付方式后再完成付款</text>
@@ -86,7 +86,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                     <view v-show="currentDelivery.sign === 'store'" class="store-form">
                         <view class="store-field">
                             <text>提货人</text>
-                            <u-input
+                            <input
                                 v-model="userConsignee"
                                 class="field-input"
                                 type="text"
@@ -97,7 +97,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                         </view>
                         <view class="store-field">
                             <text>联系方式</text>
-                            <u-input
+                            <input
                                 v-model="userMobile"
                                 class="field-input"
                                 type="text"
@@ -149,13 +149,13 @@ likeshop.cn.team // +-----------------------------------------------------------
 
                 <view class="remark-card">
                     <text class="label">买家留言</text>
-                    <u-input
+                    <input
                         v-model="userRemark"
                         class="remark-input"
                         :clearable="false"
                         input-align="right"
                         placeholder="选填"
-                    ></u-input>
+                    ></input>
                 </view>
 
                 <view class="order-card price-card">
@@ -201,20 +201,20 @@ likeshop.cn.team // +-----------------------------------------------------------
                         <text>选择付款方式</text>
                     </view>
                     <view class="pay-card">
-                        <view class="pay-item active">
+                        <view class="pay-item" :class="{ active: payWay === 'WECHAT' }" @tap="selectPayWay('WECHAT')">
                             <image
                                 class="pay-icon"
-                                src="https://lanhu-oss-proxy.lanhuapp.com/34f5d621b59abc567bcabd522381293f"
+                                src="https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png"
                                 mode="scaleToFill"
                             ></image>
                             <text>微信支付</text>
                             <view class="pay-radio"></view>
                         </view>
                         <view class="divider"></view>
-                        <view class="pay-item">
+                        <view class="pay-item" :class="{ active: payWay === 'BANK' }" @tap="selectPayWay('BANK')">
                             <image
                                 class="pay-icon bank"
-                                src="https://lanhu-oss-proxy.lanhuapp.com/bf1f6b760680089957df01cc0be7ea9e"
+                                src="https://shengyuan.store/api/miniapp/files/miniapp/094ba7e82c9843c6996af9fe0ac4ff41/bf1f6b760680089957df01cc0be7ea9e.png"
                                 mode="scaleToFill"
                             ></image>
                             <text>银行卡支付</text>
@@ -242,7 +242,7 @@ likeshop.cn.team // +-----------------------------------------------------------
         </view>
         <loading-view v-if="showLoading" background-color="transparent" :size="50"></loading-view>
         <loading-view v-if="isFirstLoading"></loading-view>
-        <u-popup v-model="showCoupon" border-radius="14" mode="bottom" closeable>
+        <view v-model="showCoupon" border-radius="14" mode="bottom" closeable>
             <view class="pop-title row-between">
                 <view class="title">优惠券</view>
             </view>
@@ -265,7 +265,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                     </tab>
                 </tabs>
             </view>
-        </u-popup>
+        </view>
     </view>
 </template>
 
@@ -296,6 +296,7 @@ export default {
             couponTabsIndex: 0, // 优惠券Tabs索引
             usableCoupon: [], // 优惠券--可使用
             unusableCoupon: [], // 优惠券--不可用
+            payWay: 'WECHAT',
 
             bargainLaunchId: -1,
 
@@ -343,9 +344,9 @@ export default {
     onLoad(options) {
         const data = JSON.parse(decodeURIComponent(options.data))
 
-        this.goods = data.goods
+        this.goods = Array.isArray(data.goods) ? data.goods : []
         this.type = data.type
-        this.teamId = data.teamId
+        this.teamId = data.teamId || ''
         this.bargainLaunchId = options.bargain_launch_id
         this.foundId = data.foundId || 0
 
@@ -395,11 +396,11 @@ export default {
 
                         if (params.result) {
                             uni.redirectTo({
-                                url: `/bundle/pages/pay_result/pay_result?id=${params.order_id}`
+                                url: `/bundle_user/pages/pay_result/pay_result?id=${params.order_id}`
                             })
                         } else {
                             uni.redirectTo({
-                                url: '/bundle/pages/user_order/user_order'
+                                url: '/bundle_order/pages/user_order/user_order'
                             })
                         }
                     }, 500)
@@ -440,7 +441,7 @@ export default {
         // 点击门店自提
         onAddressStore() {
             uni.navigateTo({
-                url: `/bundle/pages/store_list/store_list`
+                url: `/bundle_misc/pages/store_list/store_list`
             })
         },
 
@@ -531,8 +532,13 @@ export default {
             })
         },
 
+        selectPayWay(value) {
+            this.payWay = value
+        },
+
         // 初始化优惠券数据
         initCouponData() {
+            if (!this.goods.length) return
             getOrderCoupon({
                 goods: this.goods
             })
@@ -576,6 +582,7 @@ export default {
                 }
             } catch (err) {
                 console.log(err)
+                this.isFirstLoading = false
                 this.$toast({ title: '网络异常，请重新进入页面' })
             } finally {
                 this.showLoading = false
@@ -588,6 +595,7 @@ export default {
 
             from.remark = this.userRemark
             from.type = this.type
+            from.payWay = this.payWay
 
             try {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
@@ -609,6 +617,11 @@ export default {
 
         // 订单处理
         handleOrderMethods(action) {
+            if (!this.goods.length) {
+                this.isFirstLoading = false
+                this.showLoading = false
+                return this.$toast({ title: '商品参数异常，请重新选择商品' })
+            }
             // 订单提交数据
             const orderFrom = {
                 action,
@@ -1039,9 +1052,9 @@ page {
     bottom: 0;
     z-index: 9;
     display: flex;
-    align-items: flex-start;
-    height: 154rpx;
-    padding: 32rpx 24rpx 0;
+    align-items: center;
+    height: 112rpx;
+    padding: 0 24rpx;
     padding-bottom: env(safe-area-inset-bottom);
     box-sizing: content-box;
     border-radius: 34rpx 34rpx 0 0;
@@ -1054,7 +1067,6 @@ page {
     align-items: center;
     flex: 1;
     min-width: 0;
-    padding-top: 20rpx;
 }
 
 .total-label {
@@ -1073,14 +1085,14 @@ page {
 .pay-btn {
     flex: none;
     width: 282rpx;
-    height: 81rpx;
+    height: 76rpx;
     margin-left: 24rpx;
     border: none;
     border-radius: 40rpx;
     background: #037dfa;
     font-size: 28rpx;
     font-weight: 500;
-    line-height: 81rpx;
+    line-height: 76rpx;
     color: #ffffff;
 }
 

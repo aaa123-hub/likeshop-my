@@ -53,7 +53,7 @@
                         <view class="street-merchant-card__rating">
                             <view class="street-merchant-card__stars">
                                 <image
-                                    v-for="starIndex in 5"
+                                    v-for="starIndex in item.starCount"
                                     :key="starIndex"
                                     class="street-merchant-card__star"
                                     :src="streetStarIcon"
@@ -166,17 +166,19 @@ export default {
             }
         },
         mapStreetMerchant(item = {}, fallback = {}) {
-            const shopId = item.shopId || item.id || fallback.shopId || ''
-            const statusLabel = this.getStreetOpenStatusLabel(item.openStatus)
-            const address = item.detailAddress || fallback.detailAddress || ''
+            const shopId = item.shop_id || item.shopId || item.id || fallback.shopId || ''
+            const scoreValue = item.shop_score ?? item.shopScore ?? item.score ?? item.star ?? item.rating ?? fallback.score
+            const statusLabel = this.getStreetOpenStatusLabel(item.open_status || item.openStatus)
+            const address = item.detail_address || item.detailAddress || item.address || fallback.detailAddress || ''
             const metaParts = [statusLabel, address].filter(Boolean)
             return {
                 ...fallback,
                 ...item,
                 shopId,
-                name: item.shopName || item.name || fallback.name || '',
-                score: this.formatStreetScore(item.shopScore || item.score || fallback.score),
-                image: resolveImage(item.shopLogo || item.image || fallback.image),
+                name: item.shop_name || item.shopName || item.name || fallback.name || '',
+                score: this.formatStreetScore(scoreValue),
+                starCount: this.getStreetStarCount(scoreValue),
+                image: resolveImage(item.shop_logo || item.shopLogo || item.logo || item.logoUrl || item.avatarUrl || item.image || item.cover || item.imageUrl || item.picUrl || fallback.image, 'goods'),
                 meta: metaParts.join(' · ') || fallback.meta || '营业状态待更新',
                 url: shopId
                     ? `/business/pages/business_pages/store_detail?shopId=${shopId}`
@@ -194,6 +196,11 @@ export default {
             const score = Number(value)
             if (Number.isNaN(score)) return String(value)
             return score.toFixed(1)
+        },
+        getStreetStarCount(value) {
+            const score = Number(value)
+            if (Number.isNaN(score) || score <= 0) return 5
+            return Math.max(1, Math.min(5, Math.round(score)))
         },
         getStreetOpenStatusLabel(status) {
             if (!status) return ''
@@ -263,7 +270,7 @@ export default {
 }
 
 .street-header {
-    padding: calc(var(--status-bar-height) + 12rpx) 24rpx 20rpx;
+    padding: calc(var(--status-bar-height) + 24rpx) 24rpx 20rpx;
 }
 
 .street-header__title {
@@ -329,7 +336,7 @@ export default {
 .street-service-grid {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: flex-start;
     padding: 48rpx 42rpx 0;
 }
 
@@ -338,6 +345,7 @@ export default {
     flex-direction: column;
     align-items: center;
     width: 25%;
+    flex: 0 0 25%;
     margin-bottom: 34rpx;
 }
 
@@ -392,6 +400,7 @@ export default {
     justify-content: center;
     width: 189rpx;
     height: 189rpx;
+    object-fit: cover;
 }
 
 .image-placeholder {

@@ -1,6 +1,6 @@
 <template>
 	<view class="">
-		<u-popup class="share-popup" v-model="showshare" mode="bottom" border-radius="14" :closeable="true"
+		<view class="share-popup" v-model="showshare" mode="bottom" border-radius="14" :closeable="true"
 			:safe-area-inset-bottom="true" :mask-close-able="false">
 			<view class="row row-center md bold mt30 mb30">分享至</view>
 			<view class="row row-around share-tab">
@@ -22,8 +22,8 @@
 				<!-- #endif -->
 			</view>
 			<view class="row row-center bg-body cancel xl" @tap="showshare=false">取消</view>
-		</u-popup>
-		<u-popup class="share-poster" v-model="showPoster" mode="center" :closeable="true"
+		</view>
+		<view class="share-poster" v-model="showPoster" mode="center" :closeable="true"
 			:safe-area-inset-bottom="true">
 			<!-- #ifndef H5 -->
 			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
@@ -39,9 +39,9 @@
 				长按保存图片到相册
 				<!-- #endif -->
 			</button>
-		</u-popup>
+		</view>
 		<!-- #ifdef H5 -->
-		<u-popup :custom-style="{'background': 'none'}"  class="share-tips" v-model="showTips" mode="top">
+		<view :custom-style="{'background': 'none'}"  class="share-tips" v-model="showTips" mode="top">
 			<view style="overflow: hidden;">
 				<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/share_arrow.png" class="share-arrow" />
 				<view class="white" style="text-align: center;margin-top: 280rpx;">
@@ -49,10 +49,10 @@
 					<view class="sm m-t-10">点击屏幕右上角将本页面分享给好友</view>
 				</view>
 			</view>
-		</u-popup>
+		</view>
 		<!-- #endif -->
 		<poster v-if="enablePoster" :type="type" :share-id="shareId" :config="config"
-			:qrcode="mnpQrcode" :link="getLink" @success="handleSuccess" @fail="handleFail" 
+			:qrcode="mnpQrcode" :link="getLink" @success="handleSuccess" @fail="handleFail"
 			:b-share-title="bargainShare.share_title" :b-share-intro="bargainShare.share_intro"/>
 	</view>
 </template>
@@ -106,7 +106,7 @@
 				bargainShare: { // 砍价分享title和intro
 					share_title: '',
 					share_intro: '',
-				}, 
+				},
 			};
 		},
 		computed: {
@@ -141,7 +141,7 @@
 				})
 				// #ifdef MP-WEIXIN
 				if (!this.mnpQrcode) {
-					// #ifdef MP-WEIXIN 
+					// #ifdef MP-WEIXIN
 					const res = await this.getMnpQrcode()
 					// #endif
 					const qrCode = res && res.data && (res.data.qr_code || res.data.qrCode || res.data.qrcode)
@@ -151,14 +151,14 @@
 						return
 					}
 					this.mnpQrcode = String(qrCode).replaceAll("\r\n", "")
-					
+
 					if(this.type == 2) {
 						this.bargainShare = res.data.extra
 					}
 				}
 				this.enablePoster = true
 				// #endif
-				
+
 				// #ifdef APP-PLUS || H5
 				this.enablePoster = true
 				// #endif
@@ -181,7 +181,7 @@
 				// 	resolve({qr_code: 'https://likeshop.yixiangonline.com/uploads/images/background/20201209/17ca8666f3122f0ea83801a7c333b58f.png'})
 				// })
 			},
-			
+
 			handleSuccess(val) {
 				this.poster = val
 				uni.hideLoading()

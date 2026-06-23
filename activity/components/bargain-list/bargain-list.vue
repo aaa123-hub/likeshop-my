@@ -1,5 +1,5 @@
 <template>
-    <view class="bargain-list-container">       
+    <view class="bargain-list-container">
         <view class="bargain-list mt20" v-for="(item, index) in lists" :key="item.id">
             <view class="header row-between">
                 <view class="count-down-container row">
@@ -39,7 +39,7 @@
                     去支付
                 </navigator> -->
             </view>
-        </view> 
+        </view>
         <loading-footer :status="loadingStatus" slotEmpty>
             <view class="data-null column-center" slot="empty">
                 <view class="xs muted">
@@ -72,7 +72,7 @@
              this.$getBargainActivityList()
         },
         onReachBottom() {
-            
+
         },
         methods: {
             $getBargainActivityList() {

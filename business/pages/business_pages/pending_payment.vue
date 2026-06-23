@@ -8,7 +8,7 @@
             <view class="tips-row">
                 <image
                     class="tips-icon"
-                    src="https://lanhu-oss-proxy.lanhuapp.com/ff33c2922125b8c5475cc7e97121c885"
+                    src="https://shengyuan.store/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png"
                     mode="scaleToFill"
                 ></image>
                 <text class="tips-text">温馨提示：文案填充文案填充文案填充文案填充文案填充文案填充</text>
@@ -20,13 +20,13 @@
                 <view class="address-row">
                     <image
                         class="address-icon"
-                        src="https://lanhu-oss-proxy.lanhuapp.com/0146a8e36079dd8f8d2ac6992908ca91"
+                        src="https://shengyuan.store/api/miniapp/files/miniapp/24b1ebea2beb495f912d142e2edc47d5/0146a8e36079dd8f8d2ac6992908ca91.png"
                         mode="scaleToFill"
                     ></image>
                     <text class="address-text">下单前请填写收货地址</text>
                     <image
                         class="arrow-icon"
-                        src="https://lanhu-oss-proxy.lanhuapp.com/028c746e2b6db5e5ace971faf762da45"
+                        src="https://shengyuan.store/api/miniapp/files/miniapp/06daad93a2434b5da9b424ba2a6dbf16/028c746e2b6db5e5ace971faf762da45.png"
                         mode="scaleToFill"
                     ></image>
                 </view>
@@ -78,7 +78,7 @@
                         <text class="muted-text">没有可用的优惠券</text>
                         <image
                             class="small-arrow"
-                            src="https://lanhu-oss-proxy.lanhuapp.com/ae74a0c5306c3522ddc47cca96392384"
+                            src="https://shengyuan.store/api/miniapp/files/miniapp/3849158480cd4923b9cc5b2b70851070/ae74a0c5306c3522ddc47cca96392384.png"
                             mode="scaleToFill"
                         ></image>
                     </view>
@@ -99,7 +99,7 @@
                     <view class="pay-item">
                         <image
                             class="pay-icon wechat"
-                            src="https://lanhu-oss-proxy.lanhuapp.com/34f5d621b59abc567bcabd522381293f"
+                            src="https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png"
                             mode="scaleToFill"
                         ></image>
                         <text>微信支付</text>
@@ -109,7 +109,7 @@
                     <view class="pay-item">
                         <image
                             class="pay-icon bank"
-                            src="https://lanhu-oss-proxy.lanhuapp.com/bf1f6b760680089957df01cc0be7ea9e"
+                            src="https://shengyuan.store/api/miniapp/files/miniapp/094ba7e82c9843c6996af9fe0ac4ff41/bf1f6b760680089957df01cc0be7ea9e.png"
                             mode="scaleToFill"
                         ></image>
                         <text>银行卡支付</text>

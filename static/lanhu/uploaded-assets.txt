@@ -1602,3 +1602,321 @@ local: /static/lanhu/assets/wallet/wallet-card-bg.png
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/eb819a12b29d43be91001eb8e65f397d/wallet-card-bg.png
 response: {"code":"0","message":"SUCCESS","traceId":"28fb7979-e2b4-4e16-ab33-85df5a7c8d93","data":{"objectName":"miniapp/eb819a12b29d43be91001eb8e65f397d/wallet-card-bg.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/eb819a12b29d43be91001eb8e65f397d/wallet-card-bg.png","fileName":"wallet-card-bg.png","contentType":"image/png","size":46623},"timestamp":"2026-06-22T06:53:24.251261532Z"}
+
+[success] Lanhu proxy upload - 0146a8e36079dd8f8d2ac6992908ca91.png
+source: https://lanhu-oss-proxy.lanhuapp.com/0146a8e36079dd8f8d2ac6992908ca91
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/24b1ebea2beb495f912d142e2edc47d5/0146a8e36079dd8f8d2ac6992908ca91.png
+response: {"code":"0","message":"SUCCESS","traceId":"bccc8612-d9ac-454d-a839-928c7a448b17","data":{"objectName":"miniapp/24b1ebea2beb495f912d142e2edc47d5/0146a8e36079dd8f8d2ac6992908ca91.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/24b1ebea2beb495f912d142e2edc47d5/0146a8e36079dd8f8d2ac6992908ca91.png","fileName":"0146a8e36079dd8f8d2ac6992908ca91.png","contentType":"image/png","size":2763},"timestamp":"2026-06-23T02:50:09.480760844Z"}
+
+[success] Lanhu proxy upload - 028c746e2b6db5e5ace971faf762da45.png
+source: https://lanhu-oss-proxy.lanhuapp.com/028c746e2b6db5e5ace971faf762da45
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/06daad93a2434b5da9b424ba2a6dbf16/028c746e2b6db5e5ace971faf762da45.png
+response: {"code":"0","message":"SUCCESS","traceId":"398da32b-ef1c-4461-8df9-f9b558079a0e","data":{"objectName":"miniapp/06daad93a2434b5da9b424ba2a6dbf16/028c746e2b6db5e5ace971faf762da45.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/06daad93a2434b5da9b424ba2a6dbf16/028c746e2b6db5e5ace971faf762da45.png","fileName":"028c746e2b6db5e5ace971faf762da45.png","contentType":"image/png","size":2193},"timestamp":"2026-06-23T02:50:09.797353323Z"}
+
+[success] Lanhu proxy upload - 03b1646c905f30fb5cc4b12a3a1df372.png
+source: https://lanhu-oss-proxy.lanhuapp.com/03b1646c905f30fb5cc4b12a3a1df372
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png
+response: {"code":"0","message":"SUCCESS","traceId":"02cb3a06-f1aa-454b-900c-e2c2f5b106bb","data":{"objectName":"miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png","fileName":"03b1646c905f30fb5cc4b12a3a1df372.png","contentType":"image/png","size":4001},"timestamp":"2026-06-23T02:50:10.097194998Z"}
+
+[success] Lanhu proxy upload - 0413578f349662726395145504d86344.png
+source: https://lanhu-oss-proxy.lanhuapp.com/0413578f349662726395145504d86344
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/0cd54acef85c4c93a90846b9ac0a060f/0413578f349662726395145504d86344.png
+response: {"code":"0","message":"SUCCESS","traceId":"464a4c45-ba13-4f81-8230-4e33fc4d427d","data":{"objectName":"miniapp/0cd54acef85c4c93a90846b9ac0a060f/0413578f349662726395145504d86344.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/0cd54acef85c4c93a90846b9ac0a060f/0413578f349662726395145504d86344.png","fileName":"0413578f349662726395145504d86344.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:10.401590006Z"}
+
+[success] Lanhu proxy upload - 0ccc30c9033828fd3e3723f5e43765e1.png
+source: https://lanhu-oss-proxy.lanhuapp.com/0ccc30c9033828fd3e3723f5e43765e1
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/7a33d041916e4203ad047d734bf13ede/0ccc30c9033828fd3e3723f5e43765e1.png
+response: {"code":"0","message":"SUCCESS","traceId":"fe0acf8a-b3ad-427c-991b-ae041bbb6f8b","data":{"objectName":"miniapp/7a33d041916e4203ad047d734bf13ede/0ccc30c9033828fd3e3723f5e43765e1.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/7a33d041916e4203ad047d734bf13ede/0ccc30c9033828fd3e3723f5e43765e1.png","fileName":"0ccc30c9033828fd3e3723f5e43765e1.png","contentType":"image/png","size":8938},"timestamp":"2026-06-23T02:50:10.705151197Z"}
+
+[success] Lanhu proxy upload - 17e52b5f7f7af0e92c09f57bd56f679e.png
+source: https://lanhu-oss-proxy.lanhuapp.com/17e52b5f7f7af0e92c09f57bd56f679e
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/c860e9e880ac44709ba98fb0844390c9/17e52b5f7f7af0e92c09f57bd56f679e.png
+response: {"code":"0","message":"SUCCESS","traceId":"631e6296-a60a-42c4-ba4a-b50cfd371b16","data":{"objectName":"miniapp/c860e9e880ac44709ba98fb0844390c9/17e52b5f7f7af0e92c09f57bd56f679e.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/c860e9e880ac44709ba98fb0844390c9/17e52b5f7f7af0e92c09f57bd56f679e.png","fileName":"17e52b5f7f7af0e92c09f57bd56f679e.png","contentType":"image/png","size":4981},"timestamp":"2026-06-23T02:50:11.017628915Z"}
+
+[success] Lanhu proxy upload - 1812900c299d281cdd4adcd80e9d02fd.png
+source: https://lanhu-oss-proxy.lanhuapp.com/1812900c299d281cdd4adcd80e9d02fd
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/a560b109a63c4a4a8c9d490767674e13/1812900c299d281cdd4adcd80e9d02fd.png
+response: {"code":"0","message":"SUCCESS","traceId":"8b9248d1-2666-4045-954d-d2a54b69f4f8","data":{"objectName":"miniapp/a560b109a63c4a4a8c9d490767674e13/1812900c299d281cdd4adcd80e9d02fd.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/a560b109a63c4a4a8c9d490767674e13/1812900c299d281cdd4adcd80e9d02fd.png","fileName":"1812900c299d281cdd4adcd80e9d02fd.png","contentType":"image/png","size":8938},"timestamp":"2026-06-23T02:50:11.322236303Z"}
+
+[success] Lanhu proxy upload - 1eb0627a5caca505c66f5d2494ec65f3.png
+source: https://lanhu-oss-proxy.lanhuapp.com/1eb0627a5caca505c66f5d2494ec65f3
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/035992f38c874b088a24afeda2cb4a80/1eb0627a5caca505c66f5d2494ec65f3.png
+response: {"code":"0","message":"SUCCESS","traceId":"7ca00332-dbd3-4e8e-9332-f0a877b29cfb","data":{"objectName":"miniapp/035992f38c874b088a24afeda2cb4a80/1eb0627a5caca505c66f5d2494ec65f3.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/035992f38c874b088a24afeda2cb4a80/1eb0627a5caca505c66f5d2494ec65f3.png","fileName":"1eb0627a5caca505c66f5d2494ec65f3.png","contentType":"image/png","size":7057},"timestamp":"2026-06-23T02:50:11.616749593Z"}
+
+[success] Lanhu proxy upload - 264731ffd33531cb16f5c72f042fe14b.png
+source: https://lanhu-oss-proxy.lanhuapp.com/264731ffd33531cb16f5c72f042fe14b
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/bc28ff3e89a640a2b7b9c94fe99be721/264731ffd33531cb16f5c72f042fe14b.png
+response: {"code":"0","message":"SUCCESS","traceId":"dc74e3ea-3f63-47fe-90a9-95db02c1c233","data":{"objectName":"miniapp/bc28ff3e89a640a2b7b9c94fe99be721/264731ffd33531cb16f5c72f042fe14b.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/bc28ff3e89a640a2b7b9c94fe99be721/264731ffd33531cb16f5c72f042fe14b.png","fileName":"264731ffd33531cb16f5c72f042fe14b.png","contentType":"image/png","size":3962},"timestamp":"2026-06-23T02:50:11.912416490Z"}
+
+[success] Lanhu proxy upload - 2bf6f361e9ad935d35e6b5c91fe92e99.png
+source: https://lanhu-oss-proxy.lanhuapp.com/2bf6f361e9ad935d35e6b5c91fe92e99
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/ca52b45ad8d84b9ba0053e11d20dfd48/2bf6f361e9ad935d35e6b5c91fe92e99.png
+response: {"code":"0","message":"SUCCESS","traceId":"c9830230-191b-4657-96b9-c96c4dc79b7a","data":{"objectName":"miniapp/ca52b45ad8d84b9ba0053e11d20dfd48/2bf6f361e9ad935d35e6b5c91fe92e99.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/ca52b45ad8d84b9ba0053e11d20dfd48/2bf6f361e9ad935d35e6b5c91fe92e99.png","fileName":"2bf6f361e9ad935d35e6b5c91fe92e99.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:12.207477977Z"}
+
+[success] Lanhu proxy upload - 2f63b8336e9bcbd0397b8bc4f7b1eba0.png
+source: https://lanhu-oss-proxy.lanhuapp.com/2f63b8336e9bcbd0397b8bc4f7b1eba0
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/b804285c02584e1f81deaae98321c28c/2f63b8336e9bcbd0397b8bc4f7b1eba0.png
+response: {"code":"0","message":"SUCCESS","traceId":"a89b1688-ab62-4761-b1c7-38f0b3dbf57a","data":{"objectName":"miniapp/b804285c02584e1f81deaae98321c28c/2f63b8336e9bcbd0397b8bc4f7b1eba0.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/b804285c02584e1f81deaae98321c28c/2f63b8336e9bcbd0397b8bc4f7b1eba0.png","fileName":"2f63b8336e9bcbd0397b8bc4f7b1eba0.png","contentType":"image/png","size":5994},"timestamp":"2026-06-23T02:50:12.503443355Z"}
+
+[success] Lanhu proxy upload - 3180ae811deadda0dbd6b79667bc5bb1.png
+source: https://lanhu-oss-proxy.lanhuapp.com/3180ae811deadda0dbd6b79667bc5bb1
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/ddc12d20f1064f9c949327f88bea0498/3180ae811deadda0dbd6b79667bc5bb1.png
+response: {"code":"0","message":"SUCCESS","traceId":"afc3b9af-ffd3-4473-8b37-649af59f52b1","data":{"objectName":"miniapp/ddc12d20f1064f9c949327f88bea0498/3180ae811deadda0dbd6b79667bc5bb1.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/ddc12d20f1064f9c949327f88bea0498/3180ae811deadda0dbd6b79667bc5bb1.png","fileName":"3180ae811deadda0dbd6b79667bc5bb1.png","contentType":"image/png","size":3080},"timestamp":"2026-06-23T02:50:12.835420742Z"}
+
+[success] Lanhu proxy upload - 32fadc5465767727fd4a49dc8ddb377a.png
+source: https://lanhu-oss-proxy.lanhuapp.com/32fadc5465767727fd4a49dc8ddb377a
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/21c999987fce41fbb7161e0c26bf09b9/32fadc5465767727fd4a49dc8ddb377a.png
+response: {"code":"0","message":"SUCCESS","traceId":"4a6252b7-a34f-4ef0-9b3b-c358efabb05a","data":{"objectName":"miniapp/21c999987fce41fbb7161e0c26bf09b9/32fadc5465767727fd4a49dc8ddb377a.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/21c999987fce41fbb7161e0c26bf09b9/32fadc5465767727fd4a49dc8ddb377a.png","fileName":"32fadc5465767727fd4a49dc8ddb377a.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:13.142277587Z"}
+
+[success] Lanhu proxy upload - 34f5d621b59abc567bcabd522381293f.png
+source: https://lanhu-oss-proxy.lanhuapp.com/34f5d621b59abc567bcabd522381293f
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png
+response: {"code":"0","message":"SUCCESS","traceId":"b9dcc341-2840-496c-8b39-a0594611b28f","data":{"objectName":"miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png","fileName":"34f5d621b59abc567bcabd522381293f.png","contentType":"image/png","size":2941},"timestamp":"2026-06-23T02:50:13.442559215Z"}
+
+[success] Lanhu proxy upload - 4d93cd1c8d542d2e086451b42c6ea382.png
+source: https://lanhu-oss-proxy.lanhuapp.com/4d93cd1c8d542d2e086451b42c6ea382
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/d97fce7aadd0496b8e58e01bd571f4d1/4d93cd1c8d542d2e086451b42c6ea382.png
+response: {"code":"0","message":"SUCCESS","traceId":"2523bc81-0a5d-4f18-8b21-fd18b3c7de25","data":{"objectName":"miniapp/d97fce7aadd0496b8e58e01bd571f4d1/4d93cd1c8d542d2e086451b42c6ea382.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/d97fce7aadd0496b8e58e01bd571f4d1/4d93cd1c8d542d2e086451b42c6ea382.png","fileName":"4d93cd1c8d542d2e086451b42c6ea382.png","contentType":"image/png","size":11234},"timestamp":"2026-06-23T02:50:13.815517381Z"}
+
+[success] Lanhu proxy upload - 4f9c2d1beb6030110228fe31b5f1167f.png
+source: https://lanhu-oss-proxy.lanhuapp.com/4f9c2d1beb6030110228fe31b5f1167f
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/bd14250734db465294d15c5daebc3874/4f9c2d1beb6030110228fe31b5f1167f.png
+response: {"code":"0","message":"SUCCESS","traceId":"53fc7f9b-0398-4cce-a5af-756fa4dad019","data":{"objectName":"miniapp/bd14250734db465294d15c5daebc3874/4f9c2d1beb6030110228fe31b5f1167f.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/bd14250734db465294d15c5daebc3874/4f9c2d1beb6030110228fe31b5f1167f.png","fileName":"4f9c2d1beb6030110228fe31b5f1167f.png","contentType":"image/png","size":8080},"timestamp":"2026-06-23T02:50:14.134961382Z"}
+
+[success] Lanhu proxy upload - 5f7942136bf528b7f933552a0d63aeaf.png
+source: https://lanhu-oss-proxy.lanhuapp.com/5f7942136bf528b7f933552a0d63aeaf
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/2e0f54ff5ce44fae92a05c608af43c18/5f7942136bf528b7f933552a0d63aeaf.png
+response: {"code":"0","message":"SUCCESS","traceId":"2a0dbf9f-20a7-4294-8db9-f1cb4cafd1f8","data":{"objectName":"miniapp/2e0f54ff5ce44fae92a05c608af43c18/5f7942136bf528b7f933552a0d63aeaf.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/2e0f54ff5ce44fae92a05c608af43c18/5f7942136bf528b7f933552a0d63aeaf.png","fileName":"5f7942136bf528b7f933552a0d63aeaf.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:14.455306437Z"}
+
+[success] Lanhu proxy upload - 676d68646053824b88f084648bfc6594.png
+source: https://lanhu-oss-proxy.lanhuapp.com/676d68646053824b88f084648bfc6594
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png
+response: {"code":"0","message":"SUCCESS","traceId":"d6b34b78-972f-4df6-aad9-1b81960286c0","data":{"objectName":"miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png","fileName":"676d68646053824b88f084648bfc6594.png","contentType":"image/png","size":3080},"timestamp":"2026-06-23T02:50:14.755880549Z"}
+
+[success] Lanhu proxy upload - 6c1b9219335c90eb81ddc57cd6d0016e.png
+source: https://lanhu-oss-proxy.lanhuapp.com/6c1b9219335c90eb81ddc57cd6d0016e
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/75ebea93daae4482b19647ffaa238858/6c1b9219335c90eb81ddc57cd6d0016e.png
+response: {"code":"0","message":"SUCCESS","traceId":"852e141f-d836-45e1-989d-4942c05e7e92","data":{"objectName":"miniapp/75ebea93daae4482b19647ffaa238858/6c1b9219335c90eb81ddc57cd6d0016e.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/75ebea93daae4482b19647ffaa238858/6c1b9219335c90eb81ddc57cd6d0016e.png","fileName":"6c1b9219335c90eb81ddc57cd6d0016e.png","contentType":"image/png","size":2325},"timestamp":"2026-06-23T02:50:15.065230033Z"}
+
+[success] Lanhu proxy upload - 6f6ac9799b01d21b02e90602db0dcb34.png
+source: https://lanhu-oss-proxy.lanhuapp.com/6f6ac9799b01d21b02e90602db0dcb34
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/70ce92ac24bc45d6be6abc68a2a357af/6f6ac9799b01d21b02e90602db0dcb34.png
+response: {"code":"0","message":"SUCCESS","traceId":"f3a4bab0-725a-41c7-82eb-9008b72c373a","data":{"objectName":"miniapp/70ce92ac24bc45d6be6abc68a2a357af/6f6ac9799b01d21b02e90602db0dcb34.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/70ce92ac24bc45d6be6abc68a2a357af/6f6ac9799b01d21b02e90602db0dcb34.png","fileName":"6f6ac9799b01d21b02e90602db0dcb34.png","contentType":"image/png","size":2326},"timestamp":"2026-06-23T02:50:15.370905790Z"}
+
+[success] Lanhu proxy upload - 78088a7223eda53dc8e5a5bc96c57cb1.png
+source: https://lanhu-oss-proxy.lanhuapp.com/78088a7223eda53dc8e5a5bc96c57cb1
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/6e76ad947def4030aa266217fbb05e99/78088a7223eda53dc8e5a5bc96c57cb1.png
+response: {"code":"0","message":"SUCCESS","traceId":"bbffb6a9-d441-4951-a7f6-5c96f8d3f8c6","data":{"objectName":"miniapp/6e76ad947def4030aa266217fbb05e99/78088a7223eda53dc8e5a5bc96c57cb1.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/6e76ad947def4030aa266217fbb05e99/78088a7223eda53dc8e5a5bc96c57cb1.png","fileName":"78088a7223eda53dc8e5a5bc96c57cb1.png","contentType":"image/png","size":5050},"timestamp":"2026-06-23T02:50:15.670372361Z"}
+
+[success] Lanhu proxy upload - 81c2c956434428e9896b8063bfc9a72a.png
+source: https://lanhu-oss-proxy.lanhuapp.com/81c2c956434428e9896b8063bfc9a72a
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/a364ccd4e9ab41308545d26055fd5862/81c2c956434428e9896b8063bfc9a72a.png
+response: {"code":"0","message":"SUCCESS","traceId":"ae552b77-2c21-40dc-886c-73d68b1e8425","data":{"objectName":"miniapp/a364ccd4e9ab41308545d26055fd5862/81c2c956434428e9896b8063bfc9a72a.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/a364ccd4e9ab41308545d26055fd5862/81c2c956434428e9896b8063bfc9a72a.png","fileName":"81c2c956434428e9896b8063bfc9a72a.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:15.980676108Z"}
+
+[success] Lanhu proxy upload - a232c7c25a8a69a30c18152f3aba48cf.png
+source: https://lanhu-oss-proxy.lanhuapp.com/a232c7c25a8a69a30c18152f3aba48cf
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/f750dd79203e44a19f12b6ca2b2371e7/a232c7c25a8a69a30c18152f3aba48cf.png
+response: {"code":"0","message":"SUCCESS","traceId":"44600fc1-8d42-4282-871d-bc1efd056f8b","data":{"objectName":"miniapp/f750dd79203e44a19f12b6ca2b2371e7/a232c7c25a8a69a30c18152f3aba48cf.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/f750dd79203e44a19f12b6ca2b2371e7/a232c7c25a8a69a30c18152f3aba48cf.png","fileName":"a232c7c25a8a69a30c18152f3aba48cf.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:16.267930330Z"}
+
+[success] Lanhu proxy upload - aa437949540bc4253ca48ef9fd839e2a.png
+source: https://lanhu-oss-proxy.lanhuapp.com/aa437949540bc4253ca48ef9fd839e2a
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/4de939cd2bbc43758f02d45abdd45717/aa437949540bc4253ca48ef9fd839e2a.png
+response: {"code":"0","message":"SUCCESS","traceId":"b112f4c7-4117-41c5-bbf4-1c5364d59e0e","data":{"objectName":"miniapp/4de939cd2bbc43758f02d45abdd45717/aa437949540bc4253ca48ef9fd839e2a.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/4de939cd2bbc43758f02d45abdd45717/aa437949540bc4253ca48ef9fd839e2a.png","fileName":"aa437949540bc4253ca48ef9fd839e2a.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:16.580559571Z"}
+
+[success] Lanhu proxy upload - adf3250c832fea164c3d1b2946302dbb.png
+source: https://lanhu-oss-proxy.lanhuapp.com/adf3250c832fea164c3d1b2946302dbb
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/27872562621b447ead8ae1c1f222ceaf/adf3250c832fea164c3d1b2946302dbb.png
+response: {"code":"0","message":"SUCCESS","traceId":"c2f1e5ab-324e-40eb-988d-2b0e299c4c19","data":{"objectName":"miniapp/27872562621b447ead8ae1c1f222ceaf/adf3250c832fea164c3d1b2946302dbb.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/27872562621b447ead8ae1c1f222ceaf/adf3250c832fea164c3d1b2946302dbb.png","fileName":"adf3250c832fea164c3d1b2946302dbb.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:16.889181996Z"}
+
+[success] Lanhu proxy upload - ae74a0c5306c3522ddc47cca96392384.png
+source: https://lanhu-oss-proxy.lanhuapp.com/ae74a0c5306c3522ddc47cca96392384
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/3849158480cd4923b9cc5b2b70851070/ae74a0c5306c3522ddc47cca96392384.png
+response: {"code":"0","message":"SUCCESS","traceId":"0d6c8689-2d1e-48ec-869d-cc19fc4e73a9","data":{"objectName":"miniapp/3849158480cd4923b9cc5b2b70851070/ae74a0c5306c3522ddc47cca96392384.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/3849158480cd4923b9cc5b2b70851070/ae74a0c5306c3522ddc47cca96392384.png","fileName":"ae74a0c5306c3522ddc47cca96392384.png","contentType":"image/png","size":2193},"timestamp":"2026-06-23T02:50:17.177793284Z"}
+
+[success] Lanhu proxy upload - af2bbdf994fa3c0ef35cc2e313008722.png
+source: https://lanhu-oss-proxy.lanhuapp.com/af2bbdf994fa3c0ef35cc2e313008722
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/a121bc996fcf466c9f5d257adbb52d24/af2bbdf994fa3c0ef35cc2e313008722.png
+response: {"code":"0","message":"SUCCESS","traceId":"cf83fbcd-c8a2-4ac2-b69c-8abe4b746dc0","data":{"objectName":"miniapp/a121bc996fcf466c9f5d257adbb52d24/af2bbdf994fa3c0ef35cc2e313008722.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/a121bc996fcf466c9f5d257adbb52d24/af2bbdf994fa3c0ef35cc2e313008722.png","fileName":"af2bbdf994fa3c0ef35cc2e313008722.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:17.486107965Z"}
+
+[success] Lanhu proxy upload - b2636d4f8db726053805211c9457c120.png
+source: https://lanhu-oss-proxy.lanhuapp.com/b2636d4f8db726053805211c9457c120
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png
+response: {"code":"0","message":"SUCCESS","traceId":"98606d49-547e-47d2-b57d-19e7bc2e69b2","data":{"objectName":"miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png","fileName":"b2636d4f8db726053805211c9457c120.png","contentType":"image/png","size":2373},"timestamp":"2026-06-23T02:50:17.829098313Z"}
+
+[success] Lanhu proxy upload - bbc08b0b6626f28391202b013859163b.png
+source: https://lanhu-oss-proxy.lanhuapp.com/bbc08b0b6626f28391202b013859163b
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/2ed55f056262429db66806e3bed9cb9d/bbc08b0b6626f28391202b013859163b.png
+response: {"code":"0","message":"SUCCESS","traceId":"f67a64fd-d2a5-42c1-93a7-29f524bd739d","data":{"objectName":"miniapp/2ed55f056262429db66806e3bed9cb9d/bbc08b0b6626f28391202b013859163b.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/2ed55f056262429db66806e3bed9cb9d/bbc08b0b6626f28391202b013859163b.png","fileName":"bbc08b0b6626f28391202b013859163b.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:18.124164612Z"}
+
+[success] Lanhu proxy upload - be7cc876b2094b74ee0eba29ef07b145.png
+source: https://lanhu-oss-proxy.lanhuapp.com/be7cc876b2094b74ee0eba29ef07b145
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/55370f24e008455485dc898d18fdfa24/be7cc876b2094b74ee0eba29ef07b145.png
+response: {"code":"0","message":"SUCCESS","traceId":"b6e877d4-3bd7-45ca-9832-23c6d0734986","data":{"objectName":"miniapp/55370f24e008455485dc898d18fdfa24/be7cc876b2094b74ee0eba29ef07b145.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/55370f24e008455485dc898d18fdfa24/be7cc876b2094b74ee0eba29ef07b145.png","fileName":"be7cc876b2094b74ee0eba29ef07b145.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:18.425860935Z"}
+
+[success] Lanhu proxy upload - bf1f6b760680089957df01cc0be7ea9e.png
+source: https://lanhu-oss-proxy.lanhuapp.com/bf1f6b760680089957df01cc0be7ea9e
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/094ba7e82c9843c6996af9fe0ac4ff41/bf1f6b760680089957df01cc0be7ea9e.png
+response: {"code":"0","message":"SUCCESS","traceId":"07dbe0f0-9595-436f-8fce-7ca1bf92a7d8","data":{"objectName":"miniapp/094ba7e82c9843c6996af9fe0ac4ff41/bf1f6b760680089957df01cc0be7ea9e.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/094ba7e82c9843c6996af9fe0ac4ff41/bf1f6b760680089957df01cc0be7ea9e.png","fileName":"bf1f6b760680089957df01cc0be7ea9e.png","contentType":"image/png","size":2450},"timestamp":"2026-06-23T02:50:18.733445945Z"}
+
+[success] Lanhu proxy upload - c073f61c3357ea0c4fb34f91dc409aad.png
+source: https://lanhu-oss-proxy.lanhuapp.com/c073f61c3357ea0c4fb34f91dc409aad
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/1e966ff6836d403e9e02d28a41c8086e/c073f61c3357ea0c4fb34f91dc409aad.png
+response: {"code":"0","message":"SUCCESS","traceId":"68fc949c-3d20-4700-9d30-f7213a71d455","data":{"objectName":"miniapp/1e966ff6836d403e9e02d28a41c8086e/c073f61c3357ea0c4fb34f91dc409aad.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/1e966ff6836d403e9e02d28a41c8086e/c073f61c3357ea0c4fb34f91dc409aad.png","fileName":"c073f61c3357ea0c4fb34f91dc409aad.png","contentType":"image/png","size":2325},"timestamp":"2026-06-23T02:50:19.052203370Z"}
+
+[success] Lanhu proxy upload - cb0d48c1bdf5ae493d0e3c8ab0327b9b.png
+source: https://lanhu-oss-proxy.lanhuapp.com/cb0d48c1bdf5ae493d0e3c8ab0327b9b
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/111939b312c14abc9d3fc5499cb0c76f/cb0d48c1bdf5ae493d0e3c8ab0327b9b.png
+response: {"code":"0","message":"SUCCESS","traceId":"5cfe3bfc-a884-4925-b353-0e973f629017","data":{"objectName":"miniapp/111939b312c14abc9d3fc5499cb0c76f/cb0d48c1bdf5ae493d0e3c8ab0327b9b.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/111939b312c14abc9d3fc5499cb0c76f/cb0d48c1bdf5ae493d0e3c8ab0327b9b.png","fileName":"cb0d48c1bdf5ae493d0e3c8ab0327b9b.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:19.345431885Z"}
+
+[success] Lanhu proxy upload - d0d334412f0bfc4ea6a16aa55bd61e62.png
+source: https://lanhu-oss-proxy.lanhuapp.com/d0d334412f0bfc4ea6a16aa55bd61e62
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/ae84d734d2664603bd3c67798786800e/d0d334412f0bfc4ea6a16aa55bd61e62.png
+response: {"code":"0","message":"SUCCESS","traceId":"fe489ace-738f-41f6-aba6-8be6f2da1138","data":{"objectName":"miniapp/ae84d734d2664603bd3c67798786800e/d0d334412f0bfc4ea6a16aa55bd61e62.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/ae84d734d2664603bd3c67798786800e/d0d334412f0bfc4ea6a16aa55bd61e62.png","fileName":"d0d334412f0bfc4ea6a16aa55bd61e62.png","contentType":"image/png","size":6592},"timestamp":"2026-06-23T02:50:19.637783789Z"}
+
+[success] Lanhu proxy upload - d34cf0e062a2622299d7bbbdfcaee748.png
+source: https://lanhu-oss-proxy.lanhuapp.com/d34cf0e062a2622299d7bbbdfcaee748
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/901c75e37f9d4956b9ba47f9f3eb192f/d34cf0e062a2622299d7bbbdfcaee748.png
+response: {"code":"0","message":"SUCCESS","traceId":"b7524d7e-28cc-48c6-93e6-79565f24961e","data":{"objectName":"miniapp/901c75e37f9d4956b9ba47f9f3eb192f/d34cf0e062a2622299d7bbbdfcaee748.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/901c75e37f9d4956b9ba47f9f3eb192f/d34cf0e062a2622299d7bbbdfcaee748.png","fileName":"d34cf0e062a2622299d7bbbdfcaee748.png","contentType":"image/png","size":2308},"timestamp":"2026-06-23T02:50:19.975091356Z"}
+
+[success] Lanhu proxy upload - d35bb9407ef16b8d704effe295ad7e27.png
+source: https://lanhu-oss-proxy.lanhuapp.com/d35bb9407ef16b8d704effe295ad7e27
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/6dcc63c37e6943bdbcf59e36cbe1ec28/d35bb9407ef16b8d704effe295ad7e27.png
+response: {"code":"0","message":"SUCCESS","traceId":"b5395e82-f4d8-4a36-9b21-c546af8ee45a","data":{"objectName":"miniapp/6dcc63c37e6943bdbcf59e36cbe1ec28/d35bb9407ef16b8d704effe295ad7e27.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/6dcc63c37e6943bdbcf59e36cbe1ec28/d35bb9407ef16b8d704effe295ad7e27.png","fileName":"d35bb9407ef16b8d704effe295ad7e27.png","contentType":"image/png","size":2193},"timestamp":"2026-06-23T02:50:20.275139825Z"}
+
+[success] Lanhu proxy upload - d4c33ec474b6bbd7d39c0203a548fb40.png
+source: https://lanhu-oss-proxy.lanhuapp.com/d4c33ec474b6bbd7d39c0203a548fb40
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/9b8c35e5c8104d3cb05952ea783243ca/d4c33ec474b6bbd7d39c0203a548fb40.png
+response: {"code":"0","message":"SUCCESS","traceId":"a7952253-f610-4d1b-8eb1-52b182d02d86","data":{"objectName":"miniapp/9b8c35e5c8104d3cb05952ea783243ca/d4c33ec474b6bbd7d39c0203a548fb40.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/9b8c35e5c8104d3cb05952ea783243ca/d4c33ec474b6bbd7d39c0203a548fb40.png","fileName":"d4c33ec474b6bbd7d39c0203a548fb40.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:20.593810906Z"}
+
+[success] Lanhu proxy upload - d8467d9a62a60ccdbb6908777aebe692.png
+source: https://lanhu-oss-proxy.lanhuapp.com/d8467d9a62a60ccdbb6908777aebe692
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png
+response: {"code":"0","message":"SUCCESS","traceId":"65796727-a98b-4711-9a44-a63f404af842","data":{"objectName":"miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png","fileName":"d8467d9a62a60ccdbb6908777aebe692.png","contentType":"image/png","size":8080},"timestamp":"2026-06-23T02:50:20.978091683Z"}
+
+[success] Lanhu proxy upload - e9e114d902b93769e318427edddce2a8.png
+source: https://lanhu-oss-proxy.lanhuapp.com/e9e114d902b93769e318427edddce2a8
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/8cecc2f0ed3a4187a8803a2039ae7a05/e9e114d902b93769e318427edddce2a8.png
+response: {"code":"0","message":"SUCCESS","traceId":"92d7bce6-cb0c-407e-9b5d-9b4d64c56a1e","data":{"objectName":"miniapp/8cecc2f0ed3a4187a8803a2039ae7a05/e9e114d902b93769e318427edddce2a8.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/8cecc2f0ed3a4187a8803a2039ae7a05/e9e114d902b93769e318427edddce2a8.png","fileName":"e9e114d902b93769e318427edddce2a8.png","contentType":"image/png","size":8078},"timestamp":"2026-06-23T02:50:21.304471179Z"}
+
+[success] Lanhu proxy upload - ead6bedfc9b4f66aa345e91ae43fb231.png
+source: https://lanhu-oss-proxy.lanhuapp.com/ead6bedfc9b4f66aa345e91ae43fb231
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/3197896ad4914e239b78b2ab24a6822a/ead6bedfc9b4f66aa345e91ae43fb231.png
+response: {"code":"0","message":"SUCCESS","traceId":"2d1ad829-f262-4c70-bfd5-c7509a9a3c71","data":{"objectName":"miniapp/3197896ad4914e239b78b2ab24a6822a/ead6bedfc9b4f66aa345e91ae43fb231.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/3197896ad4914e239b78b2ab24a6822a/ead6bedfc9b4f66aa345e91ae43fb231.png","fileName":"ead6bedfc9b4f66aa345e91ae43fb231.png","contentType":"image/png","size":404064},"timestamp":"2026-06-23T02:50:22.017853123Z"}
+
+[success] Lanhu proxy upload - ef5de8906549dcff1344adc4bd30f99e.png
+source: https://lanhu-oss-proxy.lanhuapp.com/ef5de8906549dcff1344adc4bd30f99e
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/935c3d850461481db3c763bebda4598b/ef5de8906549dcff1344adc4bd30f99e.png
+response: {"code":"0","message":"SUCCESS","traceId":"6f2a76aa-711b-449b-aa72-302d2a06d063","data":{"objectName":"miniapp/935c3d850461481db3c763bebda4598b/ef5de8906549dcff1344adc4bd30f99e.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/935c3d850461481db3c763bebda4598b/ef5de8906549dcff1344adc4bd30f99e.png","fileName":"ef5de8906549dcff1344adc4bd30f99e.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:22.325493407Z"}
+
+[success] Lanhu proxy upload - f32ca2939042b3472f400311bd2edccd.png
+source: https://lanhu-oss-proxy.lanhuapp.com/f32ca2939042b3472f400311bd2edccd
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png
+response: {"code":"0","message":"SUCCESS","traceId":"67c1e0b5-239f-4145-8655-0527a97a2e6a","data":{"objectName":"miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png","fileName":"f32ca2939042b3472f400311bd2edccd.png","contentType":"image/png","size":6137},"timestamp":"2026-06-23T02:50:22.632926639Z"}
+
+[success] Lanhu proxy upload - f712888273ee1a4831a3478ccbf43931.png
+source: https://lanhu-oss-proxy.lanhuapp.com/f712888273ee1a4831a3478ccbf43931
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/15c0909b36884ff99f8710d4c57c9a79/f712888273ee1a4831a3478ccbf43931.png
+response: {"code":"0","message":"SUCCESS","traceId":"21791ec1-515c-4dbc-a115-3746fe8a5849","data":{"objectName":"miniapp/15c0909b36884ff99f8710d4c57c9a79/f712888273ee1a4831a3478ccbf43931.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/15c0909b36884ff99f8710d4c57c9a79/f712888273ee1a4831a3478ccbf43931.png","fileName":"f712888273ee1a4831a3478ccbf43931.png","contentType":"image/png","size":6806},"timestamp":"2026-06-23T02:50:22.951534397Z"}
+
+[success] Lanhu proxy upload - fa48364177ff3653867cbdb9c8da0f01.png
+source: https://lanhu-oss-proxy.lanhuapp.com/fa48364177ff3653867cbdb9c8da0f01
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/91784135f9ff436689fdcc349f84f4e3/fa48364177ff3653867cbdb9c8da0f01.png
+response: {"code":"0","message":"SUCCESS","traceId":"4cbbdb41-7ab3-4709-8610-1fbcb41e6f9a","data":{"objectName":"miniapp/91784135f9ff436689fdcc349f84f4e3/fa48364177ff3653867cbdb9c8da0f01.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/91784135f9ff436689fdcc349f84f4e3/fa48364177ff3653867cbdb9c8da0f01.png","fileName":"fa48364177ff3653867cbdb9c8da0f01.png","contentType":"image/png","size":2826},"timestamp":"2026-06-23T02:50:23.276159352Z"}
+
+[success] Lanhu proxy upload - ff33c2922125b8c5475cc7e97121c885.png
+source: https://lanhu-oss-proxy.lanhuapp.com/ff33c2922125b8c5475cc7e97121c885
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png
+response: {"code":"0","message":"SUCCESS","traceId":"8fda376a-7c9c-4e04-bb36-73811237f8fb","data":{"objectName":"miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png","fileName":"ff33c2922125b8c5475cc7e97121c885.png","contentType":"image/png","size":4396},"timestamp":"2026-06-23T02:50:23.575150267Z"}
+
+[success] Lanhu explicit icon upload - c2187248f261c091ca3024ebe0b55c41.png
+source: https://lanhu-oss-proxy.lanhuapp.com/c2187248f261c091ca3024ebe0b55c41
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/d8f8eba765024dd7ad1bf7ced9c0ea8c/c2187248f261c091ca3024ebe0b55c41.png
+response: {"code":"0","message":"SUCCESS","traceId":"e917e946-e8d4-44d4-8451-5637395667da","data":{"objectName":"miniapp/d8f8eba765024dd7ad1bf7ced9c0ea8c/c2187248f261c091ca3024ebe0b55c41.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/d8f8eba765024dd7ad1bf7ced9c0ea8c/c2187248f261c091ca3024ebe0b55c41.png","fileName":"c2187248f261c091ca3024ebe0b55c41.png","contentType":"image/png","size":2344},"timestamp":"2026-06-23T03:29:15.513847411Z"}
+
+[success] Lanhu explicit icon upload - 56950104d92fe6e3e45ac4657e744731.png
+source: https://lanhu-oss-proxy.lanhuapp.com/56950104d92fe6e3e45ac4657e744731
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/bba8c68921db42d4a52b6999f1309b4d/56950104d92fe6e3e45ac4657e744731.png
+response: {"code":"0","message":"SUCCESS","traceId":"e546b8d6-255c-4855-b8cd-2a1f1b39e762","data":{"objectName":"miniapp/bba8c68921db42d4a52b6999f1309b4d/56950104d92fe6e3e45ac4657e744731.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/bba8c68921db42d4a52b6999f1309b4d/56950104d92fe6e3e45ac4657e744731.png","fileName":"56950104d92fe6e3e45ac4657e744731.png","contentType":"image/png","size":2386},"timestamp":"2026-06-23T03:29:15.811830527Z"}
+
+[success] Lanhu explicit icon upload - 54a41e25c94ab8c39497ccfe5bb91ece.png
+source: https://lanhu-oss-proxy.lanhuapp.com/54a41e25c94ab8c39497ccfe5bb91ece
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png
+response: {"code":"0","message":"SUCCESS","traceId":"2f70d688-3090-4141-8511-9b7c713b274e","data":{"objectName":"miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png","fileName":"54a41e25c94ab8c39497ccfe5bb91ece.png","contentType":"image/png","size":2535},"timestamp":"2026-06-23T03:29:16.145743159Z"}
+
+[success] Lanhu explicit icon upload - 26037f64b6984ded794031edbc6161b7.png
+source: https://lanhu-oss-proxy.lanhuapp.com/26037f64b6984ded794031edbc6161b7
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/7f051b4aa3eb450c834bd06f53586c5d/26037f64b6984ded794031edbc6161b7.png
+response: {"code":"0","message":"SUCCESS","traceId":"aa7369e9-7fe6-47c8-a6ea-78141b3e50c0","data":{"objectName":"miniapp/7f051b4aa3eb450c834bd06f53586c5d/26037f64b6984ded794031edbc6161b7.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/7f051b4aa3eb450c834bd06f53586c5d/26037f64b6984ded794031edbc6161b7.png","fileName":"26037f64b6984ded794031edbc6161b7.png","contentType":"image/png","size":2768},"timestamp":"2026-06-23T03:29:16.445725400Z"}
+
+[success] Lanhu explicit icon upload - c922c5cecffb59ce657b550342816bf3.png
+source: https://lanhu-oss-proxy.lanhuapp.com/c922c5cecffb59ce657b550342816bf3
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/2ea924839ffd492da81800a02655c339/c922c5cecffb59ce657b550342816bf3.png
+response: {"code":"0","message":"SUCCESS","traceId":"ceb35740-bbc3-41d1-bd0c-74c219deadf3","data":{"objectName":"miniapp/2ea924839ffd492da81800a02655c339/c922c5cecffb59ce657b550342816bf3.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/2ea924839ffd492da81800a02655c339/c922c5cecffb59ce657b550342816bf3.png","fileName":"c922c5cecffb59ce657b550342816bf3.png","contentType":"image/png","size":3587},"timestamp":"2026-06-23T03:29:17.006181854Z"}
+
+[success] Lanhu explicit icon upload - 8b846285dc82397ecc5ec550e2c6a507.png
+source: https://lanhu-oss-proxy.lanhuapp.com/8b846285dc82397ecc5ec550e2c6a507
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/5f50e710a7024d99a4ddef3544d73eaf/8b846285dc82397ecc5ec550e2c6a507.png
+response: {"code":"0","message":"SUCCESS","traceId":"204442db-0f27-41b1-9112-ba271358ab85","data":{"objectName":"miniapp/5f50e710a7024d99a4ddef3544d73eaf/8b846285dc82397ecc5ec550e2c6a507.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/5f50e710a7024d99a4ddef3544d73eaf/8b846285dc82397ecc5ec550e2c6a507.png","fileName":"8b846285dc82397ecc5ec550e2c6a507.png","contentType":"image/png","size":2315},"timestamp":"2026-06-23T03:29:17.302664887Z"}
+
+[success] Lanhu explicit icon upload - 08d3b1d2deda71069a912ba2d2cc9435.png
+source: https://lanhu-oss-proxy.lanhuapp.com/08d3b1d2deda71069a912ba2d2cc9435
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/4f8db4b7921d4f819d8053ba1c3baee4/08d3b1d2deda71069a912ba2d2cc9435.png
+response: {"code":"0","message":"SUCCESS","traceId":"467b7da1-5829-415e-8a75-4c1cca13d2fb","data":{"objectName":"miniapp/4f8db4b7921d4f819d8053ba1c3baee4/08d3b1d2deda71069a912ba2d2cc9435.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/4f8db4b7921d4f819d8053ba1c3baee4/08d3b1d2deda71069a912ba2d2cc9435.png","fileName":"08d3b1d2deda71069a912ba2d2cc9435.png","contentType":"image/png","size":2558},"timestamp":"2026-06-23T03:29:17.604045645Z"}
+
+[success] Lanhu explicit icon upload - e7a941da9a41662f3ee7019ebf17adc5.png
+source: https://lanhu-oss-proxy.lanhuapp.com/e7a941da9a41662f3ee7019ebf17adc5
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png
+response: {"code":"0","message":"SUCCESS","traceId":"072b7fcd-878c-4612-b87b-664f11a6db02","data":{"objectName":"miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png","fileName":"e7a941da9a41662f3ee7019ebf17adc5.png","contentType":"image/png","size":1956},"timestamp":"2026-06-23T03:29:17.904009811Z"}

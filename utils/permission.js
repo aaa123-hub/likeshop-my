@@ -298,7 +298,7 @@ function gotoAppPermissionSetting() {
 		var UIApplication = plus.ios.import("UIApplication");
 		var application2 = UIApplication.sharedApplication();
 		var NSURL2 = plus.ios.import("NSURL");
-		// var setting2 = NSURL2.URLWithString("prefs:root=LOCATION_SERVICES");		
+		// var setting2 = NSURL2.URLWithString("prefs:root=LOCATION_SERVICES");
 		var setting2 = NSURL2.URLWithString("app-settings:");
 		application2.openURL(setting2);
 

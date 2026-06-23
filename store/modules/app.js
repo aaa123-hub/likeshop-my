@@ -8,6 +8,7 @@ import {
 	CART_NUM
 } from '@/config/cachekey';
 import Cache from '@/utils/cache'
+const CART_TAB_INDEX = 3
 const state = {
 	config: Cache.get(CONFIG) || {
 		app_agreement: 0,
@@ -49,7 +50,7 @@ const mutations = {
 		Cache.remove(USER_INFO);
 		Cache.remove(CART_NUM);
 		uni.removeTabBarBadge({
-			index: 2
+			index: CART_TAB_INDEX
 		})
 	},
 	SETCARTNUM(state, num) {
@@ -75,7 +76,7 @@ const actions = {
 			if (!state.token) {
 				commit('SETCARTNUM', 0)
 				uni.removeTabBarBadge({
-					index: 2
+					index: CART_TAB_INDEX
 				})
 				return resolve(0)
 			}
@@ -90,11 +91,11 @@ const actions = {
 			commit('SETCARTNUM', num)
 			if (!num) {
 				uni.removeTabBarBadge({
-					index: 2
+					index: CART_TAB_INDEX
 				})
 			} else {
 				uni.setTabBarBadge({
-					index: 2,
+					index: CART_TAB_INDEX,
 					text: String(num)
 				})
 			}

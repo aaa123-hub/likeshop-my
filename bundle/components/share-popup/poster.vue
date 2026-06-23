@@ -12,7 +12,7 @@
 				</l-painter-view>
 				<l-painter-image :src="config.image"
 					css="object-fit: cover; object-position: center; width: 560rpx; height: 560rpx;margin-top: 15rpx;" />
-		
+
 				<l-painter-view css="margin-top: 30rpx;">
 					<!-- 商品分享海报文字内容 -->
 					<l-painter-view :css="`display: ${type == 1 ? 'inline-block' : 'none'}; width: 400rpx;`">
@@ -30,7 +30,7 @@
 								:text="config.name"></l-painter-text>
 						</l-painter-view>
 					</l-painter-view>
-					
+
 					<!-- 砍价分享海报文字内容 -->
 					<l-painter-view :css="`display: ${type == 2 ? 'inline-block' : 'none'}; width: 400rpx;`">
 						<l-painter-view>
@@ -49,14 +49,16 @@
 								:text="config.name"></l-painter-text>
 						</l-painter-view>
 					</l-painter-view>
-					
+
 					<l-painter-view css="display: inline-block;">
 						<!-- #ifdef H5 || APP-PLUS -->
 						<l-painter-qrcode css="width: 168rpx; height: 168rpx;" :text="link">
 						</l-painter-qrcode>
 						<!--  #endif -->
 						<!-- #ifdef MP -->
-						<l-painter-image :src="qrcode" css="width: 168rpx; height: 168rpx;" />
+						<l-painter-image v-if="isQrcodeImage" :src="qrcode" css="width: 168rpx; height: 168rpx;" />
+						<l-painter-qrcode v-else css="width: 168rpx; height: 168rpx;" :text="qrcode || link">
+						</l-painter-qrcode>
 						<!--  #endif -->
 						<l-painter-text text="长按识别二维码"
 							css="display: block; padding-top: 10rpx; color: #999999;font-size: 24rpx;" />
@@ -68,12 +70,12 @@
 </template>
 
 <script>
-	
-	import lPainter from '@/bundle/components/lime-painter/components/l-painter/l-painter.vue'
-	import lPainterImage from '@/bundle/components/lime-painter/components/l-painter-image/l-painter-image.vue'
-	import lPainterText from '@/bundle/components/lime-painter/components/l-painter-text/l-painter-text.vue'
-	import lPainterView from '@/bundle/components/lime-painter/components/l-painter-view/l-painter-view.vue'
-	import lPainterQrcode from '@/bundle/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode.vue'
+
+	import lPainter from '@/bundle_poster/components/lime-painter/components/l-painter/l-painter.vue'
+	import lPainterImage from '@/bundle_poster/components/lime-painter/components/l-painter-image/l-painter-image.vue'
+	import lPainterText from '@/bundle_poster/components/lime-painter/components/l-painter-text/l-painter-text.vue'
+	import lPainterView from '@/bundle_poster/components/lime-painter/components/l-painter-view/l-painter-view.vue'
+	import lPainterQrcode from '@/bundle_poster/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode.vue'
 	export default {
 		name: "share-poster",
 		components: {
@@ -96,7 +98,7 @@
 				type: [String],
 				default: ''
 			},
-			// pagePath:{  
+			// pagePath:{
 			// 	type: String,
 			// 	default: ''
 			// },
@@ -108,7 +110,7 @@
 				type: [String, Number],
 				default: 1,
 			},
-			
+
 			bShareTitle: {  // 分享海报标题
 				type: String,
 				default: '我正在参与砍价 还差一步',
@@ -120,7 +122,7 @@
 		},
 		data() {
 			return {
-				
+
 			};
 		},
 		computed: {
@@ -136,7 +138,11 @@
 				}
 			},
 			marketPrice() {
-				return `￥${parseFloat(this.config.marketPrice)}`
+				const price = parseFloat(this.config.marketPrice)
+				return Number.isNaN(price) ? '' : `￥${price}`
+			},
+			isQrcodeImage() {
+				return /^https?:\/\//i.test(this.qrcode || '') || /^\//.test(this.qrcode || '')
 			}
 		},
 		methods: {

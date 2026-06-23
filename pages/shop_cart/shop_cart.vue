@@ -3,6 +3,9 @@
     <view class="shop-cart-page__screen">
       <view class="shop-cart-page__top">
         <view class="shop-cart-page__title">购物车({{ cartCountText }})</view>
+        <view v-if="isLogin && cartType === 1" class="shop-cart-page__manage" @tap="toggleManageMode">
+          {{ isManageMode ? '完成' : '管理' }}
+        </view>
       </view>
 
       <view v-if="isLogin" class="shop-cart-page__content">
@@ -16,7 +19,7 @@
               >
                 <u-icon v-if="item.selected == 1 && item.cart_status == 0" name="checkbox-mark" color="#ffffff" size="16"></u-icon>
               </view>
-              <text class="cart-card__shop-name">{{ item.shop_name || '商城自营' }}</text>
+              <text class="cart-card__shop-name line1">{{ item.shop_name || '商城自营' }}</text>
               <text v-if="item.cart_status != 0" class="cart-card__invalid">已失效</text>
             </view>
 
@@ -29,15 +32,14 @@
                 <u-icon v-if="item.selected == 1 && item.cart_status == 0" name="checkbox-mark" color="#ffffff" size="16"></u-icon>
               </view>
 
-              <navigator
-                class="cart-card__body"
-                hover-class="none"
-                :url="'/bundle/pages/goods_details/goods_details?id=' + item.goods_id"
-              >
-                <image class="cart-card__image" :src="item.img" mode="aspectFill"></image>
+              <view class="cart-card__body">
+                <view class="cart-card__image-wrap" @tap="goGoodsDetail(item.goods_id)">
+                  <image v-if="item.img || item.image" class="cart-card__image" :src="item.img || item.image" mode="aspectFill"></image>
+                  <view v-else class="cart-card__image cart-card__image--empty">商品</view>
+                </view>
                 <view class="cart-card__info">
-                  <view class="cart-card__name line2">{{ item.name }}</view>
-                  <view class="cart-card__spec line1">{{ item.spec_value_str || '默认规格' }}</view>
+                  <view class="cart-card__name line2" @tap="goGoodsDetail(item.goods_id)">{{ item.name }}</view>
+                  <view class="cart-card__spec line1" @tap="goGoodsDetail(item.goods_id)">{{ item.spec_value_str || '默认规格' }}</view>
                   <view class="cart-card__bottom">
                     <view class="cart-card__price">
                       <price-format
@@ -49,24 +51,24 @@
                         color="#FF2C3C"
                       ></price-format>
                     </view>
+                    <view class="cart-card__num" @tap.stop.prevent="noop">
+                      <u-number-box
+                        v-model="item.goods_num"
+                        :min="1"
+                        :max="getItemStock(item)"
+                        :disabled="item.cart_status != 0"
+                        :bgColor="'#F3F6FA'"
+                        :inputWidth="64"
+                        :inputHeight="50"
+                        :size="24"
+                        @input="onNumberBoxChange($event, item)"
+                        @change="onNumberBoxChange($event, item)"
+                        @plus="onNumberBoxChange($event, item)"
+                        @minus="onNumberBoxChange($event, item)"
+                        @blur="onNumberBoxChange($event, item)"
+                      ></u-number-box>
+                    </view>
                   </view>
-                </view>
-              </navigator>
-
-              <view class="cart-card__actions" @tap.stop="">
-                <u-number-box
-                  :disabled="item.cart_status != 0"
-                  :value="item.goods_num"
-                  :min="1"
-                  :max="item.item_stock"
-                  :bgColor="'#F3F3F3'"
-                  :inputWidth="70"
-                  :inputHeight="54"
-                  :size="28"
-                  @change="countChange($event, item.cart_id, item)"
-                />
-                <view class="cart-card__delete" @tap="changeDelPopup(item.cart_id)">
-                  <u-icon name="trash" color="#A7A7A7" size="24"></u-icon>
                 </view>
               </view>
             </view>
@@ -99,12 +101,13 @@
           </view>
           <text class="cart-footer__check-text">已选{{ selectedCount }}件</text>
         </view>
-        <view class="cart-footer__price">
+        <view v-if="!isManageMode" class="cart-footer__price">
           <text class="cart-footer__price-label">合计：</text>
           <text class="cart-footer__price-value">¥{{ totalPriceText }}</text>
         </view>
       </view>
-      <view class="cart-footer__pay" :class="{ disabled: nullSelect }" @tap="goToConfirm">立即支付</view>
+      <view v-if="isManageMode" class="cart-footer__delete" :class="{ disabled: nullSelect }" @tap="deleteSelectedGoods">删除</view>
+      <view v-else class="cart-footer__pay" :class="{ disabled: nullSelect }" @tap="goToConfirm">立即支付</view>
     </view>
 
     <u-modal
@@ -139,12 +142,21 @@ export default {
       delPopup: false,
       totalPrice: 0,
       cartId: "",
+      isManageMode: false,
+      countSyncTimers: {},
+      cartLoading: false,
     };
   },
   computed: {
     ...mapGetters(["cartNum", "isLogin"]),
     cartCountText() {
-      return this.cartNum || this.cartLists.length || 0;
+      return this.localCartCount;
+    },
+    localCartCount() {
+      return this.cartLists.reduce((sum, item) => {
+        if (item.cart_status != 0) return sum;
+        return sum + Number(item.goods_num || item.quantity || item.num || 0);
+      }, 0);
     },
     nullSelect() {
       return this.cartLists.findIndex((item) => item.selected == 1 && item.cart_status == 0) === -1;
@@ -156,7 +168,10 @@ export default {
       return this.cartLists.filter((item) => item.selected == 1 && item.cart_status == 0).length;
     },
     totalPriceText() {
-      const value = Number(this.totalPrice || 0);
+      const value = this.cartLists.reduce((sum, item) => {
+        if (item.selected != 1 || item.cart_status != 0) return sum;
+        return sum + Number(item.price || 0) * Number(item.goods_num || item.quantity || 0);
+      }, 0);
       return value.toFixed(2);
     }
   },
@@ -182,10 +197,13 @@ export default {
     ...mapActions(["getCartNum"]),
     async goodsDelete() {
       this.delPopup = false;
-      const res = await deleteGoods({
-        cart_id: this.cartId,
-      });
+      const ids = Array.isArray(this.cartId) ? this.cartId : [this.cartId];
+      const results = await Promise.all(ids.map((id) => deleteGoods({ cart_id: id })));
+      const res = results.find((item) => item.code != 1) || { code: 1 };
       if (res.code == 1) {
+        const wasBatchDelete = Array.isArray(this.cartId);
+        this.cartId = "";
+        if (wasBatchDelete) this.isManageMode = false;
         this.getCartListFun();
       }
     },
@@ -196,19 +214,28 @@ export default {
       this.delPopup = !this.delPopup;
     },
     async getCartListFun() {
-      const res = await getCartList();
-      uni.stopPullDownRefresh();
-      if (res.code == 1) {
-        const { lists = [], total_amount = 0 } = res.data || {};
-        this.cartLists = lists;
-        this.cartType = lists.length ? 1 : 2;
-        this.totalPrice = total_amount;
-        this.getCartNum(
-          this.cartLists.reduce((sum, item) => {
-            const count = Number(item.goods_num || item.quantity || item.num || 0);
-            return sum + count;
-          }, 0)
-        );
+      if (this.cartLoading) {
+        uni.stopPullDownRefresh();
+        return;
+      }
+      this.cartLoading = true;
+      try {
+        const res = await getCartList();
+        if (res.code == 1) {
+          const { lists = [], total_amount = 0 } = res.data || {};
+          this.cartLists = lists;
+          this.cartType = lists.length ? 1 : 2;
+          this.totalPrice = total_amount;
+          this.getCartNum(
+            this.cartLists.reduce((sum, item) => {
+              const count = Number(item.goods_num || item.quantity || item.num || 0);
+              return sum + count;
+            }, 0)
+          );
+        }
+      } finally {
+        this.cartLoading = false;
+        uni.stopPullDownRefresh();
       }
     },
     changOneSelect(cartId, selected) {
@@ -218,21 +245,100 @@ export default {
       const cartid = this.cartLists.filter((item) => item.cart_status == 0).map((item) => item.cart_id);
       this.changeCartSelectFun(cartid, !this.isSelectedAll);
     },
-    async changeCartSelectFun(cartId, selected) {
-      const res = await changeCartSelect({
-        cart_id: cartId,
-        selected: selected ? 1 : 0,
+    toggleManageMode() {
+      this.isManageMode = !this.isManageMode;
+    },
+    noop() {},
+    goGoodsDetail(goodsId) {
+      if (!goodsId) return;
+      uni.navigateTo({
+        url: `/bundle/pages/goods_details/goods_details?id=${goodsId}`,
       });
-      if (res.code == 1) {
+    },
+    deleteSelectedGoods() {
+      const ids = this.cartLists.filter((item) => item.selected == 1 && item.cart_status == 0).map((item) => item.cart_id);
+      if (!ids.length) {
+        this.$toast({ title: "请选择要删除的商品" });
+        return;
+      }
+      this.cartId = ids;
+      this.delPopup = true;
+    },
+    async changeCartSelectFun(cartId, selected) {
+      const ids = Array.isArray(cartId) ? cartId : [cartId];
+      const selectedValue = selected ? 1 : 0;
+      this.cartLists = this.cartLists.map((item) => ids.includes(item.cart_id) ? { ...item, selected: selectedValue } : item);
+      try {
+        await Promise.all(ids.map((id) => changeCartSelect({
+          cart_id: id,
+          selected: selectedValue,
+          checked: selectedValue,
+        })));
+      } finally {
         this.getCartListFun();
       }
     },
-    async countChange({ value }, cartId) {
-      await changeGoodsCount({
-        cart_id: cartId,
-        goods_num: value,
+    isMaxCount(item) {
+      const stock = this.getItemStock(item);
+      if (!stock) return false;
+      return Number(item.goods_num || 1) >= stock;
+    },
+    getItemStock(item = {}) {
+      return Number(item.item_stock || item.stock || 999999);
+    },
+    changeItemCount(item, step) {
+      if (!item || item.cart_status != 0) return;
+      const currentCount = Number(item.goods_num || item.quantity || 1);
+      const stock = Number(item.item_stock || item.stock || 0);
+      let nextValue = currentCount + step;
+      if (nextValue < 1) return;
+      if (stock && nextValue > stock) return;
+      this.updateCartItemCount(item.cart_id, nextValue);
+    },
+    normalizeCartCount(value, item = {}) {
+      let nextValue = parseInt(value, 10);
+      if (!nextValue || Number.isNaN(nextValue) || nextValue < 1) nextValue = 1;
+      const stock = Number(item.item_stock || item.stock || 0);
+      if (stock && nextValue > stock) nextValue = stock;
+      return nextValue;
+    },
+    onCountInput(event, item) {
+      if (!item || item.cart_status != 0) return;
+      const rawValue = event?.detail?.value;
+      const nextValue = rawValue === '' ? '' : this.normalizeCartCount(rawValue, item);
+      this.cartLists = this.cartLists.map((cartItem) => String(cartItem.cart_id) === String(item.cart_id) ? { ...cartItem, goods_num: nextValue, quantity: nextValue } : cartItem);
+    },
+    onCountBlur(event, item) {
+      if (!item || item.cart_status != 0) return;
+      const nextValue = this.normalizeCartCount(event?.detail?.value, item);
+      this.updateCartItemCount(item.cart_id, nextValue);
+    },
+    onNumberBoxChange(event, item) {
+      if (!item || item.cart_status != 0) return;
+      const value = event?.value ?? event?.detail?.value ?? event;
+      this.updateCartItemCount(item.cart_id, value);
+    },
+    updateCartItemCount(cartId, nextValue) {
+      const current = this.cartLists.find((item) => String(item.cart_id) === String(cartId)) || {};
+      nextValue = this.normalizeCartCount(nextValue, current);
+      const index = this.cartLists.findIndex((item) => String(item.cart_id) === String(cartId));
+      if (index === -1) return;
+      this.$set(this.cartLists, index, {
+        ...this.cartLists[index],
+        goods_num: nextValue,
+        quantity: nextValue,
       });
-      this.getCartListFun();
+      this.getCartNum(this.localCartCount);
+      if (this.countSyncTimers[cartId]) clearTimeout(this.countSyncTimers[cartId]);
+      const timer = setTimeout(async () => {
+        await changeGoodsCount({
+          cart_id: cartId,
+          goods_num: nextValue,
+        });
+        this.$delete(this.countSyncTimers, cartId);
+        this.getCartListFun();
+      }, 250);
+      this.$set(this.countSyncTimers, cartId, timer);
     },
     goToConfirm() {
       const goods = [];
@@ -272,7 +378,7 @@ export default {
 
 .shop-cart-page__screen {
   min-height: 100vh;
-  padding-bottom: calc(220rpx + var(--window-bottom));
+  padding-bottom: calc(150rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -285,8 +391,8 @@ export default {
 .shop-cart-page__top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: calc(var(--status-bar-height) + 18rpx) 28rpx 28rpx;
+  flex-wrap: nowrap;
+  padding: calc(var(--status-bar-height) + 18rpx) 180rpx 28rpx 28rpx;
 }
 
 .shop-cart-page__title {
@@ -294,6 +400,15 @@ export default {
   font-size: 40rpx;
   font-weight: 600;
   line-height: 56rpx;
+}
+
+.shop-cart-page__manage {
+  flex: none;
+  margin-left: 22rpx;
+  color: #0d7cf2;
+  font-size: 28rpx;
+  line-height: 44rpx;
+  white-space: nowrap;
 }
 
 .shop-cart-page__menu {
@@ -309,27 +424,32 @@ export default {
 .cart-list {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
 }
 
 .cart-card {
-  padding: 22rpx 0 18rpx;
+  position: relative;
+  padding: 20rpx 0 18rpx;
+  margin-bottom: 22rpx;
   border-radius: 24rpx;
   background: #ffffff;
+  box-shadow: 0 10rpx 26rpx rgba(20, 40, 80, 0.04);
 }
 
 .cart-card__shop {
   display: flex;
   align-items: center;
+  min-width: 0;
   padding: 0 24rpx;
 }
 
 .cart-card__shop-name {
+  flex: 1;
+  min-width: 0;
   margin-left: 20rpx;
   color: #222222;
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  line-height: 44rpx;
+  line-height: 40rpx;
 }
 
 .cart-card__invalid {
@@ -341,7 +461,7 @@ export default {
 .cart-card__goods {
   display: flex;
   align-items: flex-start;
-  margin-top: 28rpx;
+  margin-top: 20rpx;
   padding: 0 24rpx;
 }
 
@@ -354,15 +474,27 @@ export default {
   flex: 1;
   align-items: flex-start;
   min-width: 0;
-  margin-left: 24rpx;
+  margin-left: 18rpx;
+}
+
+.cart-card__image-wrap {
+  flex: none;
+  width: 166rpx;
+  height: 166rpx;
+  border-radius: 18rpx;
+  background: #f0f3f8;
+  overflow: hidden;
 }
 
 .cart-card__image {
-  width: 158rpx;
-  height: 158rpx;
-  flex-shrink: 0;
-  border-radius: 18rpx;
-  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #a8b0bf;
+  font-size: 24rpx;
+  background: #f0f3f8;
 }
 
 .cart-card__info {
@@ -370,42 +502,44 @@ export default {
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  margin-left: 24rpx;
+  min-height: 166rpx;
+  margin-left: 20rpx;
 }
 
 .cart-card__name {
   color: #222222;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  line-height: 42rpx;
+  line-height: 38rpx;
 }
 
 .cart-card__spec {
-  margin-top: 12rpx;
+  margin-top: 10rpx;
   color: #a0a0a0;
   font-size: 22rpx;
   line-height: 30rpx;
 }
 
 .cart-card__bottom {
-  margin-top: 22rpx;
-}
-
-.cart-card__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: space-between;
-  height: 158rpx;
-  margin-left: 18rpx;
-}
-
-.cart-card__delete {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 56rpx;
-  height: 56rpx;
+  justify-content: space-between;
+  min-width: 0;
+  margin-top: auto;
+}
+
+.cart-card__price {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.cart-card__num {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 50rpx;
+  margin-left: 12rpx;
 }
 
 .cart-check {
@@ -461,12 +595,13 @@ export default {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--window-bottom) + 100rpx);
+  bottom: 0;
   z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18rpx 24rpx 24rpx;
+  min-height: calc(96rpx + env(safe-area-inset-bottom));
+  padding: 10rpx 20rpx 0;
   background: #ffffff;
   box-shadow: 0 -8rpx 28rpx rgba(17, 24, 39, 0.06);
   box-sizing: border-box;
@@ -477,54 +612,82 @@ export default {
   align-items: center;
   flex: 1;
   min-width: 0;
-  margin-right: 20rpx;
+  margin-right: 12rpx;
 }
 
 .cart-footer__check {
   display: flex;
   align-items: center;
+  flex: none;
+  max-width: 132rpx;
 }
 
 .cart-footer__check-text {
-  margin-left: 14rpx;
+  margin-left: 8rpx;
   color: #8a8a8a;
-  font-size: 26rpx;
+  font-size: 22rpx;
+  white-space: nowrap;
 }
 
 .cart-footer__price {
   display: flex;
   align-items: baseline;
-  margin-left: 16rpx;
+  flex: 1;
   min-width: 0;
+  margin-left: 10rpx;
+  white-space: nowrap;
 }
 
 .cart-footer__price-label {
+  flex: none;
   color: #232323;
-  font-size: 26rpx;
+  font-size: 22rpx;
 }
 
 .cart-footer__price-value {
+  min-width: 0;
   color: #ff2c2c;
-  font-size: 42rpx;
+  font-size: 30rpx;
   font-weight: 600;
-  line-height: 56rpx;
+  line-height: 44rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cart-footer__pay {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 268rpx;
-  height: 96rpx;
-  border-radius: 48rpx;
+  width: 184rpx;
+  height: 68rpx;
+  border-radius: 38rpx;
   background: #0d7cf2;
   color: #ffffff;
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 600;
+  white-space: nowrap;
 
   &.disabled {
     background: #d7dbe2;
     color: #ffffff;
+  }
+}
+
+.cart-footer__delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 184rpx;
+  height: 68rpx;
+  border-radius: 38rpx;
+  background: #ff2c3c;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.disabled {
+    background: #ffd4d8;
   }
 }
 

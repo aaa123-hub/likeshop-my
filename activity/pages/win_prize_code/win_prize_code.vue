@@ -3,7 +3,7 @@
 		<view class="goods-list">
 			<view class="" v-for="(item, index) in bargainGoods" :key="index">
 				<view class="bg-white row code-item">
-					<u-image :src="item.prize_image" width="90rpx" height="90rpx" mode="aspectFill" radius="6rpx"></u-image>
+					<image :src="item.prize_image" width="90rpx" height="90rpx" mode="aspectFill" radius="6rpx"></image>
 					<view class="ml20 desc">
 						<view class="nr line1 bold">{{item.title}}</view>
 						<view class="mt10 row-between">

@@ -1122,11 +1122,11 @@ let QRCode = {};
                     ctxi.setLineWidth(lineWidth);
                     ctxi.setFillStyle(options.background);
                     ctxi.setStrokeStyle(options.background);
-                    ctxi.beginPath(); // draw top and top right corner 
+                    ctxi.beginPath(); // draw top and top right corner
                     ctxi.moveTo(x + r, y);
-                    ctxi.arcTo(x + width, y, x + width, y + r, r); // draw right side and bottom right corner 
-                    ctxi.arcTo(x + width, y + height, x + width - r, y + height, r); // draw bottom and bottom left corner 
-                    ctxi.arcTo(x, y + height, x, y + height - r, r); // draw left and top left corner 
+                    ctxi.arcTo(x + width, y, x + width, y + r, r); // draw right side and bottom right corner
+                    ctxi.arcTo(x + width, y + height, x + width - r, y + height, r); // draw bottom and bottom left corner
+                    ctxi.arcTo(x, y + height, x, y + height - r, r); // draw left and top left corner
                     ctxi.arcTo(x, y, x + r, y, r);
                     ctxi.closePath();
                     if (fill) {

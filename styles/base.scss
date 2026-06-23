@@ -328,7 +328,7 @@ page button {
 page button::after {
 	border: none;
 }
-	
+
 page input {
 	font-size: 28rpx;
 }
@@ -431,7 +431,7 @@ button[size="lg"]{
 //#ifndef H5
 /* 单选 */
 radio {
-	
+
 	.uni-radio-input {
 	    border-radius: 50%;
 	    width: 34rpx;
@@ -446,7 +446,7 @@ radio {
 			background-color: $color-primary !important;
 		}
 	}
-} 
+}
 
 
 /* 多选 */
@@ -469,7 +469,7 @@ checkbox {
 // #ifdef MP-WEIXIN
 /* 单选 */
 radio {
-	
+
 	.wx-radio-input {
 	    border-radius: 50%;
 	    width: 34rpx;
@@ -484,7 +484,7 @@ radio {
 			background-color: $color-primary !important;
 		}
 	}
-} 
+}
 
 
 /* 多选 */

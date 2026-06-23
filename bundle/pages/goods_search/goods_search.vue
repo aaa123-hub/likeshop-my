@@ -21,7 +21,7 @@
 				</view>
 			</view>
 		</view>
-		<u-sticky offset-top="0" h5-nav-height="0">
+		<view offset-top="0" h5-nav-height="0">
 			<view v-show="!showHistory" class="filter-bar">
 				<view class="filter-item" @tap="onNormal">
 					<text :class="comprehensive ? 'is-active' : ''">位置距离</text>
@@ -40,7 +40,7 @@
 					<u-icon name="arrow-down-fill" size="16" color="#222222"></u-icon>
 				</view>
 			</view>
-		</u-sticky>
+		</view>
 		<view v-show="showHistory" class="history-panel">
 			<view v-if="hotList.length" class="word-block">
 				<view class="word-title">热门搜索</view>
@@ -98,7 +98,7 @@
 				</view>
 			</loading-footer>
 		</view>
-		<u-popup v-model="showFilter" mode="bottom" border-radius="24" safe-area-inset-bottom>
+		<view v-model="showFilter" mode="bottom" border-radius="24" safe-area-inset-bottom>
 			<view class="filter-panel">
 				<view class="filter-panel__title">更多筛选</view>
 				<view class="filter-group">
@@ -123,7 +123,7 @@
 					<view class="filter-action confirm" @tap="applyFilter">确定</view>
 				</view>
 			</view>
-		</u-popup>
+		</view>
 	</view>
 </template>
 
@@ -296,9 +296,11 @@
 				let {
 					id,
 					name,
-					type
+					type,
+					keyword
 				} = option;
 				this.type = type;
+				this.keyword = keyword ? decodeURIComponent(keyword) : '';
 				if (id) {
 					uni.setNavigationBarTitle({
 						title: name
@@ -309,19 +311,23 @@
 					uni.setNavigationBarTitle({
 						title: '搜索'
 					});
-					this.showHistory = true
+					if (this.keyword) {
+						this.showHistory = false;
+						this.getGoodsSearchFun();
+					} else {
+						this.showHistory = false;
+						this.getGoodsSearchFun();
+						this.getSearchpageFun();
+					}
 				}
 			},
 
 			getSearchpageFun() {
 				getSearchpage().then(res => {
 					if (res.code == 1) {
-						let {
-							history_lists,
-							hot_lists
-						} = res.data;
-						this.hotList = hot_lists
-						this.historyList = history_lists
+						const data = res.data || {};
+						this.hotList = data.hot_lists || data.hotList || data.hot || []
+						this.historyList = data.history_lists || data.historyList || data.history || []
 					}
 				});
 			},

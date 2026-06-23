@@ -5,7 +5,7 @@ export const loadingType = {
   FINISHED: 'finished',
   ERROR: 'error',
   EMPTY: 'empty'
-}; 
+};
 
 // 收藏状态
 export const CollectType = {
@@ -34,7 +34,7 @@ export const orderType = {
 };
 // 售后状态
 export const AfterSaleType = {
-    // 售后申请 
+    // 售后申请
     NORMAL: 'normal',
     // 处理中
     HANDLING: 'apply',
@@ -79,7 +79,7 @@ export const SortType = {
     DESC: 'desc'
 }
 
-// 粉丝类型 
+// 粉丝类型
 export const FansType = {
     ALL: 'all',
     FIRST: 'first',

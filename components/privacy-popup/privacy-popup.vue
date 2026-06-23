@@ -1,13 +1,6 @@
 <template>
   <view>
-    <u-popup
-      v-model="value"
-      mode="bottom"
-      zIndex="9999"
-      border-radius="14"
-      :maskCloseAble="false"
-      safeAreaInsetBottom
-    >
+    <view v-if="value" class="privacy-popup">
       <view class="privacy-containter" v-if="appConfig">
         <view class="privacy-containter-tital"
           >{{ appConfig.name || "" }}隐私政策</view
@@ -34,7 +27,7 @@
         </button>
         <button class="btn-cancel" @click="handlecancel">取消</button>
       </view>
-    </u-popup>
+    </view>
   </view>
 </template>
 <script>
@@ -113,5 +106,14 @@ export default {
     line-height: 80rpx;
     margin-top: 30rpx;
   }
+}
+.privacy-popup {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: #ffffff;
+  border-radius: 14rpx 14rpx 0 0;
 }
 </style>

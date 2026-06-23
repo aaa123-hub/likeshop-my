@@ -87,7 +87,7 @@ export default {
     this.getSeckillTimeFun();
   },
 
- 
+
   onReachBottom: function () {
     this.getSeckillGoodsFun(this.currentId);
   },
@@ -128,7 +128,7 @@ export default {
           this.id = res.data[index].id;
           this.currentView = currentView;
           this.currentStatus = currentStatus;
-          
+
           this.getSeckillGoodsFun(res.data[index].id);
         }
       });
@@ -188,7 +188,7 @@ export default {
       this.loadingStatus = loadingType.LOADING;
       this.seckillTime = seckillTime;
       this.currentStatus = currentStatus;
-      
+
       this.getSeckillGoodsFun(id);
     },
 

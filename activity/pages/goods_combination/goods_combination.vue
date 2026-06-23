@@ -154,7 +154,7 @@
 								background: linear-gradient(90deg, rgba(249, 95, 47, 1) 0%, rgba(255, 44, 60, 1) 100%);
 								border-radius: 0 4rpx 4rpx 0;
 							}
-							
+
 						}
 						.info-footer {.btn {
 							padding: 0 30rpx;

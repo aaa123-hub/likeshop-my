@@ -63,14 +63,14 @@ import {bargainType} from "@/utils/type"
                 let index = bargain.findIndex(item => {
                   return item.ref_name == type;
                 });
-                
+
                 if (index != -1) {
                     this.bargain[index].isShow = true;
                     console.log(this.bargain)
                     this.active = index;
                 }
-                
-                this.$nextTick(() => {                    
+
+                this.$nextTick(() => {
                     console.log(this.$refs, "refs", type)
                     console.log('this.$refs[all]', this.$refs['all'])
                     if(this.$refs[type] && this.$refs[type][0] && this.$refs[type][0].$getBargainActivityList) {
@@ -84,6 +84,6 @@ import {bargainType} from "@/utils/type"
 
 <style lang="scss">
     .bargain-code-container {
-        
+
     }
 </style>

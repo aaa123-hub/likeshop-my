@@ -86,9 +86,6 @@ export default {
 
 <style lang="scss">
 @import "styles/base.scss";
-/*每个页面公共css */
-@import "components/uview-ui/index.scss";
-
 /* #ifdef H5 */
 uni-tabbar .uni-tabbar {
   height: calc(112rpx + env(safe-area-inset-bottom)) !important;

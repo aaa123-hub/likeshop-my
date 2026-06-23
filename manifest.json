@@ -9,10 +9,10 @@
     "app-plus" : {
         "usingComponents" : true,
         "nvueCompiler" : "uni-app",
-        "runtimeVersion" : "3.3.13", //指定版本  
-        "compilerVersion" : "3.3.13", //指定版本  
+        "runtimeVersion" : "3.3.13", //指定版本
+        "compilerVersion" : "3.3.13", //指定版本
         "compatible" : {
-            "ignoreVersion" : true //true表示忽略版本检查提示框，HBuilderX1.9.0及以上版本支持  
+            "ignoreVersion" : true //true表示忽略版本检查提示框，HBuilderX1.9.0及以上版本支持
         },
         "splashscreen" : {
             "alwaysShowBeforeRender" : true,
@@ -157,6 +157,7 @@
     /* 小程序特有相关 */
     "mp-weixin" : {
         "appid" : "wx57414bbbd4e676a6",
+        "lazyCodeLoading" : "requiredComponents",
         "setting" : {
             "urlCheck" : false,
             "es6" : true,

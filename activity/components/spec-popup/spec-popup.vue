@@ -1,5 +1,5 @@
 <template>
-  <u-popup
+  <view
     v-model="showPop"
     mode="bottom"
     border-radius="14"
@@ -141,7 +141,7 @@
         </button>
       </view>
     </view>
-  </u-popup>
+  </view>
 </template>
 
 <script>
