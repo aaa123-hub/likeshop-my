@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "u-popup": "/components/uview-ui/components/u-popup/u-popup",
-    "u-loading": "/components/uview-ui/components/u-loading/u-loading"
-  }
-}

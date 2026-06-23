@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "签到",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "navbar": "/components/navbar/navbar",
-    "u-image": "/components/uview-ui/components/u-image/u-image",
-    "u-popup": "/components/uview-ui/components/u-popup/u-popup"
-  }
-}

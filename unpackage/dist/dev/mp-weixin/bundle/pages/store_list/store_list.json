@@ -1,6 +1,0 @@
-{
-  "navigationBarTitleText": "门店自提",
-  "usingComponents": {
-    "loading-footer": "/components/loading-footer/loading-footer"
-  }
-}

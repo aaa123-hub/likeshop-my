@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "页面总览",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "navbar": "/components/navbar/navbar",
-    "u-icon": "/components/uview-ui/components/u-icon/u-icon"
-  }
-}

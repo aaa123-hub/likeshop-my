@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "收货地址",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "navbar": "/components/navbar/navbar",
-    "u-icon": "/components/uview-ui/components/u-icon/u-icon",
-    "u-modal": "/components/uview-ui/components/u-modal/u-modal"
-  }
-}

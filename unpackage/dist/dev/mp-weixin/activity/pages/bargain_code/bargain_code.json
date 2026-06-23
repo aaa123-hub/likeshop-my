@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "砍价记录",
-  "usingComponents": {
-    "tabs": "/components/tabs/tabs",
-    "tab": "/components/tab/tab",
-    "bargain-list": "/activity/components/bargain-list/bargain-list"
-  }
-}

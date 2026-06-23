@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "申请售后",
-  "usingComponents": {
-    "custom-image": "/components/custom-image/custom-image",
-    "price-format": "/components/price-format/price-format",
-    "u-popup": "/components/uview-ui/components/u-popup/u-popup",
-    "uploader": "/bundle/components/uploader/uploader"
-  }
-}

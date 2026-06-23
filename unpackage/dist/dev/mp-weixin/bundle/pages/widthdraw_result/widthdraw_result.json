@@ -1,6 +1,0 @@
-{
-  "navigationBarTitleText": "提现结果",
-  "usingComponents": {
-    "price-format": "/components/price-format/price-format"
-  }
-}

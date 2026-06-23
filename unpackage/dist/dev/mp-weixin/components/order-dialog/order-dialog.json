@@ -1,6 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "u-modal": "/components/uview-ui/components/u-modal/u-modal"
-  }
-}

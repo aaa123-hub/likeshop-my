@@ -1,8 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "u-image": "/components/uview-ui/components/u-image/u-image",
-    "price-format": "/components/price-format/price-format",
-    "loading-footer": "/components/loading-footer/loading-footer"
-  }
-}

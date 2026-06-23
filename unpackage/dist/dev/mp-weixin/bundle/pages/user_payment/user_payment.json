@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "用户充值",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "navbar": "/components/navbar/navbar",
-    "u-popup": "/components/uview-ui/components/u-popup/u-popup",
-    "loading-view": "/components/loading-view/loading-view"
-  }
-}

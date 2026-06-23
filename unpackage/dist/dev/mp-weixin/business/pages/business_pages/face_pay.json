@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "面对面付款",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "business-wrapper-page": "/business/pages/business_scene/business-wrapper-page"
-  }
-}

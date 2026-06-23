@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "月度账单",
-  "usingComponents": {
-    "price-format": "/components/price-format/price-format",
-    "u-icon": "/components/uview-ui/components/u-icon/u-icon",
-    "loading-footer": "/components/loading-footer/loading-footer"
-  }
-}

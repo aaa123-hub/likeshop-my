@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "u-mask": "/components/uview-ui/components/u-mask/u-mask",
-    "u-icon": "/components/uview-ui/components/u-icon/u-icon"
-  }
-}
