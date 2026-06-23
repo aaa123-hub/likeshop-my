@@ -1,249 +1,193 @@
 <template>
-    <view class="user" :style="[background]">
-        <view class="header">
-            <!-- #ifndef  H5 -->
-            <u-sticky offset-top="0" h5-nav-height="0" bg-color="transparent">
-                <u-navbar
-                    :is-back="false"
-                    title="个人中心"
-                    :title-bold="true"
-                    :is-fixed="false"
-                    :border-bottom="false"
-                    :background="{ background: 'rgba(256,256, 256,' + navBg + ')' }"
-                    :title-color="navBg > 0.5 ? '#000' : '#fff'"
-                ></u-navbar>
-            </u-sticky>
-            <!-- #endif -->
-            <view class="user-info row-between">
-                <view class="info row">
-                    <image
-                        class="avatar mr20 flexnone"
-                        @tap="goLogin"
-                        :src="isLogin ? userInfo.avatar : '/static/images/my_portrait_empty.png'"
-                    ></image>
-                    <view class="white" v-if="isLogin">
-                        <view class="name xxl line1">{{ userInfo.nickname }}</view>
-                        <view class="user-id row-between" v-if="userInfo.sn">
-                            <view class="xs white ml20 mr20">会员ID: {{ userInfo.sn || '' }}</view>
-                            <view class="xs normal copy-btn row-center ml5" @tap.stop="onCopy"
-                                >复制</view
-                            >
-                        </view>
-                    </view>
-                    <view class="white" v-else @tap="goLogin">
-                        <view style="font-size: 42rpx">点击登录</view>
-                        <view class="sm">登录体验更多功能</view>
-                    </view>
+    <view class="my-page">
+        <image class="my-page__page-bg" :src="designAssets.myPageBg" mode="scaleToFill"></image>
+        <view class="my-page__screen">
+            <view class="my-page__top">
+                <view class="my-page__title">我的</view>
+            </view>
+
+            <view class="my-page__profile">
+                <image
+                    class="my-page__avatar"
+                    @tap="goLogin"
+                    :src="isLogin ? resolveAvatar(userInfo.avatar) : designAssets.myAvatarDefault"
+                    mode="aspectFill"
+                ></image>
+                <view class="my-page__profile-text" @tap="goLogin">
+                    <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '暂未设置用户名' : '点击登录') }}</view>
+                    <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
+                    <view class="my-page__member-id my-page__member-id--hint" v-else>{{ isLogin ? '完善昵称后，好友更容易识别你' : '登录体验更多功能' }}</view>
                 </view>
-                <view class="row" style="align-self: flex-start">
-                    <view
-                        class="user-opt"
-                        style="margin-right: 30rpx"
-                        @tap="goPage('/bundle/pages/message_center/message_center')"
-                    >
-                        <view class="dot row-center" v-if="userInfo.notice_num"></view>
-                        <image
-                            style="width: 58rpx; height: 58rpx"
-                            src="/static/images/icon_my_news.png"
-                        ></image>
-                    </view>
-                    <view class="user-opt" @tap="goPage('/bundle/pages/user_profile/user_profile')">
-                        <image
-                            style="width: 58rpx; height: 58rpx"
-                            src="/static/images/icon_my_setting.png"
-                        ></image>
+                <image
+                    class="my-page__setting"
+                    :src="designAssets.mySetting"
+                    mode="aspectFit"
+                    @tap="goPage('/bundle/pages/user_profile/user_profile')"
+                ></image>
+            </view>
+
+            <view class="my-page__merchant" @tap="openFree(businessRoutes.pages.license)">
+                <image class="my-page__merchant-bg" :src="designAssets.myMerchantBg" mode="scaleToFill"></image>
+                <view class="my-page__merchant-content">
+                    <view class="my-page__merchant-title">我是商家</view>
+                    <view class="my-page__merchant-action">
+                        <text>{{ userInfo.next_level_tips || '立即开通' }}</text>
+                        <image class="my-page__merchant-arrow" :src="designAssets.myMerchantArrow" mode="aspectFit"></image>
                     </view>
                 </view>
             </view>
-            <view class="member column-end" @tap="goPage('/pages/user_vip/user_vip')">
-                <view class="member-entery row-between">
-                    <view class="row">
-                        <image class="icon-md" src="/static/images/icon_member.png"></image>
-                        <view class="ml10">{{
-                            isLogin ? userInfo.level : '登录查看会员权益'
-                        }}</view>
+
+            <view class="my-page__asset-panel">
+                <view class="my-page__gift-card" @tap="goPage(businessRoutes.pages.wallet.url)">
+                    <image class="my-page__card-bg my-page__card-bg--gift" :src="designAssets.myGiftCard" mode="scaleToFill"></image>
+                    <view class="my-page__card-name my-page__card-name--gift">我的礼品卡</view>
+                    <view class="my-page__card-number my-page__card-number--gift">{{ userInfo.coupon || 0 }}张</view>
+                </view>
+                <view class="my-page__asset-right">
+                    <view class="my-page__asset-item my-page__asset-item--points" @tap="goPage('/bundle/pages/user_sign/user_sign')">
+                        <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myPointsCard" mode="scaleToFill"></image>
+                        <view class="my-page__card-name my-page__card-name--points">我的积分</view>
+                        <view class="my-page__card-number my-page__card-number--points">{{ userInfo.user_integral || 0 }}</view>
                     </view>
-                    <view class="row">
-                        <view class="sm">{{ userInfo.next_level_tips || '查看会员权益' }}</view>
-                        <u-icon name="arrow-right"></u-icon>
+                    <view class="my-page__asset-item my-page__asset-item--coupon" @tap="goPage('/bundle/pages/user_coupon/user_coupon')">
+                        <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myCouponCard" mode="scaleToFill"></image>
+                        <view class="my-page__card-name my-page__card-name--coupon">我的优惠券</view>
+                        <view class="my-page__card-number my-page__card-number--coupon">{{ userInfo.coupon || 0 }}张</view>
+                    </view>
+                </view>
+            </view>
+
+            <image class="my-page__strategy" :src="designAssets.myStrategyBanner" mode="scaleToFill" @tap="goPage(businessRoutes.pages.pageIndex.url)"></image>
+
+            <view class="my-section my-section--online">
+                <view class="my-section__head">
+                    <text class="my-section__title">线上订单</text>
+                    <view class="my-section__more" @tap="goPage('/bundle/pages/user_order/user_order')">
+                        <text>全部</text>
+                        <image class="my-section__more-icon" :src="designAssets.myArrowCircle" mode="aspectFit"></image>
+                    </view>
+                </view>
+                <view class="my-order-grid">
+                    <view class="my-order-item" v-for="item in onlineOrderEntries" :key="item.name" @tap="openEntry(item)">
+                        <view class="my-order-icon-wrap">
+                            <image class="my-order-icon" :src="item.image" mode="aspectFit"></image>
+                            <view v-if="item.badge" class="my-order-badge">{{ item.badge }}</view>
+                        </view>
+                        <view class="my-order-text">{{ item.name }}</view>
+                    </view>
+                </view>
+            </view>
+
+            <view class="my-section my-section--pair my-section--pair-1">
+                <view class="my-section__head my-section__head--plain">
+                    <text class="my-section__title">线下订单</text>
+                </view>
+                <view class="my-pair-grid">
+                    <view class="my-pair-item" v-for="item in offlineOrderEntries" :key="item.name" @tap="openEntry(item)">
+                        <image class="my-pair-icon" :src="item.image" mode="aspectFit"></image>
+                        <view class="my-pair-text">{{ item.name }}</view>
+                    </view>
+                </view>
+            </view>
+
+            <view class="my-section my-section--pair my-section--pair-2">
+                <view class="my-section__head my-section__head--plain">
+                    <text class="my-section__title">我的联盟订单</text>
+                </view>
+                <view class="my-pair-grid">
+                    <view class="my-pair-item" v-for="item in allianceEntries" :key="item.name" @tap="openEntry(item)">
+                        <image class="my-pair-icon" :src="item.image" mode="aspectFit"></image>
+                        <view class="my-pair-text">{{ item.name }}</view>
+                    </view>
+                </view>
+            </view>
+
+            <view class="my-section my-section--value">
+                <view class="my-section__head my-section__head--plain">
+                    <text class="my-section__title">我的消费增值</text>
+                </view>
+                <view class="my-value-grid">
+                    <view class="my-value-item" v-for="item in valueEntries" :key="item.name" @tap="openEntry(item)">
+                        <image class="my-value-icon" :src="item.image" mode="aspectFit"></image>
+                        <view class="my-value-text">{{ item.name }}</view>
+                    </view>
+                </view>
+            </view>
+
+            <view class="my-section my-section--feature">
+                <view class="my-section__head my-section__head--plain">
+                    <text class="my-section__title">其他功能</text>
+                </view>
+                <view class="my-feature-grid">
+                    <view class="my-feature-item" v-for="item in featureEntries" :key="item.name" @tap="openEntry(item)">
+                        <image class="my-feature-icon" :src="item.image" mode="aspectFit"></image>
+                        <view class="my-feature-text">{{ item.name }}</view>
                     </view>
                 </view>
             </view>
         </view>
-        <view class="my-assets bg-white">
-            <view class="title row lg">我的资产</view>
-            <view class="nav row">
-                <view
-                    class="column-center mb20 assets-item"
-                    @tap="goPage('/bundle/pages/user_wallet/user_wallet')"
-                >
-                    <view class="xl primary">{{ userInfo.user_money }}</view>
-                    <view class="sm">余额</view>
+
+        <view v-if="showServiceModal" class="service-modal">
+            <view class="service-modal__mask" @tap="closeServiceModal"></view>
+            <view class="service-sheet">
+                <image class="service-sheet__bg" src="https://shengyuan.store/api/miniapp/files/miniapp/7f2a2e10cdc84ef0a400da7bde38e665/service-dialog-bg.png" mode="scaleToFill"></image>
+                <view class="service-sheet__head">
+                    <view class="service-sheet__title">平台客服</view>
+                    <image class="service-sheet__hero" :src="serviceHeroImage" mode="aspectFit"></image>
                 </view>
                 <view
-                    class="column-center mb20 assets-item"
-                    @tap="goPage('/bundle/pages/user_sign/user_sign')"
+                    v-for="item in serviceContacts"
+                    :key="item.type"
+                    class="service-contact"
                 >
-                    <view class="xl primary">{{ userInfo.user_integral }}</view>
-                    <view class="sm">积分</view>
+                    <image class="service-contact__icon" :src="item.icon" mode="aspectFit"></image>
+                    <view class="service-contact__info">
+                        <view class="service-contact__name">{{ item.type }}</view>
+                        <view class="service-contact__value">{{ item.value }}</view>
+                    </view>
+                    <view class="service-contact__btn" @tap="contactService(item)">联系</view>
                 </view>
-                <view
-                    class="column-center mb20 assets-item"
-                    @tap="goPage('/pages/user_coupon/user_coupon')"
-                >
-                    <view class="xl primary">{{ userInfo.coupon }}</view>
-                    <view class="sm">优惠券</view>
-                </view>
+                <view class="service-sheet__cancel" @tap="closeServiceModal">取消</view>
             </view>
         </view>
-        <view class="order-nav bg-white">
-            <view class="title row-between" @tap="goPage('/pages/user_order/user_order')">
-                <view class="lg">我的订单</view>
-                <view class="muted sm row">
-                    全部订单
-                    <image class="icon-sm ml10" src="/static/images/arrow_right.png"></image>
-                </view>
-            </view>
-            <view class="nav row">
-                <view
-                    class="item column-center mb20"
-                    @tap="goPage('/pages/user_order/user_order?type=pay')"
-                >
-                    <view class="icon-contain">
-                        <view v-if="userInfo.wait_pay" class="badge xs row-center bg-white">
-                            {{ userInfo.wait_pay }}
-                        </view>
-                        <image class="nav-icon" src="/static/images/icon_my_payment.png"></image>
-                    </view>
-                    <view class="sm mt10">待付款</view>
-                </view>
-                <view
-                    class="item column-center mb20"
-                    @tap="goPage('/pages/user_order/user_order?type=delivery')"
-                >
-                    <view class="icon-contain">
-                        <view v-if="userInfo.wait_delivery" class="badge xs row-center bg-white">
-                            {{ userInfo.wait_delivery }}
-                        </view>
-                        <image class="nav-icon mb10" src="/static/images/icon_my_fahuo.png"></image>
-                    </view>
-                    <view class="sm">待发货</view>
-                </view>
-                <view
-                    class="item column-center mb20"
-                    @tap="goPage('/pages/user_order/user_order?type=delivery')"
-                >
-                    <view class="icon-contain">
-                        <view v-if="userInfo.wait_take" class="badge xs row-center bg-white">
-                            {{ userInfo.wait_take }}
-                        </view>
-                        <image class="nav-icon" src="/static/images/icon_my_shouhuo.png"></image>
-                    </view>
-                    <view class="sm mt10">待收货</view>
-                </view>
-                <view
-                    class="item column-center mb20"
-                    @tap="goPage('/bundle/pages/goods_comment_list/goods_comment_list')"
-                >
-                    <view class="icon-contain">
-                        <view v-if="userInfo.wait_comment" class="badge xs row-center bg-white">
-                            {{ userInfo.wait_comment }}
-                        </view>
-                        <image class="nav-icon" src="/static/images/icon_my_pingjia.png"></image>
-                    </view>
-                    <view class="sm mt10">商品评价</view>
-                </view>
-                <view
-                    class="item column-center mb20"
-                    @tap="goPage('/bundle/pages/post_sale/post_sale')"
-                >
-                    <view class="icon-contain">
-                        <view v-if="userInfo.after_sale" class="badge xs row-center bg-white">
-                            {{ userInfo.after_sale }}
-                        </view>
-                        <image class="nav-icon" src="/static/images/icon_my_shouhou.png"></image>
-                    </view>
-                    <view class="sm mt10">退款/售后</view>
-                </view>
-            </view>
-        </view>
-        <view class="server-nav bg-white" v-if="menuList && menuList.length > 0">
-            <view>
-                <view class="title row-between">
-                    <view class="lg">我的功能</view>
-                </view>
-            </view>
-            <view class="nav row wrap">
-                <button
-                    v-for="(item, index) in menuList"
-                    :key="index"
-                    class="item column-center mb20"
-                    hover-class="none"
-                    :open-type="item.link_type == 3 ? 'contact' : ''"
-                    @tap="tapMenu(item)"
-                    style="width: 25%"
-                >
-                    <image class="nav-icon" :src="item.image"></image>
-                    <view class="sm mt10">{{ item.name }}</view>
-                </button>
-            </view>
-        </view>
-        <recommend />
-		<view class="xs muted" style="margin: 50rpx 0;">
-			<view class="row-center">
-				由 likeshop 提供免费开源商城系统
-			</view>
-			<view class="row-center">
-				© likeshop.cn
-			</view>
-		</view>
+
     </view>
 </template>
 
 <script>
 import { mapGetters, mapActions } from 'vuex'
-import { getUser } from '@/api/user'
-import { getMenu } from '@/api/store'
-import { toLogin, wxMnpLogin } from '@/utils/login'
-import { menuJump, copy, setTabbar } from '@/utils/tools'
+import { toLogin } from '@/utils/login'
+import { copy, setTabbar } from '@/utils/tools'
 import Cache from '@/utils/cache'
-const app = getApp()
+import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
+import { designAssets } from '@/utils/design-assets'
+import { resolveImage } from '@/utils/image-placeholder'
+
 export default {
     data() {
         return {
-            showNav: false,
-            navH: 0,
-            navBg: 0,
-            menuList: [],
-            statusBarH: ''
+            businessRoutes,
+            designAssets,
+            showServiceModal: false,
+			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
+            serviceContacts: [
+				{ type: '微信', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
+				{ type: 'QQ', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/f3a751f36ea442378ed3b18f916ce872/contact-message-icon.png' },
+				{ type: '手机号', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/ad78cb6626b94083b5b4690cd5d7bc91/contact-email-icon.png' }
+            ]
         }
     },
-
-    components: {},
-    props: {},
-
-    onLoad(options) {
+    onLoad() {
         setTabbar()
-        this.getMenuFun()
     },
-
     onShow() {
         this.getUser()
         this.getCartNum()
     },
-    onPageScroll(e) {
-        const top = uni.upx2px(100)
-        const { scrollTop } = e
-        let percent = scrollTop / top > 1 ? 1 : scrollTop / top
-        this.navBg = percent
-    },
-
-    onUnload() {},
     onPullDownRefresh() {
         this.getUser().then(() => {
             uni.stopPullDownRefresh()
         })
-        this.getMenuFun()
     },
     onShareAppMessage() {
         const shareInfo = Cache.get('shareInfo')
@@ -255,181 +199,772 @@ export default {
     },
     methods: {
         ...mapActions(['getCartNum', 'getUser']),
+        resolveAvatar(avatar) {
+            return resolveImage(avatar, 'avatar')
+        },
         goLogin() {
-            let { isLogin } = this
-            if (isLogin) {
-                uni.navigateTo({
-                    url: '/bundle/pages/user_set/user_set'
-                })
+            if (this.isLogin) {
+                uni.navigateTo({ url: '/bundle/pages/user_set/user_set' })
                 return
             }
             toLogin()
         },
-
-        goPage(url) {
+        goPage(target) {
             if (!this.isLogin) return toLogin()
-            uni.navigateTo({
-                url
-            })
-        },
-        tapMenu(item) {
-            if (!this.isLogin) return toLogin()
-            console.log(item)
-            menuJump(item)
-        },
-        async getMenuFun() {
-            const { data, code } = await getMenu({
-                type: 2
-            })
-            if (code == 1) {
-                this.menuList = data
+            const route = typeof target === 'string' ? { url: target } : target
+            if (!route?.url) return
+            if (route.openType === 'switchTab') {
+                uni.switchTab({ url: route.url })
+                return
             }
+            uni.navigateTo({ url: route.url })
         },
-
-        onCopy(e) {
+        openFree(item) {
+            openBusinessRoute(item)
+        },
+        openEntry(item) {
+            if (!this.isLogin) return toLogin()
+            if (item.action === 'service') {
+                this.openServiceModal()
+                return
+            }
+            openBusinessRoute(item)
+        },
+        openServiceModal() {
+            this.showServiceModal = true
+        },
+        closeServiceModal() {
+            this.showServiceModal = false
+        },
+        contactService(item) {
+            if (item.type === '手机号') {
+                uni.makePhoneCall({ phoneNumber: item.value.replace(/\s/g, '') })
+                return
+            }
+            copy(item.value)
+        },
+        onCopy() {
             copy(this.userInfo.sn)
         }
     },
     computed: {
         ...mapGetters(['cartNum', 'userInfo', 'inviteCode', 'appConfig']),
-        background() {
-            const { center_setting } = this.appConfig
-            return center_setting.top_bg_image
-                ? {
-                      'background-image': `url(${center_setting.top_bg_image})`
-                  }
-                : {}
+        onlineOrderEntries() {
+            return [
+                { name: '待付款', url: '/bundle/pages/user_order/user_order?type=pay', image: designAssets.myOrderPay, badge: this.userInfo.wait_pay },
+                { name: '待发货', url: '/bundle/pages/user_order/user_order?type=delivery', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
+                { name: '待收货/核销', url: '/bundle/pages/user_order/user_order?type=delivery', image: designAssets.myOrderReceive, badge: this.userInfo.wait_take },
+                { name: '待取积分', url: '/bundle/pages/goods_comment_list/goods_comment_list', image: designAssets.myOrderPoints, badge: this.userInfo.wait_comment },
+                { name: '售后', url: '/bundle/pages/post_sale/post_sale', image: designAssets.myOrderAfterSale, badge: this.userInfo.after_sale }
+            ]
+        },
+        offlineOrderEntries() {
+            return [
+                { name: '现场付款', url: '/business/pages/business_pages/face_pay', image: designAssets.myOfflinePay },
+                { name: '付款记录', url: '/business/pages/business_pages/payment_record', image: designAssets.myPaymentRecord }
+            ]
+        },
+        allianceEntries() {
+            return [
+                { name: '联盟码', url: '/business/pages/business_pages/intro_card', image: designAssets.myAllianceCode },
+                { name: '订单记录', url: '/bundle/pages/user_order/user_order', image: designAssets.myAllianceRecord }
+            ]
+        },
+        valueEntries() {
+            return [
+                { name: '待领取\n线上订单', url: '/bundle/pages/user_order/user_order', image: designAssets.myValueOnline },
+                { name: '待领取\n线下订单', url: '/business/pages/business_pages/face_pay', image: designAssets.myValueOffline },
+                { name: '联盟订单', url: '/pages/street/street', image: designAssets.myValueAlliance, openType: 'switchTab' },
+                { name: '领取积分\n设置', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints }
+            ]
+        },
+        featureEntries() {
+            return [
+                { name: 'KYC', url: businessRoutes.pages.userKyc.url, image: designAssets.myKyc },
+                { name: '收货地址', url: businessRoutes.pages.addressList.url, image: designAssets.myAddress },
+                { name: '反馈意见', url: businessRoutes.pages.feedback.url, image: designAssets.myFeedback },
+                { name: '生态应用', url: businessRoutes.pages.ecoApp.url, image: designAssets.myEcology },
+                { name: '关于我们', url: businessRoutes.pages.aboutUs.url, image: designAssets.myAbout },
+                { name: '平台客服', action: 'service', image: designAssets.myService }
+            ]
+        },
+        displayNickname() {
+            const nickname = this.userInfo.nickname || this.userInfo.username || this.userInfo.mobile || ''
+            return String(nickname).trim()
         }
     }
 }
 </script>
+
 <style lang="scss">
-.user {
-    background-image: url(../../static/images/my_topbg.png);
-    background-size: 100% 420rpx;
-    background-repeat: no-repeat;
-    .header {
-        display: flex;
-        flex-direction: column;
-        height: 420rpx;
-        .user-info {
-            padding: 10rpx 30rpx;
-            //#ifdef  H5
-            padding-top: 90rpx;
-            //#endif
-            .avatar {
-                height: 110rpx;
-                width: 110rpx;
-                border-radius: 50%;
-                overflow: hidden;
-            }
-            .name {
-                text-align: left;
-                margin-bottom: 5rpx;
-                max-width: 400rpx;
-            }
-
-            .user-id {
-                border: 1px solid white;
-                border-radius: 100rpx;
-
-                .copy-btn {
-                    background-color: #ffdfda;
-                    height: 40rpx;
-                    width: 90rpx;
-                    border-radius: 100rpx;
-                }
-            }
-
-            .user-opt {
-                position: relative;
-
-                .dot {
-                    position: absolute;
-                    background-color: #ee0a24;
-                    border: 2rpx solid #ffffff;
-                    color: $-color-primary;
-                    border-radius: 100%;
-                    top: 6rpx;
-                    right: 0rpx;
-                    font-size: 22rpx;
-                    min-width: 16rpx;
-                    height: 16rpx;
-                }
-            }
-
-            .buyer-type {
-                background-color: #ffa200;
-                height: 38rpx;
-                padding: 0 10rpx;
-            }
-        }
-        .member {
-            flex: 1;
-            padding: 0 20rpx;
-            .member-entery {
-                color: #ffe0a1;
-                padding: 0 16rpx;
-                width: 100%;
-                height: 80rpx;
-                background: url(../../static/images/bg_member_grade.png);
-                background-size: 100%;
-            }
-        }
-    }
-
-    .order-nav {
-        .icon-contain {
-            position: relative;
-        }
-    }
-
-    .order-nav,
-    .my-assets {
-        margin: 20rpx 20rpx 0;
-        border-radius: 8rpx;
-    }
-
-    .server-nav {
-        margin: 20rpx;
-        border-radius: 8rpx;
-    }
-
-    .title {
-        height: 88rpx;
-        padding: 0 30rpx;
-        border-bottom: $-dashed-border;
-    }
-
-    .nav {
-        padding: 26rpx 0 0;
-
-        .assets-item {
-            flex: 1;
-        }
-
-        .item {
-            width: 25%;
-        }
-
-        .badge {
-            padding: 0 6rpx;
-            min-width: 28rpx;
-            height: 28rpx;
-            border-radius: 28rpx;
-            box-sizing: border-box;
-            border: 1rpx solid $-color-primary;
-            color: $-color-primary;
-            position: absolute;
-            left: 33rpx;
-            top: -10rpx;
-            z-index: 2;
-        }
-
-        .nav-icon {
-            width: 52rpx;
-            height: 52rpx;
-        }
-    }
+.my-page {
+    position: relative;
+    min-height: 100vh;
+    padding-bottom: calc(40rpx + var(--window-bottom));
+    background: #f4f6ff;
+    overflow-x: hidden;
 }
+
+.my-page__page-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.my-page__screen {
+    position: relative;
+    width: 100%;
+    min-height: calc(2266rpx + var(--status-bar-height));
+    overflow: visible;
+}
+
+.my-page__header-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 574rpx;
+}
+
+.my-page__status {
+    position: absolute;
+    left: 30rpx;
+    top: var(--status-bar-height);
+    width: 690rpx;
+    height: 26rpx;
+}
+
+.my-page__top {
+    position: absolute;
+    left: 25rpx;
+    right: 31rpx;
+    top: calc(var(--status-bar-height) + 28rpx);
+    height: 58rpx;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.my-page__title {
+    color: rgba(34, 34, 34, 1);
+    font-size: 36rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 24rpx;
+}
+
+.my-page__profile {
+    position: absolute;
+    left: 36rpx;
+    right: 34rpx;
+    top: calc(var(--status-bar-height) + 104rpx);
+    height: 142rpx;
+    display: flex;
+    align-items: center;
+}
+
+.my-page__avatar {
+    width: 142rpx;
+    height: 142rpx;
+    flex: none;
+}
+
+.my-page__profile-text {
+    flex: 1;
+    min-width: 0;
+    margin-left: 33rpx;
+}
+
+.my-page__nickname {
+    color: rgba(34, 34, 34, 1);
+    font-size: 34rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 44rpx;
+    min-height: 44rpx;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.my-page__nickname--empty {
+    color: #999999;
+    font-weight: 400;
+}
+
+.my-page__member-id {
+    margin-top: 11rpx;
+    color: rgba(102, 102, 102, 1);
+    font-size: 24rpx;
+    font-family: PingFangSC-Regular, sans-serif;
+    font-weight: normal;
+    line-height: 34rpx;
+    min-height: 34rpx;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.my-page__member-id--hint {
+    color: #037dfa;
+}
+
+.service-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 120;
+}
+
+.service-modal__mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.service-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 704rpx;
+    padding: 9rpx 30rpx calc(55rpx + env(safe-area-inset-bottom));
+    background: none url('https://shengyuan.store/api/miniapp/files/miniapp/7f2a2e10cdc84ef0a400da7bde38e665/service-dialog-bg.png') no-repeat center top;
+    background-size: 100% 100%;
+    border-radius: 32rpx 32rpx 0 0;
+    box-sizing: border-box;
+}
+
+.service-sheet__bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 32rpx 32rpx 0 0;
+}
+
+.service-sheet__head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 157rpx;
+}
+
+.service-sheet__title {
+    margin-top: 44rpx;
+    color: #222222;
+    font-size: 38rpx;
+    font-weight: 700;
+    line-height: 42rpx;
+    white-space: nowrap;
+}
+
+.service-sheet__hero {
+    width: 170rpx;
+    height: 157rpx;
+}
+
+.service-sheet__message {
+    position: absolute;
+    right: 130rpx;
+    top: 22rpx;
+    width: 58rpx;
+    height: 58rpx;
+}
+
+.service-contact {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    height: 72rpx;
+    margin-top: 58rpx;
+}
+
+.service-contact:first-of-type {
+    margin-top: 38rpx;
+}
+
+.service-contact__icon {
+    flex: none;
+    width: 72rpx;
+    height: 72rpx;
+}
+
+.service-contact__info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 25rpx;
+}
+
+.service-contact__name {
+    color: #222222;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 32rpx;
+    white-space: nowrap;
+}
+
+.service-contact__value {
+    margin-top: 20rpx;
+    color: #999999;
+    font-size: 28rpx;
+    line-height: 32rpx;
+    white-space: nowrap;
+}
+
+.service-contact__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 153rpx;
+    height: 54rpx;
+    color: #ffffff;
+    font-size: 23rpx;
+    font-weight: 600;
+    line-height: 26rpx;
+    background: #037dfa;
+    border-radius: 27rpx;
+    white-space: nowrap;
+}
+
+.service-sheet__cancel {
+    position: relative;
+    z-index: 1;
+    margin-top: 84rpx;
+    color: #666666;
+    font-size: 29rpx;
+    font-weight: 600;
+    line-height: 34rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.my-page__setting {
+    width: 37rpx;
+    height: 42rpx;
+    margin-left: 24rpx;
+    flex: none;
+}
+
+.my-page__merchant {
+    position: absolute;
+    left: 47rpx;
+    top: calc(var(--status-bar-height) + 299rpx);
+    width: 656rpx;
+    height: 157rpx;
+}
+
+.my-page__merchant-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 656rpx;
+    height: 157rpx;
+}
+
+.my-page__merchant-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 31rpx 34rpx 0 31rpx;
+}
+
+.my-page__merchant-title {
+    color: rgba(178, 113, 53, 1);
+    font-size: 30rpx;
+    font-family: AlimamaShuHeiTi-Bold, PingFangSC-Regular, sans-serif;
+    font-weight: 700;
+    line-height: 30rpx;
+    white-space: nowrap;
+}
+
+.my-page__merchant-action {
+    display: flex;
+    align-items: center;
+    color: rgba(178, 113, 53, 1);
+    font-size: 24rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.my-page__merchant-arrow {
+    width: 14rpx;
+    height: 24rpx;
+    margin-left: 20rpx;
+}
+
+.my-page__asset-panel {
+    position: absolute;
+    left: 26rpx;
+    top: calc(var(--status-bar-height) + 395rpx);
+    width: 698rpx;
+    height: 349rpx;
+    background: rgba(255, 255, 255, 1);
+    border-radius: 15rpx;
+}
+
+.my-page__gift-card {
+    position: absolute;
+    left: 22rpx;
+    top: 50rpx;
+    width: 311rpx;
+    height: 269rpx;
+    overflow: hidden;
+}
+
+.my-page__card-bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+}
+
+.my-page__card-bg--gift {
+    width: 311rpx;
+    height: 269rpx;
+}
+
+.my-page__card-bg--asset {
+    width: 311rpx;
+    height: 123rpx;
+}
+
+.my-page__card-name {
+    position: absolute;
+    z-index: 1;
+    font-size: 24rpx;
+    font-family: PingFangSC-Regular, sans-serif;
+    font-weight: normal;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.my-page__card-name--gift {
+    left: 27rpx;
+    top: 31rpx;
+    color: rgba(208, 50, 1, 1);
+}
+
+.my-page__card-name--points {
+    left: 22rpx;
+    top: 25rpx;
+    color: rgba(1, 59, 208, 1);
+}
+
+.my-page__card-name--coupon {
+    left: 26rpx;
+    top: 25rpx;
+    color: rgba(54, 1, 208, 1);
+}
+
+.my-page__card-number {
+    position: absolute;
+    z-index: 1;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-size: 35rpx;
+    font-weight: 500;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.my-page__card-number--gift {
+    left: 28rpx;
+    top: 74rpx;
+    color: rgba(208, 50, 1, 1);
+}
+
+.my-page__card-number--points {
+    left: 27rpx;
+    top: 62rpx;
+    color: rgba(35, 1, 208, 1);
+}
+
+.my-page__card-number--coupon {
+    left: 27rpx;
+    top: 62rpx;
+    color: rgba(54, 1, 208, 1);
+}
+
+.my-page__asset-right {
+    position: absolute;
+    left: 355rpx;
+    top: 50rpx;
+    width: 311rpx;
+    height: 269rpx;
+}
+
+.my-page__asset-item {
+    position: relative;
+    width: 311rpx;
+    height: 123rpx;
+    overflow: hidden;
+}
+
+.my-page__asset-item + .my-page__asset-item {
+    margin-top: 23rpx;
+}
+
+.my-page__strategy {
+    position: absolute;
+    left: 26rpx;
+    top: calc(var(--status-bar-height) + 780rpx);
+    width: 698rpx;
+    height: 135rpx;
+}
+
+.my-section {
+    position: absolute;
+    left: 26rpx;
+    width: 698rpx;
+    background: rgba(255, 255, 255, 1);
+    border-radius: 15rpx;
+}
+
+.my-section--online {
+    top: calc(var(--status-bar-height) + 941rpx);
+    min-height: 213rpx;
+    padding-bottom: 28rpx;
+    box-sizing: border-box;
+}
+
+.my-section--pair {
+    height: 213rpx;
+}
+
+.my-section--pair-1 {
+    top: calc(var(--status-bar-height) + 1175rpx);
+}
+
+.my-section--pair-2 {
+    top: calc(var(--status-bar-height) + 1409rpx);
+}
+
+.my-section--value {
+    top: calc(var(--status-bar-height) + 1643rpx);
+    min-height: 237rpx;
+    padding-bottom: 28rpx;
+    box-sizing: border-box;
+}
+
+.my-section--feature {
+    top: calc(var(--status-bar-height) + 1902rpx);
+    min-height: 322rpx;
+    padding-bottom: 28rpx;
+    box-sizing: border-box;
+}
+
+.my-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 27rpx 28rpx 0;
+}
+
+.my-section__head--plain {
+    padding: 27rpx 28rpx 0;
+}
+
+.my-section__title {
+    color: rgba(34, 34, 34, 1);
+    font-size: 28rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.my-section__more {
+    display: flex;
+    align-items: center;
+    color: rgba(34, 34, 34, 1);
+    font-size: 24rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.my-section__more-icon {
+    width: 23rpx;
+    height: 23rpx;
+    margin-left: 10rpx;
+}
+
+.my-order-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 41rpx 20rpx 0;
+}
+
+.my-order-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20%;
+    margin-bottom: 28rpx;
+    box-sizing: border-box;
+}
+
+.my-order-icon-wrap {
+    position: relative;
+    width: 47rpx;
+    height: 42rpx;
+}
+
+.my-order-icon {
+    width: 47rpx;
+    height: 42rpx;
+}
+
+.my-order-badge {
+    position: absolute;
+    left: 33rpx;
+    top: -10rpx;
+    min-width: 28rpx;
+    height: 28rpx;
+    padding: 0 6rpx;
+    border: 1rpx solid rgba(3, 125, 250, 1);
+    border-radius: 28rpx;
+    color: rgba(3, 125, 250, 1);
+    font-size: 22rpx;
+    line-height: 28rpx;
+    text-align: center;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.my-order-text {
+    margin-top: 19rpx;
+    color: rgba(34, 34, 34, 1);
+    font-size: 22rpx;
+    font-family: PingFangSC-Regular, sans-serif;
+    font-weight: normal;
+    line-height: 22rpx;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.my-pair-grid {
+    display: flex;
+    align-items: center;
+    padding: 41rpx 32rpx 0;
+}
+
+.my-pair-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 87rpx;
+    flex: none;
+}
+
+.my-pair-item + .my-pair-item {
+    margin-left: 64rpx;
+}
+
+.my-pair-icon {
+    width: 40rpx;
+    height: 40rpx;
+}
+
+.my-pair-text {
+    margin-top: 18rpx;
+    color: rgba(34, 34, 34, 1);
+    font-size: 22rpx;
+    font-family: PingFangSC-Regular, sans-serif;
+    font-weight: normal;
+    line-height: 22rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.my-value-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 42rpx 20rpx 0;
+}
+
+.my-value-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20%;
+    margin-bottom: 28rpx;
+    box-sizing: border-box;
+}
+
+.my-value-icon {
+    width: 42rpx;
+    height: 42rpx;
+}
+
+.my-value-text {
+    margin-top: 15rpx;
+    color: rgba(34, 34, 34, 1);
+    font-size: 22rpx;
+    font-family: PingFangSC-Regular, sans-serif;
+    font-weight: normal;
+    line-height: 29rpx;
+    text-align: center;
+    width: 100%;
+    white-space: pre-wrap;
+    overflow: hidden;
+}
+
+.my-feature-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 42rpx 20rpx 0;
+}
+
+.my-feature-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20%;
+    margin-bottom: 32rpx;
+    box-sizing: border-box;
+}
+
+.my-feature-icon {
+    width: 39rpx;
+    height: 39rpx;
+}
+
+.my-feature-text {
+    margin-top: 17rpx;
+    color: rgba(34, 34, 34, 1);
+    font-size: 22rpx;
+    font-family: PingFangSC-Regular, sans-serif;
+    font-weight: normal;
+    line-height: 22rpx;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 </style>

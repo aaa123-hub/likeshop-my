@@ -20,7 +20,6 @@
 				</view>
 				<loading-footer :status="loadingStatus" slotEmpty>
 					<view class="data-null column-center" slot="empty">
-						<image class="img-null" src="/static/images/order_null.png" />
 						<text class="nr muted">暂无记录～</text>
 					</view>
 				</loading-footer>
@@ -43,7 +42,6 @@
 			</view>
 				<loading-footer :status="loadingStatus" slotEmpty>
 					<view class="data-null column-center" slot="empty">
-						<image class="img-null" src="/static/images/order_null.png" />
 						<text class="nr muted">暂无转出记录～</text>
 					</view>
 				</loading-footer>
@@ -66,7 +64,6 @@
 				</view>
 				<loading-footer :status="loadingStatus" slotEmpty>
 					<view class="data-null column-center" slot="empty">
-						<image class="img-null" src="/static/images/order_null.png"></image>
 						<text class="nr muted">暂无转入记录～</text>
 					</view>
 				</loading-footer>
@@ -152,7 +149,7 @@
 		.list {
 			.item {
 				padding: 20rpx 30rpx;
-				border-bottom: $-solid-border;
+				border-bottom: $solid-border;
 				align-items: flex-start;
 				.avatar {
 					width: 68rpx;

@@ -2,7 +2,7 @@
 <!--pages/user_spread/user_spread.wxml-->
 <view class="user-spread">
 	<view class="explain row muted" v-if="vipState==0 || vipState==1">
-	    <image src="/static/images/icon_warning.png"></image>
+	    <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
 	    <span class="ml10">成为分销会员，推广下级可获得额外收益，推广越多收益越多</span>
 	</view>
     <loading-view v-if="showLoading"></loading-view>
@@ -42,7 +42,7 @@
                             <view class="form-item row ">
                                 <view class="label md">现住省份：</view>
                                 <input class="md" name="region" :value="region" disabled type="text" placeholder="请选择省、市、区"></input>
-                                <image class="icon-sm mr10" src="/static/images/arrow_right.png" />
+                                <image class="icon-sm mr10" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" />
                             </view>
                         </view>
                         <view class="form-item bg-white row" style="height: 74px;padding: 24rpx 20rpx 24rpx 30rpx">
@@ -64,12 +64,12 @@
                 <view class="user-result-header column-center">
                     <view class="title xxl normal">申请成为分销会员</view>
                 <!--    <view class="explain row muted">
-                        <image src="/static/images/icon_warning.png"></image>
+                        <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
                         <span class="ml10">成为分销会员，推广下级可获得额外收益，推广越多收益越多</span>
                     </view> -->
                 </view>
                 <view class="user-result-content column-center">
-                    <image class="apply-result-img" :src="applyObject.status == 2 ? '../../static/images/icon_payFail.png' : '/static/images/icon_paySuccess.png'" />
+                    <image class="apply-result-img" :src="applyObject.status == 2 ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_payFail.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png'" />
                     <view class="mt10 nr" style="line-height: 40rpx">{{applyObject.status_str}}</view>
                     <view class="apply-fail-reason sm" :style="applyObject == 2 ? 'visibility: none' : 'visibility: hidden'">{{applyObject.reason}}</view>
                 </view>
@@ -149,11 +149,11 @@
                 </view>
                 <view class="usual-content row">
                 <navigator hover-class="none" url="/bundle/pages/user_spread_order/user_spread_order" class="usual-item column-center">
-                    <image src="../../static/images/icon_fenxiao.png" class="usual-item-img"></image>
+                    <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_fenxiao.png" class="usual-item-img"></image>
                     <view class="nr normal mt20" style="line-height: 40rpx">分销订单</view>
                 </navigator>
                 <navigator hover-class="none" url="/bundle/pages/user_spread_month_bill/user_spread_month_bill" class="usual-item column-center">
-                    <image src="../../static/images/icon_zhangdan.png" class="usual-item-img"></image>
+                    <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_zhangdan.png" class="usual-item-img"></image>
                     <view class="nr normal mt20" style="line-height: 40rpx">月度账单</view>
                 </navigator>
                 </view>
@@ -253,17 +253,19 @@ export default {
     getPromoteHomeFun() {
       getPromoteHome().then(res => {
         if (res.code == 1) {
-          if (res.data.leader.length <= 0) {
+          const data = res.data || {}
+          const leader = data.leader || []
+          if (leader.length <= 0) {
             this.inviteStatus = false;
           } else {
             this.inviteStatus = true;
           }
-          this.userInfo = res.data;
-		  this.userFans = res.data.fans
-          this.able_withdrawal = res.data.able_withdrawal
-          this.history_earnings = res.data.history_earnings
-          this.month_earnings = res.data.month_earnings
-          this.today_earnings = res.data.today_earnings
+          this.userInfo = data;
+		  this.userFans = data.fans || 0
+          this.able_withdrawal = data.able_withdrawal || 0
+          this.history_earnings = data.history_earnings || 0
+          this.month_earnings = data.month_earnings || 0
+          this.today_earnings = data.today_earnings || 0
         }
       });
     },
@@ -397,11 +399,13 @@ export default {
     getInviteInfoFun() {
       getInviteInfo().then(res => {
         if (res.code == 1) {
-          if (res.data.leader.length <= 0) {
-            this.userInfo = res.data;
+          const data = res.data || {}
+          const leader = data.leader || []
+          if (leader.length <= 0) {
+            this.userInfo = data;
             this.inviteStatus = false
           } else {
-            this.userInfo = res.data;
+            this.userInfo = data;
             this.inviteStatus = true
           }
         }
@@ -567,7 +571,7 @@ export default {
                 .usual-tools-header {
                     height: 100rpx;
                     line-height: 44rpx;
-                    border-bottom: $-solid-border;
+                    border-bottom: $solid-border;
                 }
                 .usual-content {
                     padding: 40rpx 0;
@@ -610,7 +614,7 @@ export default {
                     margin-top: 60rpx;
                     .form-item {
                         padding: 24rpx 0 24rpx 30rpx;
-                        border: $-solid-border;
+                        border: $solid-border;
                         margin: 0 34rpx 30rpx;
                         .label {
                             width: 150rpx;
@@ -647,7 +651,7 @@ export default {
                     padding: 60rpx 0 22rpx;
                     /* margin: 0 8px; */
                     width: 100%;
-                    border-bottom: $-solid-border;
+                    border-bottom: $solid-border;
                     .apply-result-img {
                         width: 100rpx;
                         height: 100rpx;
@@ -707,7 +711,7 @@ van-field textarea {
 }
 
 .main .user-result-box .user-result-content  .apply-fail-reason {
-    color: $-color-primary;
+    color: $color-primary;
     line-height: 36rpx;
     margin-top: 10rpx;
 }
@@ -719,7 +723,7 @@ van-field textarea {
     padding-bottom: 30rpx;
     width: 580rpx;
     border-radius: 6rpx;
-    background-color: $-color-white;
+    background-color: $color-white;
 }
 
 .inviteformContain .title { 

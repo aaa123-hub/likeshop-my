@@ -32,14 +32,14 @@
               <view class="address black xs mb20 row">
                 <image
                   class="icon1"
-                  src="../../static/images/icon_shop.png"
+                  src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_shop.png"
                 ></image>
                 {{ item.shop_address }}
               </view>
               <view class="time black xs row">
                 <image
                   class="icon1"
-                  src="../../static/images/icon_time.png"
+                  src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_time.png"
                 ></image>
                 {{ item.business_start_time }} - {{ item.business_end_time }}
               </view>
@@ -47,7 +47,7 @@
             <view class="ml20 flexnone">
               <image
                 class="icon2"
-                src="../../static/images/icon_call.png"
+                src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_call.png"
                 @tap.stop="onCall(item.mobile)"
               ></image>
             </view>
@@ -56,7 +56,7 @@
         <loading-footer :status="loadingStatus" slotEmpty>
           <view slot="empty" class="data-null column-center">
             <image
-              src="/static/images/address_null.png"
+              src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/address_null.png"
               class="img-null"
             ></image>
             <view class="muted xs">暂无门店～</view>
@@ -160,7 +160,7 @@ export default {
                 id: item.id,
                 latitude: item.latitude,
                 longitude: item.longitude,
-                iconPath: "../../static/images/icon_marker.png",
+                iconPath: "https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_marker.png",
                 width: 34,
                 height: 34,
                 callout: {

@@ -1,5 +1,6 @@
 <template>
     <view class="post-sale">
+      <navbar title="退款/售后"></navbar>
       <view class="contain">
         <tabs :active="active" :line-width="40" @change="onChange" sticky>
           <tab v-for="(item, index) in afterSale" :key="index" :title="item.name">
@@ -11,6 +12,7 @@
 </template>
 
 <script>
+import AfterSalesList from '@/bundle/components/after-sales-list/after-sales-list.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -54,6 +56,9 @@ export default {
   },
 
   components: {
+
+  	AfterSalesList
+
   },
   props: {},
 
@@ -79,8 +84,8 @@ export default {
             break;
     }
 
-    let myComponent = this.$refs[afterSaleType][0];
-    if (myComponent.getAfterSaleListFun) {
+    let myComponent = this.$refs[afterSaleType] && this.$refs[afterSaleType][0];
+    if (myComponent && myComponent.getAfterSaleListFun) {
       myComponent.getAfterSaleListFun();
     }
   },
@@ -108,7 +113,7 @@ export default {
           this.active = type == AfterSaleType.NORMAL ? 0 : type == AfterSaleType.HANDLING ? 1 : 2
       }
       
-      if(this.$refs[type] && this.$refs[type][0].getAfterSaleListFun()) {
+      if(this.$refs[type] && this.$refs[type][0] && this.$refs[type][0].getAfterSaleListFun) {
           this.$refs[type][0].getAfterSaleListFun()
       }
     },

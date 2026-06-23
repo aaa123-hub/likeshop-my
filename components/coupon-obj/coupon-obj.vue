@@ -25,7 +25,6 @@
 				</view>
 			</view>
 			<view v-if="coupons.length == 0" class="column-center" style="padding-top: 50rpx">
-				<image class="img-null" src="/static/images/coupon_null.png"></image>
 				<text class="muted">暂无优惠券～</text>
 			</view>
 		</scroll-view>
@@ -98,7 +97,7 @@
 	.coupon-obj .coupon-item {
 		position: relative;
 		height: 160rpx;
-		background-image: url(../../static/images/coupon_bg.png);
+		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg.png);
 		background-size: 100% 100%;
 	}
 

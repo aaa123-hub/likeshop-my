@@ -9,6 +9,7 @@
 </template>
 
 <script>
+import SpreadOrder from '@/bundle/components/spread-order/spread-order.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -54,6 +55,8 @@ export default {
 
   components: {
 
+  	SpreadOrder
+
   },
   props: {},
 
@@ -66,7 +69,8 @@ export default {
   },
 	onReachBottom: function () {
 		  const {active, order} = this
-		this.$refs['order' + active][0].getPromoteOrderFun()
+		const current = this.$refs['order' + active]
+		if (current && current[0] && current[0].getPromoteOrderFun) current[0].getPromoteOrderFun()
 	},
   methods: {
     onChange(e) {

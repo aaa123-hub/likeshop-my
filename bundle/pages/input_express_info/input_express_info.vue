@@ -33,6 +33,7 @@
 </template>
 
 <script>
+import Uploader from '@/bundle/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -51,7 +52,7 @@
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
 import { inputExpressInfo } from '@/api/user';
-import { baseURL } from '@/config/app.js';
+import { uploadFile } from '@/utils/tools';
 
 
 
@@ -68,6 +69,8 @@ export default {
   },
 
   components: {
+
+  	Uploader
 
   },
   props: {},
@@ -92,7 +95,7 @@ export default {
         mask: true
       });
       file.forEach(item => {
-          this.uploadFile(item.path).then(res => {
+        uploadFile(item.path).then(res => {
             uni.hideLoading();
             this.fileList.push(res);
           });
@@ -121,32 +124,6 @@ export default {
         express_image: fileList.length <= 0 ? '' : fileList[0].url
       };
       this.inputExpressInfoFun(data);
-    },
-
-    uploadFile(path) {
-      return new Promise(resolve => {
-        uni.uploadFile({
-          url: `${baseURL}/api/file/formimage`,
-          filePath: path,
-          name: 'file',
-          fileType: 'image',
-          cloudPath: '',
-          success: res => {
-              console.log('uploadFile res ==> ', res)
-            const {
-              fileList
-            } = this;
-            let data = JSON.parse(res.data);
-
-            if (data.code == 1) {
-              resolve(data.data);
-            }
-          },
-          fail: (err) => {
-               console.log(err)
-          }
-        });
-      });
     },
 
     inputExpressInfoFun(data) {

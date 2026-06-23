@@ -43,7 +43,7 @@
 					</view>
 					<view class="tag row-center" @tap="changeType">
 						<image class="icon-sm"
-							:src=" goodsType === 'one' ? '/static/images/icon_double.png' : '/static/images/icon_one.png'">
+							:src=" goodsType === 'one' ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_double.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_one.png'">
 						</image>
 					</view>
 				</view>
@@ -58,7 +58,6 @@
 					</view>
 					<loading-footer :status="status" :slot-empty="true">
 						<view slot="empty" class="column-center" style="padding: 200rpx 0">
-							<image class="img-null" src="/static/images/goods_null.png"></image>
 							<text class="lighter">暂无商品</text>
 						</view>
 					</loading-footer>
@@ -157,7 +156,7 @@
 			changeCate(item) {
 				if(this.cate.type === 0) {
 					uni.navigateTo({
-						url: `/pages/goods_search/goods_search?id=${item.id}&name=${item.name}&type=${item.type}`
+						url: `/bundle/pages/goods_search/goods_search?id=${item.id}&name=${item.name}&type=${item.type}`
 					})
 					return
 				}
@@ -255,7 +254,7 @@
 					border: 1px solid transparent;
 					border-radius: 50%;
 					&.active {
-						border-color: $-color-primary;
+						border-color: $color-primary;
 					}
 				}
 				.name {
@@ -279,7 +278,7 @@
 
 					&.active {
 						width: 20rpx;
-						background-color: $-color-primary;
+						background-color: $color-primary;
 					}
 				}
 

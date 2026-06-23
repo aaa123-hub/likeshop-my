@@ -1,5 +1,6 @@
 <template>
     <view class="user-profile-container mt10">
+        <navbar title="个人资料"></navbar>
         <view class="user-profile">
             <view class="user-avatar-box column-center">
                 <button
@@ -14,7 +15,7 @@
                         :src="
                             userInfo.avatar != ''
                                 ? userInfo.avatar
-                                : '../../static/images/default_avatar.png'
+                                : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png'
                         "
                     >
                     </image>
@@ -273,7 +274,7 @@ export default {
                     })
                     setTimeout(() => {
                         uni.redirectTo({
-                            url: '/pages/login/login'
+                            url: '/bundle/pages/login/login'
                         })
                     }, 500)
                 }
@@ -284,12 +285,6 @@ export default {
                 url: '/bundle/pages/server_explan/server_explan?type=' + value
             })
         },
-        goLicense() {
-            uni.navigateTo({
-                url: '/bundle/pages/license/license'
-            })
-        },
-
         toSetPayPwd() {
             if (!this.userInfo.mobile)
                 return this.$toast({
@@ -310,7 +305,7 @@ export default {
                     this.$toast({
                         title: res.msg
                     })
-                    this.$refs.uCode.start()
+                    if (this.$refs.uCode && this.$refs.uCode.start) this.$refs.uCode.start()
                 }
             })
         },
@@ -364,6 +359,10 @@ export default {
                 value: value
             })
             if (res.code == 1) {
+                if (this.fieldType === FieldType.NICKNAME) this.userInfo.nickname = value
+                if (this.fieldType === FieldType.AVATAR) this.userInfo.avatar = value
+                if (this.fieldType === FieldType.SEX) this.userInfo.sex = value
+                this.$store.commit('SETUSERINFO', this.userInfo)
                 this.$toast({
                     title: res.msg
                 })
@@ -548,8 +547,8 @@ export default {
 
             .bd-btn {
                 padding: 8rpx 24rpx;
-                border: 1px solid $-color-primary;
-                color: $-color-primary;
+                border: 1px solid $color-primary;
+                color: $color-primary;
             }
         }
 
@@ -585,7 +584,7 @@ export default {
         padding-bottom: 30rpx;
         width: 580rpx;
         border-radius: 30rpx;
-        background-color: $-color-white;
+        background-color: $color-white;
 
         .title {
             padding: 26rpx 0rpx;
@@ -597,10 +596,10 @@ export default {
             border-bottom: 1rpx solid #e5e5e5;
 
             .send-code-btn {
-                border: 1px solid $-color-primary;
+                border: 1px solid $color-primary;
                 width: 184rpx;
                 height: 62rpx;
-                color: $-color-primary;
+                color: $color-primary;
             }
         }
 

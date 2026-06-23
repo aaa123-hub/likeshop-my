@@ -10,9 +10,7 @@ export default {
     navHeight: "",
   },
   onLaunch: async function (options) {
-    uni.hideTabBar({
-      animation: false,
-    });
+    uni.showTabBar();
     // 获取配置
     this.getConfigFun();
 
@@ -90,4 +88,58 @@ export default {
 @import "styles/base.scss";
 /*每个页面公共css */
 @import "components/uview-ui/index.scss";
+
+/* #ifdef H5 */
+uni-tabbar .uni-tabbar {
+  height: calc(112rpx + env(safe-area-inset-bottom)) !important;
+  padding-bottom: env(safe-area-inset-bottom) !important;
+  box-sizing: border-box !important;
+}
+
+uni-tabbar .uni-tabbar__bd,
+uni-tabbar .uni-tabbar__item,
+uni-tabbar .uni-tabbar__icon {
+  overflow: visible !important;
+}
+
+uni-tabbar .uni-tabbar__bd {
+  height: 112rpx !important;
+}
+
+uni-tabbar .uni-tabbar__item {
+  padding-top: 10rpx !important;
+  padding-bottom: 8rpx !important;
+  box-sizing: border-box !important;
+}
+
+uni-tabbar .uni-tabbar__icon {
+  width: 47rpx !important;
+  height: 42rpx !important;
+  margin-bottom: 6rpx !important;
+}
+
+uni-tabbar .uni-tabbar__icon img {
+  display: block !important;
+  width: 47rpx !important;
+  height: 42rpx !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+}
+
+uni-tabbar .uni-tabbar__label {
+  line-height: 24rpx !important;
+}
+/* #endif */
+
+.empty-image-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 220rpx;
+  height: 160rpx;
+  color: #999999;
+  font-size: 24rpx;
+  background: #f1f2f5;
+  border-radius: 16rpx;
+}
 </style>

@@ -20,7 +20,6 @@
 		</template>
 		<template v-else>
 			<view  class="column-center" style="padding-top: 200rpx">
-				<image class="img-null" src="/static/images/order_null.png"></image>
 				<text class="lighter">抱歉，该订单不存在！</text>
 				<view class="btns" style="margin-top: 100rpx;">
 					<navigator style="width: 100%;" open-type="navigateBack" :delta="1" hover-class="none">

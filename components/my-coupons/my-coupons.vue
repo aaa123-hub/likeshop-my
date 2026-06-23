@@ -2,9 +2,9 @@
 <!-- components/my-coupons/my-coupons.wxml -->
 <view class="my-coupons">
     <coupon-list v-if="!showNull" :list="couponList" :btnType="type"></coupon-list>
-    <view v-else class="column-center" style="padding-top: 200rpx">
-        <image class="img-null" src="/static/images/coupon_null.png"></image>
-        <text class="muted">暂无优惠券～</text>
+    <view v-else class="coupon-empty">
+        <view class="coupon-empty__title">暂无优惠券</view>
+        <view class="coupon-empty__desc">有可用优惠券时会展示在这里</view>
     </view>
 </view>
 </template>
@@ -52,7 +52,8 @@ export default {
         type
       } = this;
       getMyCoupon({
-        type
+        type,
+        status: type
       }).then(res => {
         if (res.code == 1) {
           this.$emit('getnum', {
@@ -75,5 +76,29 @@ export default {
 /* components/my-coupons/my-coupons.wxss */
 .my-coupons {
     min-height: calc(100vh - 80rpx);
+    box-sizing: border-box;
+}
+
+.coupon-empty {
+    margin: 160rpx 30rpx 0;
+    padding: 80rpx 30rpx;
+    background: #ffffff;
+    border-radius: 24rpx;
+    text-align: center;
+    box-shadow: 0 12rpx 36rpx rgba(24, 40, 80, 0.04);
+}
+
+.coupon-empty__title {
+    color: #333333;
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 42rpx;
+}
+
+.coupon-empty__desc {
+    margin-top: 14rpx;
+    color: #999999;
+    font-size: 24rpx;
+    line-height: 34rpx;
 }
 </style>

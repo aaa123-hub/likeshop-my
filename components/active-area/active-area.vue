@@ -29,7 +29,7 @@
 			<scroll-view v-else style="white-space: nowrap;" scroll-x="true" scroll-with-animation="true">
 				<navigator v-for="(item, index) in lists" :key="index"
 					:style="{background: type == 'seckill' && '#f8f8f8'}" class="goods-item bg-white" hover-class="none"
-					:url="'/pages/goods_details/goods_details?id=' + item.id">
+					:url="'/bundle/pages/goods_details/goods_details?id=' + item.id">
 					<custom-image width="240rpx" height="240rpx" radius="10rpx" lazy-load :src="item.image">
 					</custom-image>
 					<view style="padding: 8rpx">
@@ -93,8 +93,8 @@
 		border-radius: 10rpx;
 		padding-bottom: 20rpx;
 		&.seckill {
-			background-color: $-color-white;
-			background-image: url(../../static/images/home_seckill_bg.png);
+			background-color: $color-white;
+			background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_seckill_bg.png);
 		}
 
 		.a-main {

@@ -13,7 +13,6 @@
 		</view>
 		<loading-footer :status="status" :slot-empty="true" @refresh="reflesh">
 			<view slot="empty" class="column-center" style="padding-top: 200rpx">
-				<image class="img-null" src="/static/images/order_null.png"></image>
 				<text class="lighter">暂无订单</text>
 			</view>
 		</loading-footer>

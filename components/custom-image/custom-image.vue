@@ -4,9 +4,12 @@
         :class="{ 'custom-image': true, 'image-round': round }"
         @click="onClick"
     >
+        <view v-if="isGoodsPlaceholder" class="placeholder-wrap image">
+            <text>无</text>
+        </view>
         <image
-            v-if="!error"
-            :src="src"
+            v-else-if="!error"
+            :src="displaySrc"
             :mode="mode"
             :lazy-load="lazyLoad"
             class="image"
@@ -27,6 +30,8 @@
 </template>
 
 <script>
+import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
+
 export default {
     props: {
         src: {
@@ -68,7 +73,16 @@ export default {
         return {
             error: false,
             loading: true,
+            fallbackSrc: '',
             viewStyle: {}
+        }
+    },
+    computed: {
+        displaySrc() {
+            return this.fallbackSrc || resolveImage(this.src)
+        },
+        isGoodsPlaceholder() {
+            return isPlaceholderImage(this.src) || isPlaceholderImage(this.displaySrc)
         }
     },
     created() {
@@ -101,8 +115,13 @@ export default {
             this.$emit('load', event.detail)
         },
         onErrored(event) {
-            this.error = false
-            this.loading = true
+            if (!this.fallbackSrc) {
+                this.fallbackSrc = resolveImage('')
+                this.error = false
+            } else {
+                this.error = true
+            }
+            this.loading = false
             this.$emit('error', event.detail)
         },
         onClick(event) {
@@ -113,6 +132,7 @@ export default {
         src() {
             this.error = false
             this.loading = true
+            this.fallbackSrc = ''
         },
         width() {
             this.setStyle()
@@ -141,7 +161,8 @@ export default {
     }
 
     .loading-wrap,
-    .error-wrap {
+    .error-wrap,
+    .placeholder-wrap {
         position: absolute;
         top: 0;
         left: 0;
@@ -152,6 +173,12 @@ export default {
         color: #969799;
         font-size: 28rpx;
         background-color: #f7f8fa;
+    }
+
+    .placeholder-wrap {
+        color: #999999;
+        font-size: 24rpx;
+        background: #f1f2f5;
     }
 }
 </style>

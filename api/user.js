@@ -1,394 +1,993 @@
-// +----------------------------------------------------------------------
-// | likeshop开源商城系统
-// +----------------------------------------------------------------------
-// | 欢迎阅读学习系统程序代码，建议反馈是我们前进的动力
-// | gitee下载：https://gitee.com/likeshop_gitee
-// | github下载：https://github.com/likeshop-github
-// | 访问官网：https://www.likeshop.cn
-// | 访问社区：https://home.likeshop.cn
-// | 访问手册：http://doc.likeshop.cn
-// | 微信公众号：likeshop技术社区
-// | likeshop系列产品在gitee、github等公开渠道开源版本可免费商用，未经许可不能去除前后端官方版权标识
-// |  likeshop系列产品收费版本务必购买商业授权，购买去版权授权后，方可去除前后端官方版权标识
-// | 禁止对系统程序代码以任何目的，任何形式的再发布
-// | likeshop团队版权所有并拥有最终解释权
-// +----------------------------------------------------------------------
-// | author: likeshop.cn.team
-// +----------------------------------------------------------------------
 import request from '../utils/request'
 import { client } from '@/utils/tools'
-//个人中心
+import area from '@/utils/area'
+import Cache from '@/utils/cache'
+import { USER_INFO } from '@/config/cachekey'
+import { resolveImage } from '@/utils/image-placeholder'
+
+function normalizeListResponse(res = {}) {
+    const data = res.data || {}
+    const list = data.list || data.items || data.rows || data || []
+    return {
+        ...res,
+        data: Array.isArray(list)
+            ? list
+            : data,
+    }
+}
+
+function normalizePageResponse(res = {}, itemNormalizer) {
+    const data = res.data || {}
+    const sourceList = Array.isArray(data) ? data : (data.list || data.items || data.rows || [])
+    const list = itemNormalizer ? sourceList.map(itemNormalizer) : sourceList
+    const pageNo = data.pageNo || data.page_no || 1
+    const pageSize = data.pageSize || data.page_size || list.length || 10
+    const total = data.total || list.length
+    const hasNext = data.hasNext ?? data.more ?? (Number(total) > Number(pageNo) * Number(pageSize))
+    return {
+        ...res,
+        data: {
+            ...(!Array.isArray(data) ? data : {}),
+            list,
+            lists: list,
+            pageNo,
+            page_no: pageNo,
+            pageSize,
+            page_size: pageSize,
+            total,
+            hasNext,
+            more: hasNext
+        }
+    }
+}
+
+function fakeUserInfo() {
+    return {
+        avatar: '',
+        nickname: '',
+        sn: '',
+        mobile: '',
+        sex: 0,
+        create_time: '',
+        user_money: 0,
+        user_integral: 0,
+        coupon: 0,
+        wait_pay: 0,
+        wait_delivery: 0,
+        wait_take: 0,
+        wait_comment: 0,
+        after_sale: 0,
+        distribution_code: '',
+        next_level_tips: ''
+    }
+}
+
+function normalizeUserProfile(data = {}) {
+    const genderValue = data.sex ?? data.gender ?? 0
+    return {
+        ...fakeUserInfo(),
+        ...data,
+        id: data.id || data.userId,
+        user_id: data.user_id || data.userId || data.id,
+        avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar'),
+        nickname: data.nickname || data.nickName || data.userName || fakeUserInfo().nickname,
+        sn: data.sn || data.userNo || data.inviteCode || data.openId || fakeUserInfo().sn,
+        mobile: data.mobile || data.phone || '',
+        sex: normalizeGenderForView(genderValue),
+        user_money: data.user_money ?? data.balance ?? data.walletBalance ?? 0,
+        user_integral: data.user_integral ?? data.availablePoints ?? data.points ?? 0,
+        coupon: data.coupon ?? data.couponCount ?? 0,
+        wait_pay: data.wait_pay ?? data.waitPay ?? 0,
+        wait_delivery: data.wait_delivery ?? data.waitDelivery ?? 0,
+        wait_take: data.wait_take ?? data.waitTake ?? data.waitReceive ?? 0,
+        wait_comment: data.wait_comment ?? data.waitComment ?? 0,
+        after_sale: data.after_sale ?? data.afterSale ?? 0,
+        distribution_code: data.distribution_code || data.distributionCode || data.inviteCode || fakeUserInfo().distribution_code,
+        next_level_tips: data.next_level_tips || data.nextLevelTips || '立即开通'
+    }
+}
+
+function normalizeGenderForView(value) {
+    if (value === 1 || value === '1' || value === 'MALE' || value === 'male' || value === '男') return 1
+    if (value === 2 || value === '2' || value === 'FEMALE' || value === 'female' || value === '女') return 2
+    return 0
+}
+
+function normalizeGenderForApi(value) {
+    if (value === 1 || value === '1' || value === 'MALE' || value === 'male' || value === '男') return 'MALE'
+    if (value === 2 || value === '2' || value === 'FEMALE' || value === 'female' || value === '女') return 'FEMALE'
+    if (value === 0 || value === '0' || value === 'UNKNOWN' || value === 'unknown') return 'UNKNOWN'
+    return value
+}
+
+function assignIfPresent(target, keys, value) {
+    if (value === undefined || value === null || value === '') return
+    keys.forEach((key) => {
+        target[key] = value
+    })
+}
+
+function normalizeAddress(item = {}) {
+    return {
+        ...item,
+        id: item.id || item.addressId,
+        contact: item.contact || item.receiverName || item.receiver_name || '',
+        telephone: item.telephone || item.mobile || '',
+        province: item.province || item.provinceName || '',
+        city: item.city || item.cityName || '',
+        district: item.district || item.districtName || '',
+        address: item.address || item.detailAddress || item.detail_address || '',
+        is_default: item.is_default ?? item.isDefault ?? 0,
+        province_id: item.province_id || item.provinceCode || '',
+        city_id: item.city_id || item.cityCode || '',
+        district_id: item.district_id || item.districtCode || ''
+    }
+}
+
+function normalizeCoupon(item = {}) {
+    const threshold = item.thresholdAmount ?? item.threshold_amount ?? 0
+    return {
+        ...item,
+        id: item.id || item.couponId,
+        name: item.name || item.couponName || item.coupon_name || '',
+        money: item.money || item.amount || item.discountAmount || item.discountValue || 0,
+        use_condition: item.use_condition || item.useCondition || item.condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'),
+        use_time_tips: item.use_time_tips || [item.startTime, item.endTime].filter(Boolean).join(' 至 '),
+        coupon_type: item.coupon_type || item.couponType || '',
+        is_get: item.is_get || item.received || false
+    }
+}
+
+function unsupported(message) {
+    return Promise.resolve({ code: 0, msg: message, data: null })
+}
+
+function currentUserId(data = {}) {
+    const userInfo = Cache.get(USER_INFO) || {}
+    return data.userId || data.user_id || userInfo.userId || userInfo.user_id || userInfo.id
+}
+
+function normalizeFavoriteProduct(item = {}) {
+    const target = item.target || item.product || item.spu || item
+    return {
+        ...item,
+        ...target,
+        id: target.id || target.spuId || target.productId || item.targetId,
+        goods_id: target.goods_id || target.spuId || target.productId || target.id || item.targetId,
+        name: target.name || target.spuName || target.productName || target.title || item.targetName || '',
+        goods_name: target.goods_name || target.spuName || target.productName || target.title || item.targetName || '',
+        image: resolveImage(target.image || target.mainImageUrl || target.cover || target.imageUrl || item.targetImage, 'goods'),
+        price: target.price || target.salePrice || target.minPrice || item.price || 0,
+        market_price: target.market_price || target.marketPrice || target.originPrice || target.price || 0
+    }
+}
+
+function normalizeWallet(res = {}) {
+    const data = res.data || {}
+    return {
+        ...res,
+        data: {
+            balance: data.balance || data.user_money || 0,
+            frozenAmount: data.frozenAmount || 0,
+            withdrawableAmount: data.withdrawableAmount || data.balance || 0,
+            currency: data.currency || 'CNY',
+            user_money: data.balance || data.user_money || 0,
+            frozen_amount: data.frozenAmount || data.frozen_amount || 0,
+            withdrawable_amount: data.withdrawableAmount || data.withdrawable_amount || data.balance || 0,
+            open_racharge: data.open_racharge ?? 1,
+            ...data
+        }
+    }
+}
+
+function normalizeLedgerItem(item = {}) {
+    const amount = item.changeAmount ?? item.change_amount ?? item.amount ?? item.money ?? 0
+    const balance = item.balanceAfter ?? item.balance ?? item.left_amount ?? item.left_money ?? 0
+    return {
+        ...item,
+        id: item.id || item.ledgerId || item.flowId,
+        source_type: item.source_type || item.bizType || item.biz_type || item.type,
+        type_desc: item.type_desc || item.bizTypeName || item.bizType || item.title || item.desc,
+        change_amount: amount,
+        change_type: item.change_type || (Number(amount) >= 0 ? 1 : 2),
+        left_amount: balance,
+        left_money: balance,
+        create_time: item.create_time || item.createTime || item.txnTime || item.time,
+        change_time: item.change_time || item.createTime || item.txnTime || item.time
+    }
+}
+
+function normalizeMessageItem(item = {}) {
+    return {
+        ...item,
+        id: item.id || item.messageId,
+        type: item.type || item.bizType || item.channelType,
+        title: item.title || '',
+        content: item.content || '',
+        create_time: item.create_time || item.sendTime || '',
+        read_flag: item.read_flag ?? item.readFlag ?? false,
+        send_status: item.send_status || item.sendStatus || ''
+    }
+}
+
+function normalizePayPasswordResponse() {
+    return Promise.resolve({ code: 0 })
+}
+
+function findRegionCode(list, province, city, district) {
+    for (const p of list || []) {
+        if (p.label === province) {
+            const cityNode = (p.children || []).find((c) => c.label === city)
+            if (!cityNode) return {}
+            const districtNode = (cityNode.children || []).find((d) => d.label === district)
+            return {
+                province: p.value,
+                city: cityNode.value,
+                district: districtNode ? districtNode.value : ''
+            }
+        }
+        const result = findRegionCode(p.children || [], province, city, district)
+        if (result.province) return result
+    }
+    return {}
+}
+
 export function getUser() {
-    return request.get('user/center')
+    return request.get('miniapp/user/profile').then((res) => {
+        if (res.code == 1) {
+            return {
+                ...res,
+                data: normalizeUserProfile(res.data || {})
+            }
+        }
+        return res
+    })
 }
 
-//用户领取优惠券
 export function getCoupon(id) {
-    return request.post('coupon/getCoupon', { id })
+    return request.post(`miniapp/coupons/${id}/receive`, {
+        receiveScene: 'APP'
+    })
 }
 
-// 地址列表
 export function getAddressLists() {
-    return request.get('user_address/lists')
+    return request.get('miniapp/addresses').then((res) => {
+        if (res.code == 1) {
+            const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+            return {
+                ...res,
+                data: list.map(normalizeAddress)
+            }
+        }
+        return res
+    })
 }
 
-// 添加编辑地址
 export function editAddress(data) {
-    return request.post('user_address/update', data)
+    const id = data.id || data.addressId
+    return request.put(`miniapp/addresses/${id}`, {
+        receiverName: data.contact || data.receiverName,
+        mobile: data.telephone || data.mobile,
+        provinceCode: data.province_id || data.provinceCode,
+        cityCode: data.city_id || data.cityCode,
+        districtCode: data.district_id || data.districtCode,
+        detailAddress: data.address || data.detailAddress,
+        isDefault: data.is_default ? 1 : 0
+    })
 }
 
 export function addAddress(data) {
-    return request.post('user_address/add', data)
+    return request.post('miniapp/addresses', {
+        receiverName: data.contact || data.receiverName,
+        mobile: data.telephone || data.mobile,
+        provinceCode: data.province_id || data.provinceCode,
+        cityCode: data.city_id || data.cityCode,
+        districtCode: data.district_id || data.districtCode,
+        detailAddress: data.address || data.detailAddress,
+        isDefault: data.is_default ? 1 : 0
+    })
 }
 
-// 删除地址
 export function delAddress(id) {
-    return request.post('user_address/del', { id })
+    return request.delete(`miniapp/addresses/${id}`)
 }
 
-// 获取单个地址
 export function getOneAddress(id) {
-    return request.get('user_address/detail', { params: { id } })
+    return request.get(`miniapp/addresses/${id}`).then((res) => {
+        if (res.code == 1 && res.data) {
+            return {
+                ...res,
+                data: normalizeAddress(res.data)
+            }
+        }
+        return res
+    })
 }
 
-// 获取默认地址
-export function getDefaultAddress(id) {
-    return request.get('user_address/getDefault', { params: { id } })
+export function getDefaultAddress() {
+    return request.get('miniapp/addresses').then((res) => {
+        if (res.code == 1) {
+            const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+            const item = list.find((it) => it.isDefault || it.is_default)
+            return {
+                ...res,
+                data: item ? normalizeAddress(item) : {}
+            }
+        }
+        return res
+    })
 }
 
-// 设置默认地址
 export function setDefaultAddress(id) {
-    return request.post('user_address/setDefault', { id })
+    return request.put(`miniapp/addresses/${id}`, {
+        isDefault: 1
+    })
 }
 
-//传省市区字符串判读是否有code
 export function hasRegionCode(data) {
-    return request.post('user_address/handleRegion', data)
+    const result = findRegionCode(area, data.province, data.city, data.district)
+    return Promise.resolve({
+        code: 1,
+        data: result
+    })
 }
 
-//我的优惠券
 export function getMyCoupon(data) {
-    return request.get('coupon/myCoupon', {
-        params: data
+    return request.get('miniapp/coupons', {
+        params: {
+            status: data?.status ?? data?.type,
+            receiveStatus: data?.receiveStatus,
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 50
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        return {
+            ...res,
+            data: (res.data?.list || []).map(normalizeCoupon)
+        }
     })
 }
 
-// 获取商品的收藏列表
 export function getCollectGoods(data) {
-    return request.get('collect/getCollectGoods', {
-        params: data
+    return request.get('miniapp/favorites', {
+        params: {
+            userId: currentUserId(data),
+            targetType: 'PRODUCT',
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 10
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeFavoriteProduct) : res)
+}
+
+export function collectGoods(data) {
+    const isCollect = Number(data.is_collect ?? data.isCollect ?? 1) === 1
+    return request.post(isCollect ? 'miniapp/favorites' : 'miniapp/favorites/cancel', {
+        userId: currentUserId(data),
+        targetType: 'PRODUCT',
+        targetId: data.goods_id || data.spuId || data.productId || data.id
     })
 }
 
-// 商品的增添取消收藏
-export function collectGoods(data) {
-    return request.post('collect/handleCollectGoods', data)
-}
-
-//删除订单
 export function delOrder(id) {
-    return request.post('order/del', { id })
+    return cancelOrder(id)
 }
-//订单列表
+
 export function getOrderList(data) {
-    return request.get('order/lists', { params: data })
+    return request.get('miniapp/orders', {
+        params: {
+            status: data.status || data.type,
+            pageNo: data.pageNo || data.page_no || 1,
+            pageSize: data.pageSize || data.page_size || 10
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res) : res)
 }
-//订单详情
+
 export function getOrderDetail(id) {
-    return request.get('order/detail', { id })
+    return request.get(`miniapp/orders/${id}`)
 }
 
-//取消订单
 export function cancelOrder(id) {
-    return request.post('order/cancel', { id })
+    return request.post(`miniapp/orders/${id}/cancel`, {
+        reason: '用户取消',
+        idempotentKey: `cancel-order-${id}-${Date.now()}`
+    })
 }
 
-//物流
 export function orderTraces(id) {
-    return request.get('order/orderTraces', { params: { id } })
+    return request.get(`miniapp/orders/${id}`)
 }
 
-//确认收货
 export function confirmOrder(id) {
-    return request.post('order/confirm', { id })
+    return request.post(`miniapp/orders/${id}/confirm-receipt`, {
+        idempotentKey: `confirm-order-${id}-${Date.now()}`
+    })
 }
 
-// 充值模板
 export function rechargeTemplate() {
-    return request.get('recharge/rechargeTemplate')
+    return Promise.resolve({ code: 1, msg: '暂无推荐充值套餐', data: [] })
 }
 
-// 获取售后列表
 export function getAfterSaleList(params) {
-    return request.get('after_sale/lists', { params })
+    return request.get('miniapp/orders', { params }).then((res) => normalizePageResponse(res))
 }
 
-// 申请售后
 export function applyAfterSale(data) {
-    return request.post('after_sale/add', data)
+    const orderNo = data.orderNo || data.order_id || data.id
+    return request.post(`miniapp/orders/${orderNo}/refunds`, {
+        orderItemId: data.orderItemId || data.item_id,
+        refundType: data.refundType || data.refund_type,
+        refundReason: data.refundReason || data.reason,
+        refundRemark: data.refundRemark || data.remark,
+        proofImages: data.proofImages || (data.img ? [data.img] : []),
+        idempotentKey: data.idempotentKey || `refund-${orderNo}-${Date.now()}`
+    }).then((res) => {
+        if (res.code != 1) return res
+        return {
+            ...res,
+            msg: res.msg || '申请成功',
+            data: {
+                ...res.data,
+                after_sale_id: res.data?.refundNo || res.data?.refundId || res.data?.id
+            }
+        }
+    })
 }
 
-// 获取商品信息
 export function getGoodsInfo(params) {
-    return request.get('after_sale/goodsInfo', { params })
+    return request.get(`miniapp/orders/${params.order_id || params.orderNo || params.id}`).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const itemList = data.itemList || data.order_goods || data.goods_lists || []
+        const goods = itemList.find((item) => String(item.id || item.orderItemId || item.itemId || item.skuId) === String(params.item_id || params.itemId)) || itemList[0] || {}
+        const price = goods.realAmount || goods.totalAmount || goods.payAmount || goods.goods_price || goods.salePrice || 0
+        return {
+            ...res,
+            data: {
+                goods: {
+                    ...goods,
+                    id: goods.id || goods.orderItemId || goods.itemId,
+                    goods_name: goods.goods_name || goods.spuName || goods.productName || goods.skuName || goods.name,
+                    spec_value: goods.spec_value || goods.skuName || goods.specValue || '',
+                    image: resolveImage(goods.image || goods.imageUrl || goods.mainImageUrl || goods.cover, 'goods'),
+                    goods_num: goods.goods_num || goods.quantity || goods.num || 1,
+                    total_pay_price: price,
+                    refund_express_money: data.amountInfo?.freightAmount || 0
+                },
+                reason: ['商品质量问题', '拍错/多拍/不想要', '未按约定时间发货', '其他']
+            }
+        }
+    })
 }
 
-// 填写快递信息
 export function inputExpressInfo(data) {
-    return request.post('after_sale/express', data)
+    return unsupported('Backend refund express API is not available')
 }
 
-// 撤销申请
 export function cancelApply(data) {
-    return request.post('after_sale/cancel', data)
+    return unsupported('Backend refund cancel API is not available')
 }
 
-// 售后详情
 export function afterSaleDetail(params) {
-    return request.get('after_sale/detail', { params })
+    return request.get('miniapp/orders/' + (params.orderNo || params.order_id || params.id), {
+        params
+    })
 }
 
-// 重新申请
 export function applyAgain(data) {
-    return request.post('after_sale/again', data)
+    return applyAfterSale({
+        ...data,
+        orderNo: data.orderNo || data.order_id || data.id
+    })
 }
 
-// 账户明细 积分明细
 export function getAccountLog(params) {
-    return request.get('user/accountLog', { params })
+    return request.get('miniapp/wallet/ledger', {
+        params: {
+            bizType: params?.bizType || params?.source || params?.type,
+            startTime: params?.startTime,
+            endTime: params?.endTime,
+            pageNo: params?.pageNo || params?.page_no || 1,
+            pageSize: params?.pageSize || params?.page_size || 10
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLedgerItem) : res)
 }
 
-//充值
 export function recharge(data) {
-    return request.post('recharge/recharge', data)
+    return request.post('miniapp/wallet/recharge/gift-card', {
+        cardNo: data.cardNo || data.card_no || data.id || '',
+        cardSecret: data.cardSecret || data.card_secret || '',
+        idempotentKey: data.idempotentKey || `recharge-${Date.now()}`
+    }).then((res) => {
+        if (res.code != 1) return res
+        return {
+            ...res,
+            msg: res.msg || '充值成功',
+            data: {
+                ...res.data,
+                give_integral: res.data?.give_integral || 0,
+                give_growth: res.data?.give_growth || 0,
+                money: res.data?.rechargeAmount || res.data?.money || 0,
+                balanceAfter: res.data?.balanceAfter || res.data?.balance_after || 0
+            }
+        }
+    })
 }
 
 export function getRechargeRecord(params) {
-    return request.get('recharge/rechargeRecord', { params })
+    return getAccountLog(params)
 }
 
-// 填写邀请码
 export function inputInviteCode(data) {
-    return request.post('distribution/code', data)
+    return request.get('miniapp/alliance/card', {
+        params: {
+            inviteCode: data.invite_code || data.inviteCode || data.code
+        }
+    }).then((res) => res.code == 1 ? { ...res, msg: res.msg || '绑定成功' } : res)
 }
 
-// 分销会员申请
 export function applyVip(data) {
-    return request.post('distribution/apple', data)
+    return applyMerchantQualification(data)
 }
 
-// 分销入口验证
 export function veryfiyDistribute() {
-    return request.post('distribution/check')
+    return getMerchantQualificationStatus()
 }
 
-// 最新分销会员申请详情
 export function applyVipDetail() {
-    return request.post('distribution/appledetail')
+    return getMerchantQualificationStatus()
 }
 
-// 邀请人信息
 export function getInviteInfo() {
-    return request.get('distribution/myleader')
+    return request.get('miniapp/alliance/card').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                code: data.allianceCode || data.code,
+                invite_code: data.allianceCode || data.code,
+                share_url: data.shareUrl,
+                order_count: data.summary?.orderCount || 0,
+                total_commission: data.summary?.totalCommission || 0
+            }
+        }
+    })
 }
 
-// 获取评价信息
 export function getCommentInfo(data) {
-    return request.get('goods_comment/getGoods', { params: data })
+    return request.get('miniapp/product/' + (data.goods_id || data.id), { params: data })
 }
 
-// 分销主页
 export function getPromoteHome() {
-    return request.get('distribution/index')
+    return request.get('miniapp/user/profile')
 }
 
-// 分销订单列表
 export function getPromoteOrder(data) {
-    return request.get('distribution/order', { params: data })
+    return request.get('miniapp/orders', { params: data })
 }
 
-//商品评价
 export function goodsComment(data) {
-    return request.post('goods_comment/addGoodsComment', data)
+    return request.post('miniapp/product/comments', {
+        userId: currentUserId(data),
+        orderItemId: data.orderItemId || data.order_item_id || data.item_id || data.id,
+        score: data.score || data.goods_comment || data.goodsComment || 5,
+        content: data.content || data.comment || '',
+        imageUrls: data.imageUrls || data.image_urls || data.image || [],
+        anonymousFlag: data.anonymousFlag ?? data.anonymous_flag ?? false
+    })
 }
 
-// 获取个人详情
 export function getUserInfo() {
-    return request.get('user/info')
+    return getUser()
 }
 
-// 设置个人信息
+function buildUserProfilePayload(data = {}) {
+    const payload = {}
+    if (data.field) {
+        if (data.field === 'nickname') assignIfPresent(payload, ['nickname', 'nickName', 'userName'], data.value)
+        if (data.field === 'avatar') assignIfPresent(payload, ['avatarUrl', 'avatar', 'headimgurl'], data.value)
+        if (data.field === 'sex') assignIfPresent(payload, ['gender', 'sex'], normalizeGenderForApi(data.value))
+        if (data.field === 'mobile') assignIfPresent(payload, ['mobile', 'phone'], data.value)
+        return payload
+    }
+    assignIfPresent(payload, ['nickname', 'nickName', 'userName'], data.nickname || data.nickName || data.name || data.userName)
+    assignIfPresent(payload, ['avatarUrl', 'avatar', 'headimgurl'], data.avatarUrl || data.avatar || data.headimgurl)
+    if (data.gender !== undefined || data.sex !== undefined) {
+        assignIfPresent(payload, ['gender', 'sex'], normalizeGenderForApi(data.gender ?? data.sex))
+    }
+    assignIfPresent(payload, ['birthday'], data.birthday)
+    assignIfPresent(payload, ['regionCode', 'region_code'], data.regionCode || data.region_code)
+    assignIfPresent(payload, ['bio'], data.bio)
+    assignIfPresent(payload, ['mobile', 'phone'], data.mobile || data.phone)
+    assignIfPresent(payload, ['realName', 'real_name'], data.realName || data.real_name)
+    return payload
+}
+
 export function setUserInfo(data) {
-    return request.post('user/setInfo', data)
+    const payload = buildUserProfilePayload(data || {})
+    return request.put('miniapp/user/profile', payload)
+        .then((res) => res.code == 1 ? { ...res, data: normalizeUserProfile(res.data || payload), msg: res.msg || '保存成功' } : res)
 }
 
-// 更换手机号
 export function changeUserMobile(data) {
-    // #ifdef MP-WEIXIN
-    return request.post('user/getMobile', data)
-    // #endif
-    // #ifdef H5 || APP-PLUS
-    return request.post('user/changeMobile', { ...data, client })
-    // #endif
+    const payload = {
+        ...data,
+        mobile: data.new_mobile || data.mobile || data.phone,
+        smsCode: data.smsCode || data.code,
+        code: data.code,
+        encryptedData: data.encryptedData || data.encrypted_data,
+        encrypted_data: data.encrypted_data || data.encryptedData,
+        iv: data.iv
+    }
+    return request.post('miniapp/auth/bind-mobile', payload)
 }
 
-//会员中心
 export function getLevelList() {
-    return request.get('user_level/lists')
+    return request.get('miniapp/points/account').then((res) => {
+        if (res.code != 1) return res
+        return {
+            ...res,
+            data: [
+                {
+                    id: 1,
+                    name: '普通会员',
+                    growth: res.data?.totalPoints || 0,
+                    current: true
+                }
+            ]
+        }
+    })
 }
-// 我的粉丝
+
 export function getUserFans(data) {
-    return request.get('user/fans', { params: data })
+    return request.get('miniapp/alliance/orders', {
+        params: {
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res) : res)
 }
 
-// 佣金提现
 export function applyWithdraw(data) {
-    return request.post('withdraw/apply', data)
+    return request.post('miniapp/wallet/withdraw/apply', {
+        amount: data.amount || data.money,
+        accountType: data.accountType || data.type,
+        accountNo: data.accountNo || data.account,
+        accountName: data.accountName || data.real_name || data.realName,
+        qrCodeUrl: data.qrCodeUrl || data.money_qr_code,
+        remark: data.remark,
+        bankName: data.bankName || data.bank,
+        branchName: data.branchName || data.subbank,
+        idempotentKey: data.idempotentKey || `withdraw-${Date.now()}`
+    })
 }
 
-// 提现记录列表
 export function getWithdrawRecords(params) {
-    return request.get('withdraw/records', { params })
+    return getAccountLog(params)
 }
 
-// 提现详情
 export function getWithdrawDetail(params) {
-    return request.get('withdraw/info', { params })
+    return getAccountLog(params)
 }
 
-// 提现页信息
 export function getWithdrawConfig() {
-    return request.get('withdraw/config')
+    return request.get('miniapp/wallet/balance').then(normalizeWallet)
 }
 
-// 月度账单
 export function getMonthBill(params) {
-    return request.get('distribution/monthbill', { params })
+    return getAccountLog(params)
 }
 
-// 月度账单明细
 export function getMonthOrderDetail(params) {
-    return request.get('distribution/monthDetail', { params })
+    return getAccountLog(params)
 }
 
-// 邀请海报
 export function getInviteBanner(data) {
-    return request.get('share/userPoster', { params: data })
+    return request.get('miniapp/eco-applications').then((res) => {
+        if (res.code != 1) return res
+        return { ...res, data: res.data?.list || [] }
+    })
 }
 
-// 用户钱包
 export function getWallet() {
-    return request.get('user/myWallet')
+    return request.get('miniapp/wallet/balance').then(normalizeWallet)
 }
 
-// 获取签到列表
+export function submitFeedback(data = {}) {
+    return request.post('miniapp/feedback', {
+        feedbackType: data.feedbackType || data.feedback_type || data.type || 'OTHER',
+        content: data.content || '',
+        contactInfo: data.contactInfo || data.contact_info || data.contact || ''
+    })
+}
+
+export function scanOfflinePayment(data) {
+    return request.post('miniapp/offline-payments/scan', {
+        shopId: data.shopId || data.shop_id,
+        qrCode: data.qrCode || data.qr_code || data.code,
+        amount: data.amount || data.money,
+        payMethod: data.payMethod || data.pay_way || 'BALANCE',
+        idempotentKey: data.idempotentKey || `offline-pay-${Date.now()}`
+    })
+}
+
+export function getPointsAccount() {
+    return request.get('miniapp/points/account').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                available_points: data.availablePoints || data.available_points || 0,
+                frozen_points: data.frozenPoints || data.frozen_points || 0,
+                total_points: data.totalPoints || data.total_points || 0
+            }
+        }
+    })
+}
+
+export function setAutoReceivePoints(data) {
+    return request.post('miniapp/points/settings/auto-receive', {
+        autoReceiveFlag: data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true
+    })
+}
+
+export function submitKyc(data) {
+    return request.post('miniapp/kyc/submit', {
+        realName: data.realName || data.real_name,
+        certType: data.certType || data.cert_type || 'ID_CARD',
+        certNo: data.certNo || data.cert_no,
+        certFrontUrl: data.certFrontUrl || data.cert_front_url || data.front,
+        certBackUrl: data.certBackUrl || data.cert_back_url || data.back,
+        requestNo: data.requestNo || data.request_no || `kyc-${Date.now()}`
+    })
+}
+
+export function getKycStatus() {
+    return request.get('miniapp/kyc/status').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                kyc_status: data.kycStatus || data.kyc_status,
+                audit_message: data.auditMessage || data.audit_message,
+                reject_reason_code: data.rejectReasonCode || data.reject_reason_code,
+                reject_reason_message: data.rejectReasonMessage || data.reject_reason_message,
+                last_submit_time: data.lastSubmitTime || data.last_submit_time
+            }
+        }
+    })
+}
+
+function normalizeMerchantQualification(data = {}) {
+    return {
+        ...data,
+        merchant_id: data.merchantId || data.merchant_id,
+        merchant_no: data.merchantNo || data.merchant_no,
+        merchant_name: data.merchantName || data.merchant_name,
+        merchant_type: data.merchantType || data.merchant_type,
+        contact_mobile: data.contactMobile || data.contact_mobile,
+        legal_person: data.legalPerson || data.legal_person,
+        settlement_account_no: data.settlementAccountNo || data.settlement_account_no,
+        qualification_type: data.qualificationType || data.qualification_type,
+        qualification_no: data.qualificationNo || data.qualification_no,
+        qualification_url: data.qualificationUrl || data.qualification_url,
+        audit_status: data.auditStatus || data.audit_status,
+        audit_remark: data.auditRemark || data.audit_remark,
+        updated_at: data.updatedAt || data.updated_at
+    }
+}
+
+export function applyMerchantQualification(data = {}) {
+    return request.post('miniapp/eco-applications/merchant-qualification/apply', {
+        userId: data.userId || data.user_id,
+        merchantName: data.merchantName || data.merchant_name,
+        merchantType: data.merchantType || data.merchant_type || 'PERSONAL',
+        contactMobile: data.contactMobile || data.contact_mobile || data.mobile,
+        legalPerson: data.legalPerson || data.legal_person,
+        settlementAccountNo: data.settlementAccountNo || data.settlement_account_no || data.email,
+        qualificationType: data.qualificationType || data.qualification_type || 'BUSINESS_LICENSE',
+        qualificationNo: data.qualificationNo || data.qualification_no,
+        qualificationUrl: data.qualificationUrl || data.qualification_url,
+        remark: data.remark
+    }).then((res) => {
+        if (res.code != 1 || !res.data) return res
+        return {
+            ...res,
+            data: normalizeMerchantQualification(res.data)
+        }
+    })
+}
+
+export function getMerchantQualificationStatus(params = {}) {
+    return request.get('miniapp/eco-applications/merchant-qualification/status', {
+        params: {
+            userId: params.userId || params.user_id
+        }
+    }).then((res) => {
+        if (res.code != 1 || !res.data) return res
+        return {
+            ...res,
+            data: normalizeMerchantQualification(res.data)
+        }
+    })
+}
+
+export function getMessages(params = {}) {
+    return request.get('miniapp/messages', {
+        params: {
+            userId: params.userId || params.user_id,
+            bizType: params.bizType || params.type,
+            keyword: params.keyword,
+            pageNo: params.pageNo || params.page_no || 1,
+            pageSize: params.pageSize || params.page_size || 10,
+            readFlag: params.readFlag ?? params.read_flag
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeMessageItem) : res)
+}
+
+export function getMessageDetail(messageId, params = {}) {
+    return request.get(`miniapp/messages/${messageId}`, {
+        params: {
+            userId: params.userId || params.user_id
+        }
+    }).then((res) => {
+        if (res.code != 1 || !res.data) return res
+        return { ...res, data: normalizeMessageItem(res.data) }
+    })
+}
+
+export function readMessage(messageId, params = {}) {
+    return request.post(`miniapp/messages/${messageId}/read?userId=${params.userId || params.user_id || ''}`)
+}
+
 export function getSignList() {
-    return request.get('sign/lists')
+    return Promise.all([getPointsAccount(), getUser()]).then(([pointsRes, userRes]) => {
+        if (pointsRes.code != 1) return pointsRes
+        const points = pointsRes.data || {}
+        const user = userRes.code == 1 ? userRes.data || {} : {}
+        const signList = Array.from({ length: 7 }, (_, index) => ({
+            days: index + 1,
+            integral: index + 1,
+            status: 0
+        }))
+        return {
+            ...pointsRes,
+            data: {
+                ...points,
+                sign_list: signList,
+                list: signList,
+                user: {
+                    ...user,
+                    user_integral: points.available_points || points.availablePoints || points.total_points || 0,
+                    avatar: user.avatar || '',
+                    today_sign: 0,
+                    days: 0
+                },
+                make_inegral: []
+            }
+        }
+    })
 }
 
-// 签到
 export function userSign() {
-    return request.get('sign/sign')
+    return unsupported('后端暂未提供签到接口')
 }
 
-// 获取签到规则
 export function getSignRule() {
-    return request.get('sign/rule')
+    return request.get('miniapp/points/account')
 }
 
-// 退出登录
 export function userLogout(data) {
-    return request.post('account/logout', data)
+    Cache.remove(USER_INFO)
+    return Promise.resolve({ code: 1, msg: 'logout', data })
 }
 
-// 获取抽奖配置
 export function getPrize(data) {
-    return request.get('Luckdraw/prize', {
-        params: data
-    })
+    return unsupported('后端暂未提供抽奖奖品接口')
 }
 
-// 抽奖记录
 export function getUserRecord(data) {
-    return request.get('Luckdraw/record', {
-        params: data
-    })
+    return request.get('miniapp/messages', {
+        params: {
+            bizType: data?.bizType || 'LOTTERY',
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeMessageItem) : res)
 }
 
-// 抽奖
 export function userLottery(data) {
-    return request.get('Luckdraw/draw', {
-        params: data
-    })
+    return unsupported('后端暂未提供抽奖接口')
 }
 
-// 中奖名单
 export function luckyDrawWinningList(data) {
-    return request.get('Luckdraw/winList', {
-        params: data
-    })
+    return request.get('miniapp/messages', {
+        params: {
+            bizType: data?.bizType || 'LOTTERY',
+            pageNo: data?.pageNo || data?.page_no || 1,
+            pageSize: data?.pageSize || data?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeMessageItem) : res)
 }
-
-//更新微信信息
 
 export function setWechatInfo(data) {
-    return request.post('user/setWechatInfo', data)
+    return setUserInfo(data)
 }
 
-//设置交易密码
 export function setPassword(data) {
-    return request.post('user/setPayPassword', data)
+    return unsupported('后端暂未提供支付密码设置接口')
 }
-//修改支付密码
+
 export function changePayPassword(data) {
-    return request.post('user/changePayPassword', data)
+    return unsupported('后端暂未提供支付密码修改接口')
 }
-//判断是否设置交易密码
+
 export function hasPayPassword() {
-    return request.get('user/hasPayPassword')
+    return normalizePayPasswordResponse()
 }
 
-//会员转账
 export function transfer(data) {
-    return request.post('user/transfer', data)
+    return unsupported('后端暂未提供余额转账接口')
 }
 
-//最近转账会员
 export function getTransferRecent() {
-    return request.get('user/transferRecent')
+    return request.get('miniapp/wallet/ledger', {
+        params: {
+            bizType: 'TRANSFER',
+            pageNo: 1,
+            pageSize: 5
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        const normalized = normalizePageResponse(res, normalizeLedgerItem)
+        return {
+            ...normalized,
+            data: normalized.data.list.map((item) => ({
+                ...item,
+                sn: item.targetUserNo || item.target_user_no || item.sn || item.bizOrderNo || '',
+                nickname: item.targetNickname || item.target_nickname || item.nickname || item.type_desc || '转账用户',
+                avatar: resolveImage(item.targetAvatar || item.target_avatar || item.avatar, 'avatar')
+            }))
+        }
+    })
 }
 
-//会员转账记录
 export function transferRecord(params) {
-    return request.get('user/transferRecord', { params })
+    return request.get('miniapp/wallet/ledger', {
+        params: {
+            bizType: params?.bizType || params?.type || 'TRANSFER',
+            pageNo: params?.pageNo || params?.page_no || 1,
+            pageSize: params?.pageSize || params?.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLedgerItem) : res)
 }
 
-//发送验证码
 export function send(data) {
-    return request.post('user/send', data)
+    return unsupported('Backend SMS API is not available')
 }
 
-// 找回密码
 export function retrievePayPassword(data) {
-    return request.post('user/retrievePayPassword', data)
+    return unsupported('后端暂未提供找回支付密码接口')
 }
 
-//获取会员信息
 export function transferToInfo(params) {
-    return request.get('user/transferToInfo', { params })
+    return unsupported('后端暂未提供转账收款人查询接口')
 }
 
-// 获取微信小程序码-生成海报需使用
 export function apiDistributionPoster() {
-    return request.get('distribution/getPoster')
+    return unsupported('Backend distribution poster API is not available')
 }
 
-// 资质信息
 export function getCopyright() {
-    return request.get('index/copyright')
+    return request.get('miniapp/content-pages/copyright')
 }
 
-// 绑定微信
 export function bindOawechat(data) {
-    return request.post('account/oaAuthLogin', data)
+    return unsupported('Backend official-account binding API is not available')
 }

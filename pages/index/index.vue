@@ -1,841 +1,831 @@
 <template>
-    <view class="index home-bg" :style="[navBackground]">
-        <!-- #ifdef H5 -->
-        <download-nav v-if="isShowDownload"></download-nav>
-        <!-- #endif -->
-        <u-sticky offset-top="0" h5-nav-height="0" bg-color="transparent" :enable="enable">
-            <u-navbar
-                :border-bottom="false"
-                :is-fixed="false"
-                custom-class="home-bg"
-                :background="navBackground"
-                :is-back="false"
-            >
-                <view class="row logo-wrap flex1" v-show="navBg < 1 && showLogo">
-                    <image :src="logo" mode="heightFix" class="logo ml30"></image>
-                </view>
-                <view class="flex1 row nav-search" v-show="navSearch">
-                    <navigator
-                        hover-class="none"
-                        @click="goPage('/bundle/pages/message_center/message_center')"
-                    >
-                        <image class="icon-md ml30" src="/static/images/icon_news.png"> </image>
-                    </navigator>
-                    <navigator
-                        class="ml20 flex1 mr20"
-                        hover-class="none"
-                        url="/pages/goods_search/goods_search"
-                    >
-                        <u-search
-                            wrap-bg-color="transparent"
-                            :bg-color="'#fff'"
-                            :disabled="true"
-                            :height="62"
-                        >
-                        </u-search>
-                    </navigator>
-                </view>
-            </u-navbar>
-        </u-sticky>
-        <view class="flex1 row" v-if="showLogo">
-            <navigator
-                hover-class="none"
-                @tap="goPage('/bundle/pages/message_center/message_center')"
-            >
-                <image class="icon-md ml30" src="/static/images/icon_news.png"> </image>
-            </navigator>
-            <navigator
-                class="ml20 flex1 mr20"
-                hover-class="none"
-                url="/pages/goods_search/goods_search"
-            >
-                <u-search
-                    wrap-bg-color="transparent"
-                    :bg-color="'#fff'"
-                    :disabled="true"
-                    :height="62"
-                ></u-search>
+    <view class="home-page">
+        <view class="home-hero">
+            <view class="home-copy">
+                <view class="home-hi">Hi~</view>
+                <view class="home-title">欢迎加入{{ userName }}</view>
+            </view>
+            <image class="home-hero__image" :src="designAssets.homeHeroFigure" mode="aspectFit"></image>
+
+            <navigator class="home-search" hover-class="none" url="/bundle/pages/goods_search/goods_search">
+                <text class="home-search__placeholder">输入关键词</text>
+                <u-icon name="search" size="48" color="#222222"></u-icon>
             </navigator>
         </view>
-        <view class="contain">
-            <view class="main">
-                <bubble-tips top="50rpx" :discharge="isDischarge"></bubble-tips>
-                <swipers :pid="1" height="322rpx" padding="20rpx 0"></swipers>
-                <!-- 导航入口 -->
-                <view class="nav bg-white" v-if="navList.length">
-                    <swiper :style="'height:' + navSwiperH + 'rpx;'" @change="swiperChange">
-                        <swiper-item v-for="(items, index) in navList" :key="index">
-                            <view class="nav-list row wrap">
-                                <view
-                                    v-for="(item, index2) in items"
-                                    :key="index2"
-                                    @tap="tapMenu(item)"
-                                    class="nav-item column-center"
-                                >
-                                    <image class="nav-icon" :src="item.image"></image>
-                                    <view class="name xs">{{ item.name }}</view>
-                                </view>
-                            </view>
-                        </swiper-item>
-                    </swiper>
-                    <view class="dots" v-if="navList.length > 1">
-                        <view
-                            v-for="(item, index) in navList"
-                            :key="index"
-                            :class="'dot ' + (index == currentSwiper ? 'active' : '')"
-                        ></view>
-                    </view>
-                </view>
-                <!-- 资讯 -->
-                <navigator
-                    v-if="news.length"
-                    class="information bg-white row mt20"
-                    hover-class="none"
-                    open-type="navigate"
-                    url="/pages/news_list/news_list"
-                >
-                    <image class="icon-toutiao" src="/static/images/icon_toutiao.png"></image>
-                    <text class="gap-line"></text>
-                    <view class="news flex1">
-                        <view class="shade"></view>
-                        <swiper
-                            autoplay="true"
-                            style="height: 76rpx; flex: 1"
-                            vertical="true"
-                            circular="true"
-                            :interval="3000"
-                        >
-                            <swiper-item v-for="(item, index) in news" :key="index" class="row">
-                                <view class="flexnone">
-                                    <u-tag
-                                        v-if="item.is_new"
-                                        shape="circle"
-                                        text="最新"
-                                        size="mini"
-                                        type="primary"
-                                        mode="plain"
-                                    />
-                                </view>
-                                <view class="text-swiper ml10 line1">{{ item.title }}</view>
-                            </swiper-item>
-                        </swiper>
-                    </view>
-                    <image class="icon-sm ml20" src="/static/images/arrow_right.png" />
+
+        <view class="home-content">
+            <view class="feature-grid">
+                <navigator class="balance-card" hover-class="none" url="/bundle/pages/user_wallet/user_wallet">
+                    <view class="feature-label">我的余额</view>
+                    <view class="balance-amount">¥{{ walletBalanceText }}</view>
+                    <image class="balance-image" :src="designAssets.homeBalanceBill" mode="aspectFit"></image>
                 </navigator>
-                <!-- 领卷 -->
-                <swipers :is-swiper="false" :pid="23" height="170rpx" padding="20rpx 0 0"></swipers>
-                <!-- 活动专区 -->
-                <view class="special-area mt20">
-                    <view>
-                        <scroll-view style="white-space: nowrap" :scroll-x="true">
-                            <navigator
-                                class="item bg-white"
-                                v-for="(item, index) in activityArea"
-                                :key="index"
-                                hover-class="none"
-                                :url="`/bundle/pages/activity_detail/activity_detail?id=${item.id}&name=${item.title}&title=${item.name}`"
-                            >
-                                <view class="column-center">
-                                    <custom-image
-                                        width="300rpx"
-                                        height="436rpx"
-                                        :src="item.image"
-                                    ></custom-image>
-                                    <!-- <view class="title xxl">{{item.name}}</view>
-									<view class="desc primary xxs line1">{{item.title}}</view> -->
-                                </view>
-                            </navigator>
-                        </scroll-view>
-                    </view>
-                </view>
-                <!-- 秒杀 -->
-                <view class="seckill mt20" v-if="seckillGoods.length">
-                    <active-area type="seckill" progressBarColor="#FF2C3C" :lists="seckillGoods">
-                        <navigator
-                            slot="header"
-                            hover-class="none"
-                            class="row activity-header white"
-                            open-type="navigate"
-                            url="/bundle/pages/goods_seckill/goods_seckill"
-                        >
-                            <view class="title xxl bold">超值秒杀</view>
-                            <view class="row flex1">
-                                <text class="white xs ml10 line1"
-                                    >{{ seckill.start_time }}点场</text
-                                >
-                                <view class="dec ml20 row-center mr20 br60">
-                                    <u-count-down
-                                        :timestamp="remainTime"
-                                        separator-color="#FF2C3C"
-                                        color="#FF2C3C"
-                                        :separator-size="24"
-                                        :font-size="24"
-                                        bg-color="transparent"
-                                    ></u-count-down>
-                                </view>
-                            </view>
-                            <view class="row xs">
-                                更多
-                                <u-icon name="arrow-right" size="28"></u-icon>
-                            </view>
-                        </navigator>
-                    </active-area>
-                </view>
-                <!-- 热销 -->
-                <view class="hot mt20" v-if="hotGoods.length && seting.hots">
-                    <active-area type="hot" progressBarColor="#9912FE" :lists="hotGoods">
-                        <navigator
-                            slot="header"
-                            hover-class="none"
-                            class="row activity-header"
-                            open-type="navigate"
-                            url="/bundle/pages/hot_list/hot_list"
-                        >
-                            <view class="title flex1">
-                                <image
-                                    class="title-image"
-                                    src="/static/images/hot_title.png"
-                                ></image>
-                            </view>
-                            <view class="row xs">
-                                更多
-                                <u-icon name="arrow-right" size="28"></u-icon>
-                            </view>
-                        </navigator>
-                    </active-area>
-                </view>
-                <!-- 新品推荐 -->
-                <view v-if="newGoods.length && seting.news" class="new-goods">
-                    <active-area type="news" progressBarColor="#9912FE" :lists="newGoods">
-                        <navigator
-                            slot="header"
-                            hover-class="none"
-                            class="row activity-header"
-                            open-type="navigate"
-                            url=""
-                        >
-                            <view class="title flex1">
-                                <image
-                                    class="title-image"
-                                    src="/static/images/new_title.png"
-                                ></image>
-                            </view>
-                            <!-- 	<view class="row xs">
-								更多
-								<u-icon name="arrow-right" size="28"></u-icon>
-							</view> -->
-                        </navigator>
-                    </active-area>
-                </view>
-            </view>
-            <!-- 好物优选 -->
-            <view class="goods mt20" v-if="goodsList.length">
-                <view class="goods-title row-center">
-                    <text class="line"></text>
-                    <view class="row">
-                        <image class="mr10 icon" src="/static/images/icon_like.png"></image>
-                        <text class="bold xxl">好物优选</text>
-                    </view>
-                    <text class="line"></text>
-                </view>
-                <goods-list :list="goodsList"></goods-list>
-                <loading-footer :status="status"></loading-footer>
-            </view>
-        </view>
 
-        <u-popup class="coupons-popup" v-model="showCoupop" mode="center">
-            <view class="wrap">
-                <image class="coupon-bg" src="/static/images/home_coupon_bg.png"></image>
-                <scroll-view :scroll-y="true" style="height: 460rpx; margin-top: 300rpx">
-                    <view class="item" v-for="(item, index) in couponPopList" :key="item.id">
-                        <image class="img" src="/static/images/pop_bg_coupon.png"></image>
-                        <view class="row item-con">
-                            <view class="row-center price">
-                                <price-format
-                                    color="#FF2C3C"
-                                    :showSubscript="true"
-                                    :subscriptSize="32"
-                                    :first-size="56"
-                                    :second-size="40"
-                                    :price="item.money"
-                                />
-                            </view>
-                            <view class="ml20 mr20">
-                                <view class="bold md lighter">{{ item.name }}</view>
-                                <view class="xs muted mt10">{{ item.use_goods_type }}</view>
-                            </view>
+                <view class="feature-stack">
+                    <view class="feature-card" @tap="openBusinessPage(businessRoutes.pages.notice)">
+                        <view>
+                            <view class="feature-title">扫一扫</view>
+                            <view class="feature-desc">辅助文案填充</view>
                         </view>
+                        <image class="feature-icon" :src="designAssets.homeNoticeIcon" mode="aspectFit"></image>
                     </view>
-                </scroll-view>
+                    <view class="feature-card" @tap="openBusinessPage(businessRoutes.pages.ecoApp)">
+                        <view>
+                            <view class="feature-title">生态应用</view>
+                            <view class="feature-desc">辅助文案填充</view>
+                        </view>
+                        <image class="feature-icon" :src="designAssets.homeEcologyIcon" mode="aspectFit"></image>
+                    </view>
+                </view>
             </view>
-            <view class="white row-center bg-primary lg btn br60" @click="showCoupop = false"
-                >立即领取</view
-            >
-        </u-popup>
-        <!-- #ifdef APP-PLUS -->
-        <lyg-popup
-            v-if="appConfig.app_agreement"
-            title="用户使用及隐私保护政策提示"
-            protocolPath="/bundle/pages/server_explan/server_explan?type=0"
-            policyPath="/bundle/pages/server_explan/server_explan?type=1"
-            policyStorageKey="has_read_privacy"
-        >
-        </lyg-popup>
-        <!-- #endif -->
-        <!-- #ifdef MP-WEIXIN -->
-        <!-- 用户隐私协议弹框 -->
-        <privacy-popup v-model="showPrivacyPopup"></privacy-popup>
-        <!-- #endif -->
 
-        <!-- 无网络提示 -->
-        <u-no-network z-index="1200" @retry="handleRetry"></u-no-network>
+            <view class="banner-wrap" v-if="bannerList.length">
+                <swiper class="banner-swiper" autoplay circular :interval="3000" :duration="300" indicator-dots indicator-color="rgba(255,255,255,.45)" indicator-active-color="#ffffff">
+                    <swiper-item v-for="(item, index) in bannerList" :key="index">
+                        <image class="banner-image" :src="item.image" mode="aspectFill" @tap="handleBannerTap(item)"></image>
+                    </swiper-item>
+                </swiper>
+            </view>
 
-        <u-back-top
-            :scroll-top="scrollTop"
-            :top="1000"
-            :customStyle="{
-                backgroundColor: '#FFF',
-                color: '#000',
-                boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.1)'
-            }"
-        ></u-back-top>
+            <view class="quick-strip">
+                <view
+                    v-for="(item, index) in shortcutList"
+                    :key="index"
+                    class="quick-item"
+                    @tap="openShortcut(item)"
+                >
+                    <view v-if="isEmptyImage(item.image)" class="quick-image image-placeholder">无</view>
+                    <image v-else class="quick-image" :src="displayImage(item.image)" mode="aspectFill"></image>
+                    <view class="quick-name line1">{{ item.name }}</view>
+                </view>
+                <view class="quick-item quick-more" @tap="switchTab('/pages/sort/sort')">
+                    <image class="quick-more__icon" :src="designAssets.homeMoreIcon" mode="aspectFit"></image>
+                    <view class="quick-name is-blue">全部</view>
+                </view>
+            </view>
+
+            <view class="section-title" v-if="recentVisitList.length">最近访问</view>
+            <scroll-view v-if="recentVisitList.length" class="recent-scroll" scroll-x>
+                <view class="recent-list">
+                    <view v-for="(item, index) in recentVisitList" :key="index" class="recent-card" @tap="handleVisitTap(item)">
+                        <view v-if="isEmptyImage(item.cover)" class="recent-card__image image-placeholder">无</view>
+                        <image v-else class="recent-card__image" :src="displayImage(item.cover)" mode="aspectFill"></image>
+                        <view class="recent-card__title line1">{{ item.title || item.name || '最近访问' }}</view>
+                    </view>
+                </view>
+            </scroll-view>
+
+            <view class="section-title" v-if="hotActivityList.length">热门活动</view>
+            <view v-if="hotActivityList.length" class="activity-list">
+                <view v-for="(item, index) in hotActivityList" :key="index" class="activity-card" @tap="handleActivityTap(item)">
+                    <view class="activity-card__title line1">{{ item.title || item.name || '热门活动' }}</view>
+                    <view class="activity-card__desc line2">{{ item.desc || item.subTitle || '活动内容待补充' }}</view>
+                    <view v-if="isEmptyImage(item.cover)" class="activity-card__image image-placeholder">无</view>
+                    <image v-else class="activity-card__image" :src="displayImage(item.cover)" mode="aspectFill"></image>
+                </view>
+            </view>
+
+            <view class="section-title" v-if="recommendedProductList.length">推荐商品</view>
+            <view v-if="recommendedProductList.length" class="goods-grid">
+                <navigator
+                    v-for="(item, index) in recommendedProductList"
+                    :key="index"
+                    class="goods-card"
+                    hover-class="none"
+                    :url="'/bundle/pages/goods_details/goods_details?id=' + (item.id || item.goods_id)"
+                >
+                    <view v-if="isEmptyImage(item.image || item.goods_image)" class="goods-card__image image-placeholder">无</view>
+                    <image v-else class="goods-card__image" :src="displayImage(item.image || item.goods_image, 'goods')" mode="aspectFill"></image>
+                    <view class="goods-card__name line2">{{ item.name }}</view>
+                    <view class="goods-card__price">¥{{ item.price || 0 }}</view>
+                </navigator>
+            </view>
+
+            <view class="section-title" v-if="recommendedShopList.length">推荐门店</view>
+            <view v-if="recommendedShopList.length" class="shop-list">
+                <view
+                    v-for="(item, index) in recommendedShopList"
+                    :key="index"
+                    class="shop-card"
+                    @tap="handleShopTap(item)"
+                >
+                    <view v-if="isEmptyImage(getShopImage(item))" class="shop-card__logo image-placeholder">无</view>
+                    <image v-else class="shop-card__logo" :src="displayImage(getShopImage(item))" mode="aspectFill"></image>
+                    <view class="shop-card__body">
+                        <view class="shop-card__name line1">{{ item.shopName || item.name || '默认门店' }}</view>
+                        <view class="shop-card__address line2">{{ item.detailAddress || item.address || '地址待补充' }}</view>
+                    </view>
+                    <view class="shop-card__meta">
+                        <view class="shop-card__status">{{ item.openStatus === 'OPEN' ? '营业中' : '未营业' }}</view>
+                        <view class="shop-card__score">{{ item.shopScore || 0 }}分</view>
+                    </view>
+                </view>
+            </view>
+
+            <view class="identity-title">请选择您的身份</view>
+            <view class="identity-card identity-card--seller" @tap="goPage('/bundle/pages/license/license')">
+                <view>
+                    <view class="identity-card__title">卖货</view>
+                    <view class="identity-card__desc">我是来卖货的</view>
+                </view>
+                <image class="identity-illustration" :src="designAssets.homeSellerIllustration" mode="aspectFit"></image>
+            </view>
+            <view class="identity-card identity-card--buyer" @tap="switchTab('/pages/sort/sort')">
+                <view>
+                    <view class="identity-card__title">购物</view>
+                    <view class="identity-card__desc">我是来购买商品的</view>
+                </view>
+                <image class="identity-illustration" :src="designAssets.homeBuyerIllustration" mode="aspectFit"></image>
+            </view>
+
+        </view>
     </view>
 </template>
 
 <script>
-import { mapMutations, mapGetters, mapActions } from 'vuex'
-import { getHome, getMenu, getBestList } from '@/api/store'
-import { loadingType } from '@/utils/type'
-import { loadingFun, menuJump, arraySlice, setTabbar, getRect, trottle } from '@/utils/tools'
-import { toLogin } from '@/utils/login'
-import Cache from '@/utils/cache'
-import { getConfig, userShare, getRegisterCoupon } from '@/api/app'
-const app = getApp()
+import { mapActions, mapGetters } from 'vuex'
+import { getHome } from '@/api/store'
+import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
+import { designAssets, designAssetList } from '@/utils/design-assets'
+import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
+
 export default {
     data() {
         return {
-            scrollTop: 0,
-            navSwiperH: 374,
-            logo: '',
-            navHeight: 0,
-            currentSwiper: 0,
-            page: 1,
-            status: loadingType.LOADING,
-            remainTime: '',
-            navBg: 0,
-            navList: [],
-            news: [],
-            goodsList: [],
-            seckill: {},
-            seckillGoods: [],
-            hotGoods: [],
-            newGoods: [],
-            activityArea: [],
-            showCoupop: false,
-            couponPopList: [],
-            coupon: [],
-            isDischarge: true,
-            enable: true,
-            isShowDownload: false,
-            showPrivacyPopup: false //微信用户隐私协议
+            homeData: {},
+            designAssets,
+            businessRoutes,
+            homeLoaded: false
         }
     },
-    async onLoad(options) {
-        // #ifdef MP-WEIXIN
-        if (wx.getPrivacySetting) {
-            wx.getPrivacySetting({
-                success: (res) => {
-                    console.log(res, '------') // 返回结果为: res = { needAuthorization: true/false, privacyContractName: '《xxx隐私保护指引》' }
-                    if (res.needAuthorization) {
-                        // 需要弹出隐私协议
-                        setTimeout(() => {
-                            uni.hideTabBar()
-                        }, 100)
-                        this.showPrivacyPopup = true
-                    } else {
-                        uni.showTabBar()
-                    }
-                },
-                fail: (err) => {
-                    uni.showTabBar()
-                    console.log(err)
-                }
-            })
-        } else {
-            uni.showTabBar()
+    computed: {
+        ...mapGetters(['userInfo']),
+        userName() {
+            return this.userInfo.nickname || this.userInfo.user_name || this.userInfo.mobile || 'XXXX'
+        },
+        walletBalanceText() {
+            const balance = this.homeData.walletCard?.balance
+            const value = balance !== undefined && balance !== null ? balance : this.userInfo.user_money
+            return Number(value || 0).toFixed(2)
+        },
+        quickEntryList() {
+            const source = this.homeData.quickEntries || []
+            const list = source.map((item) => this.normalizeQuickEntry(item)).filter(Boolean)
+            return list.length ? list : this.homeShortcutFallback
+        },
+        bannerList() {
+            return (this.homeData.banners || []).map((item, index) => ({
+                ...item,
+                image: resolveImage(item.image || item.imageUrl || item.cover || item.pic || item.banner),
+                url: item.url || item.link || item.jumpUrl || '',
+                type: item.type || item.linkType || item.jumpType || '',
+                title: item.title || item.name || `banner-${index}`,
+                hasImage: !!(item.image || item.imageUrl || item.cover || item.pic || item.banner)
+            })).filter(item => item.hasImage)
+        },
+        shortcutList() {
+            return this.quickEntryList.slice(0, 5)
+        },
+        recentVisitList() {
+            return this.homeData.recentVisits || []
+        },
+        hotActivityList() {
+            return this.homeData.hotActivities || []
+        },
+        recommendedProductList() {
+            return this.homeData.recommendedProducts || []
+        },
+        recommendedShopList() {
+            return this.homeData.recommendedShops || []
+        },
+        homeShortcutFallback() {
+            return [
+                { name: '分类', image: '', url: '/pages/sort/sort', type: 'switchTab' },
+                { name: '订单', image: '', url: '/bundle/pages/user_order/user_order' },
+                { name: '消息', image: '', url: '/bundle/pages/notice/notice' },
+                { name: '活动', image: '', url: '/business/pages/business_pages/activity_center' },
+                { name: '门店', image: '', url: '/business/pages/business_pages/store_detail' }
+            ]
         }
-
-        // #endif
-
-        this.headerAction = wx.createAnimation({
-            delay: 0,
-            duration: 100,
-            timingFunction: 'ease-in-out'
-        })
-        this.onPageScroll = trottle(this.onPageScroll, 500, this)
-        setTabbar()
-        this.navHeight = app.globalData.navHeight
-        this.isDischarge = false
-        await this.getMenuFun()
-        this.getBestListFun()
-        console.log(this.appConfig)
-        // #ifdef H5
-        if (options && options.isapp == 1) {
-            this.isShowDownload = true
+    },
+    onLoad() {
+        this.getHomeFun()
+    },
+    onShow() {
+        if (this.homeLoaded) {
+            this.getHomeFun()
         }
-        // #endif
-    },
-    async onShow() {
-        this.$nextTick(function () {
-            getRect('.index').then((res) => {
-                if (res.top == 0) {
-                    this.navBg = 0
-                }
-            })
-        })
-
-        // #ifdef H5
-        this.enable = true
-        // #endif
-        await this.getHomeFun()
-        this.getCartNum()
-        this.isLogin && this.getRegisterCouponFun()
-
-        // #ifdef MP
-        wx.getUpdateManager().onUpdateReady(function () {
-            wx.showModal({
-                title: '更新提示',
-                content: '新版本已经准备好，是否重启应用？',
-                success(res) {
-                    if (res.confirm) {
-                        // 新的版本已经下载好，调用 applyUpdate 应用新版本并重启
-                        wx.getUpdateManager().applyUpdate()
-                    }
-                }
-            })
-        })
-        // #endif
-    },
-    onHide() {
-        // #ifdef H5
-        this.enable = false
-        // #endif
-    },
-    onReachBottom() {
-        this.getBestListFun()
     },
     onPullDownRefresh() {
-        this.getHomeFun()
-        this.getMenuFun()
-    },
-    onShareAppMessage() {
-        console.log(this.inviteCode)
-        const shareInfo = Cache.get('shareInfo')
-        return {
-            title: shareInfo.mnp_share_title,
-            path: 'pages/index/index?invite_code=' + this.inviteCode,
-            imageUrl: shareInfo.mnp_share_image
-        }
-    },
-    onPageScroll(e) {
-        const top = uni.upx2px(100)
-        const { scrollTop } = e
-        if (!this.enable) return
-        let percent = scrollTop / top
-        this.navBg = percent > 1 ? 1 : percent
-        this.scrollTop = scrollTop
-    },
-    destroyed() {
-        this.isDischarge = true
+        this.getHomeFun().finally(() => {
+            uni.stopPullDownRefresh()
+        })
     },
     methods: {
-        ...mapMutations(['SETCONFIG']),
-        ...mapActions(['getCartNum', 'getUser']),
-        // 网络重试刷新网络请求（解决在ios中首次进入时需要授权蜂窝加载空白页面问题
-        async handleRetry() {
-            console.log('网络重试刷')
-            try {
-                const { code, data } = await getConfig()
-                if (code == 1) {
-                    this.SETCONFIG(data)
-                    setTabbar()
-                }
-            } catch (e) {
-                uni.showTabBar()
-            }
-            this.getShareInfo()
-            this.getUser()
-        },
-        async getShareInfo() {
-            const { code, data } = await userShare()
-            if (code == 1) {
-                Cache.set('shareInfo', data)
-            }
-        },
         async getHomeFun() {
-            const { code, data } = await getHome()
-            uni.stopPullDownRefresh()
-            if (code == 1) {
-                const { coupon, news, seckill, host_goods, shop_logo, new_goods, activity_area } =
-                    data
-                this.remainTime = Math.abs(seckill.end_time - Date.parse(new Date()) / 1000)
-                this.logo = shop_logo
-                this.news = news
-                this.seckillGoods = seckill.goods
-                this.seckill = seckill
-                this.hotGoods = host_goods
-                this.coupon = coupon
-                this.newGoods = new_goods
-                this.activityArea = activity_area
-            }
-        },
-
-        async getMenuFun() {
-            const { code, data } = await getMenu({
-                type: 1
-            })
-            uni.stopPullDownRefresh()
-            if (code == 1) {
-                //   截取数组
-                if (data.length <= 5) {
-                    this.navSwiperH = 200
-                } else {
-                    this.navSwiperH = 374
+            try {
+                const res = await getHome(this.buildHomeParams())
+                if (res.code == 1) {
+                    this.homeData = res.data || {}
+                    this.homeLoaded = true
                 }
-                this.navList = arraySlice(data)
+            } catch (error) {}
+        },
+        resolveImage,
+        isEmptyImage(src) {
+            return isPlaceholderImage(src)
+        },
+        displayImage(src, type = 'common') {
+            return resolveImage(src, type)
+        },
+        getShopImage(item = {}) {
+            return item.shopLogo || item.logo || item.logoUrl || item.image || item.cover || item.avatarUrl || item.shopImage || item.shopPic || ''
+        },
+        buildHomeParams() {
+            const lat = this.userInfo.lat ?? this.userInfo.latitude
+            const lng = this.userInfo.lng ?? this.userInfo.longitude
+            const params = {
+                pageScene: 'HOME',
+                userRole: this.userInfo.userRole || this.userInfo.user_role || this.userInfo.role || 'USER',
+                lat: lat !== undefined && lat !== null && lat !== '' ? lat : 23.1291,
+                lng: lng !== undefined && lng !== null && lng !== '' ? lng : 113.2644
             }
+            return params
         },
-        async getBestListFun() {
-            let { page, goodsList, status } = this
-            const data = await loadingFun(getBestList, page, goodsList, status)
-            if (!data) return
-            this.page = data.page
-            this.goodsList = data.dataList
-            this.status = data.status
-        },
-        async tapMenu(item) {
-            if (!this.isLogin) return toLogin()
-            menuJump(item)
+        normalizeQuickEntry(item = {}) {
+            const code = String(item.code || '').toUpperCase()
+            const quickEntryMap = {
+                CATEGORY: {
+                    name: item.title || '分类',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/category/index' ? item.pagePath : '/pages/sort/sort',
+                    type: 'switchTab'
+                },
+                ORDER: {
+                    name: item.title || '订单',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/order/list' ? item.pagePath : '/bundle/pages/user_order/user_order'
+                },
+                MESSAGE: {
+                    name: item.title || '消息',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/message/list' ? item.pagePath : '/bundle/pages/notice/notice'
+                },
+                COUPON: {
+                    name: item.title || '优惠券',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/coupon/list' ? item.pagePath : '/bundle/pages/user_coupon/user_coupon'
+                },
+                WALLET: {
+                    name: item.title || '钱包',
+                    image: resolveImage(item.iconUrl || ''),
+                    url: item.pagePath && item.pagePath !== '/pages/wallet/index' ? item.pagePath : '/bundle/pages/user_wallet/user_wallet'
+                }
+            }
+            return quickEntryMap[code] || {
+                name: item.title || item.code || '入口',
+                image: resolveImage(item.iconUrl || ''),
+                url: item.pagePath || ''
+            }
         },
         goPage(url) {
-            if (!this.isLogin) return toLogin()
             uni.navigateTo({
                 url
             })
         },
-        swiperChange(e) {
-            this.currentSwiper = e.detail.current
-        },
-        getRegisterCouponFun() {
-            getRegisterCoupon().then((res) => {
-                if (res.code == 1) {
-                    if (res.data && res.data.length) {
-                        this.showCoupop = true
-                    }
-                    this.couponPopList = res.data
-                }
+        switchTab(url) {
+            uni.switchTab({
+                url
             })
-        }
-    },
-    computed: {
-        ...mapGetters(['cartNum', 'inviteCode', 'appConfig']),
-        navBackground() {
-            return this.seting.top_bg_image
-                ? {
-                      'background-image': `url(${this.seting.top_bg_image})`
-                  }
-                : {}
         },
-        showLogo() {
-            return this.seting.logo
+        openBusinessPage(item) {
+            openBusinessRoute(item)
         },
-        navSearch() {
-            if (this.showLogo === 0) return true
-
-            return this.navBg < 1 ? false : true
+        handleBannerTap(item) {
+            if (item.url) {
+                if (item.type === 'switchTab') {
+                    this.switchTab(item.url)
+                } else {
+                    this.goPage(item.url)
+                }
+                return
+            }
+            if (item.scene && businessRoutes.pages[item.scene]) {
+                openBusinessRoute(businessRoutes.pages[item.scene])
+            }
         },
-        seting() {
-            const { index_setting } = this.appConfig
-            return index_setting
+        handleVisitTap(item) {
+            if ((item.visitType || '').toUpperCase() === 'SHOP' && item.targetId) {
+                this.goPage(`/business/pages/business_pages/store_detail?shopId=${item.targetId}`)
+                return
+            }
+            if (item.targetId) {
+                this.goPage(`/bundle/pages/goods_details/goods_details?id=${item.targetId}`)
+            }
+        },
+        handleActivityTap(item) {
+            if (item.targetId) {
+                this.goPage(`/activity/pages/activity_detail/activity_detail?id=${item.targetId}`)
+                return
+            }
+            this.openBusinessPage(businessRoutes.pages.activityCenter)
+        },
+        handleShopTap(item) {
+            this.goPage(`/business/pages/business_pages/store_detail?shopId=${item.shopId || item.id || ''}`)
+        },
+        openShortcut(item) {
+            if (item.type === 'switchTab') {
+                this.switchTab(item.url)
+                return
+            }
+            if (item.url) {
+                this.goPage(item.url)
+                return
+            }
+            const code = String(item.code || item.name || '').toUpperCase()
+            if (code === 'CATEGORY' || item.name === '分类') {
+                this.switchTab('/pages/sort/sort')
+                return
+            }
+            if (code === 'ORDER' || item.name === '订单') {
+                this.goPage('/bundle/pages/user_order/user_order')
+                return
+            }
+            if (code === 'MESSAGE' || item.name === '消息') {
+                this.goPage('/bundle/pages/notice/notice')
+            }
         }
     }
 }
 </script>
 
 <style lang="scss">
-// #ifdef H5
-::v-deep .home-bg {
-    background: url(../../static/images/bg_hometop.png) no-repeat;
-    background-size: 100% auto;
+.home-page {
+    min-height: 100vh;
+    padding-bottom: calc(40rpx + var(--window-bottom));
+    background: #f5f5f5;
 }
 
-// #endif
-.home-bg {
-    background: url(../../static/images/bg_hometop.png) no-repeat;
-    background-size: 100% auto;
+.home-hero {
+    position: relative;
+    min-height: 496rpx;
+    padding: calc(var(--status-bar-height) + 64rpx) 24rpx 0;
+    overflow: hidden;
+    background: linear-gradient(180deg, #1688ff 0%, #74b2ff 100%);
 }
-.index {
-    .live-play {
-        position: fixed;
-        z-index: 999;
-        bottom: 200rpx;
-        right: 20rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 80rpx;
-        height: 80rpx;
-        border: $-solid-border;
-        border-radius: 50%;
-        font-size: 32rpx;
-        background-color: #ffffff;
 
-        &__icon {
-            animation: scale 0.5s infinite;
-        }
-
-        @keyframes scale {
-            from {
-                top: 0px;
-                transform: scale(1);
-            }
-            to {
-                transform: scale(1.2);
-            }
-        }
-    }
-
-    background-size: 100% auto;
-
-    .logo-wrap {
-        position: absolute;
-
-        .logo {
-            width: auto;
-            height: 52rpx;
-        }
-    }
-
-    .header {
-        .navigation-bar {
-            padding-top: var(--status-bar-height);
-            box-sizing: border-box;
-        }
-    }
-
-    .contain {
-        .main {
-            position: relative;
-            z-index: 9;
-            padding: 0 20rpx;
-
-            .nav {
-                position: relative;
-                border-radius: 14rpx;
-
-                .nav-item {
-                    width: 20%;
-                    margin-top: 30rpx;
-
-                    .nav-icon {
-                        width: 82rpx;
-                        height: 82rpx;
-                        margin-bottom: 15rpx;
-                    }
-                }
-
-                .dots {
-                    position: absolute;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    bottom: 20rpx;
-                    display: flex;
-
-                    .dot {
-                        width: 10rpx;
-                        height: 6rpx;
-                        border-radius: 6rpx;
-                        margin-right: 10rpx;
-                        background-color: rgba(255, 44, 60, 0.4);
-
-                        &.active {
-                            width: 20rpx;
-                            background-color: $-color-primary;
-                        }
-                    }
-                }
-            }
-
-            .information {
-                height: 76rpx;
-                box-shadow: 0px 0px 14px rgba(0, 0, 0, 0.06);
-                padding: 0 20rpx;
-                box-sizing: border-box;
-                border-radius: 14rpx;
-
-                .news {
-                    position: relative;
-
-                    .shade {
-                        position: absolute;
-                        width: 100%;
-                        height: 100%;
-                        z-index: 100;
-                    }
-                }
-
-                .icon-toutiao {
-                    width: 114rpx;
-                    height: 34rpx;
-                }
-
-                .gap-line {
-                    height: 28rpx;
-                    width: 1px;
-                    background-color: #dcdddc;
-                    margin: 0 30rpx;
-                }
-            }
-
-            .special-area {
-                .item {
-                    width: 300rpx;
-                    border-radius: 20rpx;
-                    display: inline-block;
-                    overflow: hidden;
-                    margin-right: 20rpx;
-
-                    .title {
-                        padding: 10rpx 0;
-                    }
-
-                    .desc {
-                        background-color: #fee9eb;
-                        padding: 6rpx 20rpx;
-                        border-radius: 60rpx;
-                        max-width: 260rpx;
-                    }
-                }
-            }
-
-            .activity-header {
-                height: 90rpx;
-                padding: 0 20rpx;
-            }
-
-            .seckill {
-                .dec {
-                    background-color: #fffbdb;
-                    width: 150rpx;
-                }
-            }
-
-            .hot,
-            .new-goods {
-                .title-image {
-                    width: 144rpx;
-                    height: 55rpx;
-                }
-            }
-        }
-
-        .goods {
-            .goods-title {
-                height: 100rpx;
-
-                .line {
-                    width: 58rpx;
-                    height: 1px;
-                    background-color: #ccc;
-                    margin: 0 22rpx;
-                }
-
-                .icon {
-                    width: 38rpx;
-                    height: 38rpx;
-                }
-            }
-        }
-    }
-
-    .coupon-pop-container {
-        background-image: url(../../static/images/home_coupon_bg.png);
-        width: 638rpx;
-        height: 804rpx;
-        background-size: 100% 100%;
-        padding-top: 323rpx;
-
-        .coupon-pop-lists {
-            .coupon-pop-item {
-                background-image: url(../../static/images/pop_bg_coupon.png);
-                width: 488rpx;
-                height: 150rpx;
-                background-size: 100% 100%;
-                margin-top: 20rpx;
-
-                .coupon-left {
-                    width: 160rpx;
-                    height: 100%;
-                }
-
-                .coupon-right {
-                    padding-left: 30rpx;
-                    border-left: 1rpx dashed $-color-primary;
-                }
-            }
-        }
-    }
-
-    .coupons-popup {
-        .wrap {
-            position: relative;
-            width: 638rpx;
-            height: 803rpx;
-            overflow: hidden;
-
-            .coupon-bg {
-                position: absolute;
-                top: 0;
-                width: 100%;
-                height: 100%;
-            }
-
-            .item {
-                position: relative;
-                width: 488rpx;
-                height: 150rpx;
-                margin: 0 auto 20rpx;
-            }
-
-            .img {
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                z-index: 0;
-            }
-
-            .item-con {
-                z-index: 10;
-                position: relative;
-                padding: 20rpx 0;
-                height: 100%;
-                box-sizing: border-box;
-
-                .price {
-                    width: 160rpx;
-                    border-right: 1px dashed $-color-primary;
-                    height: 100%;
-                }
-            }
-        }
-
-        .btn {
-            width: 478rpx;
-            height: 84rpx;
-            margin: 20rpx auto;
-            box-sizing: border-box;
-            border: 3px solid #f8d07c;
-        }
-    }
+.home-copy {
+    position: relative;
+    z-index: 2;
+    color: #ffffff;
 }
+
+.home-hi {
+    font-size: 52rpx;
+    font-weight: 600;
+    line-height: 72rpx;
+}
+
+.home-title {
+    margin-top: 16rpx;
+    font-size: 40rpx;
+    font-weight: 500;
+    line-height: 56rpx;
+}
+
+.home-hero__image {
+    position: absolute;
+    right: -18rpx;
+    top: calc(var(--status-bar-height) + 44rpx);
+    width: 456rpx;
+    height: 366rpx;
+    z-index: 1;
+}
+
+.home-search {
+    position: absolute;
+    left: 24rpx;
+    right: 24rpx;
+    bottom: 30rpx;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 82rpx;
+    padding: 0 30rpx 0 40rpx;
+    background: #ffffff;
+    border-radius: 42rpx;
+    box-sizing: border-box;
+}
+
+.home-search__placeholder {
+    color: #b3b3b3;
+    font-size: 28rpx;
+}
+
+.home-content {
+    padding: 20rpx 24rpx 0;
+}
+
+.banner-wrap {
+    margin-top: 22rpx;
+}
+
+.banner-swiper {
+    height: 220rpx;
+    border-radius: 18rpx;
+    overflow: hidden;
+    background: #f1f2f5;
+}
+
+.banner-image {
+    width: 100%;
+    height: 220rpx;
+}
+
+.feature-grid {
+    display: flex;
+    gap: 24rpx;
+    justify-content: space-between;
+}
+
+.balance-card {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    height: 326rpx;
+    padding: 40rpx 28rpx;
+    overflow: hidden;
+    border: 2rpx solid #ffffff;
+    border-radius: 18rpx;
+    background: linear-gradient(180deg, #dceeff 0%, #eef7ff 100%);
+    box-sizing: border-box;
+}
+
+.feature-label {
+    color: #666666;
+    font-size: 30rpx;
+    font-weight: 600;
+}
+
+.balance-amount {
+    margin-top: 26rpx;
+    color: #222222;
+    font-size: 56rpx;
+    font-weight: 600;
+    line-height: 72rpx;
+}
+
+.balance-image {
+    position: absolute;
+    right: 18rpx;
+    bottom: 14rpx;
+    width: 156rpx;
+    height: 156rpx;
+    opacity: 0.92;
+    z-index: 0;
+}
+
+.feature-label,
+.balance-amount {
+    position: relative;
+    z-index: 1;
+}
+
+.feature-stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.feature-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 152rpx;
+    padding: 0 26rpx 0 30rpx;
+    border-radius: 16rpx;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.feature-title {
+    color: #222222;
+    font-size: 32rpx;
+    font-weight: 600;
+    line-height: 44rpx;
+}
+
+.feature-desc {
+    margin-top: 12rpx;
+    color: #999999;
+    font-size: 26rpx;
+    line-height: 36rpx;
+}
+
+.feature-icon {
+    width: 84rpx;
+    height: 84rpx;
+}
+
+.quick-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 144rpx;
+    margin-top: 22rpx;
+    padding: 0 22rpx;
+    border-radius: 16rpx;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.quick-item {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+}
+
+.quick-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 66rpx;
+    height: 66rpx;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: #edf3fb;
+}
+
+.quick-more__icon {
+    width: 52rpx;
+    height: 52rpx;
+    margin: 0 auto;
+}
+
+.quick-name {
+    margin-top: 12rpx;
+    color: #222222;
+    font-size: 24rpx;
+    line-height: 32rpx;
+}
+
+.is-blue {
+    color: #1688ff;
+}
+
+.section-title {
+    margin: 34rpx 0 20rpx;
+    color: #222222;
+    font-size: 34rpx;
+    font-weight: 600;
+    line-height: 48rpx;
+}
+
+.recent-scroll {
+    white-space: nowrap;
+}
+
+.recent-list {
+    display: inline-flex;
+    gap: 18rpx;
+}
+
+.recent-card {
+    width: 148rpx;
+    flex-shrink: 0;
+}
+
+.recent-card__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 148rpx;
+    height: 148rpx;
+    border-radius: 18rpx;
+    background: #ffffff;
+}
+
+.recent-card__title {
+    margin-top: 12rpx;
+    color: #222222;
+    font-size: 24rpx;
+    line-height: 32rpx;
+    text-align: center;
+}
+
+.home-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150rpx;
+    color: #999999;
+    font-size: 26rpx;
+    border-radius: 18rpx;
+    background: #ffffff;
+}
+
+.activity-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18rpx;
+}
+
+.activity-card {
+    position: relative;
+    min-height: 180rpx;
+    padding: 24rpx;
+    border-radius: 18rpx;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.activity-card__title {
+    color: #222222;
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 42rpx;
+}
+
+.activity-card__desc {
+    width: 58%;
+    margin-top: 12rpx;
+    color: #999999;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.activity-card__image {
+    position: absolute;
+    right: 16rpx;
+    bottom: 14rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 112rpx;
+    height: 112rpx;
+}
+
+.image-placeholder {
+    color: #9ca3af;
+    font-size: 22rpx;
+    line-height: 28rpx;
+    text-align: center;
+    background: #eef1f5;
+}
+
+.goods-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18rpx;
+}
+
+.goods-card {
+    padding: 16rpx;
+    background: #ffffff;
+    border-radius: 18rpx;
+    box-sizing: border-box;
+}
+
+.goods-card__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 220rpx;
+    border-radius: 14rpx;
+    background: #f3f6fb;
+}
+
+.goods-card__name {
+    min-height: 68rpx;
+    margin-top: 14rpx;
+    color: #222222;
+    font-size: 26rpx;
+    line-height: 34rpx;
+}
+
+.goods-card__price {
+    margin-top: 8rpx;
+    color: #ff2c3c;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 38rpx;
+}
+
+.shop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
+}
+
+.shop-card {
+    display: flex;
+    align-items: center;
+    padding: 18rpx;
+    background: #ffffff;
+    border-radius: 18rpx;
+    box-sizing: border-box;
+}
+
+.shop-card__logo {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96rpx;
+    height: 96rpx;
+    margin-right: 18rpx;
+    border-radius: 14rpx;
+    background: #f3f6fb;
+}
+
+.shop-card__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.shop-card__name {
+    color: #222222;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 40rpx;
+}
+
+.shop-card__address {
+    margin-top: 8rpx;
+    color: #999999;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.shop-card__meta {
+    margin-left: 16rpx;
+    text-align: right;
+}
+
+.shop-card__status {
+    color: #1688ff;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.shop-card__score {
+    margin-top: 8rpx;
+    color: #222222;
+    font-size: 26rpx;
+    font-weight: 600;
+    line-height: 36rpx;
+}
+
+.identity-title {
+    margin: 50rpx 0 26rpx;
+    color: #222222;
+    font-size: 36rpx;
+    font-weight: 600;
+    line-height: 50rpx;
+}
+
+.identity-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 210rpx;
+    margin-bottom: 24rpx;
+    padding: 0 54rpx 0 58rpx;
+    border-radius: 14rpx;
+    box-sizing: border-box;
+}
+
+.identity-card--seller {
+    border: 2rpx solid #dcecff;
+    background: linear-gradient(180deg, #edf7ff 0%, #ffffff 100%);
+}
+
+.identity-card--buyer {
+    border: 2rpx solid #fff2d4;
+    background: linear-gradient(180deg, #fff9eb 0%, #ffffff 100%);
+}
+
+.identity-card__title {
+    color: #222222;
+    font-size: 38rpx;
+    font-weight: 600;
+    line-height: 52rpx;
+}
+
+.identity-card__desc {
+    margin-top: 14rpx;
+    color: #666666;
+    font-size: 28rpx;
+    line-height: 40rpx;
+}
+
+.identity-illustration {
+    width: 182rpx;
+    height: 152rpx;
+}
+
 </style>

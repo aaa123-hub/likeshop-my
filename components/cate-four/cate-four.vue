@@ -20,7 +20,7 @@
 					<view class="cate-two mt20" v-if="currentType">
 						<view v-for="(sitem, sindex) in cateTwoList" :key="sindex" class="two-item bg-white mb20">
 							<navigator class="title row-between" v-if="sitem.type == 1" hover-class="none"
-								:url="`/pages/goods_search/goods_search?id=${sitem.id}&name=${sitem.name}&type=${sitem.type}`">
+								:url="`/bundle/pages/goods_search/goods_search?id=${sitem.id}&name=${sitem.name}&type=${sitem.type}`">
 								<text class="name bold sm">{{sitem.name}}</text>
 								<u-icon name="arrow-right"></u-icon>
 							</navigator>
@@ -30,7 +30,7 @@
 							<view class="three-list row wrap">
 								<navigator v-for="(titem, tindex) in sitem.sons" :key="tindex"
 									class="three-item column-center mb20" hover-class="none"
-									:url="`/pages/goods_search/goods_search?id=${titem.id}&name=${titem.name}&type=${titem.type}`">
+									:url="`/bundle/pages/goods_search/goods_search?id=${titem.id}&name=${titem.name}&type=${titem.type}`">
 									<u-image mode="aspectFit" width="150rpx" height="150rpx" :src="titem.image">
 									</u-image>
 									<view class="text mt20 xs">{{ titem.name }}</view>
@@ -59,7 +59,7 @@
 							</view>
 						</view>
 						<view class="goods-list">
-							<navigator hover-class="none" class="row item bg-white mt20" v-for="(item, index) in goodsList" :key="index" :url="`/pages/goods_details/goods_details?id=${item.id}`">
+							<navigator hover-class="none" class="row item bg-white mt20" v-for="(item, index) in goodsList" :key="index" :url="`/bundle/pages/goods_details/goods_details?id=${item.id}`">
 								<u-image width="200rpx" height="200rpx" border-radius="14rpx" :src="item.image"></u-image>
 								<view class="flex1 ml20 mr10">
 									<view class="line2">{{item.name}}</view>
@@ -74,7 +74,6 @@
 						</view>
 						<loading-footer :status="status" :slot-empty="true">
 							<view slot="empty" class="column-center" style="padding: 200rpx 0 0">
-								<image class="img-null" src="/static/images/goods_null.png"></image>
 								<text class="lighter sm">暂无商品</text>
 							</view>
 						</loading-footer>
@@ -226,9 +225,9 @@
 </script>
 
 <style lang="scss">
-	$header-height: 94rpx;
+	$header-height: 140rpx;
 	.cate-four {
-		height: calc(100vh - #{$header-height} - var(--window-top) - var(--window-bottom));
+		height: calc(100vh - #{$header-height} - var(--window-bottom));
 		background-color: #fff;
 
 		.aside {
@@ -242,7 +241,7 @@
 				padding: 26rpx 10rpx;
 
 				&.active {
-					color: $-color-primary;
+					color: $color-primary;
 					font-size: 26rpx;
 					font-weight: bold;
 				}

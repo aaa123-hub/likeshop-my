@@ -2,12 +2,10 @@ import {
 	getUser
 } from '@/api/user'
 import {
-	getCartNum
-} from '@/api/store';
-import {
 	USER_INFO,
 	TOKEN,
-	CONFIG
+	CONFIG,
+	CART_NUM
 } from '@/config/cachekey';
 import Cache from '@/utils/cache'
 const state = {
@@ -18,19 +16,25 @@ const state = {
 		navigation_menu: [],
 		navigation_setting: {}
 	},
-	userInfo: {
+	userInfo: Cache.get(USER_INFO) || {
 		user_money: 0,
 		user_integral: 0,
 		coupon: 0
 	},
 	token: Cache.get(TOKEN) || null,
-	cartNum: "",
+	cartNum: Cache.get(CART_NUM) || 0,
 };
 
 const mutations = {
-	LOGIN(state, opt) {
+	LOGIN(state, opt = {}) {
+		const userId = opt.userId || opt.user_id || opt.id || state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
 		state.token = opt.token;
+		state.userInfo = {
+			...state.userInfo,
+			...(userId ? { userId, user_id: userId, id: userId } : {})
+		}
 		Cache.set(TOKEN, opt.token, 59 * 24 * 60 * 60);
+		Cache.set(USER_INFO, state.userInfo)
 		this.dispatch('getUser')
 	},
 	LOGOUT(state) {
@@ -40,13 +44,24 @@ const mutations = {
 			user_integral: 0,
 			coupon: 0
 		}
+		state.cartNum = 0
 		Cache.remove(TOKEN);
+		Cache.remove(USER_INFO);
+		Cache.remove(CART_NUM);
+		uni.removeTabBarBadge({
+			index: 2
+		})
 	},
 	SETCARTNUM(state, num) {
-		state.cartNum = num
+		state.cartNum = Number(num) || 0
+		Cache.set(CART_NUM, state.cartNum)
 	},
 	SETUSERINFO(state, user) {
-		state.userInfo = user
+		state.userInfo = {
+			...state.userInfo,
+			...user
+		}
+		Cache.set(USER_INFO, state.userInfo)
 	},
 	SETCONFIG(state, data) {
 		state.config = Object.assign(state.config, data)
@@ -55,39 +70,45 @@ const mutations = {
 };
 
 const actions = {
-	getCartNum({
-		state,
-		commit
-	}) {
+	getCartNum({ state, commit }, payload) {
 		return new Promise(resolve => {
-			if (!state.token) return uni.removeTabBarBadge({
-				index: 2
-			})
-			getCartNum().then(res => {
-				if (res.code == 1) {
-					commit('SETCARTNUM', res.data.num)
-					if (!res.data.num) return uni.removeTabBarBadge({
-						index: 2
-					})
-					uni.setTabBarBadge({
-						index: 2,
-						text: String(res.data.num)
-					})
-					resolve()
-				}
-			})
+			if (!state.token) {
+				commit('SETCARTNUM', 0)
+				uni.removeTabBarBadge({
+					index: 2
+				})
+				return resolve(0)
+			}
+
+			const num = Number(
+				payload === undefined
+					? state.cartNum || Cache.get(CART_NUM) || 0
+					: typeof payload === 'number'
+						? payload
+						: payload?.cartCount ?? payload?.count ?? payload?.num ?? payload?.total ?? 0
+			)
+			commit('SETCARTNUM', num)
+			if (!num) {
+				uni.removeTabBarBadge({
+					index: 2
+				})
+			} else {
+				uni.setTabBarBadge({
+					index: 2,
+					text: String(num)
+				})
+			}
+			resolve(num)
 		})
 	},
-	
-	getUser({
-		state,
-		commit
-	}) {
+
+	getUser({ state, commit }) {
 		return new Promise(resolve => {
-			
+			const userId = state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
+			if (!state.token || !userId) return resolve()
 			getUser().then(res => {
 				if (res.code == 1) {
-					commit('SETUSERINFO', res.data)
+					commit('SETUSERINFO', res.data || {})
 				}
 				resolve()
 			})

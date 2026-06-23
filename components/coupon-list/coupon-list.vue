@@ -1,25 +1,25 @@
 <template>
 
 <view class="coupon-list">
-    <view v-for="(item, index) in list" :key="index" class="mb20">
-        <view :class="'coupon-item row ' + (btnType == 1 || btnType == 2 ? 'gray': '')">
+    <view v-for="(item, index) in list" :key="index" class="coupon-list__row">
+        <view :class="'coupon-item ' + (btnType == 1 || btnType == 2 ? 'gray': '')">
             <view class="price white column-center">
                 <view class="xl">
                     <price-format :first-size="60" :second-size="50" :subscript-size="34" :price="item.money" :weight="500" />
                 </view>
-                <view class="sm" style="text-align: center">{{item.use_condition}}</view>
+                <view class="sm coupon-condition">{{item.use_condition}}</view>
             </view>
-            <view class="info ml20">
-                <view class="bold lg mb10">{{item.name}}</view>
-                <view class="xs lighter mb20">{{item.use_time_tips}}</view>
-                <view class="xs lighter ">{{item.coupon_type}}</view>
+            <view class="info">
+                <view class="coupon-name">{{item.name || '优惠券'}}</view>
+                <view class="coupon-time">{{item.use_time_tips || '有效期以实际使用规则为准'}}</view>
+                <view class="coupon-type">{{item.coupon_type || item.use_condition}}</view>
             </view>
             <button type="primary" :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')" @tap="onHandle(item.id)">
                 {{getBtn}}
             </button>
-            <image v-if="item.is_get" class="receive" src="/static/images/coupon_receive.png"></image>
+            <image v-if="item.is_get" class="receive" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_receive.png"></image>
         </view>
-        <view style="padding: 14rpx 20rpx" class="bg-white" v-if="item.tips" @tap="onShowTips(index)">
+        <view class="coupon-tips bg-white" v-if="item.tips" @tap="onShowTips(index)">
             <view class="row-between">
                 <view class="xs">使用说明</view>
                  <u-icon :class="showTips[index] ? 'rotate' : ''" name="arrow-down" />
@@ -81,8 +81,6 @@ export default {
       immediate: true,
       deep: true
     }
-  },
-  computed: {
   },
   computed: {
     getBtn() {
@@ -158,14 +156,28 @@ export default {
 <style lang="scss" >
 /* components/coupon-list/coupon-list.wxss */
 .coupon-list {
-    padding:  20rpx 24rpx;
+    padding: 20rpx 24rpx;
+    box-sizing: border-box;
+
+    .coupon-list__row {
+        margin-bottom: 20rpx;
+        border-radius: 18rpx;
+        overflow: hidden;
+        box-shadow: 0 10rpx 30rpx rgba(24, 40, 80, 0.04);
+    }
+
     .coupon-item {
         position: relative;
+        display: flex;
+        align-items: stretch;
+        width: 100%;
         height: 200rpx;
-        background-image: url(../../static/images/coupon_bg.png);
+        background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg.png);
         background-size: 100% 100%;
+        overflow: hidden;
+        box-sizing: border-box;
         &.gray {
-            background-image: url(../../static/images/coupon_bg_grey.png);
+            background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg_grey.png);
             .btn{
                 &.plain {
                     color: #CCCCCC;
@@ -173,8 +185,49 @@ export default {
             }
         }
         .price {
+            flex: none;
             width: 200rpx;
+            padding: 0 12rpx;
+            box-sizing: border-box;
+            overflow: hidden;
         }
+
+        .coupon-condition {
+            width: 100%;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .info {
+            flex: 1;
+            min-width: 0;
+            padding: 30rpx 156rpx 24rpx 22rpx;
+            box-sizing: border-box;
+        }
+
+        .coupon-name {
+            color: #222222;
+            font-size: 30rpx;
+            font-weight: 600;
+            line-height: 40rpx;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .coupon-time,
+        .coupon-type {
+            margin-top: 12rpx;
+            color: #999999;
+            font-size: 22rpx;
+            line-height: 30rpx;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .btn {
             line-height: 52rpx;
             height: 52rpx;
@@ -199,6 +252,12 @@ export default {
             width: 99rpx;
             height: 77rpx;
         }
+    }
+
+    .coupon-tips {
+        padding: 16rpx 22rpx;
+        color: #666666;
+        line-height: 34rpx;
     }
     .icon {
         transition: all 0.4s;

@@ -27,7 +27,7 @@
           </view>
           <image
             style="width: 28rpx; height: 28rpx"
-            src="/static/images/arrow_right.png"
+            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"
           ></image>
         </view>
         <view class="opt-item row-between" @tap="allRefunds">
@@ -37,7 +37,7 @@
           </view>
           <image
             style="width: 28rpx; height: 28rpx"
-            src="/static/images/arrow_right.png"
+            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"
           ></image>
         </view>
       </view>
@@ -68,7 +68,7 @@
             }}</text>
             <image
               class="icon-sm ml20"
-              src="/static/images/arrow_right.png"
+              src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"
             ></image>
           </view>
         </view>
@@ -128,6 +128,7 @@
 </template>
 
 <script>
+import Uploader from '@/bundle/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -151,6 +152,9 @@ import { getGoodsInfo, applyAfterSale, applyAgain } from "@/api/user";
 import { uploadFile, trottle } from "@/utils/tools.js";
 
 export default {
+	components: {
+		Uploader
+	},
   data() {
     return {
       hiddenOpt: false,
@@ -229,6 +233,7 @@ export default {
       };
       applyAgain(data).then((res) => {
         if (res.code == 1) {
+          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
           uni.$emit("refreshsale");
           this.$toast(
             {
@@ -238,7 +243,7 @@ export default {
               tab: 5,
               url:
                 "/bundle/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                res.data.after_sale_id,
+                afterSaleId,
             }
           );
         }
@@ -271,6 +276,7 @@ export default {
       };
       applyAfterSale(data).then((res) => {
         if (res.code == 1) {
+          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
           uni.$emit("refreshsale");
           this.$toast({
             title: "提交成功",
@@ -279,7 +285,7 @@ export default {
             uni.redirectTo({
               url:
                 "/bundle/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                res.data.after_sale_id,
+                afterSaleId,
             });
           }, 500);
         }

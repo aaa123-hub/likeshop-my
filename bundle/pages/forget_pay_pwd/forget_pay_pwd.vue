@@ -133,7 +133,7 @@ export default {
                         title: res.msg
                     })
                     this.showCount = true
-                    this.$refs.countDown.start()
+                    if (this.$refs.countDown && this.$refs.countDown.start) this.$refs.countDown.start()
                 }
             })
         }
@@ -172,7 +172,7 @@ export default {
                 width: 176rpx;
                 height: 58rpx;
                 flex: none;
-                border: 1px solid $-color-primary;
+                border: 1px solid $color-primary;
             }
         }
 

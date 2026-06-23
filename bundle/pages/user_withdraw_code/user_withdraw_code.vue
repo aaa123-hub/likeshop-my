@@ -17,7 +17,6 @@
         </view>
         <loading-footer :status="loadingStatus" slotEmpty>                
             <view class="data-null column-center" slot="empty">
-                <image src="/static/images/order_null.png" class="img-null"></image>
                 <text class="muted">暂无提现记录～</text>
             </view>
         </loading-footer>
@@ -105,7 +104,7 @@ export default {
               color: #666666;
             }
             .error-status {
-              color: $-color-primary;
+              color: $color-primary;
             }
             &:not(:last-of-type) {
               border-bottom: var(--border);

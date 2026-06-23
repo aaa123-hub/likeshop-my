@@ -117,11 +117,11 @@
 					case 1:
 						"";
 					case 2:
-						return '../../static/images/icon_cashOut_wait.png';
+						return 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_cashOut_wait.png';
 					case 3:
-						return '/static/images/icon_paySuccess.png';
+						return 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png';
 					case 4:
-						return '../../static/images/icon_payFail.png';
+						return 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_payFail.png';
 				}
 			}
 		}
@@ -170,7 +170,7 @@
 				.go-back-btn {
 					width: 650rpx;
 					height: 84rpx;
-					border: solid 1rpx $-color-primary;
+					border: solid 1rpx $color-primary;
 					box-sizing: border-box;
 				}
 			}

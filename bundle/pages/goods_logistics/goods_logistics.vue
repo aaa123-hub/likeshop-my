@@ -40,7 +40,7 @@
 					<!-- 顶部收货地址 -->
 					<view class="express-address row" v-if="take.contacts">
 						<view class="express-left column-center">
-							<image class="express-icon" :src="finish.tips ? '../../static/images/logistics_address.png' : '../../static/images/logistics_address_gray.png'"></image>
+							<image class="express-icon" :src="finish.tips ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/logistics_address.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/logistics_address_gray.png'"></image>
 							<view class="express-line"></view>
 						</view>
 						<view class="express-right">
@@ -50,7 +50,7 @@
 					</view>
 					<view class="express-item row" v-if="finish.tips">
 						<view class="express-left column-center">
-							<image class="express-icon" src="../../static/images/logistics_success.png"></image>
+							<image class="express-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/logistics_success.png"></image>
 							<view class="express-line"></view>
 						</view>
 						<view class="express-right">
@@ -59,25 +59,25 @@
 							<view class="time xs muted">{{finish.time}}</view>
 						</view>
 					</view>
-					<view class="express-item row" v-if="delivery.traces && delivery.traces.length">
+					<view class="express-item row" v-if="firstTrace.length">
 						<view class="express-left column-center">
-							<image class="express-icon" src="../../static/images/logistics_transit.png"></image>
+							<image class="express-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/logistics_transit.png"></image>
 							<view class="express-line"></view>
 						</view>
 						<view class="express-right muted">
 							<view class="title bold sm ">{{delivery.title}}</view>
-							<view class="xs" v-if="delivery.traces[0][0]">
-								{{delivery.traces[0][0]}}
+							<view class="xs" v-if="firstTrace[0]">
+								{{firstTrace[0]}}
 							</view>
-							<view class="xs" v-if="delivery.traces[0][1]">
-								{{delivery.traces[0][1]}}
+							<view class="xs" v-if="firstTrace[1]">
+								{{firstTrace[1]}}
 							</view>
-							<view class="xs" v-if="delivery.traces[0][2]">
-								{{delivery.traces[0][2]}}
+							<view class="xs" v-if="firstTrace[2]">
+								{{firstTrace[2]}}
 							</view>
 						</view>
 					</view>
-					<block v-for="(item, index) in delivery.traces" :key="index">
+					<block v-for="(item, index) in traceList" :key="index">
 						<view class="express-item row" v-if="index >= 1">
 							<view class="express-left column-center">
 								<view class="express-doted"></view>
@@ -92,7 +92,7 @@
 					</block>
 					<view class="express-item row" v-if="shipment.tips">
 						<view class="express-left column-center">
-							<image class="express-icon" src="../../static/images/logistics_delivered.png"></image>
+							<image class="express-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/logistics_delivered.png"></image>
 							<view class="express-line"></view>
 						</view>
 						<view class="express-right muted">
@@ -103,7 +103,7 @@
 					</view>
 					<view class="express-item row" v-if="buy.tips">
 						<view class="express-left column-center">
-							<image class="express-icon" src="../../static/images/logistics_pay.png"></image>
+							<image class="express-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/logistics_pay.png"></image>
 							<view class="express-line"></view>
 						</view>
 						<view class="express-right muted">
@@ -136,6 +136,14 @@
 				take: {},
 				isFirstLoading: true
 			};
+		},
+		computed: {
+			traceList() {
+				return Array.isArray(this.delivery.traces) ? this.delivery.traces : []
+			},
+			firstTrace() {
+				return this.traceList[0] || []
+			}
 		},
 
 		components: {},

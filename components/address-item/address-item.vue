@@ -1,6 +1,6 @@
 <template>
 	<view class="address row bg-white">
-	    <image class="icon-md mr20" src="/static/images/icon_address.png"></image>
+	    <image class="icon-md mr20" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png"></image>
 	    <view class="flex1 mr20">
 	        <view class="black md" v-if="!address.contact && isSelect">设置收货地址</view>
 	        <view v-else>
@@ -11,7 +11,7 @@
 	            </view>
 	        </view>
 	    </view>
-	    <image v-if="isSelect" class="icon-sm" src="/static/images/arrow_right.png"></image>
+	    <image v-if="isSelect" class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 	</view>
 </template>
 

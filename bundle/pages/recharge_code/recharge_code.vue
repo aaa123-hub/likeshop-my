@@ -11,7 +11,6 @@
 		</view>
 		<loading-footer :status="status" slotEmpty>
 			<view class="data-null column-center" slot="empty" style="padding-top: 200rpx">
-				<image class="img-null" src="/static/images/order_null.png" />
 				<text class="nr muted">暂无记录～</text>
 			</view>
 		</loading-footer>
@@ -73,7 +72,7 @@
 				padding: 20rpx 30rpx;
 
 				&:not(:last-of-type) {
-					border-bottom: $-solid-border;
+					border-bottom: $solid-border;
 				}
 			}
 		}

@@ -34,9 +34,9 @@
                 转账记录</navigator
             >
         </view>
-        <view class="user contain bg-white mt20" v-if="transferList.length">
+        <view class="user contain bg-white mt20">
             <view class="lg bold">最近转账</view>
-            <view class="list">
+            <view v-if="transferList.length" class="list">
                 <view
                     class="item row"
                     v-for="(item, index) in transferList"
@@ -50,6 +50,7 @@
                     </view>
                 </view>
             </view>
+            <view v-else class="transfer-empty">暂无转账记录</view>
         </view>
         <u-modal
             :value="showTransferInfo"
@@ -76,6 +77,7 @@
 </template>
 
 <script>
+import SetPayPwd from '@/bundle/components/set-pay-pwd/set-pay-pwd.vue'
 import {
     hasPayPassword,
     transfer,
@@ -86,6 +88,9 @@ import {
 } from '@/api/user'
 import { trottle } from '@/utils/tools'
 export default {
+	components: {
+		SetPayPwd
+	},
     data() {
         return {
             showTransferInfo: false,
@@ -118,7 +123,7 @@ export default {
         },
         showInputPwd() {
             this.showTransferInfo = false
-            this.$refs.setPayPwd.showInputPwd()
+            if (this.$refs.setPayPwd && this.$refs.setPayPwd.showInputPwd) this.$refs.setPayPwd.showInputPwd()
         },
         getTransferRecentFun() {
             getTransferRecent().then((res) => {
@@ -189,7 +194,7 @@ export default {
         padding: 30rpx 45rpx;
 
         .input {
-            border-bottom: $-solid-border;
+            border-bottom: $solid-border;
             margin-top: 30rpx;
 
             input {
@@ -215,8 +220,17 @@ export default {
             padding: 26rpx 0;
 
             &:not(:last-of-type) {
-                border-bottom: $-solid-border;
+                border-bottom: $solid-border;
             }
+        }
+
+        .transfer-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 160rpx;
+            color: #999999;
+            font-size: 26rpx;
         }
     }
 

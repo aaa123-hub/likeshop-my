@@ -43,7 +43,7 @@
 									:deletable="true" useSlot @delete="handleDelete">
 									<view>
 										<view class="upload-area row-center">
-											<image src="/static/images/uploader_icon.png"></image>
+											<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/uploader_icon.png"></image>
 										</view>
 										<view class="mt10 normal nr" style="line-height: 36rpx;text-align: center;">
 											微信收款码</view>
@@ -90,7 +90,7 @@
 									:deletable="true" useSlot @delete="handleDelete">
 									<view class="column-center">
 										<view class="upload-area row-center">
-											<image src="/static/images/uploader_icon.png"></image>
+											<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/uploader_icon.png"></image>
 										</view>
 										<view class="mt10 normal nr" style="line-height: 36rpx;text-align: center;">
 											支付宝收款码</view>
@@ -172,7 +172,8 @@
 </template>
 
 <script>
-	// +----------------------------------------------------------------------
+	import Uploader from '@/bundle/components/uploader/uploader.vue'
+// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
 	// | 欢迎阅读学习系统程序代码，建议反馈是我们前进的动力
@@ -219,7 +220,8 @@
 			};
 		},
 
-		components: {},
+		components: {
+},
 		props: {},
 
 		/**
@@ -227,7 +229,10 @@
 		 */
 		onLoad: function(options) {
 			this.getWithdrawConfigFun();
-			this.applyWithdrawFun = trottle(this.applyWithdrawFun, 1000, this)
+			this.applyWithdrawFun = trottle(this.applyWithdrawFun, 1000, this),
+
+			Uploader
+
 		},
 
 
@@ -339,7 +344,8 @@
 					money_qr_code: qrCode,
 					remark: remark,
 					bank,
-					subbank
+					subbank,
+					idempotentKey: `withdraw-${Date.now()}`
 				};
 				applyWithdraw(data).then(res => {
 					if (res.code == 1) {
@@ -382,7 +388,7 @@
 				border-radius: 20rpx;
 
 				.input {
-					border-bottom: $-solid-border;
+					border-bottom: $solid-border;
 
 					input {
 						width: 100%;
@@ -410,7 +416,7 @@
 
 				.input-item {
 					padding: 28rpx 0 30rpx;
-					border-bottom: $-solid-border;
+					border-bottom: $solid-border;
 				}
 
 				.input-label {

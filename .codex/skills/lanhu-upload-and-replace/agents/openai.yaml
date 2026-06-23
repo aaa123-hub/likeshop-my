@@ -1,0 +1,9 @@
+interface:
+  display_name: "Lanhu Upload Replace"
+  short_description: "复用蓝湖图片上传并回填代码"
+  default_prompt: "Use $lanhu-upload-and-replace to fetch Lanhu images, reuse existing uploaded URLs when available, upload missing assets to the project server, normalize returned URLs, and update the matching code references."
+  icon_small: "./assets/lanhu-upload.svg"
+  icon_large: "./assets/lanhu-upload.svg"
+  brand_color: "#1688FF"
+policy:
+  allow_implicit_invocation: true
