@@ -43,15 +43,18 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 import { getNoticeLists } from "@/api/store";
 import { loadingType } from "@/utils/type";
 import { getDesignAsset } from "@/utils/design-assets";
-import navbar from "@/bundle_shared_components/components/navbar/navbar.vue";
+import navbar from "@/components/navbar/navbar.vue";
 
 export default {
   components: {
     navbar,
-  },
+  ,
+			Navbar
+		},
   data() {
     return {
       page: 1,

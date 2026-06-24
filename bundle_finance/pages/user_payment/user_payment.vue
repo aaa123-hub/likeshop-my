@@ -49,6 +49,8 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 	// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
@@ -82,7 +84,10 @@
 			};
 		},
 
-		components: {},
+		components: {
+			Navbar,
+			UPopup
+		},
 		props: {},
 
 		/**

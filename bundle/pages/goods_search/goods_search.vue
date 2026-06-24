@@ -1,7 +1,11 @@
 <template>
 	<view class="goods-search">
 		<view class="search-top">
-			<navbar title="搜索" :background="{ background: '#bcd1f3' }"></navbar>
+			<view class="search-nav">
+				<view class="search-nav__back" @tap="goBack"></view>
+				<view class="search-nav__title">搜索</view>
+				<view class="search-nav__space"></view>
+			</view>
 			<view class="search-box">
 				<view class="search-input-wrap">
 					<input
@@ -21,7 +25,7 @@
 				</view>
 			</view>
 		</view>
-		<view offset-top="0" h5-nav-height="0">
+		<view>
 			<view v-show="!showHistory" class="filter-bar">
 				<view class="filter-item" @tap="onNormal">
 					<text :class="comprehensive ? 'is-active' : ''">位置距离</text>
@@ -98,8 +102,8 @@
 				</view>
 			</loading-footer>
 		</view>
-		<u-popup v-model="showFilter" mode="bottom" border-radius="24" safe-area-inset-bottom>
-			<view class="filter-panel">
+		<view v-if="showFilter" class="filter-mask" @tap="showFilter = false">
+			<view class="filter-panel" @tap.stop>
 				<view class="filter-panel__title">更多筛选</view>
 				<view class="filter-group">
 					<view class="filter-group__label">价格区间</view>
@@ -118,12 +122,12 @@
 						<view :class="['filter-chip', sortType === 'SALES_DESC' ? 'active' : '']" @tap="sortType = 'SALES_DESC'">销量优先</view>
 					</view>
 				</view>
-			<view class="filter-actions">
+				<view class="filter-actions">
 					<view class="filter-action reset" @tap="resetFilter">重置</view>
 					<view class="filter-action confirm" @tap="applyFilter">确定</view>
 				</view>
 			</view>
-		</u-popup>
+		</view>
 	</view>
 </template>
 
@@ -210,6 +214,14 @@
 			this.getGoodsSearchFun();
 		},
 		methods: {
+			goBack() {
+				const pages = getCurrentPages()
+				if (pages.length > 1) {
+					uni.navigateBack()
+					return
+				}
+				uni.switchTab({ url: '/pages/street/street' })
+			},
 			isEmptyImage(item) {
 				return isPlaceholderImage(item.image || item.goods_image || item.cover)
 			},
@@ -394,6 +406,45 @@
 		.search-top {
 			background: #bcd1f3;
 			padding-bottom: 20rpx;
+		}
+
+		.search-nav {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			height: 88rpx;
+			padding: calc(var(--status-bar-height) + 8rpx) 24rpx 0;
+			box-sizing: content-box;
+		}
+
+		.search-nav__back,
+		.search-nav__space {
+			width: 72rpx;
+			height: 72rpx;
+		}
+
+		.search-nav__back {
+			position: relative;
+			color: #222222;
+		}
+
+		.search-nav__back::after {
+			content: '';
+			position: absolute;
+			left: 18rpx;
+			top: 22rpx;
+			width: 22rpx;
+			height: 22rpx;
+			border-left: 4rpx solid currentColor;
+			border-bottom: 4rpx solid currentColor;
+			transform: rotate(45deg);
+		}
+
+		.search-nav__title {
+			color: #222222;
+			font-size: 36rpx;
+			font-weight: 600;
+			line-height: 44rpx;
 		}
 
 		.search-box {
@@ -603,9 +654,25 @@
 			min-height: 760rpx;
 		}
 
+		.filter-mask {
+			position: fixed;
+			left: 0;
+			right: 0;
+			top: 0;
+			bottom: 0;
+			z-index: 10080;
+			display: flex;
+			align-items: flex-end;
+			background: rgba(0, 0, 0, 0.45);
+		}
+
 		.filter-panel {
+			width: 100%;
 			padding: 32rpx 30rpx 40rpx;
 			background: #ffffff;
+			border-radius: 24rpx 24rpx 0 0;
+			box-sizing: border-box;
+			padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 		}
 
 		.filter-panel__title {

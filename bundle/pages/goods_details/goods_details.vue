@@ -393,6 +393,8 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 	import SpecPopup from '@/bundle/components/spec-popup/spec-popup.vue'
 	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 import {
@@ -435,7 +437,10 @@ import {
 	components: {
 		SpecPopup,
 		TkiQrcode
-	},
+	,
+			Navbar,
+			UPopup
+		},
 		data() {
 			return {
 				scrollTop: 0,

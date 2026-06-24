@@ -780,10 +780,13 @@
 			"navigationStyle": "custom"
 		}
 	},
+	"optimization": {
+		"subPackages": true
+	},
 	"easycom": {
 		"autoscan": false,
 		"custom": {
-			"^u-(icon|modal|number-box|empty)$": "@/components/uview-ui/components/u-$1/u-$1.vue",
+			"^u-(icon|modal|number-box|empty|popup|picker|select|sticky)$": "@/components/uview-ui/components/u-$1/u-$1.vue",
 			"^u-(.*)": "@/bundle_shared_components/components/uview-ui/components/u-$1/u-$1.vue",
 			"^price-format$": "@/components/price-format/price-format.vue",
 			"^loading-footer$": "@/bundle_shared_components/components/loading-footer/loading-footer.vue",
@@ -802,7 +805,7 @@
 			"^recommend$": "@/bundle_shared_components/components/recommend/recommend.vue",
 			"^swipers$": "@/bundle_shared_components/components/swipers/swipers.vue",
 			"^tabs$": "@/bundle_shared_components/components/tabs/tabs.vue",
-			"^navbar$": "@/bundle_shared_components/components/navbar/navbar.vue",
+			"^navbar$": "@/components/navbar/navbar.vue",
 			"^cu-progress$": "@/bundle_shared_components/components/cu-progress/cu-progress.vue",
 			"^cate-(.*)$": "@/bundle_shared_components/components/cate-$1/cate-$1.vue"
 		}

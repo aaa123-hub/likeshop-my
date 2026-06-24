@@ -1,7 +1,7 @@
 <template>
     <view class="auto-points-page">
         <view class="auto-points-topbar">
-            <image class="auto-points-back" src="https://shengyuan.store/api/miniapp/files/miniapp/f7aa105f2e8b470798a431a761e2ca45/auto-points-back-icon.png" mode="aspectFit" @tap="goBack"></image>
+            <view class="auto-points-back" @tap="goBack"></view>
             <view class="auto-points-title">自动领取积分设置</view>
         </view>
 
@@ -99,9 +99,22 @@ export default {
 }
 
 .auto-points-back {
-    width: 14rpx;
-    height: 24rpx;
-    padding: 20rpx 28rpx 20rpx 0;
+    position: relative;
+    width: 64rpx;
+    height: 64rpx;
+    color: #222222;
+}
+
+.auto-points-back::after {
+    content: '';
+    position: absolute;
+    left: 16rpx;
+    top: 20rpx;
+    width: 20rpx;
+    height: 20rpx;
+    border-left: 4rpx solid currentColor;
+    border-bottom: 4rpx solid currentColor;
+    transform: rotate(45deg);
 }
 
 .auto-points-title {

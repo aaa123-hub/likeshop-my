@@ -135,7 +135,12 @@
 export default {
     methods: {
         goBack() {
-            uni.navigateBack()
+            const pages = getCurrentPages()
+            if (pages.length > 1) {
+                uni.navigateBack()
+                return
+            }
+            uni.switchTab({ url: '/pages/user/user' })
         }
     }
 }

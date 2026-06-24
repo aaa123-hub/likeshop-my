@@ -60,6 +60,7 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 	import {
 		loadingType
 	} from '@/utils/type';
@@ -79,7 +80,9 @@
 			};
 		},
 
-		components: {},
+		components: {
+			Navbar
+		},
 		onLoad: function(options) {
 			this.getGroupListFun();
 		},

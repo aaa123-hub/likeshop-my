@@ -565,7 +565,7 @@
                 <view class="intro-card-page">
                     <image class="intro-card-page-bg" src="https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png" mode="scaleToFill"></image>
                     <view class="intro-card-topbar">
-                        <image class="intro-card-back" :src="introCardBackIcon" mode="aspectFit" @tap="goBack"></image>
+                        <view class="intro-card-back" @tap="goBack"></view>
                         <view class="intro-card-title">联盟码</view>
                     </view>
 
@@ -594,7 +594,7 @@
             <template v-else-if="scene === 'recent-visits'">
                 <view class="recent-visits-page">
                     <view class="recent-visits-topbar">
-                        <image class="recent-visits-back" :src="recentVisitsBackIcon" mode="aspectFit" @tap="goBack"></image>
+                        <view class="recent-visits-back" @tap="goBack"></view>
                         <view class="recent-visits-title">最近访问</view>
                     </view>
 
@@ -1046,10 +1046,16 @@ import { getAccountLog, getInviteInfo, scanOfflinePayment, submitFeedback, submi
 import { getDesignAsset, designAssetList, designAssets } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, tabbarList, uploadFile } from '@/utils/tools'
+import Navbar from '@/components/navbar/navbar.vue'
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
 
 export default {
 	components: {
-		TkiQrcode
+		TkiQrcode,
+		Navbar,
+		UPopup,
+		UIcon
 	},
     props: {
         scene: {
@@ -1075,7 +1081,6 @@ export default {
 			paymentRecordFilterIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png',
 			aboutArrowIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/6dcc63c37e6943bdbcf59e36cbe1ec28/d35bb9407ef16b8d704effe295ad7e27.png',
 			activityCenterBackIcon: '',
-			introCardBackIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/09dbe58e5283491f8bf3932d51ca6441/intro-card-back-icon.png',
 			introCardCopyIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/62f0790376274645b017cc64e7cae6b8/intro-card-copy-icon.png',
 			introCardCopyIconAlt: 'https://shengyuan.store/api/miniapp/files/miniapp/0d49e91085034160aa0280bd63f498cb/intro-card-copy-alt-icon.png',
 			introCardQrImage: 'https://shengyuan.store/api/miniapp/files/miniapp/343da0ec1adc42ff87a010eea8adfcbd/intro-card-qr-placeholder.png',
@@ -1086,7 +1091,6 @@ export default {
                 avatar: resolveImage('', 'avatar'),
                 qrImage: ''
             },
-			recentVisitsBackIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/75ebea93daae4482b19647ffaa238858/6c1b9219335c90eb81ddc57cd6d0016e.png',
 			user_kyc:'https://shengyuan.store/api/miniapp/files/miniapp/205ef63eca8a4ecc9d880e2102394945/kyc-page-bg.png',
 			right_icon:'https://shengyuan.store/api/miniapp/files/miniapp/14ea8fb481864dbc9cf9bdea659d4734/kyc-cert-back-placeholder.png',
 			left_icon:'https://shengyuan.store/api/miniapp/files/miniapp/17cda3ae31a6439fbb0dbda78313bc3e/kyc-cert-front-placeholder.png',
@@ -2719,9 +2723,22 @@ export default {
 }
 
 .intro-card-back {
-    width: 14rpx;
-    height: 24rpx;
-    padding: 20rpx 28rpx 20rpx 0;
+    position: relative;
+    width: 64rpx;
+    height: 64rpx;
+    color: #ffffff;
+}
+
+.intro-card-back::after {
+    content: '';
+    position: absolute;
+    left: 16rpx;
+    top: 20rpx;
+    width: 20rpx;
+    height: 20rpx;
+    border-left: 4rpx solid currentColor;
+    border-bottom: 4rpx solid currentColor;
+    transform: rotate(45deg);
 }
 
 .intro-card-title {
@@ -2869,9 +2886,22 @@ export default {
 }
 
 .recent-visits-back {
-    width: 14rpx;
-    height: 24rpx;
-    padding: 20rpx 28rpx 20rpx 0;
+    position: relative;
+    width: 64rpx;
+    height: 64rpx;
+    color: #222222;
+}
+
+.recent-visits-back::after {
+    content: '';
+    position: absolute;
+    left: 16rpx;
+    top: 20rpx;
+    width: 20rpx;
+    height: 20rpx;
+    border-left: 4rpx solid currentColor;
+    border-bottom: 4rpx solid currentColor;
+    transform: rotate(45deg);
 }
 
 .recent-visits-title {

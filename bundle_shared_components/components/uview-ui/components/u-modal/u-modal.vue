@@ -32,6 +32,9 @@
 </template>
 
 <script>
+	import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+	import ULoading from '@/bundle_shared_components/components/uview-ui/components/u-loading/u-loading.vue'
+
 	/**
 	 * modal 模态框
 	 * @description 弹出模态框，常用于消息提示、消息确认、在当前页面内完成特定的交互操作
@@ -63,6 +66,10 @@
 	 */
 	export default {
 		name: 'u-modal',
+		components: {
+			UPopup,
+			ULoading
+		},
 		props: {
 			// 是否显示Modal
 			value: {

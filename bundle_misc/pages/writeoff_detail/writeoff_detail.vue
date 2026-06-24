@@ -37,11 +37,15 @@
 </template>
 
 <script>
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 	import {
 		verificationConfirm,
 		verification
 	} from '@/api/order'
 	export default {
+	components: {
+		UModal
+	},
 		data() {
 			return {
 				detail: {},

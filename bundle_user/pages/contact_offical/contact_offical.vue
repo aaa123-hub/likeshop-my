@@ -51,9 +51,13 @@
 </template>
 
 <script>
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
     import {getService} from "@/api/app"
     import {copy} from '@/utils/tools'
     export default {
+	components: {
+		UModal
+	},
         name: 'contactOffical',
         data() {
             return {

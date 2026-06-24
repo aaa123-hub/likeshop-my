@@ -105,6 +105,7 @@
 </template>
 
 <script>
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 	// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
@@ -141,7 +142,9 @@
 			};
 		},
 
-		components: {},
+		components: {
+			UModal
+		},
 		props: {},
 
 		/**

@@ -74,9 +74,13 @@
 </template>
 
 <script>
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 import { hasPayPassword, setPassword } from '@/api/user'
 import { mapGetters } from 'vuex'
 export default {
+	components: {
+		UModal
+	},
     name: 'set-pay-pwd',
     data() {
         return {
@@ -130,7 +134,14 @@ export default {
             })
         },
         goBack() {
-            uni.navigateBack()
+            const pages = getCurrentPages()
+            if (pages.length > 1) {
+                uni.navigateBack()
+                return
+            }
+            uni.navigateTo({
+                url: '/bundle_user/pages/user_profile/user_profile'
+            })
         },
         toSetting() {
             uni.navigateTo({

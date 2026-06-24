@@ -50,6 +50,8 @@
 </template>
 
 <script>
+	import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+
 	/**
 	 * select 列选择器
 	 * @description 此选择器用于单列，多列，多列联动的选择场景。(从1.3.0版本起，不建议使用Picker组件的单列和多列模式，Select组件是专门为列选择而构造的组件，更简单易用。)
@@ -73,6 +75,9 @@
 	 */
 
 export default {
+	components: {
+		UPopup
+	},
 	props: {
 		// 列数据
 		list: {

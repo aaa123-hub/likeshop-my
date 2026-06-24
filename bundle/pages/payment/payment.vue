@@ -70,6 +70,7 @@
 
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 	/**
 	 * @description 支付页面
 	 * @query {String} from 订单来源: order-商品订单; recharge-充值订单;
@@ -85,6 +86,9 @@
 	} from '@/utils/pay'
 
 	export default {
+	components: {
+		Navbar
+	},
 		name: 'Payment',
 
 		data() {

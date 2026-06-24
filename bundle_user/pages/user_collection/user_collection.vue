@@ -39,6 +39,7 @@
 </template>
 
 <script>
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -72,7 +73,9 @@ export default {
   },
 
   components: {
-  },
+  
+			UModal
+		},
   props: {},
 
   /**

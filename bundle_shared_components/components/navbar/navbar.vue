@@ -3,14 +3,21 @@
 		<u-navbar :background="background" :title="title" :title-color="titleColor" :border-bottom="borderBottom"
 			:immersive="immersive" :title-bold="true" :is-back="false">
 			<view class="navbar-left" slot="left">
-				<u-icon :name="backIcon" :size="36" @click="goBack"></u-icon>
+				<view :class="['navbar-back-icon', isHome ? 'is-home' : 'is-back']" @tap="goBack"></view>
 			</view>
 		</u-navbar>
 	</view>
 </template>
 
 <script>
+	import UNavbar from '@/bundle_shared_components/components/uview-ui/components/u-navbar/u-navbar.vue'
+	import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
+
 	export default {
+		components: {
+			UNavbar,
+			UIcon
+		},
 		props: {
 			// 导航内容
 			title: String,
@@ -42,7 +49,8 @@
 		},
 		methods: {
 			goBack() {
-				if (!this.isIndex) {
+				const pages = getCurrentPages()
+				if (pages.length > 1) {
 					uni.navigateBack()
 					return
 				}
@@ -52,9 +60,9 @@
 			}
 		},
 		computed: {
-			backIcon() {
-				const iconName = this.isIndex ? 'icon_home' : 'icon_back'
-				return `https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/${iconName}.png`
+			isHome() {
+				const pages = getCurrentPages()
+				return this.isIndex || pages.length <= 1
 			}
 		},
 		created() {
@@ -77,6 +85,51 @@
 			justify-content: center;
 			width: 64rpx;
 			height: 64rpx;
+		}
+
+		.navbar-back-icon {
+			position: relative;
+			width: 48rpx;
+			height: 48rpx;
+			color: #222222;
+		}
+
+		.navbar-back-icon.is-back::before {
+			content: '';
+			position: absolute;
+			left: 16rpx;
+			top: 12rpx;
+			width: 20rpx;
+			height: 20rpx;
+			border-left: 4rpx solid currentColor;
+			border-bottom: 4rpx solid currentColor;
+			transform: rotate(45deg);
+		}
+
+		.navbar-back-icon.is-home::before {
+			content: '';
+			position: absolute;
+			left: 8rpx;
+			top: 18rpx;
+			width: 30rpx;
+			height: 24rpx;
+			border: 4rpx solid currentColor;
+			border-top: 0;
+			border-radius: 3rpx;
+			box-sizing: border-box;
+		}
+
+		.navbar-back-icon.is-home::after {
+			content: '';
+			position: absolute;
+			left: 11rpx;
+			top: 8rpx;
+			width: 24rpx;
+			height: 24rpx;
+			border-left: 4rpx solid currentColor;
+			border-top: 4rpx solid currentColor;
+			transform: rotate(45deg);
+			box-sizing: border-box;
 		}
 	}
 </style>

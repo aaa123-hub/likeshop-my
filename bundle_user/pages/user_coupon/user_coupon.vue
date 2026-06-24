@@ -13,6 +13,7 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 
 export default {
   data() {
@@ -36,7 +37,9 @@ export default {
 
   components: {
 
-  },
+  
+			Navbar
+		},
   props: {},
 
   methods: {

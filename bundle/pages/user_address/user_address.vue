@@ -81,6 +81,8 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -102,6 +104,10 @@ import { getAddressLists, delAddress, setDefaultAddress } from '@/api/user'
 import wechath5 from '@/utils/wechath5'
 import { isWeixinClient } from '@/utils/tools'
 export default {
+	components: {
+		Navbar,
+		UModal
+	},
     data() {
         return {
             addressList: [],

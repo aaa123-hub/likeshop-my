@@ -54,10 +54,14 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
     import {getBargainList} from '@/api/activity'
     import {loadingType} from "@/utils/type"
     import {loadingFun} from '@/utils/tools'
     export default {
+	components: {
+		Navbar
+	},
         data() {
             return {
                 page: 1,

@@ -94,6 +94,8 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
+import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -114,6 +116,10 @@
 import { editAddress, getOneAddress, hasRegionCode, addAddress } from '@/api/user'
 import area from '@/utils/area'
 export default {
+	components: {
+		Navbar,
+		USelect
+	},
     data() {
         return {
             addressObj: {

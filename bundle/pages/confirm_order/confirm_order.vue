@@ -270,12 +270,16 @@ likeshop.cn.team // +-----------------------------------------------------------
 </template>
 
 <script>
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 import { orderBuy, getOrderCoupon, getDelivery } from '@/api/order'
 import { teamBuy } from '@/api/activity'
 import { prepay, getMnpNotice, getPayway } from '@/api/app'
 import { wxpay, alipay } from '@/utils/pay'
 
 export default {
+	components: {
+		UPopup
+	},
     data() {
         return {
             isFirstLoading: true, // 首次页面加载loading
@@ -422,7 +426,12 @@ export default {
 
     methods: {
         goBack() {
-            uni.navigateBack()
+            const pages = getCurrentPages()
+            if (pages.length > 1) {
+                uni.navigateBack()
+                return
+            }
+            uni.switchTab({ url: '/pages/shop_cart/shop_cart' })
         },
 
         // 更改配送方式

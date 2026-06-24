@@ -82,6 +82,8 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -102,6 +104,10 @@
 import { getSignList, userSign, getSignRule } from "@/api/user";
 import {trottle} from '@/utils/tools.js'
 export default {
+	components: {
+		Navbar,
+		UPopup
+	},
   data() {
     return {
       // 成长值

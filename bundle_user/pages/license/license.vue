@@ -38,6 +38,7 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
     import { mapGetters } from "vuex"
     import {
         applyMerchantQualification,
@@ -45,6 +46,9 @@
 	} from "@/api/user";
     const defaultQualificationUrl = 'https://shengyuan.store/api/miniapp/files/miniapp/7d58e17458874d54b2452a10998cd590/22-merchant-license.png'
     export default {
+	components: {
+		Navbar
+	},
         data() {
             return {
                 form: {

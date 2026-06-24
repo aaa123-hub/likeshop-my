@@ -132,8 +132,12 @@ import { getCartList, changeCartSelect, changeGoodsCount, deleteGoods } from "@/
 import { mapGetters, mapActions } from "vuex";
 import { setTabbar } from "@/utils/tools";
 import { designAssets } from "@/utils/design-assets";
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 
 export default {
+  components: {
+    UModal
+  },
   data() {
     return {
       designAssets,

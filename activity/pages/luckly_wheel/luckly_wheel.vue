@@ -80,6 +80,7 @@
 </template>
 
 <script>
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 	import MyLottery from '@/activity/components/my-lottery/my-lottery.vue'
 // pages/luckly_wheel/luckly_wheel.js
 	import {
@@ -89,7 +90,9 @@
 	export default {
 	components: {
 		MyLottery
-	},
+	,
+			UPopup
+		},
 		data() {
 			return {
 				user_integral: '',

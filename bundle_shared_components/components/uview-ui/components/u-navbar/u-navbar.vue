@@ -39,6 +39,8 @@
 </template>
 
 <script>
+	import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
+
 	// 获取系统状态栏的高度
 	let systemInfo = uni.getSystemInfoSync();
 	let menuButtonInfo = {};
@@ -71,6 +73,9 @@
 	 */
 	export default {
 		name: "u-navbar",
+		components: {
+			UIcon
+		},
 		props: {
 			// 导航栏高度，单位px，非rpx
 			height: {

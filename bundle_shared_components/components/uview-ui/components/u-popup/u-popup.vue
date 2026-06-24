@@ -46,6 +46,9 @@
 </template>
 
 <script>
+import UMask from '@/bundle_shared_components/components/uview-ui/components/u-mask/u-mask.vue'
+import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
+
 /**
  * popup 弹窗
  * @description 弹出层容器，用于展示弹窗、信息提示等内容，支持上、下、左、右和中部弹出。组件只提供容器，内部内容由用户自定义
@@ -71,6 +74,10 @@
  */
 export default {
 	name: 'u-popup',
+	components: {
+		UMask,
+		UIcon
+	},
 	props: {
 		/**
 		 * 显示状态

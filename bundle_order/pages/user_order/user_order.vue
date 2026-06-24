@@ -22,6 +22,9 @@
             <view class="order-switch__back" @tap="goBack">
                 <u-icon name="arrow-left" size="36" color="#222222"></u-icon>
             </view>
+            <view class="order-switch__title">我的订单</view>
+        </view>
+        <view class="order-type-switch">
             <view :class="['order-switch__item', activeTop === 0 ? 'is-active' : '']" @tap="activeTop = 0">
                 全部订单
             </view>
@@ -152,8 +155,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 96rpx;
-  padding: 0 156rpx;
+  height: 88rpx;
+  padding: 0 120rpx;
 }
 
 .order-switch__back {
@@ -166,6 +169,22 @@ export default {
   width: 72rpx;
   height: 72rpx;
   transform: translateY(-50%);
+}
+
+.order-switch__title {
+  color: #222222;
+  font-size: 36rpx;
+  font-weight: 600;
+  line-height: 44rpx;
+}
+
+.order-type-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 76rpx;
+  padding: 0 156rpx;
 }
 
 .order-switch__item {

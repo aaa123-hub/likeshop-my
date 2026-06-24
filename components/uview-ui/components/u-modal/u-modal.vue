@@ -5,8 +5,21 @@
 <script>
 export default {
   name: 'u-modal',
-  props: { value: Boolean, content: String, confirmText: String, showCancelButton: Boolean },
-  methods: { confirm(){ this.$emit('confirm') }, cancel(){ this.$emit('input', false); this.$emit('cancel') } }
+  props: {
+    value: Boolean,
+    content: String,
+    confirmText: String,
+    showCancelButton: Boolean,
+    asyncClose: Boolean
+  },
+  methods: {
+    confirm(){
+      if (!this.asyncClose) this.$emit('input', false)
+      this.$emit('confirm')
+    },
+    cancel(){ this.$emit('input', false); this.$emit('cancel') },
+    clearLoading() {}
+  }
 }
 </script>
 

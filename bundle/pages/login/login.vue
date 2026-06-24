@@ -4,7 +4,7 @@
         <view class="company-login__shade"></view>
 
         <view class="company-login__nav">
-            <view class="company-login__back" @tap="goBack" v-if="canBack">‹</view>
+            <view class="company-login__back" @tap="goBack" v-if="canBack"></view>
             <view class="company-login__nav-title">登录</view>
         </view>
 
@@ -100,6 +100,7 @@
 </template>
 
 <script>
+import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 import { mapMutations, mapGetters } from 'vuex'
 import { authLogin } from '@/api/app'
 import { inputInviteCode } from '@/api/user'
@@ -110,6 +111,9 @@ import { BACK_URL } from '@/config/cachekey'
 import { designAssets } from '@/utils/design-assets'
 
 export default {
+	components: {
+		UModal
+	},
     data() {
         return {
             isAgree: true,
@@ -281,10 +285,19 @@ page {
     bottom: 12rpx;
     width: 64rpx;
     height: 64rpx;
-    line-height: 56rpx;
-    text-align: center;
-    font-size: 56rpx;
     color: #1d2433;
+}
+
+.company-login__back::after {
+    content: '';
+    position: absolute;
+    left: 20rpx;
+    top: 18rpx;
+    width: 22rpx;
+    height: 22rpx;
+    border-left: 4rpx solid currentColor;
+    border-bottom: 4rpx solid currentColor;
+    transform: rotate(45deg);
 }
 
 .company-login__nav-title {

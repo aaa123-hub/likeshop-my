@@ -96,6 +96,8 @@
 </template>
 
 <script>
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+
 // import provinces from '../../libs/util/province.js';
 // import citys from '../../libs/util/city.js';
 // import areas from '../../libs/util/area.js';
@@ -128,6 +130,9 @@
  */
 export default {
 	name: 'u-picker',
+	components: {
+		UPopup
+	},
 	props: {
 		// picker中需要显示的参数
 		params: {

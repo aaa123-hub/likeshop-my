@@ -145,6 +145,7 @@
 </template>
 
 <script>
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 export default {
   data() {
     return {
@@ -159,7 +160,9 @@ export default {
     };
   },
 
-  components: {},
+  components: {
+			UPopup
+		},
   props: {
     show: {
       type: Boolean,

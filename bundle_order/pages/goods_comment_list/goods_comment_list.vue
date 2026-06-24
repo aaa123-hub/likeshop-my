@@ -13,6 +13,7 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 
 
 import CommentList from '@/bundle_order/components/comment-list/comment-list.vue'
@@ -27,7 +28,9 @@ export default {
 
   	CommentList
 
-  },
+  ,
+			Navbar
+		},
   props: {},
 
   /**

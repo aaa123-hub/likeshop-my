@@ -27,6 +27,7 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -59,7 +60,9 @@ export default {
   },
 
   components: {
-  },
+  
+			Navbar
+		},
   props: {},
 
   /**

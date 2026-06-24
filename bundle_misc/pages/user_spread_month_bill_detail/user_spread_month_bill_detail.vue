@@ -51,6 +51,7 @@
 </template>
 
 <script>
+import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -99,7 +100,9 @@ export default {
   },
 
   components: {
-  },
+  
+			USelect
+		},
   props: {},
 
   /**

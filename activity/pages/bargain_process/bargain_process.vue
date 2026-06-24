@@ -231,7 +231,7 @@
                     </view>
                 </view>
             </view>
-            <view class="close-icon row-center" @click="closeBargainPop" mode="bottom">
+            <view class="close-icon row-center" @click="closeBargainPop">
                 <u-icon name="close-circle" size="68rpx" color="#fff"></u-icon>
             </view>
         </u-popup>
@@ -272,6 +272,8 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
     import SpecPopup from '@/activity/components/spec-popup/spec-popup.vue'
 import SharePopup from '@/activity/components/share-popup/share-popup.vue'
 import GoodsBargain from '@/activity/components/goods-bargain/goods-bargain.vue'
@@ -284,7 +286,10 @@ import {getBargainDetail, launchBargain, getBargainActivityDetail, helpBargain, 
 		SpecPopup,
 		SharePopup,
 		GoodsBargain
-	},
+	,
+			Navbar,
+			UPopup
+		},
         data() {
             return {
                 showPop: false,

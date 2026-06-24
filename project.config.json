@@ -13,6 +13,18 @@
       {
         "value": "static/lanhu/uploaded-assets.txt",
         "type": "file"
+      },
+      {
+        "value": "static/lanhu/uploaded-assets-map.json",
+        "type": "file"
+      },
+      {
+        "value": "static/lanhu/LANHU_PAGE_MAP.md",
+        "type": "file"
+      },
+      {
+        "value": "static/lanhu/asset-rename-map.json",
+        "type": "file"
       }
     ],
     "include": []

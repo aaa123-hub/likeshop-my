@@ -60,8 +60,12 @@
 
 <script>
 import { uploadFile } from "@/utils/tools";
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 export default {
     name: "mplogin-popup",
+    components: {
+        UPopup
+    },
     props: {
         logo: {
             type: String,

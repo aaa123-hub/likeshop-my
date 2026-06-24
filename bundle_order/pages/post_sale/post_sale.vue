@@ -12,6 +12,7 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 import AfterSalesList from '@/bundle_order/components/after-sales-list/after-sales-list.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
@@ -59,7 +60,9 @@ export default {
 
   	AfterSalesList
 
-  },
+  ,
+			Navbar
+		},
   props: {},
 
 

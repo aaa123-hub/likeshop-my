@@ -128,6 +128,7 @@
 </template>
 
 <script>
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 import Uploader from '@/bundle_order/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
@@ -154,7 +155,9 @@ import { uploadFile, trottle } from "@/utils/tools.js";
 export default {
 	components: {
 		Uploader
-	},
+	,
+			UPopup
+		},
   data() {
     return {
       hiddenOpt: false,

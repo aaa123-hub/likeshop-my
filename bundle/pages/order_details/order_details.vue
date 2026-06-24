@@ -373,6 +373,7 @@ author: likeshop.cn.team //
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
 import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 import {
   getOrderDetail,
@@ -402,7 +403,9 @@ export default {
 
   components: {
     TkiQrcode
-  },
+  ,
+			Navbar
+		},
   props: {},
 
   onLoad: function (options) {

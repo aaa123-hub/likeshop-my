@@ -68,6 +68,7 @@
 </template>
 
 <script>
+import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 	import {
 		mapGetters,
 	} from 'vuex'
@@ -86,6 +87,8 @@
 		components: {
 			poster,
 			TkiQrcode
+		,
+			UPopup
 		},
 		props: {
 			value: {

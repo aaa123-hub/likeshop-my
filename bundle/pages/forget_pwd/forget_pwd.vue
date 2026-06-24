@@ -1,16 +1,16 @@
 <template>
   <view>
     <!-- #ifndef  H5 -->
-    <view offset-top="0" h5-nav-height="0" bg-color="transparent">
-      <view
+    <u-sticky offset-top="0" h5-nav-height="0" bg-color="transparent">
+      <navbar
         :is-back="true"
         title="忘记密码"
         :title-bold="true"
         :is-fixed="false"
         :border-bottom="false"
         :background="{ background: 'rgba(256,256, 256,0)' }"
-      ></view>
-    </view>
+      ></navbar>
+    </u-sticky>
     <!-- #endif -->
     <view class="forget-pwd-container">
       <view class="forget-input-container">
@@ -82,11 +82,17 @@
 </template>
 
 <script>
+import Navbar from '@/components/navbar/navbar.vue'
+import USticky from '@/components/uview-ui/components/u-sticky/u-sticky.vue'
 import { forgetPwd, sendSms } from "@/api/app.js";
 import { ACCESS_TOKEN } from "@/config/app.js";
 import { SMSType } from "@/utils/type.js";
 import { mapMutations } from "vuex";
 export default {
+	components: {
+		Navbar,
+		USticky
+	},
   name: "forgetPwd",
   data() {
     return {

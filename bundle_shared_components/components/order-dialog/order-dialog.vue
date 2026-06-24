@@ -8,7 +8,11 @@
 		delOrder,
 		confirmOrder
 	} from '@/api/order';
+	import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 	export default {
+		components: {
+			UModal
+		},
 		props: {
 			type: Number,
 			orderId: [Number, String]
