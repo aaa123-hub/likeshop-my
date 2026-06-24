@@ -226,6 +226,7 @@ export default {
 
 <style lang="scss">
 .sort-page {
+    --page-safe-top: var(--status-bar-height, 44rpx);
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -237,7 +238,7 @@ export default {
 
 .sort-header {
     flex: none;
-    padding: calc(var(--status-bar-height) + 24rpx) 24rpx 16rpx;
+    padding: calc(var(--page-safe-top) + 24rpx) 24rpx 16rpx;
     background: #ffffff;
 }
 

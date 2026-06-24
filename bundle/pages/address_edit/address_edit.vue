@@ -11,28 +11,25 @@
                         class="form-row__input"
                         type="text"
                         placeholder="请输入姓名"
+                        placeholder-class="address-placeholder"
                     />
                     <view class="gender-group">
                         <view
                             :class="['gender-item', gender === '先生' ? 'gender-item--active' : '']"
                             @tap="gender = '先生'"
                         >
-                            <u-icon
-                                :name="gender === '先生' ? 'checkmark-circle-fill' : 'checkmark-circle'"
-                                :color="gender === '先生' ? '#1F7AF4' : '#d4d7de'"
-                                size="42"
-                            ></u-icon>
+                            <view :class="['gender-radio', gender === '先生' ? 'gender-radio--active' : '']">
+                                <view v-if="gender === '先生'" class="gender-radio__mark"></view>
+                            </view>
                             <text>先生</text>
                         </view>
                         <view
                             :class="['gender-item', gender === '女士' ? 'gender-item--active' : '']"
                             @tap="gender = '女士'"
                         >
-                            <u-icon
-                                :name="gender === '女士' ? 'checkmark-circle-fill' : 'checkmark-circle'"
-                                :color="gender === '女士' ? '#1F7AF4' : '#d4d7de'"
-                                size="42"
-                            ></u-icon>
+                            <view :class="['gender-radio', gender === '女士' ? 'gender-radio--active' : '']">
+                                <view v-if="gender === '女士'" class="gender-radio__mark"></view>
+                            </view>
                             <text>女士</text>
                         </view>
                     </view>
@@ -43,9 +40,10 @@
                         name="telephone"
                         v-model="addressObj.telephone"
                         class="form-row__input"
-                        type="number"
-                        maxlength="11"
-                        placeholder="请输入电话"
+                        type="text"
+                        maxlength="20"
+                        placeholder="请输入手机号或座机"
+                        placeholder-class="address-placeholder"
                     />
                 </view>
                 <view class="form-row" @click="showRegion = true">
@@ -57,6 +55,7 @@
                         disabled
                         type="text"
                         placeholder="请选择省市区"
+                        placeholder-class="address-placeholder"
                     />
                     <u-icon name="arrow-right" color="#222222" size="28"></u-icon>
                 </view>
@@ -67,6 +66,7 @@
                         name="address"
                         class="detail-textarea"
                         placeholder="请选择详细地址"
+                        placeholder-class="address-placeholder"
                         auto-height
                     />
                 </view>
@@ -146,7 +146,7 @@ export default {
      * 生命周期函数--监听页面加载
      */
     onLoad: function (options) {
-        this.addressId = parseInt(options.id)
+        this.addressId = options.id || options.addressId || ''
         if (options.id) {
             uni.setNavigationBarTitle({
                 title: '编辑地址'
@@ -178,6 +178,10 @@ export default {
         onSwitchChange(value) {
             this.addressObj.is_default = value ? 1 : 0
         },
+        isValidPhone(value) {
+            const phone = String(value || '').replace(/\s/g, '')
+            return /^1\d{10}$/.test(phone) || /^0\d{2,3}-?\d{7,8}$/.test(phone) || /^\d{7,8}$/.test(phone)
+        },
         formSubmit(e) {
             let { value } = e.detail
             let {
@@ -185,6 +189,7 @@ export default {
                 addressId
             } = this
             value.address = address
+            value.telephone = String(value.telephone || '').trim()
             if (!value.contact)
                 return this.$toast({
                     title: '请填写收货人姓名'
@@ -193,9 +198,9 @@ export default {
                 return this.$toast({
                     title: '请填写手机号码'
                 })
-            if (!/^1\d{10}$/.test(String(value.telephone)))
+            if (!this.isValidPhone(value.telephone))
                 return this.$toast({
-                    title: '请输入正确的11位手机号'
+                    title: '请输入正确的手机号或座机号'
                 })
             if (!value.region)
                 return this.$toast({
@@ -209,6 +214,7 @@ export default {
             value.city_id = parseInt(city_id)
             value.district_id = parseInt(district_id)
             value.is_default = is_default
+            value.gender = this.gender
             value.id = addressId
             delete value.region
 
@@ -281,8 +287,11 @@ export default {
             getOneAddress(this.addressId).then((res) => {
                 if (res.code == 1) {
                     let { city, province, district } = res.data
-                    this.addressObj = res.data
-                    this.gender = '先生'
+                    this.addressObj = Object.assign({}, this.addressObj, res.data, {
+                        id: res.data.id || res.data.addressId || this.addressId,
+                        is_default: res.data.is_default || res.data.isDefault ? 1 : 0
+                    })
+                    this.gender = res.data.gender || '先生'
                     this.region = `${province} ${city} ${district}`
                 }
             })
@@ -338,76 +347,116 @@ export default {
 .address-edit {
     min-height: 100vh;
     padding: 0 24rpx calc(180rpx + env(safe-area-inset-bottom));
-    background: #f7f8fa;
+    background: #edf6ff;
 
     .form-card,
     .default-card {
         background: #ffffff;
-        border-radius: 24rpx;
+        border-radius: 15rpx;
         overflow: hidden;
     }
 
     .form-card {
-        margin-top: 26rpx;
+        margin-top: 24rpx;
+        min-height: 619rpx;
     }
 
     .form-row {
         display: flex;
         align-items: center;
-        min-height: 96rpx;
-        padding: 0 28rpx;
+        min-height: 100rpx;
+        padding: 0 29rpx;
 
         & + .form-row {
-            border-top: 1rpx solid #eef0f3;
+            border-top: 1rpx solid #f0f0f0;
         }
     }
 
     .form-row--textarea {
         align-items: flex-start;
-        min-height: 320rpx;
-        padding-top: 26rpx;
+        min-height: 318rpx;
+        padding-top: 31rpx;
     }
 
     .form-row__label {
         flex: none;
         width: 150rpx;
-        font-size: 32rpx;
-        font-weight: 600;
+        font-size: 28rpx;
+        font-weight: 500;
         color: #222222;
     }
 
     .form-row__input {
         flex: 1;
-        height: 96rpx;
-        font-size: 32rpx;
+        min-width: 0;
+        height: 100rpx;
+        font-size: 28rpx;
         color: #222222;
     }
 
+    .form-row__input::placeholder,
+    .detail-textarea::placeholder {
+        color: #c9c9c9;
+    }
+
     .gender-group {
+        flex: none;
         display: flex;
         align-items: center;
-        margin-left: 12rpx;
+        margin-left: 24rpx;
     }
 
     .gender-item {
         display: flex;
         align-items: center;
-        font-size: 32rpx;
+        padding: 0;
+        border: 0;
+        font-size: 24rpx;
+        font-weight: 500;
         color: #222222;
+
+        &.gender-item--active {
+            color: #1f7af4;
+        }
 
         text {
             margin-left: 8rpx;
         }
 
         & + .gender-item {
-            margin-left: 32rpx;
+            margin-left: 38rpx;
         }
+    }
+
+    .gender-radio {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30rpx;
+        height: 30rpx;
+        border-radius: 50%;
+        border: 2rpx solid #c9c9c9;
+        background: #ffffff;
+        box-sizing: border-box;
+    }
+
+    .gender-radio--active {
+        border-color: #037dfa;
+        background: #037dfa;
+    }
+
+    .gender-radio__mark {
+        width: 14rpx;
+        height: 8rpx;
+        border-left: 3rpx solid #ffffff;
+        border-bottom: 3rpx solid #ffffff;
+        transform: rotate(-45deg) translate(1rpx, -1rpx);
     }
 
     .detail-textarea {
         flex: 1;
         min-height: 220rpx;
-        font-size: 32rpx;
+        font-size: 28rpx;
         line-height: 44rpx;
         color: #222222;
         padding-top: 0;
@@ -418,13 +467,13 @@ export default {
         align-items: center;
         justify-content: space-between;
         margin-top: 24rpx;
-        padding: 0 28rpx;
-        height: 112rpx;
+        padding: 0 29rpx;
+        height: 115rpx;
     }
 
     .default-card__label {
-        font-size: 32rpx;
-        font-weight: 600;
+        font-size: 28rpx;
+        font-weight: 500;
         color: #222222;
     }
 
@@ -436,13 +485,17 @@ export default {
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 88rpx;
+        height: 81rpx;
         color: #ffffff;
-        font-size: 32rpx;
-        font-weight: 600;
-        background: #1f7af4;
-        border-radius: 44rpx;
-        box-shadow: 0 14rpx 30rpx rgba(31, 122, 244, 0.18);
+        font-size: 28rpx;
+        font-weight: 500;
+        background: #037dfa;
+        border-radius: 40rpx;
+        box-shadow: none;
+    }
+
+    .submit-btn::after {
+        border: 0;
     }
 }
 </style>

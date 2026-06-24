@@ -172,7 +172,7 @@
 
                         <view class="store-detail-hero__top">
                             <view class="store-detail-hero__back" @tap="goBack">
-                                <u-icon name="arrow-left" size="34" color="#ffffff"></u-icon>
+                                <view class="store-detail-hero__back-icon"></view>
                             </view>
                             <view class="store-detail-hero__title">店铺详情</view>
                             <view class="store-detail-hero__share" @tap="showStoreSharePopup = true">分享</view>
@@ -221,10 +221,16 @@
                         </view>
                     </view>
 
-                    <view v-if="storeDetailActiveTab === 'detail'" class="store-detail-content-card">
+                    <view v-if="storeDetailActiveTab === 'detail' && storeDetailHasIntro" class="store-detail-content-card">
                         <image class="store-detail-content-card__image" :src="storeDetailContentImage" mode="aspectFill"></image>
                         <view class="store-detail-content-card__fade"></view>
                         <view class="store-detail-pay-btn" @tap="goPage(storeDetailPayUrl)">到店付款</view>
+                    </view>
+
+                    <view v-else-if="storeDetailActiveTab === 'detail'" class="store-detail-media-empty">
+                        <image class="store-detail-media-empty__image" :src="storeDetailAlbumEmptyImage" mode="aspectFit"></image>
+                        <view class="store-detail-media-empty__title">暂无店铺介绍</view>
+                        <view class="store-detail-media-empty__desc">商家暂未上传门店介绍</view>
                     </view>
 
                     <view v-else-if="storeDetailActiveTab === 'group'" class="store-detail-group-list">
@@ -1018,7 +1024,7 @@
                         </view>
                     </view>
                 </view>
-                <image class="store-share-mark" :src="qrGoodsMarkIcon" mode="aspectFit"></image>
+                <image class="store-share-mark" :src="qrGoodsMarkIcon" mode="aspectFit" @tap="showStoreSharePopup = false"></image>
                 <view class="store-share-panel">
                     <view class="store-share-qrcode">
                         <tki-qrcode :val="qrStoreValue" :size="510" unit="upx" :showLoading="false" />
@@ -1148,22 +1154,7 @@ export default {
                     image: ''
                 }
             ],
-            groupList: [
-                {
-                    name: '双人精品套餐',
-                    people: 2,
-                    joined: 129,
-                    price: '128',
-                    image: ''
-                },
-                {
-                    name: '家庭超值套餐',
-                    people: 4,
-                    joined: 76,
-                    price: '268',
-                    image: ''
-                }
-            ],
+            groupList: [],
             albumImages: [
                 ...designAssetList.sceneAlbum
             ],
@@ -1186,58 +1177,27 @@ export default {
             storeDetailStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
             storeDetailTimeIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'),
             storeDetailAlbumEmptyImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/78d88fcd23604d4ca9c5e3b1df0108d4/store-media-empty.png'),
-            storeDetailComments: [
-                {
-                    id: 'comment-default-1',
-                    name: '1296644543',
-                    date: '2025-12-23',
-                    content: '评价内容填充文案评价内容填充文案评价内容填充文案',
-                    avatar: ''
-                },
-                {
-                    id: 'comment-default-2',
-                    name: '1296644543',
-                    date: '2025-12-23',
-                    content: '评价内容填充文案评价内容填充文案评价内容填充文案',
-                    avatar: ''
-                }
-            ],
             storeDetailLoadedShopId: '',
             storeDetailApiLoaded: false,
+            storeDetailLoading: false,
             storeDetailActiveTab: 'detail',
             storeDetailData: {
                 shopBase: {
                     shopId: '',
-                    shopName: '广州市越秀区斌记面家',
-                    shopLogo: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
-                    shopScore: '5.0',
-                    businessHours: '8:00-16:00',
-                    detailAddress: '广东省东莞市厚街镇12号123街区',
-                    openStatus: 'OPEN',
-                    avatarUrl: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                    shopName: '',
+                    shopLogo: '',
+                    shopScore: '',
+                    businessHours: '',
+                    detailAddress: '',
+                    openStatus: '',
+                    avatarUrl: '',
                     contactPhone: ''
                 },
                 albums: [],
                 videos: [],
                 coupons: [],
-                groupBuyProducts: [
-                    {
-                        id: 'group-default-1',
-                        goods_id: 1,
-                        name: '双人精品套餐',
-                        image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
-                        price: '128',
-                        sales_sum: 129
-                    },
-                    {
-                        id: 'group-default-2',
-                        goods_id: 2,
-                        name: '家庭超值套餐',
-                        image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
-                        price: '268',
-                        sales_sum: 76
-                    }
-                ],
+                groupBuyProducts: [],
+                comments: [],
                 qrcodeInfo: {}
             },
             streetCapsuleImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_2.png'),
@@ -1444,20 +1404,20 @@ export default {
             const shopBase = this.storeDetailData.shopBase || {}
             return {
                 shopId: shopBase.shopId || '',
-                shopName: shopBase.shopName || '广州市越秀区斌记面家',
-                shopScore: this.formatStreetScore(shopBase.shopScore),
+                shopName: shopBase.shopName || '店铺信息待更新',
+                shopScore: this.formatStreetScore(shopBase.shopScore, '暂无评分'),
                 businessHours: shopBase.businessHours || '',
                 detailAddress: shopBase.detailAddress || '地址待补充',
                 latitude: shopBase.latitude || shopBase.lat || shopBase.shopLatitude || shopBase.shop_latitude || '',
                 longitude: shopBase.longitude || shopBase.lng || shopBase.shopLongitude || shopBase.shop_longitude || '',
                 openStatus: shopBase.openStatus || '',
-                shopLogo: shopBase.shopLogo || shopBase.avatarUrl || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                shopLogo: shopBase.shopLogo || shopBase.avatarUrl || resolveImage('', 'shop'),
                 contactPhone: shopBase.contactPhone || ''
             }
         },
         qrShopInfo() {
             return {
-                name: this.storeDetailView.shopName || '叮咚生活家',
+                name: this.storeDetailView.shopName,
                 logo: this.storeDetailView.shopLogo,
                 score: this.storeDetailView.shopScore,
                 timeText: this.storeDetailBusinessHoursText
@@ -1495,13 +1455,17 @@ export default {
             return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : this.qrStoreValue
         },
         storeDetailHeroImage() {
-            return this.storeDetailData.albums?.[0]?.url || this.storeDetailView.shopLogo
+            const image = this.storeDetailData.albums?.[0]?.url || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || ''
+            return image ? resolveImage(image, 'goods') : this.storeDetailView.shopLogo
         },
         storeDetailCardImage() {
             return this.storeDetailView.shopLogo || this.storeDetailHeroImage
         },
         storeDetailContentImage() {
-            return this.storeDetailData.albums?.[0]?.cover || this.storeDetailData.albums?.[0]?.url || this.storeDetailHeroImage
+            return resolveImage(this.storeDetailData.detailImage || this.storeDetailData.detail_image || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || this.storeDetailData.albums?.[0]?.cover || this.storeDetailData.albums?.[0]?.url || '', 'shop')
+        },
+        storeDetailHasIntro() {
+            return Boolean((this.storeDetailData.albums || []).length || this.storeDetailData.detailImage || this.storeDetailData.cover || this.storeDetailData.image)
         },
         storeDetailAlbumImages() {
             return (this.storeDetailData.albums || [])
@@ -1526,8 +1490,7 @@ export default {
         },
         storeDetailDisplayComments() {
             const comments = this.storeDetailData.comments || this.storeDetailData.commentList || this.storeDetailData.reviews || []
-            const source = comments.length || this.storeDetailApiLoaded ? comments : this.storeDetailComments
-            return source.map((item, index) => ({
+            return comments.map((item, index) => ({
                 ...item,
                 id: item.id || item.commentId || item.reviewId || index,
                 name: item.name || item.nickname || item.userName || item.memberName || '匿名用户',
@@ -1555,16 +1518,15 @@ export default {
         },
         storeDetailGroupProducts() {
             const groupProducts = this.storeDetailData.groupBuyProducts || []
-            const source = groupProducts.length || this.storeDetailApiLoaded ? groupProducts : this.groupList
-            return source.filter(Boolean).map((item, index) => ({
+            return groupProducts.filter(Boolean).map((item, index) => ({
                 ...item,
                 id: item.id || item.goods_id || item.goodsId || item.spuId || item.productId || index,
                 goods_id: item.goods_id || item.goodsId || item.spuId || item.productId || item.id || '',
                 activity_id: item.activity_id || item.activityId || item.groupActivityId || item.groupBuyActivityId || item.team_id || item.teamId || '',
                 name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || '团购套餐',
-                image: item.image || item.goods_image || item.cover || item.mainImageUrl || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                image: resolveImage(item.image || item.goods_image || item.cover || item.mainImageUrl, 'goods'),
                 meta: this.getStoreDetailGroupMeta(item),
-                scoreText: this.formatStreetScore(item.score ?? item.shopScore ?? item.commentScore ?? 5),
+                scoreText: this.formatStreetScore(item.score ?? item.shopScore ?? item.commentScore, '暂无评分'),
                 priceText: this.formatStoreDetailPrice(item.groupPrice ?? item.group_price ?? item.teamPrice ?? item.team_price ?? item.activityPrice ?? item.salePrice ?? item.minPrice ?? item.price)
             }))
         },
@@ -1790,23 +1752,61 @@ export default {
             const validTabs = ['detail', 'group', 'album', 'video', 'comment']
             this.storeDetailActiveTab = validTabs.includes(tab) ? tab : 'detail'
         },
+        resetStoreDetailData(shopId = '') {
+            this.storeDetailData = {
+                shopBase: {
+                    shopId,
+                    shopName: '',
+                    shopLogo: '',
+                    shopScore: '',
+                    businessHours: '',
+                    detailAddress: '',
+                    openStatus: '',
+                    avatarUrl: '',
+                    contactPhone: ''
+                },
+                albums: [],
+                videos: [],
+                coupons: [],
+                groupBuyProducts: [],
+                comments: [],
+                qrcodeInfo: {}
+            }
+        },
         async loadStoreDetail() {
             const options = this.getCurrentPageOptions()
-            const shopId = options.shopId || options.shop_id || ''
+            const shopId = options.shopId || options.shop_id || options.merchantShopId || (this.scene === 'store-detail' ? options.id : '') || ''
             this.syncStoreDetailActiveTab()
-            if (!shopId || this.storeDetailLoadedShopId === String(shopId)) return
+            if (!shopId) {
+                this.resetStoreDetailData('')
+                this.storeDetailLoadedShopId = ''
+                this.storeDetailApiLoaded = true
+                return
+            }
+            if (this.storeDetailLoadedShopId === String(shopId)) return
+            this.storeDetailLoading = true
+            this.storeDetailApiLoaded = false
+            this.resetStoreDetailData(String(shopId))
             try {
                 const res = await getShopDetail({
                     shopId
                 })
-                if (res.code != 1 || !res.data) return
+                if (res.code != 1 || !res.data) {
+                    this.storeDetailApiLoaded = true
+                    return
+                }
                 this.storeDetailData = {
                     ...this.storeDetailData,
                     ...res.data
                 }
                 this.storeDetailApiLoaded = true
                 this.storeDetailLoadedShopId = String(shopId)
-            } catch (error) {}
+            } catch (error) {
+                this.storeDetailApiLoaded = true
+                console.error('[store-detail] load failed:', error)
+            } finally {
+                this.storeDetailLoading = false
+            }
         },
         getStoreDetailGroupMeta(item = {}) {
             if (item.people && item.joined !== undefined) {
@@ -1942,8 +1942,8 @@ export default {
         shouldUseEmptyServiceImage(name = '') {
             return ['服装', '本地生活', '粮油饮品'].some(item => String(name).includes(item))
         },
-        formatStreetScore(value) {
-            if (value === '' || value === null || value === undefined) return '5.0'
+        formatStreetScore(value, fallback = '5.0') {
+            if (value === '' || value === null || value === undefined) return fallback
             const score = Number(value)
             if (Number.isNaN(score)) return String(value)
             return score.toFixed(1)
@@ -1970,15 +1970,21 @@ export default {
         },
         async loadStreetGoods() {
             const options = this.getCurrentPageOptions()
-            const res = await getStreetGoods({
-                keyword: this.listKeyword,
-                categoryId: options.categoryId || options.category_id,
-                pageNo: 1,
-                pageSize: 30
-            })
-            if (res.code != 1) return
-            const list = res.data?.list || res.data?.records || res.data?.items || []
-            this.merchantList = list.map((item, index) => this.mapStreetGoodsItem(item, index))
+            try {
+                const res = await getStreetGoods({
+                    keyword: this.listKeyword,
+                    categoryId: options.categoryId || options.category_id,
+                    shopId: options.shopId || options.shop_id,
+                    pageNo: 1,
+                    pageSize: 30
+                })
+                if (res.code != 1) return
+                const list = res.data?.list || res.data?.records || res.data?.items || []
+                this.merchantList = list.map((item, index) => this.mapStreetGoodsItem(item, index))
+            } catch (error) {
+                console.error('[street-goods] load failed:', error)
+                uni.showToast({ title: '商街商品加载失败', icon: 'none' })
+            }
         },
         mapStreetGoodsItem(item = {}, index = 0) {
             const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || index
@@ -3996,21 +4002,45 @@ export default {
 
 .store-detail-hero__top {
     position: absolute;
-    top: calc(var(--status-bar-height) + 18rpx);
+    top: calc(var(--status-bar-height) + 36rpx);
     left: 24rpx;
-    right: 180rpx;
+    right: 24rpx;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 64rpx;
+    height: 72rpx;
+    z-index: 5;
 }
 
 .store-detail-hero__back {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    width: 60rpx;
-    height: 64rpx;
+    justify-content: center;
+    width: 72rpx;
+    height: 72rpx;
+    flex: none;
+    color: #ffffff;
+    background: rgba(0, 0, 0, 0.28);
+    border-radius: 50%;
+}
+
+.store-detail-hero__back-icon {
+    position: relative;
+    width: 34rpx;
+    height: 34rpx;
+}
+
+.store-detail-hero__back-icon::after {
+    content: '';
+    position: absolute;
+    left: 10rpx;
+    top: 7rpx;
+    width: 18rpx;
+    height: 18rpx;
+    border-left: 4rpx solid currentColor;
+    border-bottom: 4rpx solid currentColor;
+    transform: rotate(45deg);
 }
 
 .store-detail-hero__right-space {
@@ -4020,52 +4050,62 @@ export default {
 }
 
 .store-detail-hero__share {
+    position: absolute;
+    right: 0;
+    top: 88rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 80rpx;
-    height: 52rpx;
+    width: 96rpx;
+    height: 56rpx;
     flex: none;
     color: #ffffff;
-    font-size: 24rpx;
-    background: rgba(0, 0, 0, 0.28);
-    border-radius: 26rpx;
+    font-size: 26rpx;
+    font-weight: 500;
+    background: rgba(0, 0, 0, 0.32);
+    border: 1rpx solid rgba(255, 255, 255, 0.36);
+    border-radius: 28rpx;
 }
 
 .store-detail-hero__title {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     color: #ffffff;
-    font-size: 36rpx;
-    font-weight: 500;
-    line-height: 36rpx;
+    font-size: 34rpx;
+    font-weight: 600;
+    line-height: 44rpx;
+    text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
 }
 
 .store-share-popup {
     position: relative;
-    width: 750rpx;
-    height: 1626rpx;
-    background: url('https://shengyuan.store/api/miniapp/files/miniapp/a560b109a63c4a4a8c9d490767674e13/1812900c299d281cdd4adcd80e9d02fd.png') no-repeat center;
-    background-size: 100% 100%;
-    transform: scale(0.82);
-    transform-origin: center center;
+    width: 640rpx;
+    padding: 0 0 92rpx;
+    box-sizing: border-box;
 }
 
 .store-share-shop-card {
-    position: absolute;
-    left: 106rpx;
-    top: 329rpx;
+    position: relative;
     display: flex;
-    width: 540rpx;
-    height: 373rpx;
+    width: 560rpx;
+    min-height: 188rpx;
+    margin: 0 auto 22rpx;
+    padding: 24rpx;
     background: url('https://shengyuan.store/api/miniapp/files/miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png') no-repeat center;
     background-size: 100% 100%;
     box-sizing: border-box;
+    border-radius: 22rpx;
+    overflow: hidden;
 }
 
 .store-share-shop-card__logo {
     flex: none;
-    width: 147rpx;
-    height: 147rpx;
-    margin: 23rpx 0 0 29rpx;
+    width: 132rpx;
+    height: 132rpx;
+    margin: 4rpx 0 0 0;
     background: #ffffff;
     border-radius: 10rpx;
 }
@@ -4073,7 +4113,7 @@ export default {
 .store-share-shop-card__body {
     flex: 1;
     min-width: 0;
-    margin: 38rpx 43rpx 0 27rpx;
+    margin: 10rpx 0 0 24rpx;
 }
 
 .store-share-shop-card__name {
@@ -4127,37 +4167,40 @@ export default {
 
 .store-share-mark {
     position: absolute;
-    left: 351rpx;
-    top: 1398rpx;
-    width: 48rpx;
-    height: 48rpx;
+    left: 50%;
+    bottom: 0;
+    width: 58rpx;
+    height: 58rpx;
+    transform: translateX(-50%);
+    z-index: 3;
 }
 
 .store-share-panel {
-    position: absolute;
-    left: 66rpx;
-    top: 521rpx;
-    width: 620rpx;
-    height: 838rpx;
+    position: relative;
+    width: 600rpx;
+    min-height: 760rpx;
+    margin: 0 auto;
+    padding: 30rpx 28rpx 34rpx;
     background: url('https://shengyuan.store/api/miniapp/files/miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png') no-repeat center;
     background-size: 100% 100%;
+    box-sizing: border-box;
 }
 
 .store-share-qrcode {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 562rpx;
-    height: 510rpx;
-    margin: 35rpx 0 0 29rpx;
+    width: 544rpx;
+    height: 500rpx;
+    margin: 0 auto;
     background: #d5d5d5;
     border-radius: 23rpx;
     overflow: hidden;
 }
 
 .store-share-info {
-    width: 559rpx;
-    margin: 19rpx 0 0 31rpx;
+    width: 100%;
+    margin: 20rpx 0 0;
 }
 
 .store-share-price {
@@ -4191,9 +4234,9 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 531rpx;
+    width: 100%;
     height: 81rpx;
-    margin: 33rpx 0 0 45rpx;
+    margin: 28rpx 0 0;
 }
 
 .store-share-action {

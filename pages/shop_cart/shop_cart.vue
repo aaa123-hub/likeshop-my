@@ -17,7 +17,7 @@
                 :class="{ 'is-checked': item.selected == 1 && item.cart_status == 0, 'is-disabled': item.cart_status != 0 }"
                 @tap="item.cart_status == 0 && changOneSelect(item.cart_id, item.selected)"
               >
-                <u-icon v-if="item.selected == 1 && item.cart_status == 0" name="checkbox-mark" color="#ffffff" size="16"></u-icon>
+                <view v-if="item.selected == 1 && item.cart_status == 0" class="cart-check__mark"></view>
               </view>
               <text class="cart-card__shop-name line1">{{ item.shop_name || '商城自营' }}</text>
               <text v-if="item.cart_status != 0" class="cart-card__invalid">已失效</text>
@@ -29,7 +29,7 @@
                 :class="{ 'is-checked': item.selected == 1 && item.cart_status == 0, 'is-disabled': item.cart_status != 0 }"
                 @tap="item.cart_status == 0 && changOneSelect(item.cart_id, item.selected)"
               >
-                <u-icon v-if="item.selected == 1 && item.cart_status == 0" name="checkbox-mark" color="#ffffff" size="16"></u-icon>
+                <view v-if="item.selected == 1 && item.cart_status == 0" class="cart-check__mark"></view>
               </view>
 
               <view class="cart-card__body">
@@ -51,22 +51,32 @@
                         color="#FF2C3C"
                       ></price-format>
                     </view>
-                    <view class="cart-card__num" @tap.stop.prevent="noop">
-                      <u-number-box
+                    <view class="cart-card__num u-numberbox" @tap.stop="noop">
+                      <view
+                        class="cart-stepper__btn u-icon-minus"
+                        :class="{ 'is-disabled': !isCartItemAvailable(item) || item.goods_num <= 1 }"
+                        @tap.stop="changeItemCount(item, -1)"
+                        @click.stop="changeItemCount(item, -1)"
+                      >
+                        <u-icon name="minus" size="24" color="inherit"></u-icon>
+                      </view>
+                      <input
+                        class="cart-stepper__input u-number-input"
+                        type="digit"
+                        :disabled="!isCartItemAvailable(item)"
+                        :data-cart-id="item.cart_id"
                         v-model="item.goods_num"
-                        :min="1"
-                        :max="getItemStock(item)"
-                        :disabled="item.cart_status != 0"
-                        :bgColor="'#F3F6FA'"
-                        :inputWidth="64"
-                        :inputHeight="50"
-                        :size="24"
-                        @input="onNumberBoxChange($event, item)"
-                        @change="onNumberBoxChange($event, item)"
-                        @plus="onNumberBoxChange($event, item)"
-                        @minus="onNumberBoxChange($event, item)"
-                        @blur="onNumberBoxChange($event, item)"
-                      ></u-number-box>
+                        @input="onCountInput($event, item)"
+                        @blur="onCountBlur($event, item)"
+                      />
+                      <view
+                        class="cart-stepper__btn u-icon-plus"
+                        :class="{ 'is-disabled': !isCartItemAvailable(item) || item.goods_num >= getItemStock(item) }"
+                        @tap.stop="changeItemCount(item, 1)"
+                        @click.stop="changeItemCount(item, 1)"
+                      >
+                        <u-icon name="plus" size="24" color="inherit"></u-icon>
+                      </view>
                     </view>
                   </view>
                 </view>
@@ -97,7 +107,7 @@
       <view class="cart-footer__summary">
         <view class="cart-footer__check" @tap="changeAllSelect">
           <view class="cart-check" :class="{ 'is-checked': isSelectedAll }">
-            <u-icon v-if="isSelectedAll" name="checkbox-mark" color="#ffffff" size="16"></u-icon>
+            <view v-if="isSelectedAll" class="cart-check__mark"></view>
           </view>
           <text class="cart-footer__check-text">已选{{ selectedCount }}件</text>
         </view>
@@ -145,6 +155,7 @@ export default {
       cartLists: [],
       delPopup: false,
       totalPrice: 0,
+      totalPriceText: '0.00',
       cartId: "",
       isManageMode: false,
       countSyncTimers: {},
@@ -169,15 +180,11 @@ export default {
       return this.cartLists.length > 0 && this.cartLists.findIndex((item) => item.selected == 0 && item.cart_status == 0) === -1;
     },
     selectedCount() {
-      return this.cartLists.filter((item) => item.selected == 1 && item.cart_status == 0).length;
-    },
-    totalPriceText() {
-      const value = this.cartLists.reduce((sum, item) => {
+      return this.cartLists.reduce((sum, item) => {
         if (item.selected != 1 || item.cart_status != 0) return sum;
-        return sum + Number(item.price || 0) * Number(item.goods_num || item.quantity || 0);
+        return sum + Number(item.goods_num || item.quantity || item.num || 0);
       }, 0);
-      return value.toFixed(2);
-    }
+    },
   },
   onLoad() {
     setTabbar();
@@ -227,9 +234,10 @@ export default {
         const res = await getCartList();
         if (res.code == 1) {
           const { lists = [], total_amount = 0 } = res.data || {};
-          this.cartLists = lists;
+          this.cartLists = lists.map((item) => this.normalizeCartItem(item));
           this.cartType = lists.length ? 1 : 2;
           this.totalPrice = total_amount;
+          this.recalculateCartTotal();
           this.getCartNum(
             this.cartLists.reduce((sum, item) => {
               const count = Number(item.goods_num || item.quantity || item.num || 0);
@@ -270,14 +278,21 @@ export default {
     },
     async changeCartSelectFun(cartId, selected) {
       const ids = Array.isArray(cartId) ? cartId : [cartId];
+      if (!ids.length || ids.some((id) => !id)) return;
       const selectedValue = selected ? 1 : 0;
-      this.cartLists = this.cartLists.map((item) => ids.includes(item.cart_id) ? { ...item, selected: selectedValue } : item);
+      this.cartLists = this.cartLists.map((item) => {
+        if (!ids.includes(item.cart_id)) return item;
+        return Object.assign({}, item, { selected: selectedValue });
+      });
+      this.recalculateCartTotal();
       try {
         await Promise.all(ids.map((id) => changeCartSelect({
           cart_id: id,
           selected: selectedValue,
           checked: selectedValue,
         })));
+      } catch (error) {
+        uni.showToast({ title: '购物车状态同步失败', icon: 'none' });
       } finally {
         this.getCartListFun();
       }
@@ -290,14 +305,49 @@ export default {
     getItemStock(item = {}) {
       return Number(item.item_stock || item.stock || 999999);
     },
+    normalizeCartStatus(value) {
+      if (value === undefined || value === null || value === '') return 0;
+      if (value === 0 || value === '0') return 0;
+      const text = String(value).toUpperCase();
+      if (['ACTIVE', 'VALID', 'NORMAL', 'AVAILABLE', 'ON_SALE', 'ENABLE', 'ENABLED'].includes(text)) return 0;
+      return value;
+    },
+    isCartItemAvailable(item = {}) {
+      return this.normalizeCartStatus(item.cart_status !== undefined ? item.cart_status : item.cartStatus) == 0;
+    },
+    getCartItemPrice(item = {}) {
+      const price = Number(item.price ?? item.salePrice ?? item.unitPrice ?? item.sale_price ?? item.pay_price ?? 0);
+      return Number.isNaN(price) ? 0 : price;
+    },
+    getCartItemCount(item = {}) {
+      const count = Number(item.goods_num || item.quantity || item.num || 0);
+      return Number.isNaN(count) ? 0 : count;
+    },
+    recalculateCartTotal() {
+      const value = this.cartLists.reduce((sum, item) => {
+        if (item.selected != 1 || item.cart_status != 0) return sum;
+        return sum + this.getCartItemPrice(item) * this.getCartItemCount(item);
+      }, 0);
+      this.totalPrice = value;
+      this.totalPriceText = value.toFixed(2);
+    },
+    normalizeCartItem(item = {}) {
+      const count = Number(item.goods_num || item.quantity || item.num || 1);
+      return Object.assign({}, item, {
+        goods_num: count,
+        quantity: count,
+        selected: item.selected !== undefined ? item.selected : (item.checked !== undefined ? item.checked : 1),
+        cart_status: this.normalizeCartStatus(item.cart_status !== undefined ? item.cart_status : (item.cartStatus !== undefined ? item.cartStatus : item.status))
+      });
+    },
     changeItemCount(item, step) {
-      if (!item || item.cart_status != 0) return;
+      if (!item || !this.isCartItemAvailable(item)) return;
       const currentCount = Number(item.goods_num || item.quantity || 1);
       const stock = Number(item.item_stock || item.stock || 0);
       let nextValue = currentCount + step;
       if (nextValue < 1) return;
       if (stock && nextValue > stock) return;
-      this.updateCartItemCount(item.cart_id, nextValue);
+      this.updateCartItemCount(item.cart_id, nextValue, true);
     },
     normalizeCartCount(value, item = {}) {
       let nextValue = parseInt(value, 10);
@@ -307,42 +357,75 @@ export default {
       return nextValue;
     },
     onCountInput(event, item) {
-      if (!item || item.cart_status != 0) return;
-      const rawValue = event?.detail?.value;
+      if (!item || !this.isCartItemAvailable(item)) return;
+      const rawValue = event && event.detail ? event.detail.value : undefined;
       const nextValue = rawValue === '' ? '' : this.normalizeCartCount(rawValue, item);
-      this.cartLists = this.cartLists.map((cartItem) => String(cartItem.cart_id) === String(item.cart_id) ? { ...cartItem, goods_num: nextValue, quantity: nextValue } : cartItem);
+      this.setCartItemCount(item.cart_id, nextValue);
+      this.cartLists = this.cartLists.slice();
+      this.getCartNum(this.localCartCount);
+      this.recalculateCartTotal();
     },
     onCountBlur(event, item) {
-      if (!item || item.cart_status != 0) return;
-      const nextValue = this.normalizeCartCount(event?.detail?.value, item);
-      this.updateCartItemCount(item.cart_id, nextValue);
+      if (!item || !this.isCartItemAvailable(item)) return;
+      const nextValue = this.normalizeCartCount(event && event.detail ? event.detail.value : undefined, item);
+      this.updateCartItemCount(item.cart_id, nextValue, true);
     },
     onNumberBoxChange(event, item) {
-      if (!item || item.cart_status != 0) return;
-      const value = event?.value ?? event?.detail?.value ?? event;
-      this.updateCartItemCount(item.cart_id, value);
+      if (!item || !this.isCartItemAvailable(item)) return;
+      const value = event && event.value !== undefined ? event.value : (event && event.detail ? event.detail.value : event);
+      this.updateCartItemCount(item.cart_id, value, true);
     },
-    updateCartItemCount(cartId, nextValue) {
+    updateCartItemCount(cartId, nextValue, shouldSync = false) {
       const current = this.cartLists.find((item) => String(item.cart_id) === String(cartId)) || {};
       nextValue = this.normalizeCartCount(nextValue, current);
       const index = this.cartLists.findIndex((item) => String(item.cart_id) === String(cartId));
       if (index === -1) return;
-      this.$set(this.cartLists, index, {
-        ...this.cartLists[index],
-        goods_num: nextValue,
-        quantity: nextValue,
-      });
+      this.setCartItemCount(cartId, nextValue);
+      this.cartLists = this.cartLists.slice();
       this.getCartNum(this.localCartCount);
+      this.recalculateCartTotal();
+      if (!shouldSync) return;
+      this.syncCartItemCount(cartId, nextValue);
+    },
+    syncCartItemCount(cartId, nextValue) {
       if (this.countSyncTimers[cartId]) clearTimeout(this.countSyncTimers[cartId]);
       const timer = setTimeout(async () => {
-        await changeGoodsCount({
-          cart_id: cartId,
-          goods_num: nextValue,
-        });
-        this.$delete(this.countSyncTimers, cartId);
-        this.getCartListFun();
+        try {
+          const res = await changeGoodsCount({
+            cart_id: cartId,
+            goods_num: nextValue,
+          });
+          if (res.code != 1) {
+            uni.showToast({ title: res.msg || '数量同步失败', icon: 'none' });
+            this.getCartListFun();
+          }
+        } catch (error) {
+          uni.showToast({ title: '数量同步失败', icon: 'none' });
+          this.getCartListFun();
+        }
+        this.removeCountSyncTimer(cartId);
       }, 250);
-      this.$set(this.countSyncTimers, cartId, timer);
+      this.setCountSyncTimer(cartId, timer);
+    },
+    setCountSyncTimer(cartId, timer) {
+      const timers = Object.assign({}, this.countSyncTimers);
+      timers[cartId] = timer;
+      this.countSyncTimers = timers;
+    },
+    removeCountSyncTimer(cartId) {
+      const timers = Object.assign({}, this.countSyncTimers);
+      delete timers[cartId];
+      this.countSyncTimers = timers;
+    },
+    setCartItemCount(cartId, nextValue) {
+      const index = this.cartLists.findIndex((item) => String(item.cart_id) === String(cartId));
+      if (index === -1) return;
+      const nextItem = Object.assign({}, this.cartLists[index], {
+          goods_num: nextValue,
+          quantity: nextValue,
+          num: nextValue
+      });
+      this.$set(this.cartLists, index, nextItem);
     },
     goToConfirm() {
       const goods = [];
@@ -376,6 +459,7 @@ export default {
 
 <style lang="scss">
 .shop-cart-page {
+  --page-safe-top: var(--status-bar-height, 44rpx);
   min-height: 100vh;
   background: #f6f7fb;
 }
@@ -396,7 +480,7 @@ export default {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  padding: calc(var(--status-bar-height) + 18rpx) 180rpx 28rpx 28rpx;
+  padding: calc(var(--page-safe-top) + 18rpx) 180rpx 28rpx 28rpx;
 }
 
 .shop-cart-page__title {
@@ -540,31 +624,84 @@ export default {
 
 .cart-card__num {
   flex: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   height: 50rpx;
   margin-left: 12rpx;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
 }
 
 .cart-check {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34rpx;
-  height: 34rpx;
-  border: 2rpx solid #d9d9d9;
-  border-radius: 50%;
+  flex: none;
+  width: 38rpx;
+  height: 38rpx;
+  border: 2rpx solid #d3dbe8;
+  border-radius: 12rpx;
   background: #ffffff;
+  box-shadow: 0 4rpx 12rpx rgba(20, 40, 80, 0.08);
   box-sizing: border-box;
+  overflow: hidden;
 
   &.is-checked {
-    border-color: #0d7cf2;
-    background: #0d7cf2;
+    border-color: #1677ff;
+    background: #1677ff;
+    box-shadow: 0 6rpx 16rpx rgba(22, 119, 255, 0.24);
   }
 
   &.is-disabled {
     opacity: 0.45;
   }
+}
+
+.cart-check__mark {
+  width: 18rpx;
+  height: 10rpx;
+  border-left: 4rpx solid #ffffff;
+  border-bottom: 4rpx solid #ffffff;
+  transform: rotate(-45deg) translate(1rpx, -1rpx);
+}
+
+.cart-stepper__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60rpx;
+  height: 50rpx;
+  color: #323233;
+  background: #f2f3f5;
+  box-sizing: border-box;
+}
+
+.cart-stepper__btn.is-disabled {
+  color: #c8c9cc;
+  background: #f7f8fa;
+}
+
+.cart-stepper__btn.u-icon-minus {
+  border-radius: 8rpx 0 0 8rpx;
+}
+
+.cart-stepper__btn.u-icon-plus {
+  border-radius: 0 8rpx 8rpx 0;
+}
+
+.cart-stepper__input {
+  width: 70rpx;
+  height: 50rpx;
+  min-height: 50rpx;
+  margin: 0 6rpx;
+  padding: 0;
+  color: #323233;
+  font-size: 24rpx;
+  text-align: center;
+  background: #f2f3f5;
+  box-sizing: border-box;
 }
 
 .cart-empty,

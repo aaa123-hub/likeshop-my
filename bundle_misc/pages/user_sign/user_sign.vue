@@ -1,24 +1,22 @@
 <template>
-<view>
+<view class="sign-page">
 <navbar title="签到"></navbar>
 <!-- pages/user_sgin/user_sgin.wxml -->
 <view class="user-sgin">
     <view class="header">
-        <view class="row">
-            <image class="avatar" width="110rpx" height="110rpx" shape="circle" :src="avatar == '' ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png' : avatar" />
-            <view class="white ml20 row-between" style="flex: 1">
-                <view>
-                    <view style="font-size: 56rpx">{{integral}}</view>
-                    <view class="row">
-                        <navigator class="sm row" hover-class="none" url="/bundle_misc/pages/sign_rule/sign_rule">
-                            我的积分
-                            <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_help.png" class="icon-sm ml10"></image>
-                        </navigator>
-                    </view>
+        <view class="sign-header-card">
+            <image class="sign-header-card__avatar" :src="avatar == '' ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png' : avatar" mode="aspectFill" />
+            <view class="sign-header-card__content">
+                <view class="sign-header-card__main">
+                    <view class="sign-header-card__points">{{integral}}</view>
+                    <navigator class="sign-header-card__rule" hover-class="none" url="/bundle_misc/pages/sign_rule/sign_rule">
+                        <text>我的积分</text>
+                        <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_help.png" class="sign-header-card__help" mode="aspectFit"></image>
+                    </navigator>
                 </view>
-                <navigator class="score-detail-entry row" url="/bundle_misc/pages/sign_detail/sign_detail" hover-class="none">
-                    <image style="width: 26rpx;height: 26rpx;flex: none; margin-right: 7rpx" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_data.png"></image>
-                    <text class="sm white">积分明细</text>
+                <navigator class="sign-header-card__detail" url="/bundle_misc/pages/sign_detail/sign_detail" hover-class="none">
+                    <image class="sign-header-card__detail-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_data.png" mode="aspectFit"></image>
+                    <text>积分明细</text>
                 </navigator>
             </view>
         </view>
@@ -36,7 +34,7 @@
                 </view>
             </view>
             <view class="right-sgin">
-                <button :class="'white br60 ' + (canSign == 1 ? 'gray' : 'primary-button')" @tap="userSignFun" size="md">{{canSign == 1 ? '已签到' : '立即签到' }}</button>
+                <button hover-class="none" :class="'sign-button white br60 ' + (canSign == 1 ? 'gray' : 'primary-button')" @tap.stop="userSignFun" size="md">{{canSign == 1 ? '已签到' : '立即签到' }}</button>
             </view>
         </view>
         <view class="contain bg-white mt20" v-if="makeInegral.length > 0">
@@ -62,20 +60,19 @@
 </view>
 
     <u-popup v-model="showPop" mode="center">
-        <view class="pop-container">
-            <view class="header-score row-center mt20">+{{addIntegral}}</view>
-            <view class="box column-center">
-                <view class="desc row mt20 sm">
-                    <image style="width: 28rpx; height: 30rpx;margin-right: 8rpx" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen.png"></image>
-                    {{addIntegral}}积分 + {{addGrowth}}成长值
-                </view>
-                <view class="bottom-box">
-                    <view class="md" style="line-height: 36rpx">
-                        您已连续签到 <text class="primary" style="font-size: 42rpx">{{signDays}}</text>天
-                    </view>
-                </view>
-                <view class="bg-primary white br60 primary-btn" style="margin-top: 26rpx" @tap="onClose">确定</view>
+        <view class="sign-success-pop">
+            <view class="sign-success-pop__halo"></view>
+            <view class="sign-success-pop__badge">签</view>
+            <view class="sign-success-pop__score">+{{addIntegral}}</view>
+            <view class="sign-success-pop__title">签到成功</view>
+            <view class="sign-success-pop__reward">
+                <image class="sign-success-pop__reward-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen.png" mode="aspectFit"></image>
+                <text>{{addIntegral}}积分 + {{addGrowth}}成长值</text>
             </view>
+            <view class="sign-success-pop__days">
+                您已连续签到 <text>{{signDays}}</text> 天
+            </view>
+            <view class="sign-success-pop__button" @tap="onClose">确定</view>
         </view>
     </u-popup>
 </view>
@@ -150,12 +147,12 @@ export default {
           let {
             sign_list
           } = data;
-          this.signList = sign_list;
+          this.signList = Array.isArray(sign_list) ? sign_list : [];
           this.integral = user.user_integral || 0;
 		  this.avatar = user.avatar || ''
           this.canSign = user.today_sign || 0;
           this.signDays = user.days || 0;
-          this.makeInegral = data.make_inegral || 0
+          this.makeInegral = Array.isArray(data.make_inegral) ? data.make_inegral : []
         }
       });
     },
@@ -177,9 +174,21 @@ export default {
           this.addGrowth = growth;
           this.addIntegral = integral;
           this.signDays = days
+          this.canSign = 1
+          this.integral = Number(this.integral || 0) + Number(integral || 0)
+          this.signList = this.signList.map((item, index) => {
+            if (index < Number(days || 1)) return Object.assign({}, item, { status: 1 })
+            return item
+          })
 
-          this.getSignListFun();
+          if (!res.data || !res.data.fallback) {
+            this.getSignListFun();
+          }
+          return
         }
+        uni.showToast({ title: res.msg || '签到失败', icon: 'none' })
+      }).catch(() => {
+        uni.showToast({ title: '签到失败，请稍后重试', icon: 'none' })
       });
     }
 
@@ -280,6 +289,20 @@ export default {
     padding: 35rpx 145rpx;
 }
 
+.user-sgin .main .right-sgin .sign-button {
+    width: 100%;
+    height: 84rpx;
+    line-height: 84rpx;
+    border: 0;
+    font-size: 30rpx;
+    font-weight: 600;
+    box-shadow: 0 12rpx 24rpx rgba(255, 44, 60, 0.2);
+}
+
+.user-sgin .main .right-sgin .sign-button::after {
+    border: 0;
+}
+
 .user-sgin .main .right-sgin .primary-button {
     background: linear-gradient(270deg, rgba(249, 95, 47, 1) 0%, rgba(252, 67, 54, 1) 55%, rgba(255, 44, 60, 1) 100%);
 }
@@ -358,5 +381,226 @@ export default {
 
 .gray {
     background-color: #CCCCCC !important;
+}
+
+.sign-page {
+    min-height: 100vh;
+    background: #f6f7fb;
+}
+
+.sign-page .user-sgin .header {
+    height: 360rpx;
+    background: linear-gradient(135deg, #ff8a3d 0%, #ff2c3c 100%) !important;
+    border-radius: 0 0 42rpx 42rpx;
+    padding: 42rpx 32rpx 0;
+    box-sizing: border-box;
+}
+
+.sign-header-card {
+    display: flex;
+    align-items: center;
+    min-height: 132rpx;
+    padding: 24rpx 28rpx 24rpx 24rpx;
+    border-radius: 28rpx;
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.28), 0 12rpx 28rpx rgba(182, 42, 32, 0.12);
+    box-sizing: border-box;
+}
+
+.sign-header-card__avatar {
+    flex: none;
+    width: 104rpx;
+    height: 104rpx;
+    border-radius: 50%;
+    border: 4rpx solid rgba(255, 255, 255, 0.9);
+    background: #ffffff;
+    box-shadow: 0 8rpx 18rpx rgba(119, 29, 18, 0.14);
+}
+
+.sign-header-card__content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    min-width: 0;
+    margin-left: 24rpx;
+}
+
+.sign-header-card__main {
+    min-width: 0;
+}
+
+.sign-header-card__points {
+    color: #ffffff;
+    font-size: 58rpx;
+    font-weight: 700;
+    line-height: 66rpx;
+    letter-spacing: 1rpx;
+}
+
+.sign-header-card__rule {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 10rpx;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 24rpx;
+    line-height: 32rpx;
+}
+
+.sign-header-card__help {
+    width: 26rpx;
+    height: 26rpx;
+    margin-left: 8rpx;
+}
+
+.sign-header-card__detail {
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 54rpx;
+    padding: 0 20rpx;
+    border-radius: 27rpx 0 0 27rpx;
+    color: #ffffff;
+    font-size: 24rpx;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.sign-header-card__detail-icon {
+    flex: none;
+    width: 26rpx;
+    height: 26rpx;
+    margin-right: 8rpx;
+}
+
+.sign-page .user-sgin .main {
+    margin-top: -160rpx;
+}
+
+.sign-page .user-sgin .main .contain {
+    border-radius: 24rpx;
+    box-shadow: 0 12rpx 36rpx rgba(24, 40, 80, 0.06);
+    overflow: hidden;
+}
+
+.sign-page .user-sgin .main .day-list .item image.num,
+.sign-page .user-sgin .main .day-list .item .num {
+    width: 68rpx;
+    height: 68rpx;
+    max-width: 68rpx;
+    max-height: 68rpx;
+}
+
+.sign-page .pop-container {
+    max-width: 80vw;
+    background-size: 100% 100%;
+}
+
+.sign-page .u-mode-center-box {
+    background: transparent !important;
+}
+
+.sign-success-pop {
+    position: relative;
+    width: 560rpx;
+    max-width: 82vw;
+    padding: 92rpx 44rpx 42rpx;
+    border-radius: 36rpx;
+    background: linear-gradient(180deg, #fff8ef 0%, #ffffff 42%, #ffffff 100%);
+    box-shadow: 0 24rpx 60rpx rgba(92, 38, 12, 0.22);
+    box-sizing: border-box;
+    overflow: hidden;
+    text-align: center;
+}
+
+.sign-success-pop__halo {
+    position: absolute;
+    left: 50%;
+    top: -96rpx;
+    width: 360rpx;
+    height: 220rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 178, 69, 0.34) 0%, rgba(255, 178, 69, 0.04) 70%);
+    transform: translateX(-50%);
+}
+
+.sign-success-pop__badge {
+    position: absolute;
+    left: 50%;
+    top: 28rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 84rpx;
+    height: 84rpx;
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 38rpx;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffb546 0%, #ff4b35 100%);
+    box-shadow: 0 12rpx 28rpx rgba(255, 83, 48, 0.28);
+    transform: translateX(-50%);
+}
+
+.sign-success-pop__score {
+    position: relative;
+    color: #ff4b35;
+    font-size: 58rpx;
+    font-weight: 800;
+    line-height: 68rpx;
+}
+
+.sign-success-pop__title {
+    margin-top: 10rpx;
+    color: #222222;
+    font-size: 34rpx;
+    font-weight: 700;
+    line-height: 46rpx;
+}
+
+.sign-success-pop__reward {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 28rpx;
+    padding: 14rpx 28rpx;
+    border-radius: 34rpx;
+    color: #ffffff;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    background: linear-gradient(90deg, #ff8b3d 0%, #ff4736 100%);
+}
+
+.sign-success-pop__reward-icon {
+    flex: none;
+    width: 28rpx;
+    height: 30rpx;
+    margin-right: 8rpx;
+}
+
+.sign-success-pop__days {
+    margin-top: 36rpx;
+    color: #555555;
+    font-size: 28rpx;
+    line-height: 42rpx;
+}
+
+.sign-success-pop__days text {
+    color: #ff4b35;
+    font-size: 42rpx;
+    font-weight: 700;
+}
+
+.sign-success-pop__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 78rpx;
+    margin-top: 38rpx;
+    border-radius: 39rpx;
+    color: #ffffff;
+    font-size: 30rpx;
+    font-weight: 600;
+    background: linear-gradient(90deg, #ff8b3d 0%, #ff2c3c 100%);
+    box-shadow: 0 12rpx 24rpx rgba(255, 76, 54, 0.22);
 }
 </style>

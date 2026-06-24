@@ -78,7 +78,7 @@ import { getStreetIndex } from '@/api/store'
 import { setTabbar, tabbarList } from '@/utils/tools'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 
-const streetAsset = (name) => `/static/lanhu/slices/street/${name}`
+const streetAsset = (name) => `https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/${name}`
 const merchantThumb = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'
 const emptyServiceNames = ['服装', '本地生活', '粮油饮品']
 
@@ -166,7 +166,7 @@ export default {
             }
         },
         mapStreetMerchant(item = {}, fallback = {}) {
-            const shopId = item.shop_id || item.shopId || item.id || fallback.shopId || ''
+            const shopId = item.shop_id || item.shopId || item.merchantShopId || item.merchant_shop_id || item.id || fallback.shopId || ''
             const scoreValue = item.shop_score ?? item.shopScore ?? item.score ?? item.star ?? item.rating ?? fallback.score
             const statusLabel = this.getStreetOpenStatusLabel(item.open_status || item.openStatus)
             const address = item.detail_address || item.detailAddress || item.address || fallback.detailAddress || ''
@@ -263,6 +263,7 @@ export default {
 
 <style lang="scss">
 .street-page {
+    --page-safe-top: var(--status-bar-height, 44rpx);
     min-height: 100vh;
     padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
     background: linear-gradient(180deg, #377df2 0%, #68a3f7 266rpx, #f8f8f8 266rpx, #f8f8f8 100%);
@@ -270,7 +271,7 @@ export default {
 }
 
 .street-header {
-    padding: calc(var(--status-bar-height) + 24rpx) 24rpx 20rpx;
+    padding: calc(var(--page-safe-top) + 24rpx) 24rpx 20rpx;
 }
 
 .street-header__title {

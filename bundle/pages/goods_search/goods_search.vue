@@ -8,6 +8,7 @@
 			</view>
 			<view class="search-box">
 				<view class="search-input-wrap">
+					<u-icon class="search-input-icon" name="search" size="30" color="#8F9AAF"></u-icon>
 					<input
 						class="search-input"
 						v-model="keyword"
@@ -20,7 +21,6 @@
 					/>
 					<view class="search-submit" @tap="onSearch">
 						<text class="search-submit__text">搜索</text>
-						<u-icon name="search" size="32" color="#ffffff"></u-icon>
 					</view>
 				</view>
 			</view>
@@ -83,14 +83,14 @@
 							<text class="score">{{ getGoodsScore(item) }}</text>
 						</view>
 						<view class="merchant-card__meta">
-							<u-icon name="clock" size="28" color="#777777"></u-icon>
+							<image class="merchant-card__time-icon" :src="timeIcon" mode="aspectFit"></image>
 							<text>营业时间：{{ getGoodsTime(item) }}</text>
 						</view>
 						<view class="merchant-card__distance">{{ getGoodsDistance(item) }}</view>
 					</view>
 				</view>
 			</template>
-			<loading-footer :status="status" :slot-empty="true">
+			<loading-footer v-if="showSearchFooter" :status="footerStatus" :slot-empty="true">
 				<view slot="empty" class="empty-slot">
 					<u-empty
 						mode="search"
@@ -163,7 +163,8 @@
 				historyList: [],
 				minPrice: '',
 				maxPrice: '',
-				sortType: ''
+				sortType: '',
+				timeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'
 			};
 		},
 
@@ -184,6 +185,12 @@
 
 		},
 		computed: {
+			showSearchFooter() {
+				return !this.goodsList.length || this.status === loadingType.LOADING || this.status === loadingType.ERROR
+			},
+			footerStatus() {
+				return this.goodsList.length ? loadingType.FINISHED : this.status
+			},
 			comprehensive() {
 				const {
 					priceSort,
@@ -472,6 +479,11 @@
 			font-weight: 500;
 		}
 
+		.search-input-icon {
+			flex: none;
+			margin-right: 12rpx;
+		}
+
 		.search-input__placeholder {
 			color: #9aa4b5;
 			font-size: 28rpx;
@@ -482,7 +494,7 @@
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 126rpx;
+			width: 112rpx;
 			height: 62rpx;
 			margin-left: 16rpx;
 			border-radius: 34rpx;
@@ -491,7 +503,6 @@
 		}
 
 		.search-submit__text {
-			margin-right: 6rpx;
 			color: #ffffff;
 			font-size: 26rpx;
 			font-weight: 700;
@@ -642,6 +653,12 @@
 			text {
 				margin-left: 10rpx;
 			}
+		}
+
+		.merchant-card__time-icon {
+			flex: none;
+			width: 28rpx;
+			height: 28rpx;
 		}
 
 		.merchant-card__distance {

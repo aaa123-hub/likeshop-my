@@ -43,7 +43,6 @@
 </template>
 
 <script>
-import Navbar from '@/components/navbar/navbar.vue'
 import { getNoticeLists } from "@/api/store";
 import { loadingType } from "@/utils/type";
 import { getDesignAsset } from "@/utils/design-assets";
@@ -51,10 +50,8 @@ import navbar from "@/components/navbar/navbar.vue";
 
 export default {
   components: {
-    navbar,
-  ,
-			Navbar
-		},
+    navbar
+  },
   data() {
     return {
       page: 1,
@@ -75,31 +72,33 @@ export default {
   },
   methods: {
     openDetail(item) {
-      const title = encodeURIComponent(item.title || "");
-      const content = encodeURIComponent(item.content || "");
-      const time = encodeURIComponent(item.create_time || "");
+      var title = encodeURIComponent(item.title || "");
+      var content = encodeURIComponent(item.content || "");
+      var time = encodeURIComponent(item.create_time || "");
       uni.navigateTo({
-        url: `/bundle_misc/pages/notice_detail/notice_detail?title=${title}&content=${content}&time=${time}`,
+        url: "/bundle_misc/pages/notice_detail/notice_detail?title=" + title + "&content=" + content + "&time=" + time,
       });
     },
     getNoticeListsFun() {
       if (this.loadingStatus == loadingType.FINISHED) return;
+      var that = this;
       getNoticeLists({
         type: this.type,
         page_no: this.page,
-      }).then((res) => {
+      }).then(function(res) {
         if (res.code == 1) {
-          const { list, more } = res.data;
-          this.lists.push(...list);
-          this.page++;
+          var list = res.data.list || [];
+          var more = res.data.more;
+          that.lists = that.lists.concat(list);
+          that.page++;
           if (!more) {
-            this.loadingStatus = loadingType.FINISHED;
+            that.loadingStatus = loadingType.FINISHED;
           }
-          if (!this.lists.length) {
-            this.loadingStatus = loadingType.EMPTY;
+          if (!that.lists.length) {
+            that.loadingStatus = loadingType.EMPTY;
           }
         } else {
-          this.loadingStatus = loadingType.ERROR;
+          that.loadingStatus = loadingType.ERROR;
         }
       });
     },

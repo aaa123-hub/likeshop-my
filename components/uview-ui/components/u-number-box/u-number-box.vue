@@ -6,9 +6,9 @@
 export default {
   name: 'u-number-box',
   props: { value: { default: 1 }, min: { default: 0 }, max: { default: 99999 }, disabled: Boolean },
-  data(){ return { inputVal: this.value } },
-  watch:{ value(v){ this.inputVal=v } },
-  methods:{ normalize(v){ let n=parseInt(v,10); if(!n||Number.isNaN(n)) n=Number(this.min)||1; return Math.max(Number(this.min)||0,Math.min(Number(this.max)||99999,n)) }, emit(v,t){ const n=this.normalize(v); this.inputVal=n; this.$emit('input',n); this.$emit(t,{value:n}) }, change(s){ if(!this.disabled)this.emit(Number(this.inputVal||0)+s,s>0?'plus':'minus') }, onInput(e){ this.emit(e.detail.value,'change') }, onBlur(e){ this.emit(e.detail.value,'blur') } }
+  data: function(){ return { inputVal: this.value } },
+  watch:{ value: function(v){ this.inputVal=v } },
+  methods:{ normalize: function(v){ var n=parseInt(v,10); if(!n||Number.isNaN(n)) n=Number(this.min)||1; return Math.max(Number(this.min)||0,Math.min(Number(this.max)||99999,n)) }, emit: function(v,t){ var n=this.normalize(v); this.inputVal=n; this.$emit('input',n); this.$emit(t,{value:n}) }, change: function(s){ if(!this.disabled)this.emit(Number(this.inputVal||0)+s,s>0?'plus':'minus') }, onInput: function(e){ this.emit(e.detail.value,'change') }, onBlur: function(e){ this.emit(e.detail.value,'blur') } }
 }
 </script>
 

@@ -115,7 +115,7 @@ import Navbar from '@/components/navbar/navbar.vue'
                         this.form.email = this.pickValue(res.data, ['email', 'merchantEmail', 'merchant_email', 'contactEmail', 'contact_email', 'settlementAccountNo', 'settlement_account_no']) || this.form.email
                         this.form.settlementAccountNo = this.pickValue(res.data, ['settlementAccountNo', 'settlement_account_no', 'email', 'merchantEmail', 'merchant_email']) || this.form.settlementAccountNo
                         this.form.qualificationUrl = this.pickValue(res.data, ['qualificationUrl', 'qualification_url']) || this.form.qualificationUrl
-                        this.form.remark = this.pickValue(res.data, ['remark', 'description', 'shopDescription', 'shop_description', 'storeDescription', 'store_description']) || this.form.remark
+                        this.form.remark = this.pickValue(res.data, ['remark', 'description', 'shopDescription', 'shop_description', 'storeDescription', 'store_description', 'onlineShopDescription', 'online_shop_description']) || this.form.remark
                     }
                 })
             },
@@ -230,6 +230,7 @@ import Navbar from '@/components/navbar/navbar.vue'
         flex: none;
         margin-top: 0;
         box-shadow: 0 10rpx 28rpx rgba(31, 122, 244, 0.08);
+        position: relative;
     }
 
     .license-status {

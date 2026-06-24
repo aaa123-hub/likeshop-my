@@ -25,6 +25,14 @@
       {
         "value": "static/lanhu/asset-rename-map.json",
         "type": "file"
+      },
+      {
+        "value": "static/lanhu/slices",
+        "type": "folder"
+      },
+      {
+        "value": "static/images",
+        "type": "folder"
       }
     ],
     "include": []

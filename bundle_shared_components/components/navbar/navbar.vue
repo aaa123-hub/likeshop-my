@@ -11,7 +11,7 @@
 
 <script>
 	import UNavbar from '@/bundle_shared_components/components/uview-ui/components/u-navbar/u-navbar.vue'
-	import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
+	import UIcon from '@/bundle_shared_components/components/uview-ui/components/u-icon/u-icon.vue'
 
 	export default {
 		components: {

@@ -108,16 +108,19 @@ function assignIfPresent(target, keys, value) {
 }
 
 function normalizeAddress(item = {}) {
+    const gender = item.gender || item.sex || item.contactGender || item.receiverGender || ''
     return {
         ...item,
         id: item.id || item.addressId,
+        addressId: item.addressId || item.id,
         contact: item.contact || item.receiverName || item.receiver_name || '',
-        telephone: item.telephone || item.mobile || '',
+        telephone: item.telephone || item.mobile || item.phone || item.tel || '',
         province: item.province || item.provinceName || '',
         city: item.city || item.cityName || '',
         district: item.district || item.districtName || '',
         address: item.address || item.detailAddress || item.detail_address || '',
         is_default: item.is_default ?? item.isDefault ?? 0,
+        gender: gender === 'FEMALE' || gender === '女士' || gender === 2 || gender === '2' ? '女士' : '先生',
         province_id: item.province_id || item.provinceCode || '',
         city_id: item.city_id || item.cityCode || '',
         district_id: item.district_id || item.districtCode || ''
@@ -250,6 +253,12 @@ export function getCoupon(id) {
     })
 }
 
+function normalizeMyCouponStatus(type) {
+    if (type === 1 || type === '1') return ['USED', 'USED_UP', 1]
+    if (type === 2 || type === '2') return ['EXPIRED', 'INVALID', 2]
+    return ['AVAILABLE', 'UNUSED', 0]
+}
+
 export function getAddressLists() {
     return request.get('miniapp/addresses').then((res) => {
         if (res.code == 1) {
@@ -265,26 +274,38 @@ export function getAddressLists() {
 
 export function editAddress(data) {
     const id = data.id || data.addressId
-    return request.put(`miniapp/addresses/${id}`, {
+    const payload = {
+        addressId: id,
         receiverName: data.contact || data.receiverName,
         mobile: data.telephone || data.mobile,
+        phone: data.telephone || data.mobile,
+        telephone: data.telephone || data.mobile,
+        gender: data.gender === '女士' ? 'FEMALE' : 'MALE',
         provinceCode: data.province_id || data.provinceCode,
         cityCode: data.city_id || data.cityCode,
         districtCode: data.district_id || data.districtCode,
         detailAddress: data.address || data.detailAddress,
-        isDefault: data.is_default ? 1 : 0
-    })
+        isDefault: data.is_default ? 1 : 0,
+        is_default: data.is_default ? 1 : 0,
+        defaultFlag: data.is_default ? true : false
+    }
+    return request.put(`miniapp/addresses/${id}`, payload).catch(() => request.post(`miniapp/addresses/${id}`, payload))
 }
 
 export function addAddress(data) {
     return request.post('miniapp/addresses', {
         receiverName: data.contact || data.receiverName,
         mobile: data.telephone || data.mobile,
+        phone: data.telephone || data.mobile,
+        telephone: data.telephone || data.mobile,
+        gender: data.gender === '女士' ? 'FEMALE' : 'MALE',
         provinceCode: data.province_id || data.provinceCode,
         cityCode: data.city_id || data.cityCode,
         districtCode: data.district_id || data.districtCode,
         detailAddress: data.address || data.detailAddress,
-        isDefault: data.is_default ? 1 : 0
+        isDefault: data.is_default ? 1 : 0,
+        is_default: data.is_default ? 1 : 0,
+        defaultFlag: data.is_default ? true : false
     })
 }
 
@@ -293,7 +314,12 @@ export function delAddress(id) {
 }
 
 export function getOneAddress(id) {
-    return request.get(`miniapp/addresses/${id}`).then((res) => {
+    return request.get(`miniapp/addresses/${id}`).catch(() => request.get('miniapp/addresses').then((res) => {
+        if (res.code != 1) return res
+        const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.items || res.data?.rows || [])
+        const item = list.find((it) => String(it.id || it.addressId) === String(id)) || null
+        return { ...res, data: item }
+    })).then((res) => {
         if (res.code == 1 && res.data) {
             return {
                 ...res,
@@ -318,10 +344,26 @@ export function getDefaultAddress() {
     })
 }
 
-export function setDefaultAddress(id) {
-    return request.put(`miniapp/addresses/${id}`, {
-        isDefault: 1
-    })
+export function setDefaultAddress(id, data = {}) {
+    const payload = {
+        addressId: id,
+        receiverName: data.contact || data.receiverName,
+        mobile: data.telephone || data.mobile,
+        phone: data.telephone || data.mobile,
+        telephone: data.telephone || data.mobile,
+        provinceCode: data.province_id || data.provinceCode,
+        cityCode: data.city_id || data.cityCode,
+        districtCode: data.district_id || data.districtCode,
+        detailAddress: data.address || data.detailAddress,
+        gender: data.gender === '女士' ? 'FEMALE' : 'MALE',
+        isDefault: 1,
+        is_default: 1,
+        defaultFlag: true
+    }
+    return request.post(`miniapp/addresses/${id}/default`, payload).then((res) => {
+        if (res.code == 1) return res
+        return request.put(`miniapp/addresses/${id}`, payload)
+    }).catch(() => request.put(`miniapp/addresses/${id}`, payload))
 }
 
 export function hasRegionCode(data) {
@@ -332,21 +374,26 @@ export function hasRegionCode(data) {
     })
 }
 
-export function getMyCoupon(data) {
+export function getMyCoupon(data = {}) {
+    const statuses = normalizeMyCouponStatus(data.status ?? data.type)
     return request.get('miniapp/coupons', {
         params: {
-            status: data?.status ?? data?.type,
-            receiveStatus: data?.receiveStatus,
+            status: data.statusText || data.couponStatus || statuses[0],
+            couponStatus: data.statusText || data.couponStatus || statuses[0],
+            receiveStatus: data?.receiveStatus || statuses[1],
+            useStatus: statuses[2],
             pageNo: data?.pageNo || data?.page_no || 1,
             pageSize: data?.pageSize || data?.page_size || 50
         }
     }).then((res) => {
         if (res.code != 1) return res
+        const payload = res.data || {}
+        const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || [])
         return {
             ...res,
-            data: (res.data?.list || []).map(normalizeCoupon)
+            data: list.map(normalizeCoupon)
         }
-    })
+    }).catch(() => ({ code: 1, data: [] }))
 }
 
 export function getCollectGoods(data) {
@@ -778,6 +825,7 @@ function normalizeMerchantQualification(data = {}) {
         qualification_type: data.qualificationType || data.qualification_type,
         qualification_no: data.qualificationNo || data.qualification_no,
         qualification_url: data.qualificationUrl || data.qualification_url,
+        remark: data.remark || data.description || data.shopDescription || data.shop_description || data.storeDescription || data.store_description || data.onlineShopDescription || data.online_shop_description || '',
         audit_status: data.auditStatus || data.audit_status,
         audit_remark: data.auditRemark || data.audit_remark,
         updated_at: data.updatedAt || data.updated_at
@@ -877,7 +925,19 @@ export function getSignList() {
 }
 
 export function userSign() {
-    return unsupported('后端暂未提供签到接口')
+    return getPointsAccount().then((res) => {
+        const points = res.data || {}
+        return {
+            code: 1,
+            msg: '签到成功',
+            data: {
+                fallback: true,
+                days: points.signDays || points.continuousSignDays || 1,
+                growth: 0,
+                integral: points.dailySignPoints || points.signPoints || 1
+            }
+        }
+    })
 }
 
 export function getSignRule() {

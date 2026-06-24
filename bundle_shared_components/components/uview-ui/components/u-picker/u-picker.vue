@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/bundle_shared_components/components/uview-ui/components/u-popup/u-popup.vue'
 
 // import provinces from '../../libs/util/province.js';
 // import citys from '../../libs/util/city.js';

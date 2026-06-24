@@ -33,7 +33,8 @@ export default {
   data() {
     return {
       couponList: [],
-      showNull: false
+      showNull: false,
+      loading: true
     };
   },
 
@@ -56,16 +57,20 @@ export default {
         status: type
       }).then(res => {
         if (res.code == 1) {
+          const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.lists || [])
           this.$emit('getnum', {
-            detail: res.data.length
+            detail: list.length
           });
 
-          if (res.data.length <= 0) {
-              this.showNull = true;
-              return;
-          }
-            this.couponList = res.data;
+          this.couponList = list;
+          this.showNull = list.length <= 0;
         }
+      }).catch(() => {
+        this.couponList = []
+        this.showNull = true
+        this.$emit('getnum', { detail: 0 })
+      }).finally(() => {
+        this.loading = false
       });
     }
 

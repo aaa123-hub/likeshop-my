@@ -39,7 +39,7 @@
 </template>
 
 <script>
-	import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
+	import UIcon from '@/bundle_shared_components/components/uview-ui/components/u-icon/u-icon.vue'
 
 	// 获取系统状态栏的高度
 	let systemInfo = uni.getSystemInfoSync();

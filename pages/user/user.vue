@@ -298,6 +298,7 @@ export default {
 
 <style lang="scss">
 .my-page {
+    --page-safe-top: var(--status-bar-height, 44rpx);
     position: relative;
     min-height: 100vh;
     padding-bottom: calc(40rpx + var(--window-bottom));
@@ -316,7 +317,7 @@ export default {
 .my-page__screen {
     position: relative;
     width: 100%;
-    min-height: calc(2266rpx + var(--status-bar-height));
+    min-height: calc(2266rpx + var(--page-safe-top));
     overflow: visible;
 }
 
@@ -331,7 +332,7 @@ export default {
 .my-page__status {
     position: absolute;
     left: 30rpx;
-    top: var(--status-bar-height);
+    top: var(--page-safe-top);
     width: 690rpx;
     height: 26rpx;
 }
@@ -340,7 +341,7 @@ export default {
     position: absolute;
     left: 25rpx;
     right: 31rpx;
-    top: calc(var(--status-bar-height) + 28rpx);
+    top: calc(var(--page-safe-top) + 28rpx);
     height: 58rpx;
     display: flex;
     align-items: center;
@@ -359,7 +360,7 @@ export default {
     position: absolute;
     left: 36rpx;
     right: 34rpx;
-    top: calc(var(--status-bar-height) + 104rpx);
+    top: calc(var(--page-safe-top) + 104rpx);
     height: 142rpx;
     display: flex;
     align-items: center;
@@ -562,7 +563,7 @@ export default {
 .my-page__merchant {
     position: absolute;
     left: 47rpx;
-    top: calc(var(--status-bar-height) + 299rpx);
+    top: calc(var(--page-safe-top) + 299rpx);
     width: 656rpx;
     height: 157rpx;
 }
@@ -612,7 +613,7 @@ export default {
 .my-page__asset-panel {
     position: absolute;
     left: 26rpx;
-    top: calc(var(--status-bar-height) + 395rpx);
+    top: calc(var(--page-safe-top) + 395rpx);
     width: 698rpx;
     height: 349rpx;
     background: rgba(255, 255, 255, 1);
@@ -723,7 +724,7 @@ export default {
 .my-page__strategy {
     position: absolute;
     left: 26rpx;
-    top: calc(var(--status-bar-height) + 780rpx);
+    top: calc(var(--page-safe-top) + 780rpx);
     width: 698rpx;
     height: 135rpx;
 }
@@ -737,7 +738,7 @@ export default {
 }
 
 .my-section--online {
-    top: calc(var(--status-bar-height) + 941rpx);
+    top: calc(var(--page-safe-top) + 941rpx);
     min-height: 213rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
@@ -748,22 +749,22 @@ export default {
 }
 
 .my-section--pair-1 {
-    top: calc(var(--status-bar-height) + 1175rpx);
+    top: calc(var(--page-safe-top) + 1175rpx);
 }
 
 .my-section--pair-2 {
-    top: calc(var(--status-bar-height) + 1409rpx);
+    top: calc(var(--page-safe-top) + 1409rpx);
 }
 
 .my-section--value {
-    top: calc(var(--status-bar-height) + 1643rpx);
+    top: calc(var(--page-safe-top) + 1643rpx);
     min-height: 237rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-section--feature {
-    top: calc(var(--status-bar-height) + 1902rpx);
+    top: calc(var(--page-safe-top) + 1902rpx);
     min-height: 322rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;

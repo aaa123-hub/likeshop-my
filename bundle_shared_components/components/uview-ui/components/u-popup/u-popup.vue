@@ -47,7 +47,7 @@
 
 <script>
 import UMask from '@/bundle_shared_components/components/uview-ui/components/u-mask/u-mask.vue'
-import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
+import UIcon from '@/bundle_shared_components/components/uview-ui/components/u-icon/u-icon.vue'
 
 /**
  * popup 弹窗

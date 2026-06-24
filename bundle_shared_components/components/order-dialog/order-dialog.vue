@@ -8,7 +8,7 @@
 		delOrder,
 		confirmOrder
 	} from '@/api/order';
-	import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+	import UModal from '@/bundle_shared_components/components/uview-ui/components/u-modal/u-modal.vue'
 	export default {
 		components: {
 			UModal

@@ -50,7 +50,7 @@
 </template>
 
 <script>
-	import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+	import UPopup from '@/bundle_shared_components/components/uview-ui/components/u-popup/u-popup.vue'
 
 	/**
 	 * select 列选择器

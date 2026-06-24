@@ -177,9 +177,22 @@ export default {
 
         radioChange(e) {
             let id = e.detail.value
-            console.log(e)
-            setDefaultAddress(id).then((res) => {
-                if (res.code == 1) this.getAddressListsFun()
+            this.addressList = this.addressList.map(item => ({
+                ...item,
+                is_default: String(item.id) === String(id) ? 1 : 0,
+                isDefault: String(item.id) === String(id) ? 1 : 0
+            }))
+            const current = this.addressList.find(item => String(item.id) === String(id)) || {}
+            setDefaultAddress(id, current).then((res) => {
+                if (res.code == 1) {
+                    this.getAddressListsFun()
+                    return
+                }
+                this.$toast({ title: res.msg || '设置默认地址失败' })
+                this.getAddressListsFun()
+            }).catch((err) => {
+                this.$toast({ title: err?.msg || err?.message || '设置默认地址失败' })
+                this.getAddressListsFun()
             })
         },
 

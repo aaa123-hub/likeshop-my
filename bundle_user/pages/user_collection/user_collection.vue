@@ -87,8 +87,9 @@ export default {
 
 
   onReachBottom: function () {
-      this.$nextTick(() => {
-        this.getCollectGoodsFun();
+      var that = this;
+      this.$nextTick(function() {
+        that.getCollectGoodsFun();
       })
   },
   methods: {
@@ -101,17 +102,16 @@ export default {
     },
 
     getCollectGoodsFun() {
-        let {
-          page,
-          collectionList,
-          status
-        } = this;
+        var page = this.page;
+        var collectionList = this.collectionList;
+        var status = this.status;
+        var that = this;
 
-        loadingFun(getCollectGoods, page, collectionList, status).then(res => {
+        loadingFun(getCollectGoods, page, collectionList, status).then(function(res) {
             if(res) {
-                this.page = res.page;
-                this.collectionList = res.dataList
-                this.status = res.status
+                that.page = res.page;
+                that.collectionList = res.dataList
+                that.status = res.status
             }
         })
     },
@@ -124,24 +124,23 @@ export default {
     },
 
     cancelCollect() {
+      var that = this;
       collectGoods({
         is_collect: CollectType.CANCEL_COLLECTION,
         goods_id: this.id
-      }).then(res => {
+      }).then(function(res) {
         if (res.code == 1) {
-          this.collectionList = [];
-          this.page = 1;
-          this.status = loadingType.LOADING;
-          this.getCollectGoodsFun();
-          this.deleteSure = false;
+          that.collectionList = [];
+          that.page = 1;
+          that.status = loadingType.LOADING;
+          that.getCollectGoodsFun();
+          that.deleteSure = false;
         }
       });
     },
 
     goToGoodsDetail: function (e) {
-      let {
-        id
-      } = e.currentTarget.dataset;
+      var id = e.currentTarget.dataset.id;
       uni.navigateTo({
         url: '/bundle/pages/goods_details/goods_details?id=' + id
       });

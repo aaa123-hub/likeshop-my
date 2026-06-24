@@ -9,7 +9,10 @@
 
             <navigator class="home-search" hover-class="none" url="/bundle/pages/goods_search/goods_search">
                 <text class="home-search__placeholder">输入关键词</text>
-                <u-icon name="search" size="48" color="#222222"></u-icon>
+                <view class="home-search__icon">
+                    <view class="home-search__icon-circle"></view>
+                    <view class="home-search__icon-line"></view>
+                </view>
             </navigator>
         </view>
 
@@ -381,6 +384,7 @@ export default {
 
 <style lang="scss">
 .home-page {
+    --page-safe-top: var(--status-bar-height, 44rpx);
     min-height: 100vh;
     padding-bottom: calc(40rpx + var(--window-bottom));
     background: #f5f5f5;
@@ -389,7 +393,7 @@ export default {
 .home-hero {
     position: relative;
     min-height: 496rpx;
-    padding: calc(var(--status-bar-height) + 64rpx) 24rpx 0;
+    padding: calc(var(--page-safe-top) + 64rpx) 24rpx 0;
     overflow: hidden;
     background: linear-gradient(180deg, #1688ff 0%, #74b2ff 100%);
 }
@@ -416,7 +420,7 @@ export default {
 .home-hero__image {
     position: absolute;
     right: -18rpx;
-    top: calc(var(--status-bar-height) + 44rpx);
+    top: calc(var(--page-safe-top) + 44rpx);
     width: 456rpx;
     height: 366rpx;
     z-index: 1;
@@ -441,6 +445,36 @@ export default {
 .home-search__placeholder {
     color: #b3b3b3;
     font-size: 28rpx;
+}
+
+.home-search__icon {
+    position: relative;
+    width: 44rpx;
+    height: 44rpx;
+    color: #222222;
+}
+
+.home-search__icon-circle {
+    position: absolute;
+    left: 7rpx;
+    top: 6rpx;
+    width: 23rpx;
+    height: 23rpx;
+    border: 4rpx solid currentColor;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.home-search__icon-line {
+    position: absolute;
+    right: 7rpx;
+    bottom: 8rpx;
+    width: 17rpx;
+    height: 4rpx;
+    background: currentColor;
+    border-radius: 4rpx;
+    transform: rotate(45deg);
+    transform-origin: right center;
 }
 
 .home-content {

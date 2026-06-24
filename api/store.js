@@ -10,12 +10,18 @@ function valueOr(value, fallback) {
 function parseSpecJson(specJson) {
     if (!specJson) return []
     if (Array.isArray(specJson)) return specJson
-    if (typeof specJson === 'object') return Object.entries(specJson).map(([name, value]) => ({ name, value }))
+    if (typeof specJson === 'object') {
+        return Object.keys(specJson).map(function(name) {
+            return { name: name, value: specJson[name] }
+        })
+    }
     try {
-        const parsed = JSON.parse(specJson)
+        var parsed = JSON.parse(specJson)
         if (Array.isArray(parsed)) return parsed
         if (parsed && typeof parsed === 'object') {
-            return Object.entries(parsed).map(([name, value]) => ({ name, value }))
+            return Object.keys(parsed).map(function(name) {
+                return { name: name, value: parsed[name] }
+            })
         }
     } catch (e) {}
     return []
@@ -26,10 +32,10 @@ function parseImageList(value) {
     if (Array.isArray(value)) return value.filter(Boolean)
     if (typeof value === 'string') {
         try {
-            const parsed = JSON.parse(value)
+            var parsed = JSON.parse(value)
             if (Array.isArray(parsed)) return parsed.filter(Boolean)
         } catch (e) {}
-        return value.split(',').map((item) => item.trim()).filter(Boolean)
+        return value.split(',').map(function(item) { return item.trim() }).filter(Boolean)
     }
     return []
 }
@@ -38,36 +44,34 @@ function parseDetailContent(value) {
     if (!value) return ''
     if (typeof value === 'string') {
         try {
-            const parsed = JSON.parse(value)
-            if (Array.isArray(parsed)) return parsed.map((item) => item.text || item.content || item.value || '').filter(Boolean).join('<br/>')
+            var parsed = JSON.parse(value)
+            if (Array.isArray(parsed)) return parsed.map(function(item) { return item.text || item.content || item.value || '' }).filter(Boolean).join('<br/>')
             if (parsed && typeof parsed === 'object') return parsed.html || parsed.content || parsed.text || value
         } catch (e) {}
         return value
     }
-    if (Array.isArray(value)) return value.map((item) => item.text || item.content || item.value || '').filter(Boolean).join('<br/>')
+    if (Array.isArray(value)) return value.map(function(item) { return item.text || item.content || item.value || '' }).filter(Boolean).join('<br/>')
     if (typeof value === 'object') return value.html || value.content || value.text || ''
     return ''
 }
 
 function normalizeCouponItem(item = {}) {
-    const threshold = item.thresholdAmount || item.minAmount || item.useThreshold
-    const amount = item.amount || item.discountAmount || item.couponAmount || item.value
-    return {
-        ...item,
+    var threshold = item.thresholdAmount || item.minAmount || item.useThreshold
+    var amount = item.amount || item.discountAmount || item.couponAmount || item.value
+    return Object.assign({}, item, {
         id: item.id || item.couponId,
         name: item.name || item.couponName || item.title || '优惠券',
-        use_condition: item.use_condition || item.useCondition || item.conditionText || (threshold ? `满${threshold}可用` : (amount ? `${amount}元优惠券` : '优惠券')),
+        use_condition: item.use_condition || item.useCondition || item.conditionText || (threshold ? '满' + threshold + '可用' : (amount ? amount + '元优惠券' : '优惠券')),
         money: amount || item.money || 0
-    }
+    })
 }
 
 function buildSpecValueId(spec, groupName, valueName, fallback) {
-    return spec.id || spec.valueId || spec.value_id || `${groupName}-${valueName || fallback}`
+    return spec.id || spec.valueId || spec.value_id || groupName + '-' + (valueName || fallback)
 }
 
 function normalizeCategory(item = {}) {
-    return {
-        ...item,
+    return Object.assign({}, item, {
         id: item.id || item.categoryId,
         pid: valueOr(item.pid, valueOr(item.parentId, 0)),
         name: item.name || item.categoryName || '',
@@ -77,12 +81,11 @@ function normalizeCategory(item = {}) {
         sort: valueOr(item.sort, valueOr(item.sortNo, 0)),
         status: item.status || item.categoryStatus || '',
         children: (item.children || []).map(normalizeCategory)
-    }
+    })
 }
 
 function normalizeGoodsListItem(item = {}) {
-    return {
-        ...item,
+    return Object.assign({}, item, {
         id: item.id || item.spuId || item.productId || item.goods_id,
         goods_id: item.goods_id || item.spuId || item.productId || item.id,
         spu_id: item.spu_id || item.spuId || item.productId || item.id,
@@ -93,27 +96,26 @@ function normalizeGoodsListItem(item = {}) {
         price: item.price || item.salePrice || item.minPrice || item.payAmount || item.amount || item.market_price || item.min_price || 0,
         market_price: item.market_price || item.marketPrice || item.originPrice || item.maxPrice || item.max_price || item.price || 0,
         origin_price: item.origin_price || item.originPrice || item.market_price || 0,
-        shop_id: item.shop_id || item.shopId || item.merchantShopId || '',
-        shopId: item.shopId || item.shop_id || item.merchantShopId || '',
+        shop_id: item.shop_id || item.shopId || item.merchantShopId || item.merchant_shop_id || '',
+        shopId: item.shopId || item.shop_id || item.merchantShopId || item.merchant_shop_id || '',
         shop_name: item.shop_name || item.shopName || item.storeName || (item.shopInfo && item.shopInfo.shopName) || '',
         shopName: item.shopName || item.shop_name || item.storeName || (item.shopInfo && item.shopInfo.shopName) || '',
         sales_sum: item.sales_sum || item.salesCount || item.sales_count || 0,
         tags: item.tags || []
-    }
+    })
 }
 
 function normalizeSkuItem(item = {}, index = 0) {
-    const specs = parseSpecJson(item.specJson || item.spec_json || item.spec)
-    const specValueStr = specs.map((spec) => spec.valueName || spec.value || spec.name).filter(Boolean).join(' / ') || item.skuName || '默认'
-    const specValueIds = specs.map((spec, specIndex) => {
-        const groupName = spec.name || spec.specName || `规格${specIndex + 1}`
-        const valueName = spec.valueName || spec.value || spec.name
-        return buildSpecValueId(spec, groupName, valueName, `${index}-${specIndex}`)
+    var specs = parseSpecJson(item.specJson || item.spec_json || item.spec)
+    var specValueStr = specs.map(function(spec) { return spec.valueName || spec.value || spec.name }).filter(Boolean).join(' / ') || item.skuName || '默认'
+    var specValueIds = specs.map(function(spec, specIndex) {
+        var groupName = spec.name || spec.specName || '规格' + (specIndex + 1)
+        var valueName = spec.valueName || spec.value || spec.name
+        return buildSpecValueId(spec, groupName, valueName, index + '-' + specIndex)
     }).join(',')
-    const image = resolveImage(item.image || item.imageUrl || (item.imageUrls && item.imageUrls[0]), 'goods')
+    var image = resolveImage(item.image || item.imageUrl || (item.imageUrls && item.imageUrls[0]), 'goods')
 
-    return {
-        ...item,
+    return Object.assign({}, item, {
         id: item.id || item.skuId,
         item_id: item.item_id || item.skuId || item.id,
         sku_id: item.sku_id || item.skuId || item.id,
@@ -128,15 +130,15 @@ function normalizeSkuItem(item = {}, index = 0) {
         spec_value: item.spec_value || specValueStr,
         spec_value_ids: item.spec_value_ids || specValueIds || String(item.skuId || item.id || index),
         spec_value_ids_arr: (item.spec_value_ids || specValueIds || String(item.skuId || item.id || index)).split(',')
-    }
+    })
 }
 
 function normalizeSpecList(skuList = []) {
-    const groups = []
-    skuList.forEach((sku, skuIndex) => {
-        parseSpecJson(sku.specJson || sku.spec_json || sku.spec).forEach((spec, specIndex) => {
-            const groupName = spec.name || spec.specName || `规格${specIndex + 1}`
-            let group = groups.find((item) => item.name === groupName)
+    var groups = []
+    skuList.forEach(function(sku, skuIndex) {
+        parseSpecJson(sku.specJson || sku.spec_json || sku.spec).forEach(function(spec, specIndex) {
+        var groupName = spec.name || spec.specName || '规格' + (specIndex + 1)
+            var group = groups.find(function(item) { return item.name === groupName })
             if (!group) {
                 group = {
                     id: spec.specId || specIndex + 1,
@@ -145,9 +147,9 @@ function normalizeSpecList(skuList = []) {
                 }
                 groups.push(group)
             }
-            const valueName = spec.valueName || spec.value || spec.name
-            const valueId = buildSpecValueId(spec, groupName, valueName, `${skuIndex}-${specIndex}`)
-            if (valueName && !group.spec_value.some((value) => String(value.id) === String(valueId) || value.value === valueName)) {
+            var valueName = spec.valueName || spec.value || spec.name
+            var valueId = buildSpecValueId(spec, groupName, valueName, skuIndex + '-' + specIndex)
+            if (valueName && !group.spec_value.some(function(value) { return String(value.id) === String(valueId) || value.value === valueName })) {
                 group.spec_value.push({
                     id: valueId,
                     value: valueName,
@@ -160,11 +162,11 @@ function normalizeSpecList(skuList = []) {
 }
 
 function normalizeGoodsDetail(detail = {}, spuId) {
-    const images = parseImageList(detail.images || detail.imageUrls || detail.albumUrls || detail.goods_image)
+    var images = parseImageList(detail.images || detail.imageUrls || detail.albumUrls || detail.goods_image)
     if (!images.length && (detail.mainImageUrl || detail.cover || detail.image)) {
         images.push(detail.mainImageUrl || detail.cover || detail.image)
     }
-    const goodsItem = (detail.skuList || detail.goods_item || []).map(normalizeSkuItem)
+    var goodsItem = (detail.skuList || detail.goods_item || []).map(normalizeSkuItem)
     if (!goodsItem.length) {
         goodsItem.push(normalizeSkuItem({
             id: detail.defaultSkuId || detail.skuId || detail.id || spuId,
@@ -176,18 +178,17 @@ function normalizeGoodsDetail(detail = {}, spuId) {
             imageUrl: detail.mainImageUrl || detail.cover || detail.image || images[0]
         }))
     }
-    const shopInfo = detail.shopInfo || detail.shop || detail.shop_info || {}
-    const commentSummary = normalizeCommentSummary(detail.commentSummary || detail.comment || {})
-    const coupons = (detail.couponList || detail.coupon_list || detail.coupons || []).map(normalizeCouponItem)
-    const content = parseDetailContent(detail.content || detail.goods_detail || detail.detail || detail.detailJson || detail.description)
+    var shopInfo = detail.shopInfo || detail.shop || detail.shop_info || {}
+    var commentSummary = normalizeCommentSummary(detail.commentSummary || detail.comment || {})
+    var coupons = (detail.couponList || detail.coupon_list || detail.coupons || []).map(normalizeCouponItem)
+    var content = parseDetailContent(detail.content || detail.goods_detail || detail.detail || detail.detailJson || detail.description)
 
-    return {
-        ...detail,
+    return Object.assign({}, detail, {
         id: detail.id || detail.spuId || detail.productId || spuId,
         goods_id: detail.goods_id || detail.spuId || detail.productId || detail.id || spuId,
         spuId: detail.spuId || detail.id || detail.productId || spuId,
-        shop_id: detail.shop_id || detail.shopId || detail.merchantShopId || shopInfo.shopId || shopInfo.id || '',
-        shopId: detail.shopId || detail.shop_id || detail.merchantShopId || shopInfo.shopId || shopInfo.id || '',
+        shop_id: detail.shop_id || detail.shopId || detail.merchantShopId || detail.merchant_shop_id || shopInfo.shopId || shopInfo.id || '',
+        shopId: detail.shopId || detail.shop_id || detail.merchantShopId || detail.merchant_shop_id || shopInfo.shopId || shopInfo.id || '',
         shop_name: detail.shop_name || detail.shopName || detail.storeName || shopInfo.shopName || shopInfo.name || '',
         shopName: detail.shopName || detail.shop_name || detail.storeName || shopInfo.shopName || shopInfo.name || '',
         name: detail.name || detail.spuName || detail.productName || detail.title || '',
@@ -199,7 +200,7 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         max_price: detail.max_price || detail.maxPrice || detail.salePrice || detail.minPrice || 0,
         market_price: detail.market_price || detail.originPrice || detail.maxPrice || 0,
         sales_sum: detail.sales_sum || detail.salesCount || detail.sales_count || detail.virtualSales || 0,
-        stock: valueOr(detail.stock, valueOr(detail.stockQty, goodsItem.reduce((sum, item) => sum + Number(item.stock || 0), 0))),
+        stock: valueOr(detail.stock, valueOr(detail.stockQty, goodsItem.reduce(function(sum, item) { return sum + Number(item.stock || 0) }, 0))),
         is_collect: valueOr(detail.is_collect, valueOr(detail.isCollect, valueOr(detail.collected, 0))),
         goods_image: images.length ? images : [resolveImage('', 'goods')],
         coupon_list: coupons,
@@ -223,16 +224,15 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         freight_type: detail.freight_type || detail.freightType || '',
         freight_amount: valueOr(detail.freight_amount, valueOr(detail.freightAmount, 0)),
         freight_template_id: detail.freight_template_id || detail.freightTemplateId || ''
-    }
+    })
 }
 
 function normalizeCartItem(item = {}) {
-    const normalized = normalizeGoodsListItem(item)
-    const image = resolveImage(item.img || item.image || item.imageUrl || item.mainImageUrl || item.cover || normalized.image, 'goods')
-    const quantity = valueOr(item.goods_num, valueOr(item.quantity, valueOr(item.num, 1)))
-    const cartId = item.cart_id || item.cartItemId || item.id
-    return {
-        ...item,
+    var normalized = normalizeGoodsListItem(item)
+    var image = resolveImage(item.img || item.image || item.imageUrl || item.mainImageUrl || item.cover || normalized.image, 'goods')
+    var quantity = valueOr(item.goods_num, valueOr(item.quantity, valueOr(item.num, 1)))
+    var cartId = item.cart_id || item.cartItemId || item.id
+    return Object.assign({}, item, {
         cart_id: cartId,
         cartItemId: item.cartItemId || cartId,
         item_id: item.item_id || item.skuId || item.itemSkuId || item.sku_id,
@@ -250,13 +250,12 @@ function normalizeCartItem(item = {}) {
         cart_status: valueOr(item.cart_status, valueOr(item.cartStatus, 0)),
         shop_id: item.shop_id || item.shopId || normalized.shop_id,
         shop_name: item.shop_name || item.shopName || normalized.shop_name || '商城自营'
-    }
+    })
 }
 
 function normalizeCommentItem(item = {}) {
-    const images = parseImageList(item.image || item.images || item.imageUrls)
-    return {
-        ...item,
+    var images = parseImageList(item.image || item.images || item.imageUrls)
+    return Object.assign({}, item, {
         id: item.id || item.commentId,
         avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl, 'avatar'),
         nickname: item.nickname || item.userName || item.memberName || '匿名用户',
@@ -267,28 +266,26 @@ function normalizeCommentItem(item = {}) {
         comment: item.comment || item.content || '',
         image: images.length ? images : [resolveImage('', 'goods')],
         reply: item.reply || item.merchantReply || item.replyContent || ''
-    }
+    })
 }
 
 function normalizeCommentSummary(summary = {}) {
-    const first = summary.latestComment || summary.firstComment || (typeof summary.comment === 'object' ? summary.comment : {}) || (summary.list && summary.list[0]) || (summary.items && summary.items[0]) || (summary.rows && summary.rows[0]) || {}
-    const normalizedFirst = normalizeCommentItem(first)
-    return {
-        ...summary,
+    var first = summary.latestComment || summary.firstComment || (typeof summary.comment === 'object' ? summary.comment : {}) || (summary.list && summary.list[0]) || (summary.items && summary.items[0]) || (summary.rows && summary.rows[0]) || {}
+    var normalizedFirst = normalizeCommentItem(first)
+    return Object.assign({}, summary, {
         total: summary.total || summary.totalCount || summary.commentCount || summary.count || 0,
         goods_rate: normalizedFirst.goods_rate,
         avatar: normalizedFirst.avatar,
         nickname: normalizedFirst.nickname,
         create_time: normalizedFirst.create_time,
         comment: normalizedFirst.comment || (typeof summary.comment === 'string' ? summary.comment : '')
-    }
+    })
 }
 
 function normalizeCommentPage(data = {}) {
-    const list = (data.list || data.items || data.rows || []).map(normalizeCommentItem)
-    const summary = data.summary || data.commentSummary || {}
-    return {
-        ...data,
+    var list = (data.list || data.items || data.rows || []).map(normalizeCommentItem)
+    var summary = data.summary || data.commentSummary || {}
+    return Object.assign({}, data, {
         list,
         lists: list,
         more: valueOr(data.hasNext, valueOr(data.more, false)),
@@ -297,12 +294,11 @@ function normalizeCommentPage(data = {}) {
         total: data.total || list.length,
         comment: data.comment || [],
         percent: data.percent || summary.goodRate || summary.goodsRate || '100%'
-    }
+    })
 }
 
 function normalizeHomeData(data = {}) {
-    return {
-        ...data,
+    return Object.assign({}, data, {
         navigation_menu: data.navigation_menu || data.quickEntries || [],
         quickEntries: data.quickEntries || data.navigation_menu || [],
         banners: data.banners || [],
@@ -314,73 +310,68 @@ function normalizeHomeData(data = {}) {
             balance: data.balance || 0,
             currency: 'CNY'
         }
-    }
+    })
 }
 
 function normalizeStreetCategory(item = {}) {
-    return {
-        ...item,
+    return Object.assign({}, item, {
         id: item.id || item.categoryId || item.recommendId || '',
         categoryId: item.categoryId || item.id || item.recommendId || '',
         name: item.name || item.categoryName || item.title || '',
         image: resolveImage(item.image || item.icon || item.iconUrl || item.cover)
-    }
+    })
 }
 
 function normalizeStreetShop(item = {}) {
-    return {
-        ...item,
-        shopId: item.shopId || item.id || item.shop_id || '',
+    return Object.assign({}, item, {
+        shopId: item.shopId || item.shop_id || item.merchantShopId || item.merchant_shop_id || item.id || '',
         shopName: item.shopName || item.shop_name || item.storeName || item.name || '',
         shopLogo: resolveImage(item.shop_logo || item.shopLogo || item.logo || item.logoUrl || item.image || item.cover),
         shopScore: valueOr(item.shop_score, valueOr(item.shopScore, valueOr(item.score, valueOr(item.star, '')))),
         detailAddress: item.detail_address || item.detailAddress || item.address || '',
         openStatus: item.open_status || item.openStatus || item.status || ''
-    }
+    })
 }
 
 function normalizeStreetIndex(data = {}) {
-    return {
-        ...data,
+    return Object.assign({}, data, {
         searchBox: {
             keyword: (data.searchBox && data.searchBox.keyword) || '',
             placeholder: (data.searchBox && data.searchBox.placeholder) || '输入关键词'
         },
         recommendedCategories: (data.recommendedCategories || []).map(normalizeStreetCategory),
         recommendedShops: (data.recommendedShops || []).map(normalizeStreetShop)
-    }
+    })
 }
 
 function normalizeShopMediaItem(item = {}) {
-    return {
-        ...item,
-        id: item.id || item.albumId || item.videoId || '',
-        url: resolveImage(item.url || item.imageUrl || item.videoUrl || item.cover || item.thumbnail || item.image),
-        cover: resolveImage(item.cover || item.thumbnail || item.imageUrl || item.image || item.url)
-    }
+    var raw = typeof item === 'string' ? { url: item } : item
+    return Object.assign({}, raw, {
+        id: raw.id || raw.albumId || raw.videoId || '',
+        title: raw.title || raw.name || '',
+        url: resolveImage(raw.url || raw.imageUrl || raw.videoUrl || raw.cover || raw.thumbnail || raw.image),
+        cover: resolveImage(raw.cover || raw.thumbnail || raw.imageUrl || raw.image || raw.url)
+    })
 }
 
 function normalizeShopCommentItem(item = {}) {
-    const user = item.user || item.member || item.customer || {}
-    return {
-        ...item,
+    var user = item.user || item.member || item.customer || {}
+    return Object.assign({}, item, {
         id: item.id || item.commentId || item.reviewId || '',
         name: item.name || item.nickname || item.userName || item.memberName || user.nickname || user.name || user.userName || '匿名用户',
         date: item.date || item.create_time || item.createdAt || item.createTime || item.commentTime || item.evaluateTime || '',
         content: item.content || item.comment || item.reviewContent || item.remark || item.evaluateContent || item.commentContent || '暂无评价内容',
         avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl || user.avatar || user.avatarUrl || user.headimgurl, 'avatar'),
         score: item.score || item.star || item.rating || item.shopScore || item.serviceScore || 5
-    }
+    })
 }
 
 function normalizeShopGroupItem(item = {}) {
-    const normalized = normalizeGoodsListItem(item)
-    const activity = item.activity || item.groupBuyActivity || item.groupActivity || {}
-    const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || activity.goodsId || activity.spuId
-    const price = item.groupPrice || item.group_price || item.teamPrice || item.team_price || item.activityPrice || item.salePrice || item.minPrice || item.price || normalized.price
-    return {
-        ...normalized,
-        ...item,
+    var normalized = normalizeGoodsListItem(item)
+    var activity = item.activity || item.groupBuyActivity || item.groupActivity || {}
+    var goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || activity.goodsId || activity.spuId
+    var price = item.groupPrice || item.group_price || item.teamPrice || item.team_price || item.activityPrice || item.salePrice || item.minPrice || item.price || normalized.price
+    return Object.assign({}, normalized, item, {
         id: goodsId || normalized.id,
         goods_id: goodsId || normalized.goods_id,
         spuId: item.spuId || item.productId || goodsId || normalized.spu_id,
@@ -393,76 +384,83 @@ function normalizeShopGroupItem(item = {}) {
         joined: item.joined || item.joinedCount || item.join_num || item.joinNum || item.sales_sum || item.salesCount || activity.joinedCount || 0,
         sales_sum: item.sales_sum || item.salesCount || item.sales_count || item.joinedCount || item.joinNum || 0,
         score: item.score || item.shopScore || item.commentScore || item.rating || 5
-    }
+    })
 }
 
 function normalizeShopDetail(data = {}) {
-    const base = data.shopBase || data.shop || data.shopInfo || data.shop_info || data.baseInfo || {}
-    const groupPayload = data.groupBuyProducts || data.groupProducts || data.group_buy_products || data.activityProducts || data.products || data.groupBuyProductList || data.groupBuyList || data.groupList || data.groups || []
-    const commentPayload = data.comments || data.commentList || data.reviews || data.shopComments || data.evaluations || (data.commentPage && data.commentPage.list) || (data.commentPage && data.commentPage.records) || (data.commentPage && data.commentPage.items) || (data.commentSummary && data.commentSummary.list) || []
-    const groupProducts = Array.isArray(groupPayload) ? groupPayload : (groupPayload.list || groupPayload.records || groupPayload.items || groupPayload.rows || [])
-    const comments = Array.isArray(commentPayload) ? commentPayload : (commentPayload.list || commentPayload.records || commentPayload.items || commentPayload.rows || [])
-    return {
-        ...data,
-        shopBase: {
-            ...base,
-            shopId: base.shopId || base.id || base.shop_id || '',
+    var base = data.shopBase || data.shop || data.shopInfo || data.shop_info || data.baseInfo || data
+    var groupPayload = data.groupBuyProducts || data.groupProducts || data.group_buy_products || data.activityProducts || data.products || data.groupBuyProductList || data.groupBuyList || data.groupList || data.groups || []
+    var commentPayload = data.comments || data.commentList || data.reviews || data.shopComments || data.evaluations || (data.commentPage && data.commentPage.list) || (data.commentPage && data.commentPage.records) || (data.commentPage && data.commentPage.items) || (data.commentSummary && data.commentSummary.list) || []
+    var albumPayload = data.albums || data.albumList || data.shopAlbums || data.images || data.imageUrls || data.albumUrls || data.photos || []
+    var videoPayload = data.videos || data.videoList || data.shopVideos || data.videoUrls || []
+    var groupProducts = Array.isArray(groupPayload) ? groupPayload : (groupPayload.list || groupPayload.records || groupPayload.items || groupPayload.rows || [])
+    var comments = Array.isArray(commentPayload) ? commentPayload : (commentPayload.list || commentPayload.records || commentPayload.items || commentPayload.rows || [])
+    var albums = Array.isArray(albumPayload) ? albumPayload : parseImageList(albumPayload)
+    var videos = Array.isArray(videoPayload) ? videoPayload : parseImageList(videoPayload)
+    var logo = base.shopLogo || base.shop_logo || base.logo || base.logoUrl || base.avatarUrl || base.image || base.cover || base.mainImageUrl
+    return Object.assign({}, data, {
+        cover: data.cover || data.shopCover || data.bannerImage || data.mainImageUrl ? resolveImage(data.cover || data.shopCover || data.bannerImage || data.mainImageUrl, 'goods') : '',
+        image: data.image || data.cover || data.mainImageUrl ? resolveImage(data.image || data.cover || data.mainImageUrl, 'goods') : '',
+        detailImage: data.detailImage || data.detail_image || data.detailCover ? resolveImage(data.detailImage || data.detail_image || data.detailCover, 'goods') : '',
+        shopBase: Object.assign({}, base, {
+            shopId: base.shopId || base.id || base.shop_id || data.shopId || data.id || data.shop_id || '',
             shopName: base.shopName || base.shop_name || base.storeName || base.name || '',
-            shopLogo: resolveImage(base.shopLogo || base.logo || base.avatarUrl || base.image),
-            shopScore: valueOr(base.shopScore, valueOr(base.score, valueOr(base.star, ''))),
+            shopLogo: resolveImage(logo),
+            shopScore: valueOr(base.shopScore, valueOr(base.shop_score, valueOr(base.score, valueOr(base.star, '')))),
             businessHours: base.businessHours || base.openHours || base.business_hours || '',
             detailAddress: base.detailAddress || base.address || base.detail_address || '',
-            openStatus: base.openStatus || base.status || '',
-            avatarUrl: resolveImage(base.avatarUrl || base.shopLogo || base.logo || base.image, 'avatar'),
+            latitude: base.latitude || base.lat || base.shopLatitude || base.shop_latitude || '',
+            longitude: base.longitude || base.lng || base.shopLongitude || base.shop_longitude || '',
+            openStatus: base.openStatus || base.open_status || base.status || '',
+            avatarUrl: resolveImage(base.avatarUrl || logo, 'avatar'),
             contactPhone: base.contactPhone || base.phone || base.mobile || '',
             provinceName: base.provinceName || '',
             cityName: base.cityName || '',
             districtName: base.districtName || ''
-        },
-        albums: (data.albums || data.albumList || data.shopAlbums || []).map(normalizeShopMediaItem),
-        videos: (data.videos || data.videoList || data.shopVideos || []).map(normalizeShopMediaItem),
+        }),
+        albums: albums.map(normalizeShopMediaItem).filter(function(item) { return item.url }),
+        videos: videos.map(normalizeShopMediaItem).filter(function(item) { return item.url || item.cover }),
         coupons: data.coupons || [],
         groupBuyProducts: groupProducts.filter(Boolean).map(normalizeShopGroupItem),
         comments: comments.map(normalizeShopCommentItem),
         commentTotal: data.commentTotal || data.commentCount || (data.commentSummary && data.commentSummary.total) || comments.length,
         qrcodeInfo: data.qrcodeInfo || {}
-    }
+    })
 }
 
 function normalizeGoodsList(data = {}) {
-    const sourcePayload = Array.isArray(data)
+    var sourcePayload = Array.isArray(data)
         ? data
         : (data.list || data.items || data.rows || data.records || data.content || data.products || data.productList || [])
-    const source = Array.isArray(sourcePayload) ? sourcePayload : []
-    const list = source.map(normalizeGoodsListItem)
-    return {
-        ...(!Array.isArray(data) ? data : {}),
+    var source = Array.isArray(sourcePayload) ? sourcePayload : []
+    var list = source.map(normalizeGoodsListItem)
+    return Object.assign({}, !Array.isArray(data) ? data : {}, {
         list,
         more: data.hasNext !== undefined ? data.hasNext : valueOr(data.more, Number(data.total || 0) > Number(data.pageNo || data.page_no || 1) * Number(data.pageSize || data.page_size || list.length || 10)),
         page_no: data.pageNo || data.page_no || 1,
         page_size: data.pageSize || data.page_size || list.length,
         total: data.total || list.length
-    }
+    })
 }
 
 // 首页聚合
 export function getHome(data = {}) {
-    const lat = valueOr(data.lat, data.latitude)
-    const lng = valueOr(data.lng, data.longitude)
+    var lat = valueOr(data.lat, data.latitude)
+    var lng = valueOr(data.lng, data.longitude)
     return request.get('miniapp/home/index', {
-        params: {
-            ...data,
+        params: Object.assign({}, data, {
             lat: lat !== undefined && lat !== null && lat !== '' ? lat : 23.1291,
             lng: lng !== undefined && lng !== null && lng !== '' ? lng : 113.2644
-        }
-    }).then((res) => {
+        })
+    }).then(function(res) {
         if (res.code == 1) {
-            return {
-                ...res,
+            return Object.assign({}, res, {
                 data: normalizeHomeData(res.data || {})
-            }
+            })
         }
         return res
+    }).catch(function() {
+        return { code: 1, data: normalizeHomeData({}) }
     })
 }
 
@@ -472,59 +470,76 @@ export function getStreetIndex(data = {}) {
         params: {
             keyword: data.keyword || ''
         }
-    }).then((res) => {
+    }).then(function(res) {
         if (res.code == 1) {
-            return {
-                ...res,
+            return Object.assign({}, res, {
                 data: normalizeStreetIndex(res.data || {})
-            }
+            })
         }
         return res
+    }).catch(function() {
+        return { code: 1, data: normalizeStreetIndex({}) }
     })
 }
 
 // 商街商品/门店列表
 export function getStreetGoods(data = {}) {
-    return request.get('miniapp/street/products', {
-        params: {
-            keyword: data.keyword || '',
-            categoryId: data.categoryId || data.category_id,
-            pageNo: data.pageNo || data.page_no || 1,
-            pageSize: data.pageSize || data.page_size || 20
-        }
-    }).then((res) => {
+    var params = {
+        keyword: data.keyword || '',
+        categoryId: data.categoryId || data.category_id,
+        shopId: data.shopId || data.shop_id,
+        sortType: data.sortType || data.sort_type,
+        pageNo: data.pageNo || data.page_no || 1,
+        pageSize: data.pageSize || data.page_size || 20
+    }
+    return request.get('miniapp/search/products', {
+        params: params
+    }).then(function(res) {
         if (res.code != 1) return res
-        const payload = res.data || {}
-        const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || payload.products || payload.shops || [])
-        return {
-            ...res,
-            data: {
-                ...(!Array.isArray(payload) ? payload : {}),
-                list: list.map((item) => {
-                    const hasGoodsId = item.goods_id || item.goodsId || item.spuId || item.productId
+        var payload = res.data || {}
+        var list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || payload.products || payload.shops || [])
+        return Object.assign({}, res, {
+            data: Object.assign({}, !Array.isArray(payload) ? payload : {}, {
+                list: list.map(function(item) {
+                    var hasGoodsId = item.goods_id || item.goodsId || item.spuId || item.productId
                     if (!hasGoodsId && (item.storeName || item.shopId || item.shop_id) && !item.price && !item.salePrice && !item.minPrice) {
                         return normalizeStreetShop(item)
                     }
                     return normalizeGoodsListItem(item)
                 })
-            }
-        }
-    }).catch(() => {
-        return getStreetIndex({ keyword: data.keyword }).then((res) => {
+            })
+        })
+    }).catch(function() {
+        return request.get('miniapp/street/products', { params: params }).then(function(res) {
             if (res.code != 1) return res
-            return {
-                ...res,
-                data: {
-                    list: (res.data && res.data.recommendedShops) || []
-                }
-            }
+            var payload = res.data || {}
+            var list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || payload.products || payload.shops || [])
+            return Object.assign({}, res, {
+                data: Object.assign({}, !Array.isArray(payload) ? payload : {}, {
+                    list: list.map(function(item) {
+                        var hasGoodsId = item.goods_id || item.goodsId || item.spuId || item.productId
+                        return !hasGoodsId && (item.storeName || item.shopId || item.shop_id) && !item.price && !item.salePrice && !item.minPrice
+                            ? normalizeStreetShop(item)
+                            : normalizeGoodsListItem(item)
+                    })
+                })
+            })
+        }).catch(function() {
+            return getStreetIndex({ keyword: data.keyword }).then(function(res) {
+                if (res.code != 1) return res
+                return Object.assign({}, res, {
+                    data: {
+                        list: (res.data && res.data.recommendedShops) || []
+                    }
+                })
+            })
         })
     })
 }
 
 // 店铺详情
 export function getShopDetail(data = {}) {
-    const shopId = data.shopId || data.shop_id || ''
+    var shopId = data.shopId || data.shop_id || ''
     if (!shopId) {
         return Promise.resolve({
             code: 0,
@@ -532,14 +547,13 @@ export function getShopDetail(data = {}) {
             data: null
         })
     }
-    return request.get(`miniapp/shop/${shopId}`, {
+    return request.get('miniapp/shop/' + shopId, {
         params: data
-    }).then((res) => {
+    }).then(function(res) {
         if (res.code == 1) {
-            return {
-                ...res,
+            return Object.assign({}, res, {
                 data: normalizeShopDetail(res.data || {})
-            }
+            })
         }
         return res
     })
@@ -547,90 +561,98 @@ export function getShopDetail(data = {}) {
 
 // 菜单
 export function getMenu(data) {
-    return getHome().then((res) => {
+    return getHome().then(function(res) {
         if (res.code != 1) return res
-        const list = res.data.navigation_menu || res.data.quickEntries || []
-        const filtered = list.filter((item) => {
+        var list = res.data.navigation_menu || res.data.quickEntries || []
+        var filtered = list.filter(function(item) {
             if (data && data.type === 1) return true
             if (data && data.type === 2) return true
             return true
         })
-        return {
-            ...res,
+        return Object.assign({}, res, {
             data: filtered
-        }
+        })
     })
 }
 
 // 广告位
 export function getAdList(data) {
-    return getHome().then((res) => {
+    return getHome().then(function(res) {
         if (res.code != 1) return res
-        return {
-            ...res,
+        return Object.assign({}, res, {
             data: res.data.banners || []
-        }
+        })
     })
 }
 
 // 购物车列表
 export function getCartList() {
-    return request.get('miniapp/cart/items').then((res) => {
+    return request.get('miniapp/cart/items').then(function(res) {
         if (res.code == 1) {
-            const payload = res.data || {}
-            const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || [])
-            const lists = list.map(normalizeCartItem)
-            return {
-                ...res,
-                data: {
-                    ...(!Array.isArray(payload) ? payload : {}),
+            var payload = res.data || {}
+            var list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || [])
+            var lists = list.map(normalizeCartItem)
+            return Object.assign({}, res, {
+                data: Object.assign({}, !Array.isArray(payload) ? payload : {}, {
                     list: lists,
                     lists,
-                    total_amount: valueOr(payload.total_amount, valueOr(payload.totalAmount, valueOr(payload.payAmount, lists.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.goods_num || 0), 0)))),
-                    cartCount: valueOr(payload.cartCount, valueOr(payload.count, lists.reduce((sum, item) => sum + Number(item.goods_num || 0), 0)))
-                }
-            }
+                    total_amount: valueOr(payload.total_amount, valueOr(payload.totalAmount, valueOr(payload.payAmount, lists.reduce(function(sum, item) { return sum + Number(item.price || 0) * Number(item.goods_num || 0) }, 0)))),
+                    cartCount: valueOr(payload.cartCount, valueOr(payload.count, lists.reduce(function(sum, item) { return sum + Number(item.goods_num || 0) }, 0)))
+                })
+            })
         }
         return res
+    }).catch(function() {
+        return {
+            code: 1,
+            data: {
+                list: [],
+                lists: [],
+                total_amount: 0,
+                cartCount: 0
+            }
+        }
     })
 }
 
 // 推荐商品
 export function getBestList(data) {
-    return getHome().then((res) => {
+    return getHome().then(function(res) {
         if (res.code != 1) return res
-        return {
-            ...res,
+        return Object.assign({}, res, {
             data: res.data.recommendedProducts || []
-        }
+        })
     })
 }
 
 // 商品分类
 export function getCatrgory() {
-    return request.get('miniapp/category/tree').then((res) => {
+    return request.get('miniapp/category/tree').then(function(res) {
         if (res.code == 1) {
-            return {
-                ...res,
+            return Object.assign({}, res, {
                 data: (Array.isArray(res.data) ? res.data : ((res.data && res.data.list) || [])).map(normalizeCategory)
-            }
+            })
         }
         return res
+    }).catch(function() {
+        return { code: 1, data: [] }
     })
 }
 
 // 商品详情
 export function getGoodsDetail(data) {
-    const spuId = data.id || data.spuId
-    return request.get(`miniapp/product/${spuId}`).then((res) => {
+    var spuId = data.id || data.spuId
+    if (!spuId) {
+        return Promise.resolve({ code: 0, msg: 'spuId is required', data: null })
+    }
+    return request.get('miniapp/product/' + spuId).then(function(res) {
         if (res.code == 1 && res.data) {
-            return {
-                ...res,
+            return Object.assign({}, res, {
                 data: normalizeGoodsDetail(res.data, spuId)
-            }
+            })
         }
         return res
-    }).catch(() => {
+    }).catch(function() {
         return { code: 0, msg: '商品详情接口暂不可用', data: null }
     })
 }
@@ -648,8 +670,8 @@ export function getGoodsSearch(data = {}) {
             pageNo: data.page_no || data.pageNo,
             pageSize: data.page_size || data.pageSize
         }
-    }).then((res) => res.code == 1 ? { ...res, data: normalizeGoodsList(res.data || {}) } : res)
-        .catch(() => ({ code: 1, data: normalizeGoodsList({ list: [], total: 0, hasNext: false }) }))
+    }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeGoodsList(res.data || {}) }) : res })
+        .catch(function() { return { code: 1, data: normalizeGoodsList({ list: [], total: 0, hasNext: false }) } })
 }
 
 // 搜索页,热门搜索列表,和历史搜索列表
@@ -664,15 +686,15 @@ export function clearSearch() {
 
 // 评价列表
 export function getCommentList(data) {
-    const spuId = data.goods_id || data.spuId || data.productId
-    return request.get(`miniapp/product/${spuId}/comments`, {
+    var spuId = data.goods_id || data.spuId || data.productId
+    return request.get('miniapp/product/' + spuId + '/comments', {
         params: {
             commentType: data.id || data.commentType || data.type,
             pageNo: data.pageNo || data.page_no || data.page || 1,
             pageSize: data.pageSize || data.page_size || 10
         }
-    }).then((res) => res.code == 1 ? { ...res, data: normalizeCommentPage(res.data || {}) } : res)
-        .catch(() => {
+    }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeCommentPage(res.data || {}) }) : res })
+        .catch(function() {
             return { code: 1, data: normalizeCommentPage({ list: [], total: 0 }) }
         })
 }
@@ -684,9 +706,9 @@ export function getOrderCommentList(data) {
 
 // 购物车数量更改
 export function changeGoodsCount(data) {
-    const cartItemId = data.cartItemId || data.cart_id
+    var cartItemId = data.cartItemId || data.cart_id
     if (cartItemId) {
-        return request.put(`miniapp/cart/items/${cartItemId}`, {
+        return request.put('miniapp/cart/items/' + cartItemId, {
             quantity: data.goods_num || data.quantity || data.value,
             checked: data.checked
         })
@@ -699,19 +721,18 @@ export function changeGoodsCount(data) {
 
 // 单选/全选/店铺选择
 export function selectedOpt(data) {
-    const cartItemId = data.cartItemId || data.cart_id || data.id
+    var cartItemId = data.cartItemId || data.cart_id || data.id
     if (cartItemId) {
         if (Array.isArray(cartItemId)) {
-            return Promise.all(cartItemId.map((id) => selectedOpt({
-                ...data,
+            return Promise.all(cartItemId.map(function(id) { return selectedOpt(Object.assign({}, data, {
                 cart_id: id,
                 cartItemId: id
-            }))).then((results) => {
-                const failed = results.find((item) => item.code != 1)
+            })) })).then(function(results) {
+                var failed = results.find(function(item) { return item.code != 1 })
                 return failed || { code: 1, data: results }
             })
         }
-        return request.put(`miniapp/cart/items/${cartItemId}`, {
+        return request.put('miniapp/cart/items/' + cartItemId, {
             quantity: data.goods_num || data.quantity,
             checked: valueOr(data.checked, data.selected)
         })
@@ -721,8 +742,8 @@ export function selectedOpt(data) {
 
 // 删除商品
 export function deleteGoods(data) {
-    const cartItemId = data.cartItemId || data.cart_id || data.id
-    return request.delete(`miniapp/cart/items/${cartItemId}`)
+    var cartItemId = data.cartItemId || data.cart_id || data.id
+    return request.delete('miniapp/cart/items/' + cartItemId)
 }
 
 // 购物车选中状态
@@ -732,12 +753,12 @@ export function changeCartSelect(data) {
 
 // 评价分类
 export function getCommentCategory(id) {
-    return request.get(`miniapp/product/${id}/comments`, {
+    return request.get('miniapp/product/' + id + '/comments', {
         params: {
             pageNo: 1,
             pageSize: 1
         }
-    }).then((res) => res.code == 1 ? { ...res, data: normalizeCommentPage(res.data || {}) } : res)
+    }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeCommentPage(res.data || {}) }) : res })
 }
 
 // 加入购物车
@@ -773,13 +794,12 @@ export function getSeckillGoods(params) {
 
 // 消息中心首页
 export function getMessageLists() {
-    return getMessages({ pageNo: 1, pageSize: 3 }).then((res) => {
+    return getMessages({ pageNo: 1, pageSize: 3 }).then(function(res) {
         if (res.code != 1) return res
-        const list = res.data.list || []
-        return {
-            ...res,
+        var list = res.data.list || []
+        return Object.assign({}, res, {
             data: list
-        }
+        })
     })
 }
 
@@ -804,11 +824,10 @@ export function getStoreList(data) {
 
 // 直播列表
 export function getLiveRoom(data) {
-    return getHome().then((res) => {
+    return getHome().then(function(res) {
         if (res.code != 1) return res
-        return {
-            ...res,
+        return Object.assign({}, res, {
             data: res.data.liveRooms || []
-        }
+        })
     })
 }
