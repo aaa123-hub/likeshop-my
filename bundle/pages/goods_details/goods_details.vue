@@ -6,7 +6,6 @@
 		<!-- #endif -->
 		<view v-if="isFirstLoading" class="goods-loading">加载中...</view>
 		<view class="contain" v-if="!isNull">
-			<bubble-tips top="180rpx"></bubble-tips>
 			<view class="hero-stage">
 				<swiper class="goods-hero-swiper" :current="activePreviewIndex" circular @change="onHeroSwiperChange">
 					<swiper-item v-for="(item, index) in swiperList" :key="index">
@@ -201,8 +200,8 @@
 					<view class="group-list">
 						<view v-for="(item, index2) in sitem" :key="index2" class="group-item bg-white row-between">
 							<view class="row" style="max-width: 280rpx;">
-								<custom-image :src="item.avatar" width="80rpx" height="80rpx" radius="50%">
-								</custom-image>
+								<image v-if="item.avatar" class="team-avatar" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
+								<view v-else class="team-avatar team-avatar--empty"></view>
 								<view class="ml20 line1 normal">{{ item.nickname }}</view>
 							</view>
 							<view class="row ml20" style="flex: none;">
@@ -263,7 +262,7 @@
 			<view class="group-record bg-white mt20" v-if="groupRecords.length">
 				<view class="group-record__title">跟团记录</view>
 				<view v-for="(item, index) in groupRecords" :key="item.id || index" class="group-record__item">
-					<custom-image v-if="item.avatar" :src="item.avatar" width="80rpx" height="80rpx" radius="50%"></custom-image>
+					<image v-if="item.avatar" class="group-record__avatar-image" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
 					<view v-else class="group-record__avatar"></view>
 					<view class="group-record__content">
 						<view class="group-record__name">{{ item.name }}</view>
@@ -415,6 +414,7 @@ import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-c
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
 import UTag from '@/bundle/components/uview-ui/components/u-tag/u-tag.vue'
 import UBackTop from '@/bundle/components/uview-ui/components/u-back-top/u-back-top.vue'
+import GoodsLike from '@/bundle_shared_components/components/goods-like/goods-like.vue'
 	import SpecPopup from '@/bundle/components/spec-popup/spec-popup.vue'
 	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	import {
@@ -457,6 +457,7 @@ import UBackTop from '@/bundle/components/uview-ui/components/u-back-top/u-back-
 import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 	export default {
 		components: {
+			GoodsLike,
 			PriceFormat,
 			Navbar,
 			UPopup,
@@ -1674,6 +1675,19 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			background: linear-gradient(135deg, #e8f2ff 0%, #c7defc 100%);
 		}
 
+		.group-record__avatar-image,
+		.team-avatar {
+			width: 80rpx;
+			height: 80rpx;
+			flex: none;
+			border-radius: 50%;
+			background: #eef4ff;
+		}
+
+		.team-avatar--empty {
+			background: linear-gradient(135deg, #e8f2ff 0%, #c7defc 100%);
+		}
+
 		.empty-state {
 			color: #999999;
 			font-size: 26rpx;
@@ -1936,7 +1950,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		}
 
 		.goods-share-shop__time {
-			margin-top: 31rpx;
+			margin-top: 10rpx;
 			font-size: 26rpx;
 		}
 

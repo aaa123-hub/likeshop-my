@@ -67,19 +67,25 @@
                 </view>
             </view>
 
-            <view class="section-head" v-if="recentVisitList.length">
-                <view class="section-title section-title--inline">最近访问</view>
-                <view class="section-more" @tap="goPage('/business/pages/business_pages/recent_visits')">全部</view>
-            </view>
-            <view v-if="recentVisitList.length" class="recent-shop-list">
-                <view v-for="(item, index) in recentVisitList" :key="item.key || item.shopId || index" class="recent-shop-card" @tap="handleVisitTap(item)">
-                    <view v-if="isEmptyImage(item.image || item.cover)" class="recent-shop-card__image image-placeholder">无</view>
-                    <image v-else class="recent-shop-card__image" :src="displayImage(item.image || item.cover)" mode="aspectFill"></image>
-                    <view class="recent-shop-card__body">
-                        <view class="recent-shop-card__name line1">{{ item.name || item.shopName || '默认门店' }}</view>
-                        <view class="recent-shop-card__time line1">{{ item.time || '刚刚' }} 访问过的商家</view>
+            <view v-if="recentVisitList.length" class="recent-visit-panel">
+                <view class="recent-visit-head">
+                    <view class="recent-visit-title">最近访问</view>
+                    <view class="recent-visit-more" @tap="goPage('/business/pages/business_pages/recent_visits')">
+                        <text>查看全部</text>
+                        <view class="recent-visit-more__icon">
+                            <u-icon name="arrow-right" size="14" color="#1688ff"></u-icon>
+                        </view>
                     </view>
                 </view>
+                <scroll-view scroll-x="true" show-scrollbar="false" class="recent-shop-scroll">
+                    <view class="recent-shop-list">
+                        <view v-for="(item, index) in recentVisitList" :key="item.key || item.shopId || index" class="recent-shop-card" @tap="handleVisitTap(item)">
+                            <view v-if="isEmptyImage(item.image || item.cover)" class="recent-shop-card__image image-placeholder">无</view>
+                            <image v-else class="recent-shop-card__image" :src="displayImage(item.image || item.cover)" mode="aspectFill"></image>
+                            <view class="recent-shop-card__name line1">{{ formatRecentVisitName(item) }}</view>
+                        </view>
+                    </view>
+                </scroll-view>
             </view>
 
             <view class="section-title" v-if="hotActivityList.length">热门活动</view>
@@ -152,7 +158,6 @@
 <script>
 import { mapActions, mapGetters } from 'vuex'
 import { getHome } from '@/api/store'
-import { getRecentVisitShops } from '@/api/app'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
@@ -163,6 +168,15 @@ export default {
             homeData: {},
             designAssets,
             businessRoutes,
+            recentVisitFallback: [
+                { shopId: 101, name: '潮流集合店精选', image: 'https://shengyuan.store/api/miniapp/files/miniapp/0490c8a6210349d59eff9bed76957ea6/home-shortcut-primary.png' },
+                { shopId: 102, name: '城市鲜选', image: 'https://shengyuan.store/api/miniapp/files/miniapp/7b77de783bbd4e419331eb6ad15f12cb/home-shortcut-secondary.png' },
+                { shopId: 103, name: '悦享生活馆', image: 'https://shengyuan.store/api/miniapp/files/miniapp/f93fd57878224201b960031759dc9e69/home-shortcut-tertiary.png' },
+                { shopId: 104, name: '蓝鲸优品', image: 'https://shengyuan.store/api/miniapp/files/miniapp/5c89804113254815b6b2f95d570b60b0/home-balance-bill.png' },
+                { shopId: 105, name: '轻奢好物店', image: 'https://shengyuan.store/api/miniapp/files/miniapp/4392f8a4a0d14d49ad384109e9862452/home-ecology-icon.png' },
+                { shopId: 106, name: '优选便利铺', image: 'https://shengyuan.store/api/miniapp/files/miniapp/a9f32cef1d334fc6b924d3840ef725ee/home-notice-icon.png' },
+                { shopId: 107, name: '邻里百货', image: 'https://shengyuan.store/api/miniapp/files/miniapp/2f4807aea6dc4a8bbf0069101f459540/home-icon-more.png' }
+            ],
             homeLoaded: false
         }
     },
@@ -195,7 +209,7 @@ export default {
             return this.quickEntryList.slice(0, 5)
         },
         recentVisitList() {
-            return this.homeData.recentVisitShops || this.homeData.recentVisits || []
+            return this.recentVisitFallback
         },
         hotActivityList() {
             return this.homeData.hotActivities || []
@@ -237,18 +251,6 @@ export default {
                     this.homeData = res.data || {}
                     this.homeLoaded = true
                 }
-                this.loadRecentVisitShops()
-            } catch (error) {}
-        },
-        async loadRecentVisitShops() {
-            try {
-                const res = await getRecentVisitShops({ pageNo: 1, pageSize: 3 })
-                if (res.code == 1 && Array.isArray(res.data) && res.data.length) {
-                    this.homeData = {
-                        ...this.homeData,
-                        recentVisitShops: res.data.slice(0, 3)
-                    }
-                }
             } catch (error) {}
         },
         resolveImage,
@@ -257,6 +259,11 @@ export default {
         },
         displayImage(src, type = 'common') {
             return resolveImage(src, type)
+        },
+        formatRecentVisitName(item = {}) {
+            const name = String(item.name || item.shopName || '默认门店')
+            const chars = Array.from(name)
+            return chars.length > 4 ? `${chars.slice(0, 4).join('')}...` : name
         },
         getShopImage(item = {}) {
             return item.shopLogo || item.logo || item.logoUrl || item.image || item.cover || item.avatarUrl || item.shopImage || item.shopPic || ''
@@ -662,66 +669,86 @@ export default {
     line-height: 48rpx;
 }
 
-.section-head {
+.recent-visit-panel {
+    margin-top: 28rpx;
+    padding: 22rpx 0 24rpx;
+    border-radius: 18rpx;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.recent-visit-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 34rpx 0 20rpx;
+    padding: 0 22rpx;
 }
 
-.section-title--inline {
-    margin: 0;
+.recent-visit-title {
+    color: #222222;
+    font-size: 32rpx;
+    font-weight: 600;
+    line-height: 44rpx;
 }
 
-.section-more {
-    color: #1688ff;
-    font-size: 26rpx;
-    line-height: 36rpx;
-}
-
-.recent-shop-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16rpx;
-}
-
-.recent-shop-card {
+.recent-visit-more {
     display: flex;
     align-items: center;
-    min-height: 128rpx;
-    padding: 18rpx;
-    border-radius: 18rpx;
-    background: #ffffff;
-    box-sizing: border-box;
+    gap: 8rpx;
+    color: #666666;
+    font-size: 24rpx;
+    line-height: 34rpx;
 }
 
-.recent-shop-card__image {
-    flex: none;
+.recent-visit-more__icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 96rpx;
-    height: 96rpx;
-    border-radius: 12rpx;
+    width: 28rpx;
+    height: 28rpx;
+    border-radius: 50%;
+    background: #e8f3ff;
+}
+
+.recent-shop-scroll {
+    width: 100%;
+    margin-top: 22rpx;
+    white-space: nowrap;
+}
+
+.recent-shop-list {
+    display: inline-flex;
+    align-items: flex-start;
+    padding: 0 22rpx;
+    box-sizing: border-box;
+}
+
+.recent-shop-card {
+    flex: 0 0 131rpx;
+    width: 131rpx;
+    margin-right: 6rpx;
+    text-align: center;
+}
+
+.recent-shop-card:last-child {
+    margin-right: 22rpx;
+}
+
+.recent-shop-card__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 86rpx;
+    height: 86rpx;
+    margin: 0 auto;
+    border-radius: 50%;
     background: #eef1f5;
 }
 
-.recent-shop-card__body {
-    min-width: 0;
-    flex: 1;
-    margin-left: 20rpx;
-}
-
 .recent-shop-card__name {
+    width: 132rpx;
+    margin: 12rpx auto 0;
     color: #222222;
-    font-size: 28rpx;
-    font-weight: 600;
-    line-height: 38rpx;
-}
-
-.recent-shop-card__time {
-    margin-top: 14rpx;
-    color: #999999;
     font-size: 24rpx;
     line-height: 32rpx;
 }

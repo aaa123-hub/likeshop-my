@@ -25,12 +25,12 @@
             </view>
         </view>
         <navigator
-            v-if="wallet.open_racharge !== 0"
+            v-if="wallet.open_withdraw !== 0"
             class="wallet-btn"
             hover-class="none"
-            url="/bundle_finance/pages/user_payment/user_payment"
+            url="/bundle_user/pages/user_withdraw/user_withdraw"
         >
-            礼品卡充值
+            提现
         </navigator>
         <view class="wallet-records-card">
             <view class="wallet-tabs">
@@ -108,7 +108,8 @@ export default {
     return {
       wallet: {
         user_money: 0,
-        open_racharge: 1
+        open_racharge: 1,
+        open_withdraw: 1
       },
       walletIconUrl: 'https://shengyuan.store/api/miniapp/files/miniapp/ce28a354dbb5412f9f776a748d865aa1/wallet-balance-icon.png',
       user_wallet: 'https://shengyuan.store/api/miniapp/files/miniapp/eb819a12b29d43be91001eb8e65f397d/wallet-card-bg.png',
