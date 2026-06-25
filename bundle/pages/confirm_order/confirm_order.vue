@@ -201,7 +201,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                         <text>选择付款方式</text>
                     </view>
                     <view class="pay-card">
-                        <view class="pay-item" :class="{ active: payWay === 'WECHAT' }" @tap="selectPayWay('WECHAT')">
+                        <view class="pay-item" :class="{ active: payWay === 'WECHAT_JSAPI' }" @tap="selectPayWay('WECHAT_JSAPI')">
                             <image
                                 class="pay-icon"
                                 src="https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png"
@@ -211,13 +211,13 @@ likeshop.cn.team // +-----------------------------------------------------------
                             <view class="pay-radio"></view>
                         </view>
                         <view class="divider"></view>
-                        <view class="pay-item" :class="{ active: payWay === 'BANK' }" @tap="selectPayWay('BANK')">
+                        <view class="pay-item" :class="{ active: payWay === 'BALANCE' }" @tap="selectPayWay('BALANCE')">
                             <image
                                 class="pay-icon bank"
                                 src="https://shengyuan.store/api/miniapp/files/miniapp/094ba7e82c9843c6996af9fe0ac4ff41/bf1f6b760680089957df01cc0be7ea9e.png"
                                 mode="scaleToFill"
                             ></image>
-                            <text>银行卡支付</text>
+                            <text>余额支付</text>
                             <view class="pay-radio"></view>
                         </view>
                     </view>
@@ -302,7 +302,7 @@ export default {
             couponTabsIndex: 0, // 优惠券Tabs索引
             usableCoupon: [], // 优惠券--可使用
             unusableCoupon: [], // 优惠券--不可用
-            payWay: 'WECHAT',
+            payWay: 'WECHAT_JSAPI',
 
             bargainLaunchId: -1,
 
@@ -607,6 +607,7 @@ export default {
             from.remark = this.userRemark
             from.type = this.type
             from.payWay = this.payWay
+            from.payMethod = this.payWay
 
             try {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
@@ -695,10 +696,16 @@ page {
     position: relative;
     display: flex;
     align-items: center;
-    height: 109rpx;
-    padding: 45rpx 24rpx 0;
+    height: calc(var(--status-bar-height) + 64rpx);
+    padding: var(--status-bar-height) 24rpx 0;
     box-sizing: border-box;
 }
+
+/* #ifdef MP-WEIXIN */
+.nav-row {
+    padding-right: 220rpx;
+}
+/* #endif */
 
 .back-icon {
     position: relative;
@@ -752,7 +759,7 @@ page {
 }
 
 .confirm-con {
-    height: calc(100vh - 205rpx - 154rpx - env(safe-area-inset-bottom));
+    height: calc(100vh - var(--status-bar-height) - 160rpx - 154rpx - env(safe-area-inset-bottom));
     padding: 0 24rpx 32rpx;
     box-sizing: border-box;
 }

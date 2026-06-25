@@ -482,11 +482,21 @@ export default {
   padding: calc(var(--page-safe-top) + 18rpx) 180rpx 28rpx 28rpx;
 }
 
+/* #ifdef MP-WEIXIN */
+.shop-cart-page__top {
+  padding-right: 220rpx;
+}
+/* #endif */
+
 .shop-cart-page__title {
+  min-width: 0;
   color: #232323;
   font-size: 40rpx;
   font-weight: 600;
   line-height: 56rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .shop-cart-page__manage {

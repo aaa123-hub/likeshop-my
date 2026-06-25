@@ -2,6 +2,10 @@
     <view class="sort-page">
         <view class="sort-header">
             <view class="sort-search">
+                <view class="sort-search__glass">
+                    <view class="sort-search__glass-circle"></view>
+                    <view class="sort-search__glass-line"></view>
+                </view>
                 <input
                     v-model="searchKeyword"
                     class="sort-search__input"
@@ -10,7 +14,6 @@
                     placeholder-class="sort-search__placeholder"
                     @confirm="onSortSearch"
                 />
-                <u-icon name="camera" size="38" color="#b8b8b8"></u-icon>
                 <view class="sort-search__btn" @tap="onSortSearch">搜索</view>
             </view>
         </view>
@@ -238,18 +241,66 @@ export default {
 
 .sort-header {
     flex: none;
-    padding: calc(var(--page-safe-top) + 24rpx) 24rpx 16rpx;
-    background: #ffffff;
+    padding: calc(var(--page-safe-top) + 18rpx) 24rpx 18rpx;
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
 }
 
 .sort-search {
+    position: relative;
     display: flex;
     align-items: center;
-    height: 64rpx;
-    padding: 0 8rpx 0 34rpx;
+    height: 76rpx;
+    padding: 0 8rpx 0 28rpx;
     box-sizing: border-box;
-    border: 2rpx solid #1688ff;
-    border-radius: 36rpx;
+    border: 1rpx solid rgba(22, 136, 255, 0.16);
+    border-radius: 42rpx;
+    background: #f0f7ff;
+    box-shadow: 0 10rpx 28rpx rgba(22, 136, 255, 0.08);
+    overflow: hidden;
+}
+
+.sort-search::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+.sort-search__glass {
+    position: relative;
+    flex: none;
+    width: 36rpx;
+    height: 36rpx;
+    margin-right: 16rpx;
+    color: #1688ff;
+    z-index: 1;
+}
+
+.sort-search__glass-circle {
+    position: absolute;
+    left: 3rpx;
+    top: 2rpx;
+    width: 22rpx;
+    height: 22rpx;
+    border: 4rpx solid currentColor;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.sort-search__glass-line {
+    position: absolute;
+    right: 4rpx;
+    bottom: 6rpx;
+    width: 16rpx;
+    height: 4rpx;
+    border-radius: 4rpx;
+    background: currentColor;
+    transform: rotate(45deg);
+    transform-origin: right center;
 }
 
 .sort-search__placeholder {
@@ -260,24 +311,29 @@ export default {
 .sort-search__input {
     flex: 1;
     min-width: 0;
-    height: 60rpx;
+    height: 72rpx;
     color: #222222;
-    font-size: 24rpx;
-    line-height: 60rpx;
+    font-size: 26rpx;
+    line-height: 72rpx;
+    position: relative;
+    z-index: 1;
 }
 
 .sort-search__btn {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 88rpx;
-    height: 52rpx;
-    margin-left: 12rpx;
+    width: 112rpx;
+    height: 60rpx;
+    margin-left: 14rpx;
     color: #ffffff;
     font-size: 26rpx;
     font-weight: 600;
     border-radius: 30rpx;
-    background: #1688ff;
+    background: linear-gradient(135deg, #45a5ff 0%, #1688ff 100%);
+    box-shadow: 0 8rpx 18rpx rgba(22, 136, 255, 0.24);
 }
 
 .sort-main {

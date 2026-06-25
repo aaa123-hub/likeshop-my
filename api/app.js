@@ -210,17 +210,38 @@ function normalizeConfigResponse(res) {
 function normalizePaywayResponse(res, params = {}) {
   const data = res && res.data ? res.data : {};
   const now = Math.floor(Date.now() / 1000);
-  const amount = data.paidAmount || data.payAmount || data.orderAmount || params.order_amount || params.amount || 0;
+  const amountInfo = data.amountInfo || {};
+  const baseInfo = data.baseInfo || {};
+  const amount = amountInfo.payAmount || data.paidAmount || data.payAmount || data.orderAmount || baseInfo.orderAmount || params.order_amount || params.amount || 0;
   return {
     ...(res || {}),
     code: res && res.code == 0 ? 0 : 1,
     data: {
       ...data,
       order_amount: amount,
-      cancel_time: data.cancelTime || data.expireTime || params.cancel_time || now + 30 * 60,
-      pay: data.pay || data.payMethods || data.paymentMethods || [],
+      cancel_time: data.cancelTime || data.expireTime || baseInfo.expireTime || params.cancel_time || now + 30 * 60,
+      pay: data.pay || data.payMethods || data.paymentMethods || defaultPaywayList(),
     },
   };
+}
+
+function defaultPaywayList() {
+  return [
+    {
+      id: "BALANCE",
+      name: "余额支付",
+      pay_way: "BALANCE",
+      extra: "使用账户余额支付",
+      icon: "https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png",
+    },
+    {
+      id: "WECHAT_JSAPI",
+      name: "微信支付",
+      pay_way: "WECHAT_JSAPI",
+      extra: "使用微信支付",
+      icon: "https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png",
+    },
+  ];
 }
 
 //小程序授权登录
@@ -451,16 +472,10 @@ export function getRegisterCoupon() {
 export function getPayway(params = {}) {
   const bizOrderNo = params.bizOrderNo || params.payOrderNo || params.order_no || params.order_id;
   if (bizOrderNo) {
-    return request.post("miniapp/payments/preview", {
-      bizType: params.bizType || (params.from === "recharge" ? "RECHARGE" : "ORDER"),
-      bizOrderNo,
-      payScene: params.payScene || "MINIAPP",
-      payMethod: normalizePayMethod(params.payMethod || params.pay_way || params.payWay || "BALANCE"),
-      clientIp: params.clientIp || "127.0.0.1",
-      openId: params.openId || params.openid || params.open_id,
-      idempotentKey: params.idempotentKey || `pay-preview-${bizOrderNo}-${Date.now()}`,
-      client,
-    }).then((res) => normalizePaywayResponse(res, params));
+    if (params.from === "recharge") {
+      return request.get("miniapp/wallet/balance").then((res) => normalizePaywayResponse(res, params));
+    }
+    return request.get(`miniapp/orders/${bizOrderNo}`).then((res) => normalizePaywayResponse(res, params));
   }
   return Promise.resolve({ code: 0, msg: "缺少支付业务单号", data: null });
 }
