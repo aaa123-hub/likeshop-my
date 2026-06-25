@@ -60,6 +60,7 @@
 </template>
 
 <script>
+import PriceFormat from '@/activity/components/price-format/price-format.vue'
 import Navbar from '@/components/navbar/navbar.vue'
 	import {
 		loadingType
@@ -69,7 +70,7 @@ import Navbar from '@/components/navbar/navbar.vue'
 	} from '@/api/activity';
 
 	import {
-		loadingFun
+loadingFun
 	} from '@/utils/tools'
 	export default {
 		data() {
@@ -81,6 +82,7 @@ import Navbar from '@/components/navbar/navbar.vue'
 		},
 
 		components: {
+			PriceFormat,
 			Navbar
 		},
 		onLoad: function(options) {

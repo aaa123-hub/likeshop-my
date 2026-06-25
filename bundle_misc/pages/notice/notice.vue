@@ -47,11 +47,12 @@ import { getNoticeLists } from "@/api/store";
 import { loadingType } from "@/utils/type";
 import { getDesignAsset } from "@/utils/design-assets";
 import navbar from "@/components/navbar/navbar.vue";
+import UEmpty from '@/bundle_misc/components/uview-ui/components/u-empty/u-empty.vue'
 
 export default {
   components: {
-    navbar
-  },
+			UEmpty
+		},
   data() {
     return {
       page: 1,

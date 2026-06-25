@@ -47,8 +47,8 @@ import Navbar from '@/components/navbar/navbar.vue'
     const defaultQualificationUrl = 'https://shengyuan.store/api/miniapp/files/miniapp/7d58e17458874d54b2452a10998cd590/22-merchant-license.png'
     export default {
 	components: {
-		Navbar
-	},
+			Navbar
+		},
         data() {
             return {
                 form: {
@@ -115,7 +115,7 @@ import Navbar from '@/components/navbar/navbar.vue'
                         this.form.email = this.pickValue(res.data, ['email', 'merchantEmail', 'merchant_email', 'contactEmail', 'contact_email', 'settlementAccountNo', 'settlement_account_no']) || this.form.email
                         this.form.settlementAccountNo = this.pickValue(res.data, ['settlementAccountNo', 'settlement_account_no', 'email', 'merchantEmail', 'merchant_email']) || this.form.settlementAccountNo
                         this.form.qualificationUrl = this.pickValue(res.data, ['qualificationUrl', 'qualification_url']) || this.form.qualificationUrl
-                        this.form.remark = this.pickValue(res.data, ['remark', 'description', 'shopDescription', 'shop_description', 'storeDescription', 'store_description', 'onlineShopDescription', 'online_shop_description']) || this.form.remark
+                        this.form.remark = this.pickValue(res.data, ['remark', 'description', 'shopDescription', 'shop_description', 'storeDescription', 'store_description', 'onlineShopDescription', 'online_shop_description', 'auditRemark']) || this.form.remark
                     }
                 })
             },

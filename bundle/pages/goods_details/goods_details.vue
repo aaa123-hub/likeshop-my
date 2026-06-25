@@ -4,7 +4,7 @@
 		<!-- #ifdef H5 -->
 		<download-nav v-if="showDownload" :top="44"></download-nav>
 		<!-- #endif -->
-		<loading-view v-if="isFirstLoading"></loading-view>
+		<view v-if="isFirstLoading" class="goods-loading">加载中...</view>
 		<view class="contain" v-if="!isNull">
 			<bubble-tips top="180rpx"></bubble-tips>
 			<view class="hero-stage">
@@ -21,15 +21,15 @@
 						<view style="align-items: baseline;" class="row ml20">
 							<view class="mr10">秒杀价</view>
 							<price-format :first-size="46" :second-size="32" :subscript-size="32"
-								:price="goodsDetail.min_price" :weight="500"></price-format>
-							<template v-if="goodsDetail.min_price != goodsDetail.max_price">
+								:price="displayMinPrice" :weight="500"></price-format>
+							<template v-if="displayMinPrice != displayMaxPrice">
 								<text style="font-size: 46rpx;">-</text>
 								<price-format :first-size="46" :second-size="32" :subscript-size="32"
-									:show-subscript="false" :price="goodsDetail.max_price" :weight="500"></price-format>
+									:show-subscript="false" :price="displayMaxPrice" :weight="500"></price-format>
 							</template>
 							<view class="ml10">
 								<price-format :subscript-size="30" :line-through="true" :first-size="30"
-									:second-size="30" :price="goodsDetail.market_price">
+									:second-size="30" :price="displayMarketPrice">
 								</price-format>
 							</view>
 						</view>
@@ -48,7 +48,7 @@
 						<view style="align-items: baseline;" class="row">
 							<view class="mr10">拼团价</view>
 							<price-format :subscript-size="32" :first-size="46" :second-size="32"
-								:price="team.team_min_price" :weight="500"></price-format>
+								:price="displayTeamPrice" :weight="500"></price-format>
 							<text class="xs">起</text>
 						</view>
 						<view class="mr20 row group-num">
@@ -78,7 +78,7 @@
 					<view class="merchant-card__price-row row-between">
 						<view class="merchant-card__price">
 							<price-format :first-size="46" :second-size="32" :subscript-size="32"
-								:price="goodsType == 2 ? (team.team_min_price || goodsDetail.min_price) : goodsDetail.min_price"
+								:price="goodsType == 2 ? displayTeamPrice : displayMinPrice"
 								:weight="500"></price-format>
 							<text class="merchant-card__price-tag">{{ goodsType == 2 ? '拼团价' : '到手价' }}</text>
 						</view>
@@ -230,12 +230,12 @@
 				<view class="line1 mr20" style="flex: 1;">{{ selectedSpecText }}</view>
 				<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 			</view>
-			<navigator class="mt20 service-row" hover-class="none" url="/bundle_user/pages/server_explan/server_explan?type=2">
+			<view class="mt20 service-row" @tap="showGuidePending">
 				<view class="row bg-white" style="padding: 24rpx 24rpx;">
-					<view class="text lighter flex1">售后保障</view>
+					<view class="text lighter flex1">使用攻略</view>
 					<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 				</view>
-			</navigator>
+			</view>
 			<view class="evaluation bg-white mt20">
 				<navigator hover-class="none" :url="'/bundle_order/pages/all_comments/all_comments?id=' + goodsDetail.id"
 					class="title row-between">
@@ -285,11 +285,10 @@
 				<goods-like :list="goodsLike"></goods-like>
 			</view>
 			<view class="footer row bg-white fixed">
-				<navigator class="btn column-center" hover-class="none"
-					url="/bundle_user/pages/contact_offical/contact_offical">
+				<view class="btn column-center" @tap="goContactService">
 					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp/5f50e710a7024d99a4ddef3544d73eaf/8b846285dc82397ecc5ec550e2c6a507.png"></image>
 					<text class="xxs lighter">客服</text>
-				</navigator>
+				</view>
 				<navigator class="btn column-center" hover-class="none" url="/bundle_order/pages/user_order/user_order">
 					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp/70ce92ac24bc45d6be6abc68a2a357af/6f6ac9799b01d21b02e90602db0dcb34.png"></image>
 					<text class="xxs lighter">订单</text>
@@ -297,7 +296,6 @@
 				<view class="btn cart column-center" @tap="goCartPage">
 					<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp/4f8db4b7921d4f819d8053ba1c3baee4/08d3b1d2deda71069a912ba2d2cc9435.png"></image>
 					<text class="xxs lighter">购物车</text>
-					<u-badge v-if="cartNum" bgColor="#FF2C3C" :offset="[8, 10]" :count="cartNum"></u-badge>
 				</view>
 				<view class="footer-action" @tap="showSpecFun(0)">
 					<view class="footer-action__avatars">
@@ -323,23 +321,41 @@
 			:group="Boolean(isGroup)" :red-btn-text="btnText.red" :yellow-btn-text="btnText.yellow"
 			@confirm="onConfirm"></spec-popup>
 
-		<u-popup v-model="showShareBtn" mode="center" border-radius="24" :closeable="true" :mask-close-able="true" @open="prepareGoodsShareQrcode">
-			<view class="goods-share-card">
-				<view class="goods-share-card__title">商品二维码</view>
-				<view class="goods-share-card__goods">
-					<image class="goods-share-card__image" :src="resolveGoodsImage(goodsDetail.poster || goodsDetail.image)" mode="aspectFill"></image>
-					<view class="goods-share-card__info">
-						<view class="goods-share-card__name">{{ goodsDetail.name || '商品详情' }}</view>
-						<view class="goods-share-card__price">¥{{ goodsDetail.min_price || team.team_min_price || '0.00' }}</view>
-						<view v-if="goodsDetail.market_price" class="goods-share-card__market">原价 ¥{{ goodsDetail.market_price }}</view>
+		<u-popup v-model="showShareBtn" mode="center" :border-radius="0" :mask-close-able="true" @open="prepareGoodsShareQrcode">
+			<view class="goods-share-scene">
+				<view class="goods-share-shop">
+					<image class="goods-share-shop__logo" :src="shareShopLogo" mode="aspectFill"></image>
+					<view class="goods-share-shop__body">
+						<view class="goods-share-shop__name line1">{{ shareShopName }}</view>
+						<view class="goods-share-shop__rating">
+							<image v-for="item in 5" :key="item" class="goods-share-shop__star" :src="shareStarIcon" mode="aspectFit"></image>
+							<text>{{ shareShopScore }}</text>
+						</view>
+						<view class="goods-share-shop__time line1">
+							<image class="goods-share-shop__time-icon" :src="shareTimeIcon" mode="aspectFit"></image>
+							<text>营业时间：{{ shareBusinessTime }}</text>
+						</view>
 					</view>
 				</view>
-				<view class="goods-share-card__qr-wrap">
-					<image v-if="shareQrcodeIsImage" class="goods-share-card__qr" :src="shareQrcode" mode="aspectFit"></image>
-					<tki-qrcode v-else-if="shareQrcode" cid="goods-detail-share-qrcode" :val="shareQrcode" :size="282" unit="upx" :showLoading="false" />
-					<view v-else class="goods-share-card__loading">二维码生成中</view>
+				<view class="goods-share-panel">
+					<image class="goods-share-main" :src="resolveGoodsImage(goodsDetail.poster || goodsDetail.image)" mode="aspectFill"></image>
+					<view class="goods-share-info">
+						<view class="goods-share-price">
+							<text class="goods-share-price__symbol">¥</text><text class="goods-share-price__main">{{ sharePriceMain }}</text><text class="goods-share-price__decimal">{{ sharePriceDecimal }}</text>
+							<view class="goods-share-tip">长按保存二维码</view>
+						</view>
+						<view class="goods-share-qrcode">
+							<image v-if="shareQrcodeIsImage" class="goods-share-qrcode__image" :src="shareQrcode" mode="aspectFit"></image>
+							<tki-qrcode v-else-if="shareQrcode" cid="goods-detail-share-qrcode" :val="shareQrcode" :size="124" unit="upx" :showLoading="false" />
+							<view v-else class="goods-share-qrcode__loading">二维码</view>
+						</view>
+					</view>
+					<view class="goods-share-actions">
+						<view class="goods-share-action goods-share-action--save" @tap="toastShareSave">保存图片</view>
+						<button class="goods-share-action" open-type="share">分享商品</button>
+					</view>
 				</view>
-				<view class="goods-share-card__tip">长按识别二维码查看商品</view>
+				<image class="goods-share-close" :src="shareCloseIcon" mode="aspectFit" @tap="showShareBtn = false"></image>
 			</view>
 		</u-popup>
 		<!-- 领券 -->
@@ -394,10 +410,14 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
+import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
+import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
+import UTag from '@/bundle/components/uview-ui/components/u-tag/u-tag.vue'
+import UBackTop from '@/bundle/components/uview-ui/components/u-back-top/u-back-top.vue'
 	import SpecPopup from '@/bundle/components/spec-popup/spec-popup.vue'
 	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
-import {
+	import {
 		getGoodsDetail,
 		addCart,
 		getPoster,
@@ -412,6 +432,7 @@ import {
 	} from '@/api/activity';
 	import {
 		getShareMnQrcode
+		, subscribeShop
 	} from '@/api/app';
 	import {
 		mapActions,
@@ -433,13 +454,18 @@ import {
 		strToParams
 	} from '@/utils/tools'
 	import { resolveImage } from '@/utils/image-placeholder'
+import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 	export default {
-	components: {
-		SpecPopup,
-		TkiQrcode
-	,
+		components: {
+			PriceFormat,
 			Navbar,
-			UPopup
+			UPopup,
+			UCountDown,
+			UIcon,
+			UTag,
+			UBackTop,
+			SpecPopup,
+			TkiQrcode
 		},
 		data() {
 			return {
@@ -475,7 +501,10 @@ import {
 				showDownload: false,
 				distribution: {},
 				groupRecords: [],
-				fetchingDetail: false
+				fetchingDetail: false,
+				shareCloseIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
+				shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
+				shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png'
 			};
 		},
 		onLoad(options) {
@@ -496,11 +525,12 @@ import {
 			} else {
 				this.id = options.id;
 			}
-			this.getCartNum();
+			this.refreshCartNum();
 		},
 		onShow() {
 			if (!this.id) return;
 			this.getGoodsDetailFun();
+			this.refreshCartNum();
 		},
 		onPageScroll(e) {
 			const top = uni.upx2px(100)
@@ -512,6 +542,14 @@ import {
 		},
 		methods: {
 			...mapActions(['getCartNum']),
+			async refreshCartNum() {
+				try {
+					const cartRes = await fetchCartNum();
+					if (cartRes.code == 1) {
+						this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
+					}
+				} catch (error) {}
+			},
 			goodsShareLink() {
 				const inviteCode = this.userInfo.distribution_code || this.$store.getters.inviteCode || '';
 				return `/bundle/pages/goods_details/goods_details?id=${this.id}&invite_code=${inviteCode}`;
@@ -549,6 +587,21 @@ import {
 			goCartPage() {
 				uni.switchTab({ url: '/pages/shop_cart/shop_cart' })
 			},
+			goContactService() {
+				const params = [
+					`goodsId=${encodeURIComponent(this.id || '')}`,
+					`goodsName=${encodeURIComponent(this.goodsDetail.name || '')}`,
+					`shopId=${encodeURIComponent(this.goodsDetail.shop_id || this.goodsDetail.shopId || '')}`,
+					`shopName=${encodeURIComponent(this.shareShopName || '')}`
+				].join('&')
+				uni.navigateTo({ url: `/bundle_user/pages/contact_offical/contact_offical?${params}` })
+			},
+			showGuidePending() {
+				uni.showToast({ title: '使用攻略暂未开放', icon: 'none' })
+			},
+			toastShareSave() {
+				uni.showToast({ title: '请长按二维码或图片保存', icon: 'none' })
+			},
 			selectPreviewImage(index) {
 				this.activePreviewIndex = index;
 			},
@@ -564,6 +617,20 @@ import {
 			},
 			formatCouponCondition(item = {}) {
 				return item.use_condition || item.useCondition || item.conditionText || item.condition || '下单可用';
+			},
+			normalizePrice(value, fallback = 0) {
+				const next = Number(value ?? fallback ?? 0);
+				return Number.isNaN(next) ? '0.00' : next.toFixed(2);
+			},
+			normalizeGoodsDetailForView(data = {}) {
+				const minPrice = data.min_price ?? data.minPrice ?? data.salePrice ?? data.price ?? data.skuMinPrice ?? data.priceMin;
+				const maxPrice = data.max_price ?? data.maxPrice ?? data.salePrice ?? data.price ?? data.skuMaxPrice ?? minPrice;
+				const marketPrice = data.market_price ?? data.marketPrice ?? data.originPrice ?? data.originalPrice ?? data.linePrice ?? maxPrice;
+				return Object.assign({}, data, {
+					min_price: this.normalizePrice(minPrice),
+					max_price: this.normalizePrice(maxPrice, minPrice),
+					market_price: this.normalizePrice(marketPrice, maxPrice)
+				});
 			},
 			resolveSkuPayload(detail = this.checkedGoods) {
 				const sku = detail || {};
@@ -593,10 +660,21 @@ import {
 			},
 			toggleShopSubscribe() {
 				if (!this.isLogin) return toLogin();
-				this.shopSubscribed = !this.shopSubscribed;
-				uni.showToast({
-					title: this.shopSubscribed ? '订阅成功' : '已取消订阅',
-					icon: 'none'
+				const shopId = this.goodsDetail.shop_id || this.goodsDetail.shopId || this.goodsDetail.shop?.shopId || '';
+				if (!shopId) return uni.showToast({ title: '暂无店铺信息', icon: 'none' });
+				const nextSubscribed = !this.shopSubscribed;
+				subscribeShop({ shopId, subscribed: nextSubscribed }).then(res => {
+					if (res.code != 1) {
+						uni.showToast({ title: res.msg || '订阅失败', icon: 'none' });
+						return;
+					}
+					this.shopSubscribed = nextSubscribed;
+					uni.showToast({
+						title: this.shopSubscribed ? '订阅成功' : '已取消订阅',
+						icon: 'none'
+					});
+				}).catch(() => {
+					uni.showToast({ title: '订阅失败', icon: 'none' });
 				});
 			},
 			applyDefaultGoodsDetail() {
@@ -683,7 +761,8 @@ import {
 					}
 					this.distribution = distribution || {}
 					this.isNull = false;
-					this.goodsDetail = data;
+					this.goodsDetail = this.normalizeGoodsDetailForView(data);
+					this.shopSubscribed = Boolean(data.shopSubscribed || data.isShopSubscribed || data.shop?.subscribed || data.shop?.isSubscribed);
 					this.swiperList = Array.isArray(goods_image) && goods_image.length ? goods_image : [data.image].filter(Boolean);
 					this.activePreviewIndex = 0;
 					this.comment = comment || {};
@@ -939,6 +1018,43 @@ import {
 			groupFooterCount() {
 				return this.team.people_num || this.team.join_num || this.team.joinNum || this.goodsDetail.group_people_num || this.goodsDetail.groupPeopleNum || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || 0
 			},
+			displayMinPrice() {
+				return this.normalizePrice(this.goodsDetail.min_price ?? this.goodsDetail.minPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price)
+			},
+			displayMaxPrice() {
+				return this.normalizePrice(this.goodsDetail.max_price ?? this.goodsDetail.maxPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price, this.displayMinPrice)
+			},
+			displayMarketPrice() {
+				return this.normalizePrice(this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice, this.displayMaxPrice)
+			},
+			displayTeamPrice() {
+				return this.normalizePrice(this.team.team_min_price ?? this.team.teamMinPrice ?? this.team.groupPrice ?? this.displayMinPrice, this.displayMinPrice)
+			},
+			sharePriceText() {
+				return this.normalizePrice(this.goodsType == 2 ? this.displayTeamPrice : this.displayMinPrice)
+			},
+			sharePriceMain() {
+				return String(this.sharePriceText || '0.00').split('.')[0] || '0'
+			},
+			sharePriceDecimal() {
+				const decimal = String(this.sharePriceText || '0.00').split('.')[1]
+				return `.${decimal || '00'}`
+			},
+			shareShopName() {
+				return this.goodsDetail.shop_name || this.goodsDetail.shopName || this.goodsDetail.storeName || this.goodsDetail.shop?.shopName || '叮咚生活家'
+			},
+			shareShopLogo() {
+				const shop = this.goodsDetail.shop || this.goodsDetail.shopInfo || this.goodsDetail.shop_info || {}
+				return this.resolveAvatar(this.goodsDetail.shop_logo || this.goodsDetail.shopLogo || this.goodsDetail.shopLogoUrl || this.goodsDetail.shop_logo_url || this.goodsDetail.storeLogo || this.goodsDetail.store_logo || shop.shopLogo || shop.shop_logo || shop.logo || shop.logoUrl || shop.image || shop.cover || '')
+			},
+			shareShopScore() {
+				const score = this.goodsDetail.shop_score ?? this.goodsDetail.shopScore ?? this.goodsDetail.shop?.shopScore ?? this.goodsDetail.shop?.score ?? 5
+				const value = Number(score)
+				return Number.isNaN(value) ? String(score || '5.0') : value.toFixed(1)
+			},
+			shareBusinessTime() {
+				return this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '8:00-16:00'
+			},
 			primaryCouponAmountText() {
 				return this.formatCouponAmount(this.couponList[0] || {})
 			},
@@ -964,6 +1080,15 @@ import {
 	.goods-details {
 		padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 		background: #f5f6f8;
+
+		.goods-loading {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 240rpx;
+			color: #999999;
+			font-size: 26rpx;
+		}
 
 		.hero-stage {
 			position: relative;
@@ -1667,10 +1792,23 @@ import {
 				}
 			}
 
-			.cart-num {
+			.goods-cart-badge {
 				position: absolute;
-				left: 60rpx;
-				top: 6rpx;
+				top: 18rpx;
+				right: -10rpx;
+				z-index: 2;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				min-width: 28rpx;
+				height: 28rpx;
+				padding: 0 8rpx;
+				box-sizing: border-box;
+				border-radius: 14rpx;
+				background: #ff2c3c;
+				color: #ffffff;
+				font-size: 20rpx;
+				line-height: 28rpx;
 			}
 
 			.footer-action {
@@ -1735,95 +1873,186 @@ import {
 
 		}
 
-		.goods-share-card {
-			width: 620rpx;
-			padding: 34rpx 30rpx 30rpx;
-			background: #ffffff;
-			border-radius: 24rpx;
+		.goods-share-scene {
+			width: 750rpx;
+			max-height: calc(100vh - 80rpx);
+			padding: 40rpx 0 28rpx;
 			box-sizing: border-box;
+			overflow-y: auto;
 		}
 
-		.goods-share-card__title {
-			color: #101010;
-			font-size: 32rpx;
-			font-weight: 600;
-			text-align: center;
-		}
-
-		.goods-share-card__goods {
+		.goods-share-shop {
 			display: flex;
-			align-items: center;
-			margin-top: 30rpx;
-			padding: 18rpx;
-			background: #f7f8fb;
-			border-radius: 18rpx;
+			width: 540rpx;
+			max-width: calc(100vw - 96rpx);
+			min-height: 190rpx;
+			margin: 0 auto;
+			padding: 23rpx 29rpx;
+			box-sizing: border-box;
+			border-radius: 28rpx;
+			background: linear-gradient(135deg, rgba(3, 125, 250, 0.96), rgba(3, 172, 250, 0.9));
+			box-shadow: 0 20rpx 44rpx rgba(0, 84, 184, 0.24);
 		}
 
-		.goods-share-card__image {
+		.goods-share-shop__logo {
 			flex: none;
-			width: 128rpx;
-			height: 128rpx;
-			border-radius: 14rpx;
-			background: #edf1f5;
+			width: 132rpx;
+			height: 132rpx;
+			border-radius: 10rpx;
+			background: #ffffff;
+			border: 4rpx solid rgba(255, 255, 255, 0.82);
 		}
 
-		.goods-share-card__info {
+		.goods-share-shop__body {
 			min-width: 0;
-			margin-left: 18rpx;
+			margin-left: 27rpx;
+			padding-top: 14rpx;
+			color: #ffffff;
 		}
 
-		.goods-share-card__name {
-			color: #222222;
+		.goods-share-shop__name {
 			font-size: 28rpx;
 			font-weight: 500;
-			line-height: 38rpx;
-			display: -webkit-box;
-			-webkit-line-clamp: 2;
-			-webkit-box-orient: vertical;
-			overflow: hidden;
+			line-height: 28rpx;
 		}
 
-		.goods-share-card__price {
-			margin-top: 12rpx;
-			color: #ff2c3c;
-			font-size: 34rpx;
-			font-weight: 700;
+		.goods-share-shop__rating,
+		.goods-share-shop__time {
+			display: flex;
+			align-items: center;
+			font-size: 24rpx;
+			font-weight: 500;
 		}
 
-		.goods-share-card__market {
-			margin-top: 4rpx;
-			color: #999999;
-			font-size: 22rpx;
-			text-decoration: line-through;
+		.goods-share-shop__rating {
+			margin-top: 16rpx;
 		}
 
-		.goods-share-card__qr-wrap {
+		.goods-share-shop__time-icon {
+			flex: none;
+			width: 25rpx;
+			height: 25rpx;
+			margin-right: 8rpx;
+		}
+
+		.goods-share-shop__time {
+			margin-top: 31rpx;
+			font-size: 26rpx;
+		}
+
+		.goods-share-shop__star {
+			width: 24rpx;
+			height: 23rpx;
+			margin-right: 3rpx;
+		}
+
+		.goods-share-close {
+			display: block;
+			width: 48rpx;
+			height: 48rpx;
+			margin: 24rpx auto 0;
+		}
+
+		.goods-share-panel {
+			width: 620rpx;
+			max-width: calc(100vw - 64rpx);
+			margin: 18rpx auto 0;
+			padding: 28rpx 24rpx 28rpx;
+			box-sizing: border-box;
+			border-radius: 30rpx;
+			background: #ffffff;
+			box-shadow: 0 24rpx 70rpx rgba(0, 82, 176, 0.22);
+		}
+
+		.goods-share-main {
+			width: 100%;
+			height: 46vh;
+			max-height: 510rpx;
+			min-height: 320rpx;
+			border-radius: 23rpx;
+			background: #d5d5d5;
+		}
+
+		.goods-share-info {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-top: 19rpx;
+			padding: 0 2rpx;
+		}
+
+		.goods-share-price {
+			color: #ff1919;
+			font-weight: 500;
+			line-height: 1;
+		}
+
+		.goods-share-price__symbol,
+		.goods-share-price__decimal {
+			font-size: 26rpx;
+		}
+
+		.goods-share-price__main {
+			font-size: 51rpx;
+		}
+
+		.goods-share-tip {
+			margin-top: 21rpx;
+			color: #666666;
+			font-size: 24rpx;
+			font-weight: 400;
+		}
+
+		.goods-share-qrcode {
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 320rpx;
-			height: 320rpx;
-			margin: 34rpx auto 0;
-			background: #ffffff;
-			border: 2rpx solid #eef1f6;
-			border-radius: 20rpx;
+			width: 124rpx;
+			height: 124rpx;
+			border-radius: 6rpx;
+			background: #f3f3f3;
+			overflow: hidden;
 		}
 
-		.goods-share-card__qr {
-			width: 282rpx;
-			height: 282rpx;
+		.goods-share-qrcode__image {
+			width: 124rpx;
+			height: 124rpx;
 		}
 
-		.goods-share-card__loading {
+		.goods-share-qrcode__loading {
 			color: #999999;
-			font-size: 24rpx;
+			font-size: 22rpx;
 		}
 
-		.goods-share-card__tip {
-			margin-top: 18rpx;
-			color: #7a7a7a;
-			font-size: 24rpx;
-			text-align: center;
+		.goods-share-actions {
+			display: flex;
+			justify-content: space-between;
+			gap: 20rpx;
+			margin: 28rpx 16rpx 0;
+		}
+
+		.goods-share-action {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex: 1;
+			min-width: 0;
+			height: 81rpx;
+			padding: 0;
+			border-radius: 40rpx;
+			background: #037dfa;
+			color: #ffffff;
+			font-size: 28rpx;
+			font-weight: 500;
+			line-height: 81rpx;
+		}
+
+		.goods-share-action--save {
+			background: #03acfa;
+		}
+
+		.goods-share-action::after {
+			border: 0;
 		}
 
 		.group-play {

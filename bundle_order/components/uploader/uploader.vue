@@ -28,7 +28,14 @@
 </template>
 
 <script>
+import UIcon from '@/bundle_order/components/uview-ui/components/u-icon/u-icon.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+
     export default {
+  components: {
+			UIcon,
+			CustomImage
+		},
         name: "uploader",
         props: {
             fileList: {

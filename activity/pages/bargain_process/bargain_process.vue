@@ -273,22 +273,25 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/activity/components/uview-ui/components/u-popup/u-popup.vue'
     import SpecPopup from '@/activity/components/spec-popup/spec-popup.vue'
 import SharePopup from '@/activity/components/share-popup/share-popup.vue'
 import GoodsBargain from '@/activity/components/goods-bargain/goods-bargain.vue'
 import {getBargainDetail, launchBargain, getBargainActivityDetail, helpBargain, closeBargainOrder} from '@/api/activity'
+import UIcon from '@/activity/components/uview-ui/components/u-icon/u-icon.vue'
+import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u-count-down.vue'
 	import {strToParams} from '@/utils/tools'
     import config from '@/config/app'
 	import { mapGetters } from 'vuex'
     export default {
 	components: {
-		SpecPopup,
-		SharePopup,
-		GoodsBargain
-	,
 			Navbar,
-			UPopup
+			UPopup,
+			SpecPopup,
+			SharePopup,
+			GoodsBargain,
+			UIcon,
+			UCountDown
 		},
         data() {
             return {

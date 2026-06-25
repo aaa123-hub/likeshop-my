@@ -247,8 +247,9 @@ import { uploadFile, isWeixinClient, trottle } from '@/utils/tools'
 import { getWxCode, getUserProfile } from '@/utils/login'
 import wechath5 from '@/utils/wechath5'
 import Navbar from '@/components/navbar/navbar.vue'
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
-import UPicker from '@/components/uview-ui/components/u-picker/u-picker.vue'
+import UPopup from '@/bundle_user/components/uview-ui/components/u-popup/u-popup.vue'
+import UPicker from '@/bundle_user/components/uview-ui/components/u-picker/u-picker.vue'
+import UIcon from '@/bundle_user/components/uview-ui/components/u-icon/u-icon.vue'
 
 const FieldType = {
     NONE: '',
@@ -260,10 +261,11 @@ const FieldType = {
 export default {
     name: 'userProfile',
     components: {
-        Navbar,
-        UPopup,
-        UPicker
-    },
+			Navbar,
+			UPopup,
+			UPicker,
+			UIcon
+		},
     data() {
         return {
             version: version,

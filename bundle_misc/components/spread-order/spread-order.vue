@@ -62,6 +62,7 @@ import { userOrderPromoteOrder } from "@/utils/type";
 import { loadingType } from "@/utils/type";
 import { getPromoteOrder } from "@/api/user";
 import {loadingFun} from '@/utils/tools'
+import PriceFormat from '@/bundle_misc/components/price-format/price-format.vue'
 
 export default {
   data() {
@@ -74,6 +75,7 @@ export default {
   },
 
   components: {
+			PriceFormat,
   },
   props: {
     type: {

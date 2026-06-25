@@ -242,7 +242,7 @@
 </template>
 
 <script>
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import UModal from '@/bundle_order/components/uview-ui/components/u-modal/u-modal.vue'
 // +----------------------------------------------------------------------
 // | LikeShop100%开源免费商用电商系统
 // +----------------------------------------------------------------------
@@ -267,6 +267,9 @@ import {
   applyAgain,
 } from "@/api/user";
 import { loadingFun } from "@/utils/tools";
+import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
 
 export default {
   data() {
@@ -279,7 +282,10 @@ export default {
   },
 
   components: {
-			UModal
+			PriceFormat,
+			UModal,
+			CustomImage,
+			LoadingFooter
 		},
   props: {
     type: {

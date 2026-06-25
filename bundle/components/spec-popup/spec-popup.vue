@@ -145,7 +145,9 @@
 </template>
 
 <script>
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
+import UNumberBox from '@/bundle/components/uview-ui/components/u-number-box/u-number-box.vue'
+import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 export default {
   data() {
     return {
@@ -161,7 +163,9 @@ export default {
   },
 
   components: {
-			UPopup
+			PriceFormat,
+			UPopup,
+			UNumberBox
 		},
   props: {
     show: {

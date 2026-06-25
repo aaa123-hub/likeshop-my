@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import UModal from '@/bundle/components/uview-ui/components/u-modal/u-modal.vue'
 import { mapMutations, mapGetters } from 'vuex'
 import { authLogin } from '@/api/app'
 import { inputInviteCode } from '@/api/user'
@@ -112,8 +112,8 @@ import { designAssets } from '@/utils/design-assets'
 
 export default {
 	components: {
-		UModal
-	},
+			UModal
+		},
     data() {
         return {
             isAgree: true,

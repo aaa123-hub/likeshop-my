@@ -98,6 +98,9 @@
 // +----------------------------------------------------------------------
 import { getCommentList, getCommentCategory } from '../../../api/store'
 import { loadingType } from '../../../utils/type'
+import URate from '@/bundle_order/components/uview-ui/components/u-rate/u-rate.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
 
 export default {
     data() {
@@ -112,7 +115,11 @@ export default {
         }
     },
 
-    components: {},
+    components: {
+			URate,
+			CustomImage,
+			LoadingFooter
+		},
     props: {},
 
     /**

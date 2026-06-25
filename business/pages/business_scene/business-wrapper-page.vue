@@ -1,5 +1,5 @@
 <template>
-    <scene-shell :scene="scene" :store-detail-default-tab="storeDetailDefaultTab"></scene-shell>
+    <scene-shell :scene="scene" :store-detail-default-tab="storeDetailDefaultTab" :page-options="pageOptions"></scene-shell>
 </template>
 
 <script>
@@ -17,6 +17,10 @@ export default {
         storeDetailDefaultTab: {
             type: String,
             default: ''
+        },
+        pageOptions: {
+            type: Object,
+            default: () => ({})
         }
     }
 }

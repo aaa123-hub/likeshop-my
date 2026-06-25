@@ -50,7 +50,7 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/bundle_finance/components/uview-ui/components/u-popup/u-popup.vue'
 	// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------

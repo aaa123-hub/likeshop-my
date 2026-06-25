@@ -45,6 +45,7 @@
 import { getWithdrawRecords } from '@/api/user';
 import { loadingType } from '@/utils/type.js';
 import {loadingFun} from "@/utils/tools"
+import PriceFormat from '@/bundle_finance/components/price-format/price-format.vue'
 export default {
   data() {
     return {
@@ -55,6 +56,7 @@ export default {
   },
 
   components: {
+			PriceFormat,
   },
   props: {},
 

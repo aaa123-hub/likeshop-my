@@ -270,16 +270,18 @@ likeshop.cn.team // +-----------------------------------------------------------
 </template>
 
 <script>
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 import { orderBuy, getOrderCoupon, getDelivery } from '@/api/order'
 import { teamBuy } from '@/api/activity'
 import { prepay, getMnpNotice, getPayway } from '@/api/app'
 import { wxpay, alipay } from '@/utils/pay'
+import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 export default {
 	components: {
-		UPopup
-	},
+			PriceFormat,
+			UPopup
+		},
     data() {
         return {
             isFirstLoading: true, // 首次页面加载loading

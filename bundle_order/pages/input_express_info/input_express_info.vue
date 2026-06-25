@@ -69,10 +69,8 @@ export default {
   },
 
   components: {
-
-  	Uploader
-
-  },
+			Uploader
+		},
   props: {},
 
   /**

@@ -58,6 +58,8 @@
 </template>
 
 <script>
+import PriceFormat from '@/bundle_finance/components/price-format/price-format.vue'
+
 	// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
@@ -75,7 +77,7 @@
 	// | Author: LikeShopTeam
 	// +----------------------------------------------------------------------
 	import {
-		getWithdrawDetail
+getWithdrawDetail
 	} from '@/api/user';
 
 	export default {
@@ -86,7 +88,8 @@
 			};
 		},
 
-		components: {},
+		components: {
+			PriceFormat,},
 		props: {},
 
 		/**

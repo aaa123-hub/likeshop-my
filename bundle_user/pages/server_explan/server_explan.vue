@@ -2,7 +2,8 @@
 <view>
 <!--pages/server_explan/server_explan.wxml-->
 <view class="main">
-  <view :html="article_content" />
+  <rich-text v-if="article_content" :nodes="article_content"></rich-text>
+  <view v-else class="server-empty">暂无内容</view>
 </view>
 
 <!--<import src="/wxParse/wxParse.wxml"></import>-->
@@ -116,5 +117,12 @@ export default {
 .main {
   padding: 20rpx;
   /* min-height: 100vh; */
+}
+
+.server-empty {
+  padding-top: 160rpx;
+  color: #999999;
+  font-size: 28rpx;
+  text-align: center;
 }
 </style>

@@ -128,7 +128,7 @@
 </template>
 
 <script>
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/bundle_order/components/uview-ui/components/u-popup/u-popup.vue'
 import Uploader from '@/bundle_order/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
@@ -151,12 +151,15 @@ import { refundOptType } from "@/utils/type";
 import { baseURL } from "@/config/app";
 import { getGoodsInfo, applyAfterSale, applyAgain } from "@/api/user";
 import { uploadFile, trottle } from "@/utils/tools.js";
+import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
 
 export default {
 	components: {
-		Uploader
-	,
-			UPopup
+			PriceFormat,
+			UPopup,
+			Uploader,
+			CustomImage
 		},
   data() {
     return {

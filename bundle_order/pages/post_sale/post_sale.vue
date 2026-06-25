@@ -57,11 +57,8 @@ export default {
   },
 
   components: {
-
-  	AfterSalesList
-
-  ,
-			Navbar
+			Navbar,
+			AfterSalesList
 		},
   props: {},
 

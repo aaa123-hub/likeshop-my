@@ -95,6 +95,7 @@
 import { loadingType, SortType, FansType } from '@/utils/type';
 import { getUserFans } from '@/api/user';
 import {loadingFun} from '@/utils/tools'
+import USearch from '@/bundle_misc/components/uview-ui/components/u-search/u-search.vue'
 
 export default {
   data() {
@@ -112,7 +113,8 @@ export default {
   },
 
   components: {
-  },
+			USearch
+		},
   props: {},
 
   /**

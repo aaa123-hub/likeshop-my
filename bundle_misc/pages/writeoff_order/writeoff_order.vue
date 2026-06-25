@@ -30,7 +30,8 @@
 </template>
 
 <script>
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import UModal from '@/bundle_misc/components/uview-ui/components/u-modal/u-modal.vue'
+import UTabs from '@/bundle_misc/components/uview-ui/components/u-tabs/u-tabs.vue'
 	import {
 		getVerifyLists,
 		verification
@@ -45,8 +46,9 @@ import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 	import wechath5 from '@/utils/wechath5'
 	export default {
 	components: {
-		UModal
-	},
+			UModal,
+			UTabs
+		},
 		data() {
 			return {
 				page: 1,

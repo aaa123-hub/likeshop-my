@@ -70,8 +70,10 @@
 </template>
 
 <script>
+import PriceFormat from '@/bundle_user/components/price-format/price-format.vue'
+
 	import {
-		getOrderDetail
+getOrderDetail
 	} from '@/api/order';
 	export default {
 		data() {
@@ -81,6 +83,7 @@
 		},
 
 		components: {
+			PriceFormat,
 
 		},
 		props: {},

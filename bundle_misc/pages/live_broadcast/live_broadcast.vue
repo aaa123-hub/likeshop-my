@@ -38,6 +38,8 @@
 </template>
 
 <script>
+import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vue'
+
 	import {
 		loadingType
 	} from "@/utils/type";
@@ -48,6 +50,9 @@
 		getLiveRoom
 	} from "@/api/store"
 	export default {
+  components: {
+			UIcon
+		},
 		data() {
 			return {
 				lists: [],

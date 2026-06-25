@@ -83,16 +83,18 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import USticky from '@/components/uview-ui/components/u-sticky/u-sticky.vue'
+import USticky from '@/bundle/components/uview-ui/components/u-sticky/u-sticky.vue'
 import { forgetPwd, sendSms } from "@/api/app.js";
 import { ACCESS_TOKEN } from "@/config/app.js";
 import { SMSType } from "@/utils/type.js";
 import { mapMutations } from "vuex";
+import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
 export default {
 	components: {
-		Navbar,
-		USticky
-	},
+			Navbar,
+			USticky,
+			UCountDown
+		},
   name: "forgetPwd",
   data() {
     return {

@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import UModal from '@/bundle_user/components/uview-ui/components/u-modal/u-modal.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -60,6 +60,7 @@ import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 import { getCollectGoods, collectGoods } from "@/api/user";
 import { CollectType, loadingType } from "@/utils/type";
 import {loadingFun} from "@/utils/tools"
+import PriceFormat from '@/bundle_user/components/price-format/price-format.vue'
 
 export default {
   data() {
@@ -73,7 +74,7 @@ export default {
   },
 
   components: {
-  
+			PriceFormat,
 			UModal
 		},
   props: {},

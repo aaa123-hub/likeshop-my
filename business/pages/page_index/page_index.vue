@@ -35,14 +35,13 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import navbar from '@/components/navbar/navbar.vue'
 import { pageDesignMap } from './page-map'
+import UIcon from '@/business/components/uview-ui/components/u-icon/u-icon.vue'
 
 export default {
     components: {
-        navbar
-    ,
-			Navbar
+			Navbar,
+			UIcon
 		},
     data() {
         return {

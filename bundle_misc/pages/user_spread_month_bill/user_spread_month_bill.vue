@@ -49,6 +49,8 @@
 import { getMonthBill } from "@/api/user";
 import { loadingType } from '@/utils/type';
 import {loadingFun} from "@/utils/tools"
+import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vue'
+import PriceFormat from '@/bundle_misc/components/price-format/price-format.vue'
 export default {
   data() {
     return {
@@ -59,7 +61,9 @@ export default {
   },
 
   components: {
-  },
+			PriceFormat,
+			UIcon
+		},
   props: {},
 
   /**

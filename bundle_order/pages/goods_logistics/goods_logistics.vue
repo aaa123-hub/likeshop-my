@@ -125,6 +125,7 @@
 		orderTraces
 	} from '@/api/order';
 	import {copy} from '@/utils/tools'
+	import LoadingView from '@/bundle_shared_components/components/loading-view/loading-view.vue'
 	export default {
 		data() {
 			return {
@@ -146,7 +147,9 @@
 			}
 		},
 
-		components: {},
+		components: {
+			LoadingView
+		},
 		props: {},
 
 		onLoad: function(options) {

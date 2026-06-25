@@ -207,6 +207,13 @@ import { loadingType } from "@/utils/type";
 
 import { wxpay, alipay } from "@/utils/pay";
 import { loadingFun } from "@/utils/tools";
+import UTag from '@/bundle_order/components/uview-ui/components/u-tag/u-tag.vue'
+import UCountDown from '@/bundle_order/components/uview-ui/components/u-count-down/u-count-down.vue'
+import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
+import OrderGoods from '@/bundle_shared_components/components/order-goods/order-goods.vue'
+import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
+import LoadingView from '@/bundle_shared_components/components/loading-view/loading-view.vue'
+import OrderDialog from '@/bundle_shared_components/components/order-dialog/order-dialog.vue'
 export default {
   data() {
     return {
@@ -221,7 +228,15 @@ export default {
     };
   },
 
-  components: {},
+  components: {
+			PriceFormat,
+			UTag,
+			UCountDown,
+			OrderGoods,
+			LoadingFooter,
+			LoadingView,
+			OrderDialog
+		},
   props: {
     orderType: {
       type: String,

@@ -44,8 +44,8 @@ import { getMyCoupon } from '@/api/user'
 
 export default {
     components: {
-        Navbar
-    },
+			Navbar
+		},
     data() {
         return {
             active: 0,

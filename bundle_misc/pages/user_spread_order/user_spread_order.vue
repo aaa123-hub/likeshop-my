@@ -54,10 +54,8 @@ export default {
   },
 
   components: {
-
-  	SpreadOrder
-
-  },
+			SpreadOrder
+		},
   props: {},
 
   /**

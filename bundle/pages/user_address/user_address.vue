@@ -82,7 +82,7 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import UModal from '@/bundle/components/uview-ui/components/u-modal/u-modal.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -103,11 +103,13 @@ import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 import { getAddressLists, delAddress, setDefaultAddress } from '@/api/user'
 import wechath5 from '@/utils/wechath5'
 import { isWeixinClient } from '@/utils/tools'
+import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
 export default {
 	components: {
-		Navbar,
-		UModal
-	},
+			Navbar,
+			UModal,
+			UIcon
+		},
     data() {
         return {
             addressList: [],

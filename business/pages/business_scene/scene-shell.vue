@@ -221,22 +221,16 @@
                         </view>
                     </view>
 
-                    <view v-if="storeDetailActiveTab === 'detail' && storeDetailHasIntro" class="store-detail-content-card">
+                    <view v-if="storeDetailActiveTab === 'detail'" class="store-detail-content-card">
                         <image class="store-detail-content-card__image" :src="storeDetailContentImage" mode="aspectFill"></image>
                         <view class="store-detail-content-card__fade"></view>
                         <view class="store-detail-pay-btn" @tap="goPage(storeDetailPayUrl)">到店付款</view>
                     </view>
 
-                    <view v-else-if="storeDetailActiveTab === 'detail'" class="store-detail-media-empty">
-                        <image class="store-detail-media-empty__image" :src="storeDetailAlbumEmptyImage" mode="aspectFit"></image>
-                        <view class="store-detail-media-empty__title">暂无店铺介绍</view>
-                        <view class="store-detail-media-empty__desc">商家暂未上传门店介绍</view>
-                    </view>
-
                     <view v-else-if="storeDetailActiveTab === 'group'" class="store-detail-group-list">
                         <view
                             v-for="(item, index) in storeDetailGroupProducts"
-                            :key="item.id || item.goods_id || index"
+                            :key="item.key"
                             class="store-detail-group-card"
                             @tap="goStoreDetailGroupItem(item)"
                         >
@@ -246,8 +240,12 @@
                             </view>
                             <view class="store-detail-group-card__body">
                                 <view class="store-detail-group-card__title line1">{{ item.name }}</view>
-                                <view class="store-detail-group-card__meta">{{ item.meta }}</view>
-                                <view class="store-detail-group-card__rating">
+                                <view v-if="item.tagText || item.meta" class="store-detail-group-card__meta line1">
+                                    <text v-if="item.tagText" class="store-detail-group-card__tag">{{ item.tagText }}</text>
+                                    <text v-if="item.meta">{{ item.meta }}</text>
+                                </view>
+                                <view v-if="item.infoText" class="store-detail-group-card__info line1">{{ item.infoText }}</view>
+                                <view v-if="item.scoreText" class="store-detail-group-card__rating">
                                     <view class="store-detail-group-card__stars">
                                         <image
                                             v-for="starIndex in 5"
@@ -260,8 +258,8 @@
                                     <text class="store-detail-group-card__score">{{ item.scoreText }}</text>
                                 </view>
                                 <view class="store-detail-group-card__price">
-                                    <text class="store-detail-group-card__price-symbol">¥</text>
                                     <text class="store-detail-group-card__price-value">{{ item.priceText }}</text>
+                                    <text v-if="item.marketPriceText" class="store-detail-group-card__market-price">{{ item.marketPriceText }}</text>
                                 </view>
                             </view>
                             <view class="store-detail-group-card__action-wrap" @tap.stop.prevent="goStoreDetailGroupItem(item)">
@@ -419,14 +417,21 @@
             <template v-else-if="scene === 'store-group'">
                 <view class="card">
                     <view class="section-title">团购专区</view>
-                            <view class="group-item" v-for="(item, index) in storeDetailGroupProducts" :key="item.id || item.goods_id || index" @tap="goStoreDetailGroupItem(item)">
+                            <view class="group-item" v-for="item in storeDetailGroupProducts" :key="item.key" @tap="goStoreDetailGroupItem(item)">
                         <view v-if="isEmptyImage(item.image)" class="group-item__image image-placeholder">无</view>
                         <image v-else class="group-item__image" :src="item.image" mode="aspectFill"></image>
                         <view class="group-item__content">
                             <view class="group-item__title line2">{{ item.name }}</view>
-                            <view class="group-item__meta">{{ item.meta }}</view>
+                            <view v-if="item.tagText || item.meta" class="group-item__meta line2">
+                                <text v-if="item.tagText" class="group-item__tag">{{ item.tagText }}</text>
+                                <text v-if="item.meta">{{ item.meta }}</text>
+                            </view>
+                            <view v-if="item.infoText" class="group-item__info line1">{{ item.infoText }}</view>
                             <view class="group-item__foot">
-                                <view class="group-item__price">¥{{ item.priceText }}</view>
+                                <view class="group-item__price-wrap">
+                                    <text class="group-item__price">{{ item.priceText }}</text>
+                                    <text v-if="item.marketPriceText" class="group-item__market-price">{{ item.marketPriceText }}</text>
+                                </view>
                                 <view class="mini-btn" @tap.stop.prevent="goStoreDetailGroupItem(item)">去拼团</view>
                             </view>
                         </view>
@@ -592,7 +597,9 @@
                             </view>
                         </view>
                         <image v-if="introCardInfo.qrImage" class="intro-card-qr" :src="introCardInfo.qrImage" mode="aspectFit"></image>
-                        <view v-else class="intro-card-qr intro-card-qr--code">{{ introCardInfo.code }}</view>
+                        <view v-else class="intro-card-qr intro-card-qr--code">
+                            <tki-qrcode :val="introCardQrValue" :size="210" unit="upx" :showLoading="false" />
+                        </view>
                     </view>
                 </view>
             </template>
@@ -607,15 +614,17 @@
                     <view class="recent-visits-list">
                         <view
                             v-for="(item, index) in recentVisitItems"
-                            :key="index"
+                            :key="item.key || item.shopId || index"
                             class="recent-visits-item"
+                            @tap="openRecentVisitShop(item)"
                         >
-                            <view class="recent-visits-thumb"></view>
+                            <view v-if="isEmptyImage(item.image)" class="recent-visits-thumb image-placeholder">无</view>
+                            <image v-else class="recent-visits-thumb" :src="item.image" mode="aspectFill"></image>
                             <view class="recent-visits-info">
                                 <view class="recent-visits-name">{{ item.name }}</view>
                                 <view class="recent-visits-time">{{ item.time }} 访问过的商家</view>
                             </view>
-                            <view :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']">
+                            <view :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']" @tap.stop="toggleRecentVisitSubscribe(item)">
                                 {{ item.subscribed ? '已订阅' : '+订阅' }}
                             </view>
                         </view>
@@ -1015,16 +1024,16 @@
                     <view class="store-share-shop-card__body">
                         <view class="store-share-shop-card__name line1">{{ storeDetailView.shopName }}</view>
                         <view class="store-share-shop-card__rating">
-                            <image v-for="item in 3" :key="item" class="store-share-shop-card__star" :src="streetStarIcon" mode="aspectFit"></image>
+                            <image v-for="item in 5" :key="item" class="store-share-shop-card__star" :src="shareStarIcon" mode="aspectFit"></image>
                             <text class="store-share-shop-card__score">{{ storeDetailView.shopScore }}</text>
                         </view>
                         <view class="store-share-shop-card__time">
-                            <image class="store-share-shop-card__time-icon" :src="streetTimeIcon" mode="aspectFit"></image>
+                            <image class="store-share-shop-card__time-icon" :src="shareTimeIcon" mode="aspectFit"></image>
                             <text class="line1">{{ storeDetailBusinessHoursText }}</text>
                         </view>
                     </view>
                 </view>
-                <image class="store-share-mark" :src="qrGoodsMarkIcon" mode="aspectFit" @tap="showStoreSharePopup = false"></image>
+                <image class="store-share-mark" :src="shareCloseIcon" mode="aspectFit" @tap="showStoreSharePopup = false"></image>
                 <view class="store-share-panel">
                     <view class="store-share-qrcode">
                         <tki-qrcode :val="qrStoreValue" :size="510" unit="upx" :showLoading="false" />
@@ -1048,21 +1057,22 @@
 <script>
 import TkiQrcode from '@/business/components/tki-qrcode/tki-qrcode.vue'
 import { getShopDetail, getStreetGoods, getStreetIndex } from '@/api/store'
+import { getRecentVisitShops, subscribeShop } from '@/api/app'
 import { getAccountLog, getInviteInfo, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
 import { getDesignAsset, designAssetList, designAssets } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, tabbarList, uploadFile } from '@/utils/tools'
 import Navbar from '@/components/navbar/navbar.vue'
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
-import UIcon from '@/components/uview-ui/components/u-icon/u-icon.vue'
+import UPopup from '@/business/components/uview-ui/components/u-popup/u-popup.vue'
+import UIcon from '@/business/components/uview-ui/components/u-icon/u-icon.vue'
 
 export default {
 	components: {
-		TkiQrcode,
-		Navbar,
-		UPopup,
-		UIcon
-	},
+			TkiQrcode,
+			Navbar,
+			UPopup,
+			UIcon
+		},
     props: {
         scene: {
             type: String,
@@ -1071,6 +1081,10 @@ export default {
         storeDetailDefaultTab: {
             type: String,
             default: ''
+        },
+        pageOptions: {
+            type: Object,
+            default: () => ({})
         }
     },
     data() {
@@ -1081,6 +1095,9 @@ export default {
             feedbackContact: '',
 			feedbackImages: [],
 			showStoreSharePopup: false,
+			shareCloseIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
+			shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
+			shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png',
 			facePayCode: '',
 			feedbackHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/c860e9e880ac44709ba98fb0844390c9/17e52b5f7f7af0e92c09f57bd56f679e.png',
 			feedbackUploadIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/e5d8d8724ebd49afbb6a747ff66f8d09/feedback-upload-icon.png',
@@ -1425,7 +1442,8 @@ export default {
         },
         qrGoodsInfo() {
             const options = this.getCurrentPageOptions()
-            const price = this.formatStoreDetailPrice(options.price || options.minPrice || this.storeDetailGroupProducts[0]?.priceText || 0)
+            const firstGroup = this.storeDetailGroupProducts[0] || {}
+            const price = this.stripStoreDetailPriceSymbol(this.formatStoreDetailPriceText(options.price || options.minPrice || this.getStoreDetailGroupPriceValue(firstGroup) || 0))
             const [main, decimal = '00'] = String(price).split('.')
             return {
                 id: options.goodsId || options.goods_id || options.id || this.storeDetailGroupProducts[0]?.goods_id || '',
@@ -1441,7 +1459,7 @@ export default {
         },
         storeSharePriceText() {
             const firstGroup = this.storeDetailGroupProducts[0] || {}
-            return this.formatStoreDetailPrice(firstGroup.priceText || firstGroup.price || firstGroup.groupPrice || firstGroup.teamPrice || 0).replace(/^¥/, '')
+            return this.stripStoreDetailPriceSymbol(this.formatStoreDetailPriceText(this.getStoreDetailGroupPriceValue(firstGroup)))
         },
         storeSharePriceMain() {
             return String(this.storeSharePriceText || '0').split('.')[0] || '0'
@@ -1462,7 +1480,8 @@ export default {
             return this.storeDetailView.shopLogo || this.storeDetailHeroImage
         },
         storeDetailContentImage() {
-            return resolveImage(this.storeDetailData.detailImage || this.storeDetailData.detail_image || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || this.storeDetailData.albums?.[0]?.cover || this.storeDetailData.albums?.[0]?.url || '', 'shop')
+            const image = this.storeDetailData.detailImage || this.storeDetailData.detail_image || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || this.storeDetailData.albums?.[0]?.cover || this.storeDetailData.albums?.[0]?.url || ''
+            return image ? resolveImage(image, 'shop') : this.storeDetailView.shopLogo
         },
         storeDetailHasIntro() {
             return Boolean((this.storeDetailData.albums || []).length || this.storeDetailData.detailImage || this.storeDetailData.cover || this.storeDetailData.image)
@@ -1520,18 +1539,26 @@ export default {
             const groupProducts = this.storeDetailData.groupBuyProducts || []
             return groupProducts.filter(Boolean).map((item, index) => ({
                 ...item,
+                key: String(item.id || item.goods_id || item.goodsId || item.spuId || item.productId || index),
                 id: item.id || item.goods_id || item.goodsId || item.spuId || item.productId || index,
                 goods_id: item.goods_id || item.goodsId || item.spuId || item.productId || item.id || '',
                 activity_id: item.activity_id || item.activityId || item.groupActivityId || item.groupBuyActivityId || item.team_id || item.teamId || '',
-                name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || '团购套餐',
+                name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || item.title || item.activityName || item.activity_name || '团购套餐',
                 image: resolveImage(item.image || item.goods_image || item.cover || item.mainImageUrl, 'goods'),
-                meta: this.getStoreDetailGroupMeta(item),
-                scoreText: this.formatStreetScore(item.score ?? item.shopScore ?? item.commentScore, '暂无评分'),
-                priceText: this.formatStoreDetailPrice(item.groupPrice ?? item.group_price ?? item.teamPrice ?? item.team_price ?? item.activityPrice ?? item.salePrice ?? item.minPrice ?? item.price)
+                meta: item.meta || item.subTitle || item.subtitle || item.summary || item.desc || item.description || item.goods_desc || item.goodsDesc || item.activityDesc || item.activity_desc || '',
+                tagText: item.tagText || item.tag_text || item.activityTag || item.activity_tag || item.label || item.labelText || '',
+                infoText: this.getStoreDetailGroupInfoText(item),
+                scoreText: this.getStoreDetailGroupScoreText(item),
+                priceText: this.formatStoreDetailPriceText(this.getStoreDetailGroupPriceValue(item)),
+                marketPriceText: this.formatStoreDetailMarketPriceText(item.marketPriceText || item.market_price_text || item.originPriceText || item.origin_price_text || item.originalPriceText || item.original_price_text || item.marketPrice || item.market_price || item.originPrice || item.origin_price || item.originalPrice || item.original_price)
             }))
         },
         storeDetailPayUrl() {
             return this.appendShopId('/business/pages/business_pages/face_pay')
+        },
+        introCardQrValue() {
+            const code = this.introCardInfo.code && this.introCardInfo.code !== '--' ? this.introCardInfo.code : 'DEFAULT_ALLIANCE_CODE'
+            return `/business/pages/business_pages/intro_card?inviteCode=${encodeURIComponent(code)}`
         },
         filteredMerchantList() {
             const keyword = (this.listKeyword || '').trim().toLowerCase()
@@ -1543,6 +1570,17 @@ export default {
         }
     },
     watch: {
+        pageOptions: {
+            deep: true,
+            handler() {
+                if (this.scene === 'street-goods') {
+                    this.loadStreetGoods()
+                }
+                if (this.scene === 'store-detail' || this.scene === 'store-group' || this.scene === 'store-qr' || this.scene === 'goods-qr') {
+                    this.loadStoreDetail()
+                }
+            }
+        },
         scene: {
             immediate: true,
             handler(value) {
@@ -1560,6 +1598,9 @@ export default {
                 }
                 if (value === 'intro-card') {
                     this.loadIntroCard()
+                }
+                if (value === 'recent-visits') {
+                    this.loadRecentVisitShops()
                 }
             }
         }
@@ -1677,8 +1718,37 @@ export default {
                 userNo: data.userNo || data.user_no || data.sn || data.userId || data.user_id || '--',
                 code: data.code || data.invite_code || data.allianceCode || '--',
                 avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar'),
-                qrImage: resolveImage(data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode || '')
+                qrImage: data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode ? resolveImage(data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode) : ''
             }
+        },
+        async loadRecentVisitShops() {
+            const res = await getRecentVisitShops({ pageNo: 1, pageSize: 20 })
+            if (res.code == 1 && Array.isArray(res.data)) {
+                this.recentVisitItems = res.data.length ? res.data : this.recentVisitItems
+            }
+        },
+        openRecentVisitShop(item = {}) {
+            const shopId = item.shopId || item.shop_id || item.id || ''
+            if (!shopId) return
+            this.goPage(`/business/pages/business_pages/store_detail?shopId=${shopId}`)
+        },
+        toggleRecentVisitSubscribe(item = {}) {
+            const shopId = item.shopId || item.shop_id || item.id || ''
+            if (!shopId) {
+                uni.showToast({ title: '暂无门店ID', icon: 'none' })
+                return
+            }
+            const nextSubscribed = !item.subscribed
+            subscribeShop({ shopId, subscribed: nextSubscribed }).then(res => {
+                if (res.code != 1) {
+                    uni.showToast({ title: res.msg || '操作失败', icon: 'none' })
+                    return
+                }
+                item.subscribed = nextSubscribed
+                uni.showToast({ title: nextSubscribed ? '订阅成功' : '已取消订阅', icon: 'none' })
+            }).catch(() => {
+                uni.showToast({ title: '操作失败', icon: 'none' })
+            })
         },
         copyIntroCardText(text) {
             copy(text)
@@ -1737,6 +1807,7 @@ export default {
             return Math.abs(amount).toFixed(2)
         },
         getCurrentPageOptions() {
+            if (this.pageOptions && Object.keys(this.pageOptions).length) return this.pageOptions
             const pages = getCurrentPages()
             const currentPage = pages[pages.length - 1] || {}
             return currentPage.options || currentPage.$page?.options || {}
@@ -1775,12 +1846,14 @@ export default {
         },
         async loadStoreDetail() {
             const options = this.getCurrentPageOptions()
-            const shopId = options.shopId || options.shop_id || options.merchantShopId || (this.scene === 'store-detail' ? options.id : '') || ''
+            const shopId = options.shopId || options.shop_id || options.merchantShopId || options.merchant_shop_id || options.id || ''
             this.syncStoreDetailActiveTab()
             if (!shopId) {
+                if (!Object.keys(options).length) return
                 this.resetStoreDetailData('')
                 this.storeDetailLoadedShopId = ''
                 this.storeDetailApiLoaded = true
+                uni.showToast({ title: '缺少门店ID，无法加载详情', icon: 'none' })
                 return
             }
             if (this.storeDetailLoadedShopId === String(shopId)) return
@@ -1822,11 +1895,74 @@ export default {
             }
             return '团购商品'
         },
+        getStoreDetailGroupInfoText(item = {}) {
+            const people = item.people || item.peopleNum || item.people_num || item.groupNum || item.group_num
+            const joined = item.joined || item.joinedCount || item.join_num || item.joinNum
+            const sales = item.sales_sum || item.salesCount || item.sales_count
+            const stock = item.stock || item.stockQty || item.stock_quantity
+            return [
+                people ? `${people}人团` : '',
+                joined !== '' && joined !== null && joined !== undefined ? `已拼${joined}件` : '',
+                sales !== '' && sales !== null && sales !== undefined ? `销量${sales}` : '',
+                stock !== '' && stock !== null && stock !== undefined ? `库存${stock}` : ''
+            ].filter(Boolean).join(' · ')
+        },
+        getStoreDetailGroupScoreText(item = {}) {
+            const score = item.score ?? item.shopScore ?? item.commentScore ?? item.rating
+            return score === '' || score === null || score === undefined ? '' : this.formatStreetScore(score, '')
+        },
         formatStoreDetailPrice(value) {
             if (value === '' || value === null || value === undefined) return '0.00'
             const price = Number(value)
             if (Number.isNaN(price)) return String(value)
             return Number.isInteger(price) ? String(price) : price.toFixed(2)
+        },
+        formatStoreDetailPriceText(value) {
+            if (value === '' || value === null || value === undefined) return '¥0.00'
+            const text = String(value).trim()
+            if (/^[¥￥]/.test(text)) return text
+            return `¥${this.formatStoreDetailPrice(value)}`
+        },
+        stripStoreDetailPriceSymbol(value) {
+            return String(value || '0.00').replace(/^[¥￥]\s*/, '')
+        },
+        formatStoreDetailMarketPriceText(value) {
+            if (value === '' || value === null || value === undefined) return ''
+            return this.formatStoreDetailPriceText(value)
+        },
+        getStoreDetailGroupPriceValue(item = {}) {
+            const values = [
+                item.priceText,
+                item.price_text,
+                item.groupPriceText,
+                item.group_price_text,
+                item.groupMinPriceText,
+                item.group_min_price_text,
+                item.teamPriceText,
+                item.team_price_text,
+                item.teamMinPriceText,
+                item.team_min_price_text,
+                item.activityPriceText,
+                item.activity_price_text,
+                item.salePriceText,
+                item.sale_price_text,
+                item.groupPrice,
+                item.group_price,
+                item.groupMinPrice,
+                item.group_min_price,
+                item.teamPrice,
+                item.team_price,
+                item.teamMinPrice,
+                item.team_min_price,
+                item.activityPrice,
+                item.activity_price,
+                item.salePrice,
+                item.sale_price,
+                item.minPrice,
+                item.min_price,
+                item.price
+            ]
+            return values.find(value => value !== '' && value !== null && value !== undefined)
         },
         goStoreDetailGroupItem(item = {}) {
             if (!item) {
@@ -1840,7 +1976,7 @@ export default {
             }
             const params = [`id=${goodsId}`]
             if (item.activity_id) params.push(`activityId=${item.activity_id}`)
-            if (item.priceText) params.push(`price=${item.priceText}`)
+            if (item.price !== '' && item.price !== null && item.price !== undefined) params.push(`price=${item.price}`)
             uni.navigateTo({ url: `/bundle/pages/goods_details/goods_details?${params.join('&')}` })
         },
         previewStoreDetailAlbum(index = 0) {
@@ -3723,6 +3859,12 @@ export default {
     line-height: 36rpx;
 }
 
+.group-item__meta {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+}
+
 .group-item__foot,
 .pending-card__foot,
 .wallet-card__row,
@@ -3740,6 +3882,12 @@ export default {
     font-size: 28rpx;
     color: #1f7af4;
     font-weight: 600;
+}
+
+.group-item__price-wrap {
+    display: flex;
+    align-items: flex-end;
+    min-width: 0;
 }
 
 .street-page {
@@ -4082,22 +4230,26 @@ export default {
 
 .store-share-popup {
     position: relative;
-    width: 640rpx;
-    padding: 0 0 92rpx;
+    width: 750rpx;
+    height: 1120rpx;
+    padding-top: 110rpx;
+    background: linear-gradient(180deg, #0d6ff2 0%, #36a7ff 42%, #eef7ff 100%);
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .store-share-shop-card {
     position: relative;
     display: flex;
-    width: 560rpx;
-    min-height: 188rpx;
-    margin: 0 auto 22rpx;
+    width: 540rpx;
+    min-height: 210rpx;
+    margin: 0 auto;
     padding: 24rpx;
     background: url('https://shengyuan.store/api/miniapp/files/miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png') no-repeat center;
     background-size: 100% 100%;
     box-sizing: border-box;
-    border-radius: 22rpx;
+    border-radius: 28rpx;
+    box-shadow: 0 20rpx 44rpx rgba(0, 84, 184, 0.24);
     overflow: hidden;
 }
 
@@ -4136,10 +4288,6 @@ export default {
     margin-right: 3rpx;
 }
 
-.store-share-shop-card__star:nth-child(3) {
-    width: 24rpx;
-}
-
 .store-share-shop-card__score {
     margin: 3rpx 0 0 6rpx;
     color: #ffffff;
@@ -4168,18 +4316,26 @@ export default {
 .store-share-mark {
     position: absolute;
     left: 50%;
-    bottom: 0;
-    width: 58rpx;
-    height: 58rpx;
+    top: 400rpx;
+    width: 48rpx;
+    height: 48rpx;
+    color: #ffffff;
+    font-size: 46rpx;
+    line-height: 44rpx;
+    text-align: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.28);
     transform: translateX(-50%);
     z-index: 3;
 }
 
 .store-share-panel {
-    position: relative;
-    width: 600rpx;
-    min-height: 760rpx;
-    margin: 0 auto;
+    position: absolute;
+    left: 66rpx;
+    top: 310rpx;
+    width: 620rpx;
+    min-height: 838rpx;
+    margin: 0;
     padding: 30rpx 28rpx 34rpx;
     background: url('https://shengyuan.store/api/miniapp/files/miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png') no-repeat center;
     background-size: 100% 100%;
@@ -4190,8 +4346,8 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 544rpx;
-    height: 500rpx;
+    width: 562rpx;
+    height: 510rpx;
     margin: 0 auto;
     background: #d5d5d5;
     border-radius: 23rpx;
@@ -4651,11 +4807,36 @@ export default {
 }
 
 .store-detail-group-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
     margin-top: 21rpx;
     color: #999999;
     font-size: 24rpx;
     line-height: 24rpx;
     white-space: nowrap;
+}
+
+.store-detail-group-card__tag,
+.group-item__tag {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    height: 32rpx;
+    padding: 0 10rpx;
+    border-radius: 16rpx;
+    background: rgba(245, 34, 34, 0.08);
+    color: #f52222;
+    font-size: 20rpx;
+    line-height: 32rpx;
+}
+
+.store-detail-group-card__info,
+.group-item__info {
+    margin-top: 12rpx;
+    color: #666666;
+    font-size: 22rpx;
+    line-height: 30rpx;
 }
 
 .store-detail-group-card__rating {
@@ -4691,17 +4872,20 @@ export default {
     line-height: 1;
 }
 
-.store-detail-group-card__price-symbol {
-    font-size: 24rpx;
-    font-weight: 500;
-    line-height: 24rpx;
-}
-
 .store-detail-group-card__price-value {
-    margin-left: 4rpx;
     font-size: 35rpx;
     font-weight: 500;
     line-height: 35rpx;
+}
+
+.store-detail-group-card__market-price,
+.group-item__market-price {
+    margin-left: 12rpx;
+    color: #999999;
+    font-size: 22rpx;
+    font-weight: 400;
+    line-height: 28rpx;
+    text-decoration: line-through;
 }
 
 .store-detail-group-card__action {

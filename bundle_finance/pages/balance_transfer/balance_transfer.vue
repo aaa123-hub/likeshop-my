@@ -77,7 +77,7 @@
 </template>
 
 <script>
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import UModal from '@/bundle_finance/components/uview-ui/components/u-modal/u-modal.vue'
 import SetPayPwd from '@/bundle_finance/components/set-pay-pwd/set-pay-pwd.vue'
 import {
     hasPayPassword,
@@ -90,9 +90,8 @@ import {
 import { trottle } from '@/utils/tools'
 export default {
 	components: {
-		SetPayPwd
-	,
-			UModal
+			UModal,
+			SetPayPwd
 		},
     data() {
         return {

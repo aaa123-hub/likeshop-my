@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
+import USelect from '@/bundle_misc/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -71,6 +71,7 @@ import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 import { getMonthOrderDetail } from "@/api/user";
 import { loadingType } from '@/utils/type';
+import PriceFormat from '@/bundle_misc/components/price-format/price-format.vue'
 const months = [];
 
 for(let i = 1; i <= 12; i ++) {
@@ -100,7 +101,7 @@ export default {
   },
 
   components: {
-  
+			PriceFormat,
 			USelect
 		},
   props: {},

@@ -25,10 +25,10 @@
             <view class="order-switch__title">我的订单</view>
         </view>
         <view class="order-type-switch">
-            <view :class="['order-switch__item', activeTop === 0 ? 'is-active' : '']" @tap="activeTop = 0">
+            <view :class="['order-switch__item', activeTop === 0 ? 'is-active' : '']" @tap="changeTopType(0)">
                 全部订单
             </view>
-            <view :class="['order-switch__item', activeTop === 1 ? 'is-active' : '']" @tap="activeTop = 1">
+            <view :class="['order-switch__item', activeTop === 1 ? 'is-active' : '']" @tap="changeTopType(1)">
                 待领取积分
             </view>
         </view>
@@ -63,6 +63,7 @@
 
 import OrderList from '@/bundle_order/components/order-list/order-list.vue'
 import { orderType } from '@/utils/type';
+import UIcon from '@/bundle_order/components/uview-ui/components/u-icon/u-icon.vue'
 
 export default {
   data() {
@@ -94,12 +95,15 @@ export default {
   },
 
   components: {
-
-  	OrderList
-
-  },
+			OrderList,
+			UIcon
+		},
   props: {},
   onLoad: function (options) {
+    if (options && options.points == 1) {
+      this.changeTopType(1)
+      return
+    }
     const{order} = this
     let type = options.type || orderType.ALL;
 	let index = order.findIndex(item => item.type == type)
@@ -124,6 +128,17 @@ export default {
 			this.active = index
 			this.order[index].isShow = true
 		}
+    },
+    changeTopType(type) {
+      this.activeTop = type
+      const targetType = type === 1 ? orderType.FINISH : orderType.ALL
+      const index = this.order.findIndex(item => item.type == targetType)
+      this.changeShow(index)
+      this.$nextTick(() => {
+        const current = this.$refs['order' + targetType]
+        const component = Array.isArray(current) ? current[0] : current
+        if (component && component.reflesh) component.reflesh()
+      })
     },
     goBack() {
       const pages = getCurrentPages();

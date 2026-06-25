@@ -13,8 +13,8 @@
 import {bargainType} from "@/utils/type"
     export default {
 	components: {
-		BargainList
-	},
+			BargainList
+		},
         data() {
             return {
                 active: 0,

@@ -67,16 +67,20 @@
                 </view>
             </view>
 
-            <view class="section-title" v-if="recentVisitList.length">最近访问</view>
-            <scroll-view v-if="recentVisitList.length" class="recent-scroll" scroll-x>
-                <view class="recent-list">
-                    <view v-for="(item, index) in recentVisitList" :key="index" class="recent-card" @tap="handleVisitTap(item)">
-                        <view v-if="isEmptyImage(item.cover)" class="recent-card__image image-placeholder">无</view>
-                        <image v-else class="recent-card__image" :src="displayImage(item.cover)" mode="aspectFill"></image>
-                        <view class="recent-card__title line1">{{ item.title || item.name || '最近访问' }}</view>
+            <view class="section-head" v-if="recentVisitList.length">
+                <view class="section-title section-title--inline">最近访问</view>
+                <view class="section-more" @tap="goPage('/business/pages/business_pages/recent_visits')">全部</view>
+            </view>
+            <view v-if="recentVisitList.length" class="recent-shop-list">
+                <view v-for="(item, index) in recentVisitList" :key="item.key || item.shopId || index" class="recent-shop-card" @tap="handleVisitTap(item)">
+                    <view v-if="isEmptyImage(item.image || item.cover)" class="recent-shop-card__image image-placeholder">无</view>
+                    <image v-else class="recent-shop-card__image" :src="displayImage(item.image || item.cover)" mode="aspectFill"></image>
+                    <view class="recent-shop-card__body">
+                        <view class="recent-shop-card__name line1">{{ item.name || item.shopName || '默认门店' }}</view>
+                        <view class="recent-shop-card__time line1">{{ item.time || '刚刚' }} 访问过的商家</view>
                     </view>
                 </view>
-            </scroll-view>
+            </view>
 
             <view class="section-title" v-if="hotActivityList.length">热门活动</view>
             <view v-if="hotActivityList.length" class="activity-list">
@@ -148,6 +152,7 @@
 <script>
 import { mapActions, mapGetters } from 'vuex'
 import { getHome } from '@/api/store'
+import { getRecentVisitShops } from '@/api/app'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
@@ -190,7 +195,7 @@ export default {
             return this.quickEntryList.slice(0, 5)
         },
         recentVisitList() {
-            return this.homeData.recentVisits || []
+            return this.homeData.recentVisitShops || this.homeData.recentVisits || []
         },
         hotActivityList() {
             return this.homeData.hotActivities || []
@@ -231,6 +236,18 @@ export default {
                 if (res.code == 1) {
                     this.homeData = res.data || {}
                     this.homeLoaded = true
+                }
+                this.loadRecentVisitShops()
+            } catch (error) {}
+        },
+        async loadRecentVisitShops() {
+            try {
+                const res = await getRecentVisitShops({ pageNo: 1, pageSize: 3 })
+                if (res.code == 1 && Array.isArray(res.data) && res.data.length) {
+                    this.homeData = {
+                        ...this.homeData,
+                        recentVisitShops: res.data.slice(0, 3)
+                    }
                 }
             } catch (error) {}
         },
@@ -338,8 +355,9 @@ export default {
             }
         },
         handleVisitTap(item) {
-            if ((item.visitType || '').toUpperCase() === 'SHOP' && item.targetId) {
-                this.goPage(`/business/pages/business_pages/store_detail?shopId=${item.targetId}`)
+            const shopId = item.shopId || item.shop_id || item.targetId || item.target_id || ''
+            if (shopId && ((item.visitType || item.targetType || '').toUpperCase() === 'SHOP' || item.shopId || item.shop_id)) {
+                this.goPage(`/business/pages/business_pages/store_detail?shopId=${shopId}`)
                 return
             }
             if (item.targetId) {
@@ -354,7 +372,13 @@ export default {
             this.openBusinessPage(businessRoutes.pages.activityCenter)
         },
         handleShopTap(item) {
-            this.goPage(`/business/pages/business_pages/store_detail?shopId=${item.shopId || item.id || ''}`)
+            const shopId = item.shopId || item.shop_id || item.merchantShopId || item.merchant_shop_id || item.id || ''
+            if (!shopId) {
+                uni.showToast({ title: '门店信息暂不可打开', icon: 'none' })
+                return
+            }
+            console.log(shopId);
+            this.goPage(`/business/pages/business_pages/store_detail?shopId=${shopId}`)
         },
         openShortcut(item) {
             if (item.type === 'switchTab') {
@@ -638,36 +662,68 @@ export default {
     line-height: 48rpx;
 }
 
-.recent-scroll {
-    white-space: nowrap;
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 34rpx 0 20rpx;
 }
 
-.recent-list {
-    display: inline-flex;
-    gap: 18rpx;
+.section-title--inline {
+    margin: 0;
 }
 
-.recent-card {
-    width: 148rpx;
-    flex-shrink: 0;
+.section-more {
+    color: #1688ff;
+    font-size: 26rpx;
+    line-height: 36rpx;
 }
 
-.recent-card__image {
+.recent-shop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
+}
+
+.recent-shop-card {
+    display: flex;
+    align-items: center;
+    min-height: 128rpx;
+    padding: 18rpx;
+    border-radius: 18rpx;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.recent-shop-card__image {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 148rpx;
-    height: 148rpx;
-    border-radius: 18rpx;
-    background: #ffffff;
+    width: 96rpx;
+    height: 96rpx;
+    border-radius: 12rpx;
+    background: #eef1f5;
 }
 
-.recent-card__title {
-    margin-top: 12rpx;
+.recent-shop-card__body {
+    min-width: 0;
+    flex: 1;
+    margin-left: 20rpx;
+}
+
+.recent-shop-card__name {
     color: #222222;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 38rpx;
+}
+
+.recent-shop-card__time {
+    margin-top: 14rpx;
+    color: #999999;
     font-size: 24rpx;
     line-height: 32rpx;
-    text-align: center;
 }
 
 .home-empty {

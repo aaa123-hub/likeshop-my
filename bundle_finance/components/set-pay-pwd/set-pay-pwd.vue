@@ -74,13 +74,15 @@
 </template>
 
 <script>
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import UModal from '@/bundle_finance/components/uview-ui/components/u-modal/u-modal.vue'
 import { hasPayPassword, setPassword } from '@/api/user'
 import { mapGetters } from 'vuex'
+import UIcon from '@/bundle_finance/components/uview-ui/components/u-icon/u-icon.vue'
 export default {
 	components: {
-		UModal
-	},
+			UModal,
+			UIcon
+		},
     name: 'set-pay-pwd',
     data() {
         return {

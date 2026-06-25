@@ -70,7 +70,14 @@
 
 
 <script>
+import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 import Navbar from '@/components/navbar/navbar.vue'
+import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
+import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
+import URadioGroup from '@/bundle/components/uview-ui/components/u-radio-group/u-radio-group.vue'
+import URadio from '@/bundle/components/uview-ui/components/u-radio/u-radio.vue'
+import ULoading from '@/bundle/components/uview-ui/components/u-loading/u-loading.vue'
+import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skeleton.vue'
 	/**
 	 * @description 支付页面
 	 * @query {String} from 订单来源: order-商品订单; recharge-充值订单;
@@ -81,14 +88,21 @@ import Navbar from '@/components/navbar/navbar.vue'
 		getPayway
 	} from '@/api/app'
 	import {
-		wxpay,
+wxpay,
 		alipay
 	} from '@/utils/pay'
 
 	export default {
 	components: {
-		Navbar
-	},
+			PriceFormat,
+			Navbar,
+			UIcon,
+			UCountDown,
+			URadioGroup,
+			URadio,
+			ULoading,
+			USkeleton
+		},
 		name: 'Payment',
 
 		data() {

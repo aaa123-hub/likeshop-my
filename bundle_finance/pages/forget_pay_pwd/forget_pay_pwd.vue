@@ -59,7 +59,11 @@
 <script>
 import { retrievePayPassword, send } from '@/api/user'
 import { mapGetters } from 'vuex'
+import UCountDown from '@/bundle_finance/components/uview-ui/components/u-count-down/u-count-down.vue'
 export default {
+  components: {
+			UCountDown
+		},
     data() {
         return {
             time: 59,

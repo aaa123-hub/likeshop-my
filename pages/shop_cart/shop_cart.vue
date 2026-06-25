@@ -42,41 +42,34 @@
                   <view class="cart-card__spec line1" @tap="goGoodsDetail(item.goods_id)">{{ item.spec_value_str || '默认规格' }}</view>
                   <view class="cart-card__bottom">
                     <view class="cart-card__price">
-                      <price-format
-                        :price="item.price"
-                        :firstSize="38"
-                        :secondSize="26"
-                        :subscriptSize="26"
-                        :weight="500"
-                        color="#FF2C3C"
-                      ></price-format>
+                      <text class="cart-card__price-symbol">¥</text>
+                      <text class="cart-card__price-main">{{ formatPrice(item.price)[0] }}</text>
+                      <text class="cart-card__price-decimal">.{{ formatPrice(item.price)[1] }}</text>
                     </view>
-                    <view class="cart-card__num u-numberbox" @tap.stop="noop">
-                      <view
-                        class="cart-stepper__btn u-icon-minus"
+                    <view class="cart-card__num u-numberbox">
+                      <button
+                        class="cart-stepper__btn cart-stepper__btn--minus"
                         :class="{ 'is-disabled': !isCartItemAvailable(item) || item.goods_num <= 1 }"
-                        @tap.stop="changeItemCount(item, -1)"
-                        @click.stop="changeItemCount(item, -1)"
+                        @tap.stop="changeItemCount(index, -1)"
                       >
-                        <u-icon name="minus" size="24" color="inherit"></u-icon>
-                      </view>
+                        <view class="cart-stepper__icon cart-stepper__icon--minus"></view>
+                      </button>
                       <input
                         class="cart-stepper__input u-number-input"
                         type="digit"
                         :disabled="!isCartItemAvailable(item)"
                         :data-cart-id="item.cart_id"
-                        v-model="item.goods_num"
-                        @input="onCountInput($event, item)"
-                        @blur="onCountBlur($event, item)"
+                        :value="item.goods_num"
+                        @input="onCountInput($event, index)"
+                        @blur="onCountBlur($event, index)"
                       />
-                      <view
-                        class="cart-stepper__btn u-icon-plus"
+                      <button
+                        class="cart-stepper__btn cart-stepper__btn--plus"
                         :class="{ 'is-disabled': !isCartItemAvailable(item) || item.goods_num >= getItemStock(item) }"
-                        @tap.stop="changeItemCount(item, 1)"
-                        @click.stop="changeItemCount(item, 1)"
+                        @tap.stop="changeItemCount(index, 1)"
                       >
-                        <u-icon name="plus" size="24" color="inherit"></u-icon>
-                      </view>
+                        <view class="cart-stepper__icon cart-stepper__icon--plus"></view>
+                      </button>
                     </view>
                   </view>
                 </view>
@@ -146,16 +139,14 @@ import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 
 export default {
   components: {
-    UModal
-  },
+			UModal
+		},
   data() {
     return {
       designAssets,
       cartType: 0,
       cartLists: [],
       delPopup: false,
-      totalPrice: 0,
-      totalPriceText: '0.00',
       cartId: "",
       isManageMode: false,
       countSyncTimers: {},
@@ -184,6 +175,15 @@ export default {
         if (item.selected != 1 || item.cart_status != 0) return sum;
         return sum + Number(item.goods_num || item.quantity || item.num || 0);
       }, 0);
+    },
+    totalPrice() {
+      return this.cartLists.reduce((sum, item) => {
+        if (item.selected != 1 || item.cart_status != 0) return sum;
+        return sum + this.getCartItemPrice(item) * this.getCartItemCount(item);
+      }, 0);
+    },
+    totalPriceText() {
+      return this.totalPrice.toFixed(2);
     },
   },
   onLoad() {
@@ -233,17 +233,10 @@ export default {
       try {
         const res = await getCartList();
         if (res.code == 1) {
-          const { lists = [], total_amount = 0 } = res.data || {};
+          const { lists = [] } = res.data || {};
           this.cartLists = lists.map((item) => this.normalizeCartItem(item));
           this.cartType = lists.length ? 1 : 2;
-          this.totalPrice = total_amount;
-          this.recalculateCartTotal();
-          this.getCartNum(
-            this.cartLists.reduce((sum, item) => {
-              const count = Number(item.goods_num || item.quantity || item.num || 0);
-              return sum + count;
-            }, 0)
-          );
+          this.syncCartBadgeCount();
         }
       } finally {
         this.cartLoading = false;
@@ -260,7 +253,6 @@ export default {
     toggleManageMode() {
       this.isManageMode = !this.isManageMode;
     },
-    noop() {},
     goGoodsDetail(goodsId) {
       if (!goodsId) return;
       uni.navigateTo({
@@ -284,7 +276,7 @@ export default {
         if (!ids.includes(item.cart_id)) return item;
         return Object.assign({}, item, { selected: selectedValue });
       });
-      this.recalculateCartTotal();
+      this.syncCartBadgeCount();
       try {
         await Promise.all(ids.map((id) => changeCartSelect({
           cart_id: id,
@@ -305,6 +297,9 @@ export default {
     getItemStock(item = {}) {
       return Number(item.item_stock || item.stock || 999999);
     },
+    formatPrice(value) {
+      return Number(value || 0).toFixed(2).split('.');
+    },
     normalizeCartStatus(value) {
       if (value === undefined || value === null || value === '') return 0;
       if (value === 0 || value === '0') return 0;
@@ -316,38 +311,50 @@ export default {
       return this.normalizeCartStatus(item.cart_status !== undefined ? item.cart_status : item.cartStatus) == 0;
     },
     getCartItemPrice(item = {}) {
-      const price = Number(item.price ?? item.salePrice ?? item.unitPrice ?? item.sale_price ?? item.pay_price ?? 0);
+      const price = Number(
+        item.price ??
+        item.goods_price ??
+        item.sell_price ??
+        item.member_price ??
+        item.salePrice ??
+        item.unitPrice ??
+        item.sale_price ??
+        item.pay_price ??
+        0
+      );
       return Number.isNaN(price) ? 0 : price;
     },
     getCartItemCount(item = {}) {
       const count = Number(item.goods_num || item.quantity || item.num || 0);
       return Number.isNaN(count) ? 0 : count;
     },
-    recalculateCartTotal() {
-      const value = this.cartLists.reduce((sum, item) => {
-        if (item.selected != 1 || item.cart_status != 0) return sum;
-        return sum + this.getCartItemPrice(item) * this.getCartItemCount(item);
-      }, 0);
-      this.totalPrice = value;
-      this.totalPriceText = value.toFixed(2);
+    syncCartBadgeCount() {
+      this.getCartNum(this.localCartCount);
+      setTabbar();
     },
     normalizeCartItem(item = {}) {
       const count = Number(item.goods_num || item.quantity || item.num || 1);
+      const cartId = item.cart_id || item.cartItemId || item.id;
       return Object.assign({}, item, {
+        id: item.id || cartId,
+        cart_id: cartId,
+        cartItemId: item.cartItemId || cartId,
         goods_num: count,
         quantity: count,
+        num: count,
         selected: item.selected !== undefined ? item.selected : (item.checked !== undefined ? item.checked : 1),
         cart_status: this.normalizeCartStatus(item.cart_status !== undefined ? item.cart_status : (item.cartStatus !== undefined ? item.cartStatus : item.status))
       });
     },
-    changeItemCount(item, step) {
+    changeItemCount(index, step) {
+      const item = this.cartLists[index];
       if (!item || !this.isCartItemAvailable(item)) return;
       const currentCount = Number(item.goods_num || item.quantity || 1);
       const stock = Number(item.item_stock || item.stock || 0);
       let nextValue = currentCount + step;
       if (nextValue < 1) return;
       if (stock && nextValue > stock) return;
-      this.updateCartItemCount(item.cart_id, nextValue, true);
+      this.updateCartItemCount(index, nextValue, true);
     },
     normalizeCartCount(value, item = {}) {
       let nextValue = parseInt(value, 10);
@@ -356,36 +363,28 @@ export default {
       if (stock && nextValue > stock) nextValue = stock;
       return nextValue;
     },
-    onCountInput(event, item) {
+    onCountInput(event, index) {
+      const item = this.cartLists[index];
       if (!item || !this.isCartItemAvailable(item)) return;
       const rawValue = event && event.detail ? event.detail.value : undefined;
       const nextValue = rawValue === '' ? '' : this.normalizeCartCount(rawValue, item);
-      this.setCartItemCount(item.cart_id, nextValue);
-      this.cartLists = this.cartLists.slice();
-      this.getCartNum(this.localCartCount);
-      this.recalculateCartTotal();
+      this.setCartItemCount(index, nextValue);
+      this.syncCartBadgeCount();
     },
-    onCountBlur(event, item) {
+    onCountBlur(event, index) {
+      const item = this.cartLists[index];
       if (!item || !this.isCartItemAvailable(item)) return;
       const nextValue = this.normalizeCartCount(event && event.detail ? event.detail.value : undefined, item);
-      this.updateCartItemCount(item.cart_id, nextValue, true);
+      this.updateCartItemCount(index, nextValue, true);
     },
-    onNumberBoxChange(event, item) {
-      if (!item || !this.isCartItemAvailable(item)) return;
-      const value = event && event.value !== undefined ? event.value : (event && event.detail ? event.detail.value : event);
-      this.updateCartItemCount(item.cart_id, value, true);
-    },
-    updateCartItemCount(cartId, nextValue, shouldSync = false) {
-      const current = this.cartLists.find((item) => String(item.cart_id) === String(cartId)) || {};
+    updateCartItemCount(index, nextValue, shouldSync = false) {
+      const current = this.cartLists[index] || {};
       nextValue = this.normalizeCartCount(nextValue, current);
-      const index = this.cartLists.findIndex((item) => String(item.cart_id) === String(cartId));
-      if (index === -1) return;
-      this.setCartItemCount(cartId, nextValue);
-      this.cartLists = this.cartLists.slice();
-      this.getCartNum(this.localCartCount);
-      this.recalculateCartTotal();
+      if (index < 0 || !current.cart_id) return;
+      this.setCartItemCount(index, nextValue);
+      this.syncCartBadgeCount();
       if (!shouldSync) return;
-      this.syncCartItemCount(cartId, nextValue);
+      this.syncCartItemCount(current.cart_id, nextValue);
     },
     syncCartItemCount(cartId, nextValue) {
       if (this.countSyncTimers[cartId]) clearTimeout(this.countSyncTimers[cartId]);
@@ -417,15 +416,15 @@ export default {
       delete timers[cartId];
       this.countSyncTimers = timers;
     },
-    setCartItemCount(cartId, nextValue) {
-      const index = this.cartLists.findIndex((item) => String(item.cart_id) === String(cartId));
+    setCartItemCount(index, nextValue) {
       if (index === -1) return;
+      const count = nextValue === '' ? '' : Number(nextValue || 0);
       const nextItem = Object.assign({}, this.cartLists[index], {
-          goods_num: nextValue,
-          quantity: nextValue,
-          num: nextValue
+          goods_num: count,
+          quantity: count,
+          num: count
       });
-      this.$set(this.cartLists, index, nextItem);
+      this.cartLists.splice(index, 1, nextItem);
     },
     goToConfirm() {
       const goods = [];
@@ -619,7 +618,18 @@ export default {
 .cart-card__price {
   flex: 1;
   min-width: 0;
+  color: #ff2c3c;
+  font-weight: 500;
   white-space: nowrap;
+}
+
+.cart-card__price-symbol,
+.cart-card__price-decimal {
+  font-size: 26rpx;
+}
+
+.cart-card__price-main {
+  font-size: 38rpx;
 }
 
 .cart-card__num {
@@ -668,14 +678,48 @@ export default {
 }
 
 .cart-stepper__btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 60rpx;
   height: 50rpx;
+  margin: 0;
+  padding: 0;
   color: #323233;
+  font-size: 0;
+  line-height: 50rpx;
   background: #f2f3f5;
+  border: 0;
   box-sizing: border-box;
+}
+
+.cart-stepper__btn::after {
+  border: 0;
+}
+
+.cart-stepper__icon {
+  position: relative;
+  width: 22rpx;
+  height: 22rpx;
+  color: inherit;
+}
+
+.cart-stepper__icon::before,
+.cart-stepper__icon--plus::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.cart-stepper__icon--plus::after {
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
 .cart-stepper__btn.is-disabled {
@@ -683,11 +727,11 @@ export default {
   background: #f7f8fa;
 }
 
-.cart-stepper__btn.u-icon-minus {
+.cart-stepper__btn--minus {
   border-radius: 8rpx 0 0 8rpx;
 }
 
-.cart-stepper__btn.u-icon-plus {
+.cart-stepper__btn--plus {
   border-radius: 0 8rpx 8rpx 0;
 }
 

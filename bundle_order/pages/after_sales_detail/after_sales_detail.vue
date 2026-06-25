@@ -105,7 +105,9 @@
 </template>
 
 <script>
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
+import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
+import UModal from '@/bundle_order/components/uview-ui/components/u-modal/u-modal.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
 	// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
@@ -127,7 +129,7 @@ import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 		cancelApply
 	} from "@/api/user";
 	import {
-		trottle,
+trottle,
 		copy
 	} from "@/utils/tools.js";
 
@@ -143,7 +145,9 @@ import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
 		},
 
 		components: {
-			UModal
+			PriceFormat,
+			UModal,
+			CustomImage
 		},
 		props: {},
 

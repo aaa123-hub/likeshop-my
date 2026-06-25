@@ -50,6 +50,7 @@
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
 import { getCoupon } from '@/api/user';
+import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
 
 export default {
   data() {
@@ -59,6 +60,7 @@ export default {
   },
 
   components: {
+			PriceFormat,
   },
   props: {
     list: {

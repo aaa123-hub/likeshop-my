@@ -101,6 +101,10 @@
 import { loadingType } from '../../../utils/type'
 import { getOrderCommentList } from '../../../api/store'
 import { loadingFun } from '@/utils/tools'
+import URate from '@/bundle_order/components/uview-ui/components/u-rate/u-rate.vue'
+import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
 
 export default {
     data() {
@@ -111,7 +115,12 @@ export default {
         }
     },
 
-    components: {},
+    components: {
+			PriceFormat,
+			URate,
+			CustomImage,
+			LoadingFooter
+		},
     props: {
         type: {
             type: Number | String

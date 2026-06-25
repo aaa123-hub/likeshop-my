@@ -63,6 +63,7 @@ import Navbar from '@/components/navbar/navbar.vue'
 import { getSeckillTime, getSeckillGoods } from "@/api/activity";
 import { loadingType } from "@/utils/type";
 import {loadingFun} from "@/utils/tools";
+import PriceFormat from '@/activity/components/price-format/price-format.vue'
 
 export default {
   data() {
@@ -82,7 +83,7 @@ export default {
   },
 
   components: {
-  
+			PriceFormat,
 			Navbar
 		},
   props: {},

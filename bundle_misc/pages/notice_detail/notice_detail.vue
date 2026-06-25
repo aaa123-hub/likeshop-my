@@ -19,7 +19,12 @@
 </template>
 
 <script>
+import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vue'
+
 export default {
+  components: {
+			UIcon
+		},
   data() {
     return {
       detail: {

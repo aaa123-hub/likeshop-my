@@ -385,6 +385,9 @@ import { compareWeChatVersion } from "@/utils/tools";
 
 import { prepay } from "@/api/app";
 import { wxpay, alipay } from "@/utils/pay";
+import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
+import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
+import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 export default {
   data() {
@@ -402,9 +405,11 @@ export default {
   },
 
   components: {
-    TkiQrcode
-  ,
-			Navbar
+			PriceFormat,
+			Navbar,
+			TkiQrcode,
+			UCountDown,
+			UIcon
 		},
   props: {},
 

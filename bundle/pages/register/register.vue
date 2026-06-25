@@ -161,19 +161,23 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import UModal from '@/components/uview-ui/components/u-modal/u-modal.vue'
-import USticky from '@/components/uview-ui/components/u-sticky/u-sticky.vue'
+import UModal from '@/bundle/components/uview-ui/components/u-modal/u-modal.vue'
+import USticky from '@/bundle/components/uview-ui/components/u-sticky/u-sticky.vue'
 import { register, sendSms } from "@/api/app.js";
 import { ACCESS_TOKEN } from "@/config/app.js";
 import { SMSType } from "@/utils/type.js";
 import { mapMutations, mapGetters } from "vuex";
+import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
+import UCheckbox from '@/bundle/components/uview-ui/components/u-checkbox/u-checkbox.vue'
 
 export default {
 	components: {
-		Navbar,
-		UModal,
-		USticky
-	},
+			Navbar,
+			UModal,
+			USticky,
+			UCountDown,
+			UCheckbox
+		},
   name: "register",
   created() {},
   data() {

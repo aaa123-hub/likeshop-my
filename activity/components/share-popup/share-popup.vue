@@ -58,7 +58,7 @@
 </template>
 
 <script>
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
+import UPopup from '@/activity/components/uview-ui/components/u-popup/u-popup.vue'
 	import {
 		mapGetters,
 	} from 'vuex'
@@ -74,8 +74,6 @@ import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
 	// import {TtAppNameEnum} from '@/utils/enum'
 	export default {
 		components: {
-			poster
-		,
 			UPopup
 		},
 		props: {

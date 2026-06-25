@@ -221,7 +221,8 @@
 		},
 
 		components: {
-},
+			Uploader
+		},
 		props: {},
 
 		/**

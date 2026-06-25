@@ -85,6 +85,7 @@
 </template>
 
 <script>
+import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
 	import {
 		arraySlice,
 		trottle,
@@ -94,9 +95,10 @@
 		getGoodsSearch,
 	} from '@/api/store';
 	import {
-		loadingType
+loadingType
 	} from '@/utils/type';
 	export default {
+		components: { PriceFormat },
 		name: "cate-four",
 		props: {
 			list: {

@@ -132,6 +132,9 @@
 </template>
 
 <script>
+import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
+import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
+
 	import {
 		getGoodsSearch,
 		getSearchpage,
@@ -168,7 +171,10 @@
 			};
 		},
 
-		components: {},
+		components: {
+			UIcon,
+			UEmpty
+		},
 		props: {},
 		watch: {
 			// 监听属性

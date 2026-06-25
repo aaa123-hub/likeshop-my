@@ -175,8 +175,8 @@
 </template>
 
 <script>
-import UPopup from '@/components/uview-ui/components/u-popup/u-popup.vue'
-import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
+import UPopup from '@/bundle_misc/components/uview-ui/components/u-popup/u-popup.vue'
+import USelect from '@/bundle_misc/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -197,6 +197,8 @@ import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
 import { inputInviteCode, applyVip, applyVipDetail, getInviteInfo, getPromoteHome, veryfiyDistribute } from "@/api/user";
 import area from '@/utils/area'
 import {copy} from '@/utils/tools'
+import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vue'
+import PriceFormat from '@/bundle_misc/components/price-format/price-format.vue'
 export default {
   data() {
     return {
@@ -234,9 +236,10 @@ export default {
   },
 
   components: {
-  
+			PriceFormat,
 			UPopup,
-			USelect
+			USelect,
+			UIcon
 		},
   props: {},
 

@@ -46,7 +46,7 @@
                         placeholder-class="address-placeholder"
                     />
                 </view>
-                <view class="form-row" @click="showRegion = true">
+                <view class="form-row" @tap="openRegionPicker">
                     <view class="form-row__label">所在地址</view>
                     <input
                         name="region"
@@ -89,13 +89,16 @@
             mode="mutil-column-auto"
             @confirm="regionChange"
             :list="lists"
+            :z-index="10090"
+            title="请选择省市区"
+            :safe-area-inset-bottom="true"
         ></u-select>
     </view>
 </template>
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
-import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
+import USelect from '@/bundle/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
 // +----------------------------------------------------------------------
@@ -115,11 +118,15 @@ import USelect from '@/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 import { editAddress, getOneAddress, hasRegionCode, addAddress } from '@/api/user'
 import area from '@/utils/area'
+import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
+import USwitch from '@/bundle/components/uview-ui/components/u-switch/u-switch.vue'
 export default {
 	components: {
-		Navbar,
-		USelect
-	},
+			Navbar,
+			USelect,
+			UIcon,
+			USwitch
+		},
     data() {
         return {
             addressObj: {
@@ -136,7 +143,7 @@ export default {
             defaultRegion: ['广东省', '广州市', '番禺区'],
             defaultRegionCode: '440113',
             showRegion: false,
-            lists: [],
+            lists: area,
             gender: '先生'
         }
     },
@@ -158,9 +165,6 @@ export default {
             })
             this.getWxAddressFun()
         }
-        this.$nextTick(() => {
-            this.lists = area
-        })
     },
 
     /**
@@ -175,6 +179,12 @@ export default {
      */
     // onShareAppMessage: function () {},
     methods: {
+        openRegionPicker() {
+            if (!this.lists.length) {
+                this.lists = area
+            }
+            this.showRegion = true
+        },
         onSwitchChange(value) {
             this.addressObj.is_default = value ? 1 : 0
         },
@@ -189,6 +199,7 @@ export default {
                 addressId
             } = this
             value.address = address
+            value.region = this.region
             value.telephone = String(value.telephone || '').trim()
             if (!value.contact)
                 return this.$toast({
@@ -202,7 +213,7 @@ export default {
                 return this.$toast({
                     title: '请输入正确的手机号或座机号'
                 })
-            if (!value.region)
+            if (!value.region || !province_id || !city_id || !district_id)
                 return this.$toast({
                     title: '请选择省、市、区'
                 })
@@ -265,6 +276,10 @@ export default {
             }
         },
         regionChange(region) {
+            if (!Array.isArray(region) || region.length < 3 || !region[0] || !region[1] || !region[2]) {
+                this.$toast({ title: '请选择完整省市区' })
+                return
+            }
             this.addressObj.province_id = region[0].value
             this.addressObj.city_id = region[1].value
             this.addressObj.district_id = region[2].value

@@ -14,8 +14,8 @@ import { groupType } from "@/utils/type";
 
 export default {
 	components: {
-		GroupList
-	},
+			GroupList
+		},
   data() {
     return {
       active: "",

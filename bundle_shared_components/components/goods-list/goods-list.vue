@@ -101,7 +101,10 @@
 </template>
 
 <script>
+import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
+
 	export default {
+		components: { PriceFormat },
 		props: {
 			type: {
 				type: String,

@@ -55,13 +55,17 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
+import UIcon from '@/activity/components/uview-ui/components/u-icon/u-icon.vue'
     import {getBargainList} from '@/api/activity'
     import {loadingType} from "@/utils/type"
     import {loadingFun} from '@/utils/tools'
+import PriceFormat from '@/activity/components/price-format/price-format.vue'
     export default {
 	components: {
-		Navbar
-	},
+			PriceFormat,
+			Navbar,
+			UIcon
+		},
         data() {
             return {
                 page: 1,

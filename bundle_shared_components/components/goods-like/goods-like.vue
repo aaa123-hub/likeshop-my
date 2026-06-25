@@ -33,8 +33,10 @@
 </template>
 
 <script>
+import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
+
 	import {
-		getRect
+getRect
 	} from '@/utils/tools';
 	export default {
 		data() {
@@ -43,7 +45,8 @@
 			};
 		},
 
-		components: {},
+		components: {
+			PriceFormat,},
 		props: {
 			list: {
 				type: Array,

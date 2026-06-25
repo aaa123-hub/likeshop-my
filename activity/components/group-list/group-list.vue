@@ -45,6 +45,9 @@
 
 
 <script>
+import PriceFormat from '@/activity/components/price-format/price-format.vue'
+import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u-count-down.vue'
+
 	import {
 		loadingType
 	} from '@/utils/type';
@@ -52,10 +55,14 @@
 		loadingFun
 	} from '@/utils/tools';
 	import {
-		getUserGroup
+getUserGroup
 	} from '@/api/activity';
 
 	export default {
+  components: {
+			PriceFormat,
+			UCountDown
+		},
 		data() {
 			return {
 				page: 1,

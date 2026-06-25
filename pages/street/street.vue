@@ -223,7 +223,11 @@ export default {
         openStreetMerchant(event) {
             const index = Number(event && event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.index)
             const item = this.streetMerchants[index]
-            this.goPage(item && item.url)
+            if (!item || !item.shopId) {
+                uni.showToast({ title: '门店信息暂不可打开', icon: 'none' })
+                return
+            }
+            this.goPage(item.url)
         },
         goPage(eventOrUrl) {
             const url = typeof eventOrUrl === 'string'

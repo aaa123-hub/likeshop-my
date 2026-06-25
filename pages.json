@@ -786,9 +786,7 @@
 	"easycom": {
 		"autoscan": false,
 		"custom": {
-			"^u-(icon|modal|number-box|empty|popup|picker|select|sticky|count-down|tag|badge|back-top)$": "@/components/uview-ui/components/u-$1/u-$1.vue",
-			"^u-(.*)": "@/bundle_shared_components/components/uview-ui/components/u-$1/u-$1.vue",
-			"^price-format$": "@/components/price-format/price-format.vue",
+			"^u-(icon|modal|empty)$": "@/components/uview-ui/components/u-$1/u-$1.vue",
 			"^loading-footer$": "@/bundle_shared_components/components/loading-footer/loading-footer.vue",
 			"^loading-view$": "@/bundle_shared_components/components/loading-view/loading-view.vue",
 			"^goods-list$": "@/bundle_shared_components/components/goods-list/goods-list.vue",

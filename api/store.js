@@ -303,7 +303,7 @@ function normalizeHomeData(data = {}) {
         quickEntries: data.quickEntries || data.navigation_menu || [],
         banners: data.banners || [],
         recommendedProducts: (data.recommendedProducts || []).map(normalizeGoodsListItem),
-        recommendedShops: data.recommendedShops || [],
+        recommendedShops: (data.recommendedShops || []).map(normalizeStreetShop),
         recentVisits: data.recentVisits || [],
         hotActivities: data.hotActivities || [],
         walletCard: data.walletCard || {
@@ -370,45 +370,52 @@ function normalizeShopGroupItem(item = {}) {
     var normalized = normalizeGoodsListItem(item)
     var activity = item.activity || item.groupBuyActivity || item.groupActivity || {}
     var goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || activity.goodsId || activity.spuId
-    var price = item.groupPrice || item.group_price || item.teamPrice || item.team_price || item.activityPrice || item.salePrice || item.minPrice || item.price || normalized.price
+    var price = valueOr(item.groupPrice, valueOr(item.group_price, valueOr(item.groupMinPrice, valueOr(item.group_min_price, valueOr(item.teamPrice, valueOr(item.team_price, valueOr(item.teamMinPrice, valueOr(item.team_min_price, valueOr(item.activityPrice, valueOr(item.activity_price, valueOr(item.salePrice, valueOr(item.sale_price, valueOr(item.minPrice, valueOr(item.min_price, valueOr(item.price, normalized.price)))))))))))))))
     return Object.assign({}, normalized, item, {
         id: goodsId || normalized.id,
         goods_id: goodsId || normalized.goods_id,
         spuId: item.spuId || item.productId || goodsId || normalized.spu_id,
-        name: item.name || item.goodsName || item.goods_name || item.spuName || item.productName || item.title || normalized.name,
-        goods_name: item.goods_name || item.goodsName || item.spuName || item.productName || item.title || normalized.goods_name,
+        name: item.name || item.goodsName || item.goods_name || item.spuName || item.productName || item.title || item.activityName || item.activity_name || normalized.name,
+        goods_name: item.goods_name || item.goodsName || item.spuName || item.productName || item.title || item.activityName || item.activity_name || normalized.goods_name,
         image: resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || item.thumbnail || normalized.image, 'goods'),
         price,
         groupPrice: price,
+        priceText: item.priceText || item.price_text || item.groupPriceText || item.group_price_text || item.groupMinPriceText || item.group_min_price_text || item.teamPriceText || item.team_price_text || item.teamMinPriceText || item.team_min_price_text || item.activityPriceText || item.activity_price_text || item.salePriceText || item.sale_price_text || '',
+        marketPrice: item.marketPrice || item.market_price || item.originPrice || item.origin_price || item.originalPrice || item.original_price || normalized.market_price || '',
+        marketPriceText: item.marketPriceText || item.market_price_text || item.originPriceText || item.origin_price_text || item.originalPriceText || item.original_price_text || '',
+        meta: item.meta || item.subTitle || item.subtitle || item.summary || item.desc || item.description || item.goods_desc || item.goodsDesc || item.activityDesc || item.activity_desc || '',
+        tagText: item.tagText || item.tag_text || item.activityTag || item.activity_tag || item.label || item.labelText || '',
         people: item.people || item.peopleNum || item.people_num || item.groupNum || item.group_num || activity.peopleNum || activity.people_num || '',
         joined: item.joined || item.joinedCount || item.join_num || item.joinNum || item.sales_sum || item.salesCount || activity.joinedCount || 0,
         sales_sum: item.sales_sum || item.salesCount || item.sales_count || item.joinedCount || item.joinNum || 0,
-        score: item.score || item.shopScore || item.commentScore || item.rating || 5
+        stock: valueOr(item.stock, valueOr(item.stockQty, valueOr(item.stock_quantity, ''))),
+        score: item.score || item.shopScore || item.commentScore || item.rating || ''
     })
 }
 
 function normalizeShopDetail(data = {}) {
-    var base = data.shopBase || data.shop || data.shopInfo || data.shop_info || data.baseInfo || data
-    var groupPayload = data.groupBuyProducts || data.groupProducts || data.group_buy_products || data.activityProducts || data.products || data.groupBuyProductList || data.groupBuyList || data.groupList || data.groups || []
-    var commentPayload = data.comments || data.commentList || data.reviews || data.shopComments || data.evaluations || (data.commentPage && data.commentPage.list) || (data.commentPage && data.commentPage.records) || (data.commentPage && data.commentPage.items) || (data.commentSummary && data.commentSummary.list) || []
-    var albumPayload = data.albums || data.albumList || data.shopAlbums || data.images || data.imageUrls || data.albumUrls || data.photos || []
-    var videoPayload = data.videos || data.videoList || data.shopVideos || data.videoUrls || []
+    var detail = data.detail || data.shopDetail || data.storeDetail || data.merchantShop || data.merchantShopDetail || data.shop || data
+    var base = detail.shopBase || detail.shop || detail.shopInfo || detail.shop_info || detail.baseInfo || detail.merchantShop || detail
+    var groupPayload = detail.groupBuyProducts || detail.groupProducts || detail.group_buy_products || detail.activityProducts || detail.products || detail.productList || detail.goodsList || detail.groupBuyProductList || detail.groupBuyList || detail.groupList || detail.groups || []
+    var commentPayload = detail.comments || detail.commentList || detail.reviews || detail.shopComments || detail.evaluations || (detail.commentPage && detail.commentPage.list) || (detail.commentPage && detail.commentPage.records) || (detail.commentPage && detail.commentPage.items) || (detail.commentSummary && detail.commentSummary.list) || []
+    var albumPayload = detail.albums || detail.albumList || detail.shopAlbums || detail.images || detail.imageUrls || detail.albumUrls || detail.photos || detail.shopImages || detail.envImages || []
+    var videoPayload = detail.videos || detail.videoList || detail.shopVideos || detail.videoUrls || []
     var groupProducts = Array.isArray(groupPayload) ? groupPayload : (groupPayload.list || groupPayload.records || groupPayload.items || groupPayload.rows || [])
     var comments = Array.isArray(commentPayload) ? commentPayload : (commentPayload.list || commentPayload.records || commentPayload.items || commentPayload.rows || [])
     var albums = Array.isArray(albumPayload) ? albumPayload : parseImageList(albumPayload)
     var videos = Array.isArray(videoPayload) ? videoPayload : parseImageList(videoPayload)
-    var logo = base.shopLogo || base.shop_logo || base.logo || base.logoUrl || base.avatarUrl || base.image || base.cover || base.mainImageUrl
-    return Object.assign({}, data, {
-        cover: data.cover || data.shopCover || data.bannerImage || data.mainImageUrl ? resolveImage(data.cover || data.shopCover || data.bannerImage || data.mainImageUrl, 'goods') : '',
-        image: data.image || data.cover || data.mainImageUrl ? resolveImage(data.image || data.cover || data.mainImageUrl, 'goods') : '',
-        detailImage: data.detailImage || data.detail_image || data.detailCover ? resolveImage(data.detailImage || data.detail_image || data.detailCover, 'goods') : '',
+    var logo = base.shopLogo || base.shop_logo || base.logo || base.logoUrl || base.avatarUrl || base.image || base.cover || base.mainImageUrl || base.headImage || base.head_image
+    return Object.assign({}, data, detail, {
+        cover: detail.cover || detail.shopCover || detail.shop_cover || detail.bannerImage || detail.banner_image || detail.mainImageUrl || detail.headImage ? resolveImage(detail.cover || detail.shopCover || detail.shop_cover || detail.bannerImage || detail.banner_image || detail.mainImageUrl || detail.headImage, 'goods') : '',
+        image: detail.image || detail.cover || detail.mainImageUrl || detail.shopImage ? resolveImage(detail.image || detail.cover || detail.mainImageUrl || detail.shopImage, 'goods') : '',
+        detailImage: detail.detailImage || detail.detail_image || detail.detailCover || detail.introduceImage || detail.introImage ? resolveImage(detail.detailImage || detail.detail_image || detail.detailCover || detail.introduceImage || detail.introImage, 'goods') : '',
         shopBase: Object.assign({}, base, {
-            shopId: base.shopId || base.id || base.shop_id || data.shopId || data.id || data.shop_id || '',
-            shopName: base.shopName || base.shop_name || base.storeName || base.name || '',
+            shopId: base.shopId || base.id || base.shop_id || detail.shopId || detail.id || detail.shop_id || detail.merchantShopId || detail.merchant_shop_id || '',
+            shopName: base.shopName || base.shop_name || base.storeName || base.store_name || base.name || detail.shopName || detail.storeName || '',
             shopLogo: resolveImage(logo),
             shopScore: valueOr(base.shopScore, valueOr(base.shop_score, valueOr(base.score, valueOr(base.star, '')))),
-            businessHours: base.businessHours || base.openHours || base.business_hours || '',
-            detailAddress: base.detailAddress || base.address || base.detail_address || '',
+            businessHours: base.businessHours || base.openHours || base.business_hours || base.serviceTime || base.service_time || '',
+            detailAddress: base.detailAddress || base.address || base.detail_address || base.fullAddress || base.full_address || '',
             latitude: base.latitude || base.lat || base.shopLatitude || base.shop_latitude || '',
             longitude: base.longitude || base.lng || base.shopLongitude || base.shop_longitude || '',
             openStatus: base.openStatus || base.open_status || base.status || '',
@@ -547,16 +554,31 @@ export function getShopDetail(data = {}) {
             data: null
         })
     }
-    return request.get('miniapp/shop/' + shopId, {
-        params: data
-    }).then(function(res) {
-        if (res.code == 1) {
-            return Object.assign({}, res, {
-                data: normalizeShopDetail(res.data || {})
-            })
-        }
-        return res
+    var params = Object.assign({}, data, {
+        shopId: shopId,
+        shop_id: shopId
     })
+    var endpoints = [
+        'miniapp/shop/' + shopId,
+        'miniapp/shop/detail',
+        'miniapp/street/shop/detail',
+        'miniapp/merchant-shop/detail'
+    ]
+    var requestDetail = function(index) {
+        return request.get(endpoints[index], { params: params }).then(function(res) {
+            if (res.code == 1) {
+                return Object.assign({}, res, {
+                    data: normalizeShopDetail(res.data || {})
+                })
+            }
+            if (index < endpoints.length - 1) return requestDetail(index + 1)
+            return res
+        }).catch(function(error) {
+            if (index < endpoints.length - 1) return requestDetail(index + 1)
+            throw error
+        })
+    }
+    return requestDetail(0)
 }
 
 // 菜单

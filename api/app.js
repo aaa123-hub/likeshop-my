@@ -137,6 +137,43 @@ function normalizeBubbleListsResponse(res) {
   };
 }
 
+function normalizeRecentVisitShop(item = {}, index = 0) {
+  const shop = item.shop || item.shopInfo || item.target || item;
+  const shopId = shop.shopId || shop.shop_id || shop.merchantShopId || shop.merchant_shop_id || item.targetId || item.target_id || shop.id || item.id || "";
+  const visitTime = item.visitTime || item.visit_time || item.createTime || item.create_time || item.time || "";
+  return {
+    ...item,
+    key: String(item.id || item.visitId || shopId || index),
+    id: item.id || item.visitId || index,
+    shopId,
+    name: shop.shopName || shop.shop_name || shop.storeName || shop.name || item.title || "默认门店",
+    image: resolveImage(shop.shopLogo || shop.shop_logo || shop.logo || shop.logoUrl || shop.image || shop.cover || item.cover || item.image),
+    time: formatRecentVisitTime(visitTime),
+    subscribed: Boolean(shop.subscribed || shop.isSubscribed || shop.is_subscribe || item.subscribed || item.isSubscribed),
+  };
+}
+
+function formatRecentVisitTime(value) {
+  if (!value) return "刚刚";
+  if (typeof value === "string" && /^\d{1,2}:\d{2}/.test(value)) return value.slice(0, 5);
+  const time = Number(value);
+  const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  return `${hour}:${minute}`;
+}
+
+function normalizeRecentVisitShopResponse(res) {
+  if (!res || res.code != 1) return res;
+  const payload = res.data || {};
+  const source = Array.isArray(payload) ? payload : payload.shops || payload.shopList || payload.recentShops || payload.recentVisits || payload.lists || payload.list || payload.rows || payload.records || [];
+  return {
+    ...res,
+    data: source.map(normalizeRecentVisitShop).filter(item => item.shopId || item.name),
+  };
+}
+
 export function getContentPage(pageCode, fallback = "") {
   return request.get(`miniapp/content-pages/${pageCode}`).then((res) => {
     if (res.code != 1) return res;
@@ -322,8 +359,9 @@ export function getService() {
       ...res,
       code: res.code == 1 ? 1 : res.code,
       data: {
-        image: resolveImage(qrCode, "avatar"),
-        qrcode: resolveImage(qrCode, "avatar"),
+        name: service.appName || service.name || service.title || payload.name || "平台客服",
+        image: qrCode ? resolveImage(qrCode, "avatar") : resolveImage("", "avatar"),
+        qrcode: qrCode ? resolveImage(qrCode, "avatar") : "",
         wechat: service.wechat || service.wechatNo || service.wechatAccount || service.appCode || payload.wechat || "",
         phone: service.contactPhone || service.phone || service.mobile || payload.phone || "",
         time: service.appDesc || service.desc || service.description || payload.time || "工作日 09:00-18:00",
@@ -356,6 +394,25 @@ export function getBubbleLists() {
         time: Math.floor(Date.now() / 1000),
       },
     }));
+}
+
+export function getRecentVisitShops(params = {}) {
+  return request.get("miniapp/home/recent-visits", { params: { pageNo: params.pageNo || 1, pageSize: params.pageSize || 20, targetType: "SHOP" } })
+    .then(normalizeRecentVisitShopResponse)
+    .catch(() => ({ code: 1, data: [] }));
+}
+
+export function subscribeShop(data = {}) {
+  const shopId = data.shopId || data.shop_id || data.id || "";
+  if (!shopId) return Promise.resolve({ code: 0, msg: "缺少门店ID" });
+  const payload = {
+    shopId,
+    shop_id: shopId,
+    subscribed: data.subscribed,
+  };
+  return request.post(`miniapp/shop/${shopId}/subscribe`, payload).catch(() => (
+    request.post("miniapp/user/shop-subscribe", payload)
+  ));
 }
 
 // 用户自定义分享

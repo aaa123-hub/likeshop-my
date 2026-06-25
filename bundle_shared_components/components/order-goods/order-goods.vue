@@ -117,12 +117,15 @@
 </template>
 
 <script>
+import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
+
 export default {
     data() {
         return {}
     },
 
-    components: {},
+    components: {
+			PriceFormat,},
     props: {
         list: {
             type: Array,

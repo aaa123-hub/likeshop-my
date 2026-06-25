@@ -1711,6 +1711,18 @@ request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png
 response: {"code":"0","message":"SUCCESS","traceId":"d6b34b78-972f-4df6-aad9-1b81960286c0","data":{"objectName":"miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png","fileName":"676d68646053824b88f084648bfc6594.png","contentType":"image/png","size":3080},"timestamp":"2026-06-23T02:50:14.755880549Z"}
 
+[success] 商品/店铺分享弹框 - 营业时间图标
+source: https://lanhu-oss-proxy.lanhuapp.com/4a0776d08638585f2aaac7f04bf1a07d
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png
+response: {"code":"0","message":"SUCCESS","traceId":"388bd0ee-d04b-4ece-869e-3e668cebf855","data":{"bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png","fileName":"4a0776d08638585f2aaac7f04bf1a07d.png","contentType":"image/png","size":2453,"objectName":"miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png"},"timestamp":"2026-06-24T09:48:12.988593358Z"}
+
+[success] 商品/店铺分享弹框 - 评分星级图标
+source: https://lanhu-oss-proxy.lanhuapp.com/6ab9b0b9917a09a6d5fdab80e40bf103
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png
+response: {"code":"0","message":"SUCCESS","traceId":"a334e11e-f636-4728-88e2-d85f3b03f989","data":{"bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png","fileName":"6ab9b0b9917a09a6d5fdab80e40bf103.png","contentType":"image/png","size":2286,"objectName":"miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png"},"timestamp":"2026-06-24T09:48:13.105173488Z"}
+
 [success] Lanhu proxy upload - 6c1b9219335c90eb81ddc57cd6d0016e.png
 source: https://lanhu-oss-proxy.lanhuapp.com/6c1b9219335c90eb81ddc57cd6d0016e
 request: POST /api/miniapp/files/upload

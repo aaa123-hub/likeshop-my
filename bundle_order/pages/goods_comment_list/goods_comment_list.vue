@@ -25,11 +25,8 @@ export default {
   },
 
   components: {
-
-  	CommentList
-
-  ,
-			Navbar
+			Navbar,
+			CommentList
 		},
   props: {},
 

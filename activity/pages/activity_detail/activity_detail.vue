@@ -58,6 +58,7 @@ import { loadingType } from '@/utils/type';
 import { getActivityGoodsLists } from "@/api/activity";
 
 import { loadingFun } from "@/utils/tools";
+import PriceFormat from '@/activity/components/price-format/price-format.vue'
 export default {
   data() {
     return {
@@ -70,6 +71,7 @@ export default {
   },
 
   components: {
+			PriceFormat,
   },
   props: {},
 

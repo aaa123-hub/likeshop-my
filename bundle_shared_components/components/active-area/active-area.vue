@@ -48,8 +48,10 @@
 </template>
 
 <script>
+import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
+
 	import {
-		trottle,
+trottle,
 		getRect
 	} from "@/utils/tools";
 
@@ -60,7 +62,8 @@
 			};
 		},
 
-		components: {},
+		components: {
+			PriceFormat,},
 		props: {
 			type: {
 				type: String,
