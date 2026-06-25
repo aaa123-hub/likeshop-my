@@ -63,7 +63,7 @@
                         </view>
                         <view class="seller-recall-container common-bg mt10" v-if="item.reply">
                             <view class="lighter nr" style="word-wrap: break-word">
-                                商家回复：<span class="normal two-txt-cut">{{ item.reply }}</span>
+                                商家回复：<text class="normal two-txt-cut">{{ item.reply }}</text>
                             </view>
                         </view>
                     </view>

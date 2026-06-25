@@ -2,14 +2,14 @@
     <view class="uploader-container row wrap">
         <view class="upload-image-box" v-for="(item, index) in fileList" :key="index" :style="{width: previewSize, height: previewSize}">
             <custom-image mode="aspectFit" class="img-preview" radius="10rpx" :src="item.url" :width="previewSize" :height="previewSize" />
-            <view class="close-icon row-center" @click="deleteImage($event, index)">
+            <view class="close-icon row-center" @tap="deleteImage($event, index)">
                 <u-icon name="close" size="30" color="white" />
             </view>
         </view>
         <view
             class="uplader-upload row-center"
             :style="{width: previewSize, height: previewSize}"
-            @click="handleImage"
+            @tap="handleImage"
             v-show="(fileList.length == 0 || mutiple) && fileList.length < maxUpload"
             v-if="!useSlot"
         >
@@ -18,7 +18,7 @@
         </view>
         <view
         class="uplader-upload-slot row-center"
-        @click="handleImage"
+        @tap="handleImage"
         v-show="(fileList.length == 0 || mutiple) && fileList.length < maxUpload"
         v-else
         >

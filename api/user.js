@@ -213,6 +213,21 @@ function normalizeMessageItem(item = {}) {
     }
 }
 
+function normalizeLotteryRecord(item = {}) {
+    return {
+        ...normalizeMessageItem(item),
+        ...item,
+        id: item.id || item.recordId || item.prizeId,
+        title: item.title || item.prizeName || item.prize_name || item.name || '中奖记录',
+        prize_name: item.prize_name || item.prizeName || item.name || item.title || '中奖记录',
+        prize_image: resolveImage(item.prize_image || item.prizeImage || item.image || item.cover, 'goods'),
+        image: resolveImage(item.image || item.prizeImage || item.prize_image || item.cover, 'goods'),
+        create_time: item.create_time || item.createTime || item.time || item.sendTime || '',
+        send_tips: item.send_tips || item.sendTips || item.statusText || item.content || '',
+        need_tips: item.need_tips || item.needTips || ''
+    }
+}
+
 function normalizePayPasswordResponse() {
     return Promise.resolve({ code: 0 })
 }
@@ -360,10 +375,7 @@ export function setDefaultAddress(id, data = {}) {
         is_default: 1,
         defaultFlag: true
     }
-    return request.post(`miniapp/addresses/${id}/default`, payload).then((res) => {
-        if (res.code == 1) return res
-        return request.put(`miniapp/addresses/${id}`, payload)
-    }).catch(() => request.put(`miniapp/addresses/${id}`, payload))
+    return request.put(`miniapp/addresses/${id}`, payload)
 }
 
 export function hasRegionCode(data) {
@@ -508,11 +520,20 @@ export function getGoodsInfo(params) {
 }
 
 export function inputExpressInfo(data) {
-    return unsupported('Backend refund express API is not available')
+    return request.post('miniapp/after-sales/express', {
+        afterSaleId: data.afterSaleId || data.after_sale_id || data.id,
+        orderNo: data.orderNo || data.order_id || data.order_sn,
+        expressCompany: data.express || data.expressCompany || data.company,
+        expressNo: data.number || data.expressNo || data.express_no,
+        remark: data.remark || ''
+    })
 }
 
 export function cancelApply(data) {
-    return unsupported('Backend refund cancel API is not available')
+    return request.post('miniapp/after-sales/cancel', {
+        afterSaleId: data.afterSaleId || data.after_sale_id || data.id,
+        orderNo: data.orderNo || data.order_id || data.order_sn
+    })
 }
 
 export function afterSaleDetail(params) {
@@ -802,14 +823,19 @@ export function getKycStatus() {
             ...res,
             data: {
                 ...data,
-                kyc_status: data.kycStatus || data.kyc_status,
-                audit_message: data.auditMessage || data.audit_message,
-                reject_reason_code: data.rejectReasonCode || data.reject_reason_code,
-                reject_reason_message: data.rejectReasonMessage || data.reject_reason_message,
-                last_submit_time: data.lastSubmitTime || data.last_submit_time
+                kycStatus: data.kycStatus || data.status || 'NOT_SUBMITTED',
+                kyc_status: data.kycStatus || data.kyc_status || data.status || 'NOT_SUBMITTED',
+                auditMessage: data.auditMessage || data.message || '',
+                audit_message: data.auditMessage || data.audit_message || data.message || '',
+                rejectReasonCode: data.rejectReasonCode || '',
+                reject_reason_code: data.rejectReasonCode || data.reject_reason_code || '',
+                rejectReasonMessage: data.rejectReasonMessage || data.rejectReason || '',
+                reject_reason_message: data.rejectReasonMessage || data.reject_reason_message || data.rejectReason || '',
+                lastSubmitTime: data.lastSubmitTime || data.submitTime || data.createTime || '',
+                last_submit_time: data.lastSubmitTime || data.last_submit_time || data.submitTime || data.createTime || ''
             }
         }
-    })
+    }).catch(() => ({ code: 1, data: { kycStatus: 'NOT_SUBMITTED', auditMessage: '' } }))
 }
 
 function normalizeMerchantQualification(data = {}) {
@@ -950,7 +976,39 @@ export function userLogout(data) {
 }
 
 export function getPrize(data) {
-    return unsupported('后端暂未提供抽奖奖品接口')
+    return request.get('miniapp/lottery', { params: data }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const list = data.list || data.prizes || data.prizeList || []
+        return {
+            ...res,
+            data: {
+                ...data,
+                config: data.config || {
+                    status: data.status ?? 1,
+                    limit: data.limit || data.dailyLimit || 0,
+                    rule: data.rule || data.rules || '',
+                    show_win: data.show_win ?? data.showWinningList ?? true
+                },
+                list: list.map((item, index) => ({
+                    ...item,
+                    id: item.id || item.prizeId || index,
+                    prize_id: item.prize_id || item.prizeId || item.id,
+                    name: item.name || item.prizeName || item.prize_name || '奖品',
+                    prize_name: item.prize_name || item.prizeName || item.name || '奖品',
+                    image: resolveImage(item.image || item.prizeImage || item.prize_image, 'goods'),
+                    prize_image: resolveImage(item.prize_image || item.prizeImage || item.image, 'goods'),
+                    url: resolveImage(item.url || item.image || item.prizeImage || item.prize_image, 'goods')
+                })),
+                record: (data.record || data.records || data.noticeList || []).map((item) => ({
+                    ...item,
+                    text: item.text || item.content || item.title || item.prizeName || item.prize_name || ''
+                })),
+                surplus: data.surplus ?? data.remainingTimes ?? data.remainTimes ?? 0,
+                user_integral: data.user_integral ?? data.userIntegral ?? data.points ?? 0
+            }
+        }
+    })
 }
 
 export function getUserRecord(data) {
@@ -960,11 +1018,27 @@ export function getUserRecord(data) {
             pageNo: data?.pageNo || data?.page_no || 1,
             pageSize: data?.pageSize || data?.page_size || 20
         }
-    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeMessageItem) : res)
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLotteryRecord) : res)
 }
 
 export function userLottery(data) {
-    return unsupported('后端暂未提供抽奖接口')
+    return request.post('miniapp/lottery/draw', {
+        prizeId: data?.prizeId || data?.prize_id || data?.id,
+        activityId: data?.activityId || data?.activity_id
+    }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                id: data.id || data.prizeId || data.prize_id,
+                prize_name: data.prize_name || data.prizeName || data.name,
+                prize_image: resolveImage(data.prize_image || data.prizeImage || data.image, 'goods'),
+                text: data.text || data.prize_name || data.prizeName || data.name || '恭喜中奖'
+            }
+        }
+    })
 }
 
 export function luckyDrawWinningList(data) {
@@ -974,7 +1048,7 @@ export function luckyDrawWinningList(data) {
             pageNo: data?.pageNo || data?.page_no || 1,
             pageSize: data?.pageSize || data?.page_size || 20
         }
-    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeMessageItem) : res)
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLotteryRecord) : res)
 }
 
 export function setWechatInfo(data) {
@@ -982,19 +1056,47 @@ export function setWechatInfo(data) {
 }
 
 export function setPassword(data) {
-    return unsupported('后端暂未提供支付密码设置接口')
+    return request.post('miniapp/wallet/pay-password', {
+        payPassword: data.payPassword || data.pay_password || data.password,
+        pay_password: data.pay_password || data.payPassword || data.password
+    })
 }
 
 export function changePayPassword(data) {
-    return unsupported('后端暂未提供支付密码修改接口')
+    return request.put('miniapp/wallet/pay-password', {
+        oldPayPassword: data.oldPayPassword || data.origin_pay_password || data.old_pay_password,
+        newPayPassword: data.newPayPassword || data.new_pay_password || data.pay_password,
+        origin_pay_password: data.origin_pay_password || data.oldPayPassword || data.old_pay_password,
+        new_pay_password: data.new_pay_password || data.newPayPassword || data.pay_password
+    })
 }
 
 export function hasPayPassword() {
-    return normalizePayPasswordResponse()
+    return request.get('miniapp/wallet/pay-password/status').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const hasPayPwd = data.hasPayPassword ?? data.has_pay_password ?? data.exists ?? data.enabled ?? false
+        return {
+            ...res,
+            code: hasPayPwd ? 1 : 0,
+            data: {
+                ...data,
+                hasPayPassword: hasPayPwd,
+                has_pay_password: hasPayPwd
+            }
+        }
+    })
 }
 
 export function transfer(data) {
-    return unsupported('后端暂未提供余额转账接口')
+    return request.post('miniapp/wallet/transfer', {
+        transferTo: data.transferTo || data.transfer_to || data.userSn || data.mobile,
+        amount: data.amount || data.money,
+        money: data.money || data.amount,
+        payPassword: data.payPassword || data.pay_password,
+        pay_password: data.pay_password || data.payPassword,
+        remark: data.remark || ''
+    })
 }
 
 export function getTransferRecent() {
@@ -1030,19 +1132,53 @@ export function transferRecord(params) {
 }
 
 export function send(data) {
-    return unsupported('Backend SMS API is not available')
+    return request.post('miniapp/sms/send', {
+        mobile: data.mobile || data.phone,
+        scene: data.scene || data.type || 'PAY_PASSWORD'
+    })
 }
 
 export function retrievePayPassword(data) {
-    return unsupported('后端暂未提供找回支付密码接口')
+    return request.post('miniapp/wallet/pay-password/retrieve', {
+        mobile: data.mobile,
+        code: data.code,
+        newPayPassword: data.newPayPassword || data.new_pay_password || data.pay_password,
+        new_pay_password: data.new_pay_password || data.newPayPassword || data.pay_password
+    })
 }
 
 export function transferToInfo(params) {
-    return unsupported('后端暂未提供转账收款人查询接口')
+    return request.get('miniapp/wallet/transfer/receiver', {
+        params: {
+            transferTo: params?.transferTo || params?.transfer_to || params?.userSn || params?.mobile
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                sn: data.sn || data.userNo || data.userSn || data.mobile,
+                nickname: data.nickname || data.nickName || data.userName || '转账用户',
+                avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar')
+            }
+        }
+    })
 }
 
 export function apiDistributionPoster() {
-    return unsupported('Backend distribution poster API is not available')
+    return request.get('miniapp/alliance/poster').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                poster: data.poster || data.posterUrl || data.imageUrl || ''
+            }
+        }
+    })
 }
 
 export function getCopyright() {
@@ -1050,5 +1186,8 @@ export function getCopyright() {
 }
 
 export function bindOawechat(data) {
-    return unsupported('Backend official-account binding API is not available')
+    return request.post('miniapp/wechat/official-account/bind', {
+        code: data.code,
+        state: data.state || ''
+    })
 }

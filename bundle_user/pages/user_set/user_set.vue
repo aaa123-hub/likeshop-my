@@ -26,12 +26,12 @@
                 <view class="label md">ID</view>
                 <view class="md row" style="flex: 1">{{ userInfo.sn }}</view>
             </view>
-            <view class="row-info row bdb-line" @click="changeName">
+            <view class="row-info row bdb-line" @tap="changeName">
                 <view class="label md">昵称</view>
                 <view class="md row" style="flex: 1">{{ userInfo.nickname }}</view>
                 <u-icon name="arrow-right" />
             </view>
-            <view class="row-info row bdb-line" @click="changeSex()">
+            <view class="row-info row bdb-line" @tap="changeSex()">
                 <view class="label md">性别</view>
                 <view class="md row" :class="userInfo.sex == 0 ? 'muted' : ''" style="flex: 1">
                     {{ userInfo.sex == 0 ? '未设置' : userInfo.sex == 1 ? '男' : '女' }}
@@ -44,7 +44,7 @@
                     {{ userInfo.mobile ? userInfo.mobile : '未绑定' }}
                 </view>
                 <!-- #ifdef H5 || APP-PLUS -->
-                <view class="bd-btn br60 row-center" @click="showModifyMobile">
+                <view class="bd-btn br60 row-center" @tap="showModifyMobile">
                     {{ userInfo.mobile ? '更换手机号' : '绑定手机号' }}
                 </view>
                 <!-- #endif -->
@@ -82,7 +82,7 @@
                         style="padding-left: 5px; width: 130px"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -102,7 +102,7 @@
                         userInfo.mobile ? '更改' : '绑定'
                     }}手机号码成功后，您的账号将会变更为该设置号码</view
                 >
-                <view class="btn bg-primary white row-center" @click="$changeUserMobile">确定</view>
+                <view class="btn bg-primary white row-center" @tap="$changeUserMobile">确定</view>
             </view>
         </u-popup>
 
@@ -148,7 +148,7 @@
                         style="padding-left: 10rpx; width: 260rpx"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -167,7 +167,7 @@
                     <view style="width: 71px">确认密码</view>
                     <input type="password" v-model="comfirmPwd" placeholder="再次输入新密码确认" />
                 </view>
-                <view class="btn bg-primary white row-center" @click="$forgetPwd">确定</view>
+                <view class="btn bg-primary white row-center" @tap="$forgetPwd">确定</view>
             </view>
         </u-popup>
         <u-picker

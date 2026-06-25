@@ -162,10 +162,16 @@ page {
     position: relative;
     display: flex;
     align-items: center;
-    height: 109rpx;
-    padding: 45rpx 24rpx 0;
+    height: calc(var(--status-bar-height) + 64rpx);
+    padding: var(--status-bar-height) 24rpx 0;
     box-sizing: border-box;
 }
+
+/* #ifdef MP-WEIXIN */
+.nav-row {
+    padding-right: 220rpx;
+}
+/* #endif */
 
 .back-icon {
     position: relative;
@@ -218,7 +224,7 @@ page {
 }
 
 .page-scroll {
-    height: calc(100vh - 205rpx - 154rpx - env(safe-area-inset-bottom));
+    height: calc(100vh - var(--status-bar-height) - 160rpx - 154rpx - env(safe-area-inset-bottom));
     padding: 0 24rpx 32rpx;
     box-sizing: border-box;
 }

@@ -171,6 +171,10 @@ function shouldAttachUserId(url = "") {
     "miniapp/kyc",
     "miniapp/offline-payments",
     "miniapp/user/profile",
+    "miniapp/after-sales",
+    "miniapp/lottery",
+    "miniapp/sms",
+    "miniapp/wechat/official-account",
   ].some((prefix) => url.startsWith(prefix));
 }
 

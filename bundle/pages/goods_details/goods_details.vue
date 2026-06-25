@@ -508,11 +508,10 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png'
 			};
 		},
-		onLoad(options) {
+			onLoad(options) {
 			this.onPageScroll = trottle(this.onPageScroll, 500, this)
 			if (options && options.scene) {
 				let scene = strToParams(decodeURIComponent(options.scene));
-				console.log(scene, decodeURIComponent(options.scene))
 				options.id = scene.id;
 			}
 			// #ifdef H5
@@ -571,7 +570,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 						return;
 					}
 				} catch (e) {}
-				this.shareQrcode = this.goodsShareLink();
+				this.shareQrcode = '测试';
 				this.shareQrcodeIsImage = false;
 			},
 			resolveAvatar(avatar) {

@@ -124,6 +124,8 @@ export default {
             contentAnchor: '',
             searchKeyword: '',
             refreshing: false,
+            categoryLoading: false,
+            didShowOnce: false,
             cateList: []
         }
     },
@@ -163,7 +165,11 @@ export default {
         this.getCategoryList()
     },
     onShow() {
-        this.getCategoryList()
+        if (!this.didShowOnce) {
+            this.didShowOnce = true
+        } else {
+            this.getCategoryList()
+        }
         this.getCartNum()
     },
     onShareAppMessage() {
@@ -177,6 +183,8 @@ export default {
     methods: {
         ...mapActions(['getCartNum']),
         async getCategoryList() {
+            if (this.categoryLoading) return Promise.resolve()
+            this.categoryLoading = true
             try {
                 const res = await getCatrgory()
                 if (res.code == 1) {
@@ -185,6 +193,8 @@ export default {
                 }
             } catch (error) {
                 console.error('[sort-tab] getCategoryList failed:', error)
+            } finally {
+                this.categoryLoading = false
             }
         },
         refreshCategoryList() {

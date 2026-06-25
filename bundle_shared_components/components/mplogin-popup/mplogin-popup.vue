@@ -29,10 +29,10 @@
                                     :src="avatar"
                                     v-if="avatar"
                                 />
-                                <div class="select-btn" v-else>
+                                <view class="select-btn" v-else>
                                     <u-icon name="plus" :size="30" />
                                     添加图片
-                                </div>
+                                </view>
                             </button>
                         </view>
                         <view required label="昵称" :labelWidth="120">
@@ -54,8 +54,8 @@
                     </form>
                 </view>
             </view>
+        </u-popup>
 	</view>
-    </u-popup>
 </template>
 
 <script>

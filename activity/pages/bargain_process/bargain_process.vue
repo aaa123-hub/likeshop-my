@@ -34,7 +34,7 @@
                     <view class="title xl normal">
                         请选择商品规格
                     </view>
-                    <view class="choose-content row-between" @click="showSpecPop">
+                    <view class="choose-content row-between" @tap="showSpecPop">
                         <view class="row">
                             <view class="muted sm">已选：</view>
                             <view class="md normal">
@@ -44,7 +44,7 @@
                         <u-icon name="arrow-right" size="28" color="#999" />
                     </view>
                 </view>
-                <view class="lunch-btn white br60 row-center" @click="$launchBargain">发起砍价</view>
+                <view class="lunch-btn white br60 row-center" @tap="$launchBargain">发起砍价</view>
             </view>
         </view>
         <view v-show="status != -1">
@@ -114,7 +114,7 @@
                     <view class="nr lighter row-center" style="margin-top: 35rpx;" v-if="bargainObj.status != 0 && bargainObj != -1">
                         {{bargainObj.status_tips}}
                     </view>
-                    <view class="invite-btn1 br60 white row-center lg" @click="shareToBargain" v-if="bargainObj.direct_buy_btn != 1 && bargainObj.invite_btn">
+                    <view class="invite-btn1 br60 white row-center lg" @tap="shareToBargain" v-if="bargainObj.direct_buy_btn != 1 && bargainObj.invite_btn">
                         邀请好友帮砍价
                     </view>
                     <view class="invite-btn1 br60 white row-center lg" v-if="bargainObj.buy_btn" @tap="handleClickBuy" >
@@ -124,14 +124,14 @@
                         砍价失败
                     </view>
                     <view class="invite-btn-group row-between" v-if="bargainObj.direct_buy_btn">
-                        <view class="buy-now-btn br60 md row-center" @click="handleClickBuy">
+                        <view class="buy-now-btn br60 md row-center" @tap="handleClickBuy">
                             ¥{{bargainObj.current_price}}  直接购买
                         </view>
-                        <view class="invite-friend-btn white br60 md row-center" @click="shareToBargain">
+                        <view class="invite-friend-btn white br60 md row-center" @tap="shareToBargain">
                             邀请好友帮砍价
                         </view>
                     </view>
-                    <view class="invite-btn1 br60 white row-center lg" v-if="bargainObj.order_btn" @click="toOrderDetail">
+                    <view class="invite-btn1 br60 white row-center lg" v-if="bargainObj.order_btn" @tap="toOrderDetail">
                         查看订单
                     </view>
                     <view class="bargain-code-content">
@@ -170,7 +170,7 @@
                         <view class="nr muted row-center">
                             {{bargainObj.status_tips}}
                         </view>
-                        <view class="help-knife-btn row-center white lg br60" v-if="bargainObj.knife_btn" @click="$helpBargain">
+                        <view class="help-knife-btn row-center white lg br60" v-if="bargainObj.knife_btn" @tap="$helpBargain">
                             帮忙砍一刀
                         </view>
                         <navigator hover-class="none" url="/activity/pages/bargain/bargain" class="knife-btn row-center lg normal br60" v-if="bargainObj.sponsor_btn">
@@ -226,12 +226,12 @@
                     </view>
                 </view>
                 <view class="row-center">
-                    <view class="invite-btn row-center md" @click="shareToBargain">
+                    <view class="invite-btn row-center md" @tap="shareToBargain">
                         {{isHelpKnife ? '确定' : '邀请好友帮砍'}}
                     </view>
                 </view>
             </view>
-            <view class="close-icon row-center" @click="closeBargainPop">
+            <view class="close-icon row-center" @tap="closeBargainPop">
                 <u-icon name="close-circle" size="68rpx" color="#fff"></u-icon>
             </view>
         </u-popup>

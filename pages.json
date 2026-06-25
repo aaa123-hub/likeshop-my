@@ -590,7 +590,8 @@
 					"path": "pages/business_pages/recent_visits",
 					"style": {
 						"navigationBarTitleText": "最近访问",
-						"navigationStyle": "custom"
+						"navigationStyle": "custom",
+						"enablePullDownRefresh": true
 					}
 				},
 				{

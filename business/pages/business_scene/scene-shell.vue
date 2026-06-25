@@ -25,7 +25,8 @@
                         <view class="user-kyc-page__hero-body">
                             <view class="user-kyc-page__copy">
                                 <view class="user-kyc-page__title">用户KYC</view>
-                                <view class="user-kyc-page__subtitle">副标题副标题副标题副标题副标题</view>
+                                <view class="user-kyc-page__subtitle">完成实名信息后可使用更多服务</view>
+                                <view v-if="kycStatusText" :class="['user-kyc-page__status-pill', kycStatusClass]">{{ kycStatusText }}</view>
                             </view>
 
                             <view class="user-kyc-page__illustration">
@@ -35,6 +36,11 @@
                     </view>
 
                     <view class="user-kyc-page__sheet">
+                        <view v-if="kycStatusText" class="user-kyc-page__audit-card">
+                            <view class="user-kyc-page__audit-title">认证状态：{{ kycStatusText }}</view>
+                            <view v-if="kycAuditMessage" class="user-kyc-page__audit-desc">{{ kycAuditMessage }}</view>
+                            <view v-if="kycStatusInfo.lastSubmitTime" class="user-kyc-page__audit-time">提交时间：{{ kycStatusInfo.lastSubmitTime }}</view>
+                        </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">姓名</text>
                             <input v-model="kycForm.realName" class="user-kyc-page__input" placeholder="请输入真实姓名" placeholder-class="user-kyc-page__placeholder"></input>
@@ -60,7 +66,7 @@
                             </view>
                         </view>
 
-                        <view class="user-kyc-page__submit" @tap="submitKycForm">提交申请</view>
+                        <view :class="['user-kyc-page__submit', kycSubmitting ? 'is-disabled' : '']" @tap="submitKycForm">{{ kycSubmitting ? '提交中...' : '提交申请' }}</view>
                     </view>
                 </view>
             </template>
@@ -1019,36 +1025,34 @@
         </scroll-view>
         <u-popup v-model="showStoreSharePopup" mode="center" border-radius="0" :mask-close-able="true" :custom-style="{ background: 'transparent' }">
             <view class="store-share-popup">
-                <view class="store-share-shop-card">
-                    <image class="store-share-shop-card__logo" :src="storeDetailView.shopLogo" mode="aspectFill"></image>
-                    <view class="store-share-shop-card__body">
-                        <view class="store-share-shop-card__name line1">{{ storeDetailView.shopName }}</view>
-                        <view class="store-share-shop-card__rating">
-                            <image v-for="item in 5" :key="item" class="store-share-shop-card__star" :src="shareStarIcon" mode="aspectFit"></image>
-                            <text class="store-share-shop-card__score">{{ storeDetailView.shopScore }}</text>
+                <scroll-view scroll-y class="store-share-popup__scroll">
+                    <view class="store-share-shop-card">
+                        <view v-if="isEmptyImage(storeDetailView.shopLogo)" class="store-share-shop-card__logo store-share-shop-card__logo--empty">无</view>
+                        <image v-else class="store-share-shop-card__logo" :src="storeDetailView.shopLogo" mode="aspectFill"></image>
+                        <view class="store-share-shop-card__body">
+                            <view class="store-share-shop-card__name line1">{{ storeDetailView.shopName }}</view>
+                            <view class="store-share-shop-card__rating">
+                                <image v-for="item in 5" :key="item" class="store-share-shop-card__star" :src="shareStarIcon" mode="aspectFit"></image>
+                                <text class="store-share-shop-card__score">{{ storeDetailView.shopScore }}</text>
+                            </view>
+                            <view class="store-share-shop-card__time">
+                                <image class="store-share-shop-card__time-icon" :src="shareTimeIcon" mode="aspectFit"></image>
+                                <text class="line1">{{ storeDetailBusinessHoursText }}</text>
+                            </view>
                         </view>
-                        <view class="store-share-shop-card__time">
-                            <image class="store-share-shop-card__time-icon" :src="shareTimeIcon" mode="aspectFit"></image>
-                            <text class="line1">{{ storeDetailBusinessHoursText }}</text>
+                    </view>
+                    <view class="store-share-panel">
+                        <view class="store-share-qrcode">
+                            <tki-qrcode :val="qrStoreValue" :size="275" unit="upx" :showLoading="false" />
+                        </view>
+                        <view class="store-share-tip">扫一扫，即可查看公域线下店信息</view>
+                        <view class="store-share-actions">
+                            <view class="store-share-action store-share-action--cyan" @tap="toastStoreShareSave">保存图片</view>
+                            <button class="store-share-action" open-type="share">分享店铺</button>
                         </view>
                     </view>
-                </view>
-                <image class="store-share-mark" :src="shareCloseIcon" mode="aspectFit" @tap="showStoreSharePopup = false"></image>
-                <view class="store-share-panel">
-                    <view class="store-share-qrcode">
-                        <tki-qrcode :val="qrStoreValue" :size="510" unit="upx" :showLoading="false" />
-                    </view>
-                    <view class="store-share-info">
-                        <view class="store-share-price">
-                            <text class="store-share-price__symbol">¥</text><text class="store-share-price__main">{{ storeSharePriceMain }}</text><text class="store-share-price__decimal">{{ storeSharePriceDecimal }}</text>
-                        </view>
-                        <view class="store-share-tip">长按保存二维码</view>
-                    </view>
-                    <view class="store-share-actions">
-                        <view class="store-share-action store-share-action--cyan" @tap="toastStoreShareSave">保存图片</view>
-                        <button class="store-share-action" open-type="share">分享店铺</button>
-                    </view>
-                </view>
+                    <image class="store-share-mark" :src="shareCloseIcon" mode="aspectFit" @tap="showStoreSharePopup = false"></image>
+                </scroll-view>
             </view>
         </u-popup>
     </view>
@@ -1058,7 +1062,7 @@
 import TkiQrcode from '@/business/components/tki-qrcode/tki-qrcode.vue'
 import { getShopDetail, getStreetGoods, getStreetIndex } from '@/api/store'
 import { getRecentVisitShops, subscribeShop } from '@/api/app'
-import { getAccountLog, getInviteInfo, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
+import { getAccountLog, getInviteInfo, getKycStatus, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
 import { getDesignAsset, designAssetList, designAssets } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, tabbarList, uploadFile } from '@/utils/tools'
@@ -1126,6 +1130,8 @@ export default {
                 certFrontPreview: '',
                 certBackPreview: ''
             },
+            kycStatusInfo: {},
+            kycSubmitting: false,
             qrStoreMarkIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/ddc12d20f1064f9c949327f88bea0498/3180ae811deadda0dbd6b79667bc5bb1.png',
             qrGoodsMarkIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
             feedbackTags: ['下载/加载问题', '体验功能', '平台问题', '新功能建议', '其他', '违规举报'],
@@ -1417,6 +1423,30 @@ export default {
         sceneConfig() {
             return this.sceneMap[this.scene] || this.sceneMap.feedback
         },
+        kycStatusText() {
+            const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
+            const statusMap = {
+                NOT_SUBMITTED: '未提交',
+                PENDING: '审核中',
+                SUBMITTED: '审核中',
+                AUDITING: '审核中',
+                APPROVED: '已通过',
+                PASS: '已通过',
+                REJECTED: '未通过',
+                FAILED: '未通过'
+            }
+            return statusMap[status] || ''
+        },
+        kycStatusClass() {
+            const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
+            if (status === 'APPROVED' || status === 'PASS') return 'is-success'
+            if (status === 'REJECTED' || status === 'FAILED') return 'is-error'
+            if (status === 'PENDING' || status === 'SUBMITTED' || status === 'AUDITING') return 'is-pending'
+            return ''
+        },
+        kycAuditMessage() {
+            return this.kycStatusInfo.rejectReasonMessage || this.kycStatusInfo.reject_reason_message || this.kycStatusInfo.auditMessage || this.kycStatusInfo.audit_message || ''
+        },
         storeDetailView() {
             const shopBase = this.storeDetailData.shopBase || {}
             return {
@@ -1455,7 +1485,7 @@ export default {
         qrStoreValue() {
             const options = this.getCurrentPageOptions()
             const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
-            return `/business/pages/business_pages/store_detail?shopId=${shopId}`
+            return shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : '测试'
         },
         storeSharePriceText() {
             const firstGroup = this.storeDetailGroupProducts[0] || {}
@@ -1587,6 +1617,9 @@ export default {
                 if (value === 'street') {
                     this.loadStreetIndex()
                 }
+                if (value === 'user-kyc') {
+                    this.loadKycStatus()
+                }
                 if (value === 'street-goods') {
                     this.loadStreetGoods()
                 }
@@ -1637,17 +1670,37 @@ export default {
             this.kycForm.certBackUrl = result.fileUrl
             this.kycForm.certBackPreview = result.localPath
         },
+        async loadKycStatus() {
+            const res = await getKycStatus()
+            if (res.code == 1) {
+                this.kycStatusInfo = res.data || {}
+            }
+        },
         async submitKycForm() {
+            if (this.kycSubmitting) return
             if (!this.kycForm.realName || !this.kycForm.certNo || !this.kycForm.certFrontUrl || !this.kycForm.certBackUrl) {
                 uni.showToast({ title: '请填写完整认证信息', icon: 'none' })
                 return
             }
-            const res = await submitKyc({
-                ...this.kycForm,
-                certType: 'ID_CARD'
-            })
-            if (res.code == 1) {
-                uni.showToast({ title: '提交成功', icon: 'success' })
+            this.kycSubmitting = true
+            try {
+                const res = await submitKyc({
+                    ...this.kycForm,
+                    certType: 'ID_CARD'
+                })
+                if (res.code == 1) {
+                    this.kycStatusInfo = {
+                        ...(res.data || {}),
+                        kycStatus: res.data?.kycStatus || 'PENDING',
+                        auditMessage: res.data?.auditMessage || '资料已提交，请等待审核'
+                    }
+                    uni.showToast({ title: '提交成功', icon: 'success' })
+                    this.loadKycStatus()
+                    return
+                }
+                uni.showToast({ title: res.msg || '提交失败', icon: 'none' })
+            } finally {
+                this.kycSubmitting = false
             }
         },
         async chooseFeedbackImage() {
@@ -1857,6 +1910,7 @@ export default {
                 return
             }
             if (this.storeDetailLoadedShopId === String(shopId)) return
+            if (this.storeDetailLoading) return
             this.storeDetailLoading = true
             this.storeDetailApiLoaded = false
             this.resetStoreDetailData(String(shopId))
@@ -2488,7 +2542,7 @@ export default {
 .about-us-hero {
     position: relative;
     height: 750rpx;
-    padding-top: calc(var(--status-bar-height) + 45rpx);
+    padding-top: calc(var(--status-bar-height) + 24rpx);
     background: linear-gradient(180deg, #1688ff 0%, #037dfa 54%, #f7f8fb 100%);
     box-sizing: border-box;
 }
@@ -2610,7 +2664,7 @@ export default {
     position: relative;
     z-index: 1;
     min-height: 100vh;
-    padding-top: calc(var(--status-bar-height) + 45rpx);
+    padding-top: calc(var(--status-bar-height) + 24rpx);
     background: transparent;
     box-sizing: border-box;
 }
@@ -2839,7 +2893,7 @@ export default {
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
-    padding-top: calc(var(--status-bar-height) + 45rpx);
+    padding-top: calc(var(--status-bar-height) + 24rpx);
     background: #0d83ff url('https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
@@ -2886,13 +2940,13 @@ export default {
 .intro-card-title {
     position: absolute;
     left: 50%;
-    top: 17rpx;
+    top: 50%;
     color: #ffffff;
     font-size: 36rpx;
     font-weight: 500;
     line-height: 40rpx;
     white-space: nowrap;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
 }
 
 .intro-card-panel {
@@ -3012,7 +3066,7 @@ export default {
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
-    padding-top: calc(var(--status-bar-height) + 45rpx);
+    padding-top: calc(var(--status-bar-height) + 24rpx);
     background: #ffffff url('https://shengyuan.store/api/miniapp/files/miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
@@ -3049,13 +3103,13 @@ export default {
 .recent-visits-title {
     position: absolute;
     left: 50%;
-    top: 17rpx;
+    top: 50%;
     color: #222222;
     font-size: 36rpx;
     font-weight: 600;
     line-height: 40rpx;
     white-space: nowrap;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
 }
 
 .recent-visits-list {
@@ -3078,10 +3132,16 @@ export default {
 
 .recent-visits-thumb {
     flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 128rpx;
     height: 128rpx;
     background: #d5d5d5;
     border-radius: 8rpx;
+    color: #9ca3af;
+    font-size: 26rpx;
+    line-height: 32rpx;
 }
 
 .recent-visits-info {
@@ -4160,6 +4220,16 @@ export default {
     z-index: 5;
 }
 
+/* #ifdef MP-WEIXIN */
+.store-detail-hero__top {
+    right: 220rpx;
+}
+
+.store-detail-hero__share {
+    margin-right: 0;
+}
+/* #endif */
+
 .store-detail-hero__back {
     position: relative;
     display: flex;
@@ -4198,27 +4268,66 @@ export default {
 }
 
 .store-detail-hero__share {
-    position: absolute;
-    right: 0;
-    top: 88rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 96rpx;
-    height: 56rpx;
+    min-width: 104rpx;
+    height: 58rpx;
+    padding: 0 16rpx;
     flex: none;
     color: #ffffff;
-    font-size: 26rpx;
+    font-size: 24rpx;
     font-weight: 500;
-    background: rgba(0, 0, 0, 0.32);
-    border: 1rpx solid rgba(255, 255, 255, 0.36);
-    border-radius: 28rpx;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1rpx solid rgba(255, 255, 255, 0.42);
+    border-radius: 999rpx;
+    box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.16);
+    backdrop-filter: blur(8px);
+    box-sizing: border-box;
+}
+
+.store-detail-hero__share-icon {
+    position: relative;
+    width: 28rpx;
+    height: 28rpx;
+    margin-right: 8rpx;
+}
+
+.store-detail-hero__share-icon::before,
+.store-detail-hero__share-icon::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.store-detail-hero__share-icon::before {
+    left: 2rpx;
+    top: 10rpx;
+    width: 8rpx;
+    height: 8rpx;
+    box-shadow: 17rpx -8rpx 0 currentColor, 17rpx 12rpx 0 currentColor;
+}
+
+.store-detail-hero__share-icon::after {
+    left: 8rpx;
+    top: 9rpx;
+    width: 18rpx;
+    height: 2rpx;
+    border-radius: 2rpx;
+    background: currentColor;
+    box-shadow: 0 10rpx 0 currentColor;
+    transform: rotate(-25deg);
+    transform-origin: left center;
 }
 
 .store-detail-hero__title {
     position: absolute;
     left: 50%;
     top: 50%;
+    max-width: calc(100% - 260rpx);
+    overflow: hidden;
+    text-overflow: ellipsis;
     transform: translate(-50%, -50%);
     color: #ffffff;
     font-size: 34rpx;
@@ -4230,42 +4339,60 @@ export default {
 
 .store-share-popup {
     position: relative;
-    width: 750rpx;
-    height: 1120rpx;
-    padding-top: 110rpx;
-    background: linear-gradient(180deg, #0d6ff2 0%, #36a7ff 42%, #eef7ff 100%);
+    width: 680rpx;
+    max-width: 92vw;
+    max-height: calc(100vh - var(--status-bar-height, 0px) - 80rpx);
+    padding: 0;
+    background-size: 100% 100%;
+    border-radius: 30rpx;
     box-sizing: border-box;
     overflow: hidden;
+}
+
+.store-share-popup__scroll {
+    max-height: calc(100vh - var(--status-bar-height, 0px) - 80rpx);
+    padding: 58rpx 0 34rpx;
+    box-sizing: border-box;
 }
 
 .store-share-shop-card {
     position: relative;
     display: flex;
     width: 540rpx;
-    min-height: 210rpx;
+    max-width: calc(100% - 64rpx);
+    min-height: 188rpx;
     margin: 0 auto;
-    padding: 24rpx;
-    background: url('https://shengyuan.store/api/miniapp/files/miniapp/628c24770b344dceb4cec34a9688e8b2/03b1646c905f30fb5cc4b12a3a1df372.png') no-repeat center;
+    padding: 23rpx 29rpx;
+    background: url('https://shengyuan.store/api/miniapp/files/miniapp/bc28ff3e89a640a2b7b9c94fe99be721/264731ffd33531cb16f5c72f042fe14b.png') no-repeat center;
     background-size: 100% 100%;
     box-sizing: border-box;
-    border-radius: 28rpx;
-    box-shadow: 0 20rpx 44rpx rgba(0, 84, 184, 0.24);
+    border-radius: 24rpx;
+    box-shadow: 0 20rpx 44rpx rgba(0, 84, 184, 0.18);
     overflow: hidden;
 }
 
 .store-share-shop-card__logo {
     flex: none;
-    width: 132rpx;
-    height: 132rpx;
-    margin: 4rpx 0 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 147rpx;
+    height: 147rpx;
+    margin: 0;
     background: #ffffff;
     border-radius: 10rpx;
+}
+
+.store-share-shop-card__logo--empty {
+    color: #9ca3af;
+    font-size: 28rpx;
+    line-height: 34rpx;
 }
 
 .store-share-shop-card__body {
     flex: 1;
     min-width: 0;
-    margin: 10rpx 0 0 24rpx;
+    margin: 15rpx 0 0 27rpx;
 }
 
 .store-share-shop-card__name {
@@ -4278,14 +4405,14 @@ export default {
 .store-share-shop-card__rating {
     display: flex;
     align-items: center;
-    height: 23rpx;
+    height: 26rpx;
     margin-top: 16rpx;
 }
 
 .store-share-shop-card__star {
-    width: 52rpx;
+    width: 24rpx;
     height: 23rpx;
-    margin-right: 3rpx;
+    margin-right: 2rpx;
 }
 
 .store-share-shop-card__score {
@@ -4314,30 +4441,24 @@ export default {
 }
 
 .store-share-mark {
-    position: absolute;
-    left: 50%;
-    top: 400rpx;
-    width: 48rpx;
-    height: 48rpx;
-    color: #ffffff;
-    font-size: 46rpx;
-    line-height: 44rpx;
-    text-align: center;
+    display: block;
+    position: relative;
+    width: 56rpx;
+    height: 56rpx;
+    margin: 22rpx auto 0;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.28);
-    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.3);
     z-index: 3;
 }
 
 .store-share-panel {
-    position: absolute;
-    left: 66rpx;
-    top: 310rpx;
-    width: 620rpx;
-    min-height: 838rpx;
-    margin: 0;
-    padding: 30rpx 28rpx 34rpx;
-    background: url('https://shengyuan.store/api/miniapp/files/miniapp/58765558c49f4c23a88db8d20b12e071/f32ca2939042b3472f400311bd2edccd.png') no-repeat center;
+    position: relative;
+    width: 540rpx;
+    max-width: calc(100% - 64rpx);
+    min-height: 518rpx;
+    margin: -2rpx auto 0;
+    padding: 58rpx 21rpx 17rpx;
+    background: url('https://shengyuan.store/api/miniapp/files/miniapp/b804285c02584e1f81deaae98321c28c/2f63b8336e9bcbd0397b8bc4f7b1eba0.png') no-repeat center;
     background-size: 100% 100%;
     box-sizing: border-box;
 }
@@ -4346,8 +4467,8 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 562rpx;
-    height: 510rpx;
+    width: 275rpx;
+    height: 275rpx;
     margin: 0 auto;
     background: #d5d5d5;
     border-radius: 23rpx;
@@ -4380,10 +4501,11 @@ export default {
 }
 
 .store-share-tip {
-    margin-top: 21rpx;
-    color: #666666;
-    font-size: 24rpx;
-    line-height: 24rpx;
+    margin-top: 36rpx;
+    color: #222222;
+    font-size: 26rpx;
+    line-height: 30rpx;
+    text-align: center;
 }
 
 .store-share-actions {
@@ -4392,7 +4514,7 @@ export default {
     justify-content: space-between;
     width: 100%;
     height: 81rpx;
-    margin: 28rpx 0 0;
+    margin: 24rpx 0 0;
 }
 
 .store-share-action {
@@ -4477,11 +4599,11 @@ export default {
 .store-detail-summary-card__star {
     width: 24rpx;
     height: 23rpx;
-    margin-right: 3rpx;
+    margin-right: 2rpx;
 }
 
 .store-detail-summary-card__score {
-    margin-left: 9rpx;
+    margin-left: 7rpx;
     color: rgba(248, 104, 33, 1);
     font-size: 24rpx;
     font-weight: 500;
@@ -4853,11 +4975,11 @@ export default {
 .store-detail-group-card__star {
     width: 24rpx;
     height: 23rpx;
-    margin-right: 3rpx;
+    margin-right: 2rpx;
 }
 
 .store-detail-group-card__score {
-    margin-left: 9rpx;
+    margin-left: 7rpx;
     color: rgba(248, 104, 33, 1);
     font-size: 24rpx;
     font-weight: 500;
@@ -4970,6 +5092,36 @@ export default {
     color: #2f2f2f;
     font-size: 28rpx;
     line-height: 40rpx;
+}
+
+.user-kyc-page__status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 116rpx;
+    height: 44rpx;
+    margin-top: 18rpx;
+    padding: 0 20rpx;
+    color: #666666;
+    font-size: 24rpx;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.78);
+    border-radius: 999rpx;
+}
+
+.user-kyc-page__status-pill.is-pending {
+    color: #a46800;
+    background: #fff3d8;
+}
+
+.user-kyc-page__status-pill.is-success {
+    color: #0f8a42;
+    background: #daf7e7;
+}
+
+.user-kyc-page__status-pill.is-error {
+    color: #d93025;
+    background: #ffe5e2;
 }
 
 .user-kyc-page__illustration {
@@ -5096,6 +5248,29 @@ export default {
     box-shadow: 0 -8rpx 30rpx rgba(131, 145, 176, 0.08);
 }
 
+.user-kyc-page__audit-card {
+    margin-bottom: 12rpx;
+    padding: 22rpx 24rpx;
+    color: #202020;
+    background: #f5f8ff;
+    border: 1rpx solid #e7eefc;
+    border-radius: 18rpx;
+}
+
+.user-kyc-page__audit-title {
+    font-size: 28rpx;
+    font-weight: 700;
+    line-height: 40rpx;
+}
+
+.user-kyc-page__audit-desc,
+.user-kyc-page__audit-time {
+    margin-top: 8rpx;
+    color: #667085;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
 .user-kyc-page__field {
     display: flex;
     align-items: center;
@@ -5144,7 +5319,7 @@ export default {
 
 .user-kyc-page__photo-card {
     position: relative;
-    width: 320rpx;
+    width: calc(50% - 14rpx);
     height: 222rpx;
     overflow: hidden;
     border-radius: 18rpx;
@@ -5268,6 +5443,10 @@ export default {
     background: linear-gradient(180deg, #1986ff 0%, #0d79f5 100%);
     border-radius: 49rpx;
     box-shadow: 0 14rpx 30rpx rgba(17, 120, 239, 0.2);
+}
+
+.user-kyc-page__submit.is-disabled {
+    opacity: 0.65;
 }
 
 .wallet-mode {

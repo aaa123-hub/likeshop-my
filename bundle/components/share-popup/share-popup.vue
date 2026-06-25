@@ -39,7 +39,7 @@
 			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<!-- #ifdef H5 -->
-			<img style="width: 640rpx;" :src="poster" />
+			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<button class="row row-center save-btn" size="lg" @tap="savePoster">
 				<!-- #ifndef H5 -->
@@ -162,7 +162,7 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 					this.qrcodeIsImage = true
 					return
 				}
-				this.mnpQrcode = this.getLink
+				this.mnpQrcode = '测试'
 				this.qrcodeIsImage = false
 			},
 			async getPoster() {
@@ -196,7 +196,6 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 						url: this.pagePath, // 跳转页面路径
 						type: this.type,         // 0-会员分享海报 1-商品详情 2-砍价活动
 					}).then((res) => {
-						console.log('shareRes', res)
 						resolve(res)
 				}).catch(() => {
 					resolve({ code: 1, data: {} })
@@ -236,8 +235,7 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 					title: this.config.name,
 					summary: '',
 					imageUrl: this.config.image,
-					success: (res) => {
-						console.log('分享成功');
+						success: () => {
 						this.showshare = false
 					},
 					fail: (err) => {
@@ -262,11 +260,10 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 							icon: 'success'
 						});
 					},
-					fail: (err) => {
+					fail: () => {
 						this.$toast({
 							title: '保存失败'
 						});
-						console.log(err)
 					}
 				})
 

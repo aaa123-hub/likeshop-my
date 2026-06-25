@@ -3,7 +3,7 @@
 		<view class="aside">
 			<scroll-view style="height: 100%" scroll-y="true" scroll-with-animation="true">
 				<block v-for="(item, index) in cateList" :key="index">
-					<view :class="'one-item sm ' + (index == selectIndex ? 'active' : '')" @click="changeActive(index)">
+					<view :class="'one-item sm ' + (index == selectIndex ? 'active' : '')" @tap="changeActive(index)">
 						<text class="name">{{ item.name }}</text>
 						<view v-if="index == selectIndex" class="active-line bg-primary"></view>
 					</view>

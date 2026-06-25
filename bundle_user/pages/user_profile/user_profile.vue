@@ -2,7 +2,7 @@
     <view class="user-profile-container mt10">
         <navbar title="个人设置"></navbar>
         <view class="user-profile">
-            <view class="user-avatar-box row-start" @click="handleUser">
+            <view class="user-avatar-box row-start" @tap="handleUser">
                 <!-- <button
                     class="column column-center"
                     hover-class="none"
@@ -19,7 +19,7 @@
                             ? userInfo.avatar
                             : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png'
                     "
-                    @click="handleUser"
+                    @tap="handleUser"
                 >
                 </image>
                 <view class="row-between flex1">
@@ -80,7 +80,7 @@
             <!-- #endif -->
 
             <!-- #ifndef MP-WEIXIN -->
-            <view class="row-info row-between" @click="showPwdPop">
+            <view class="row-info row-between" @tap="showPwdPop">
                 <view class="label md">登录密码</view>
                 <view class="row">
                     <view class="muted nr">点击设置</view>
@@ -88,11 +88,11 @@
                 </view>
             </view>
             <!-- #endif -->
-            <view class="row-info row-between bdb-line mt10" @click="goToExplain(0)">
+            <view class="row-info row-between bdb-line mt10" @tap="goToExplain(0)">
                 <view class="label md">服务协议</view>
                 <u-icon name="arrow-right" />
             </view>
-            <view class="row-info row-between bdb-line" @click="goToExplain(1)">
+            <view class="row-info row-between bdb-line" @tap="goToExplain(1)">
                 <view class="label md">隐私政策</view>
                 <u-icon name="arrow-right" />
             </view>
@@ -104,7 +104,7 @@
                 <view>v{{ version }}</view>
             </view>
 
-            <view class="bg-primary white save-btn row-center lg" @click="logout">退出登录</view>
+            <view class="bg-primary white save-btn row-center lg" @tap="logout">退出登录</view>
 
             <!-- 版权信息 -->
             <view class="license xs" v-if="appConfig.copyright_info">
@@ -130,7 +130,7 @@
                         style="padding-left: 5px; width: 130px"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -150,7 +150,7 @@
                         userInfo.mobile ? '更改' : '绑定'
                     }}手机号码成功后，您的账号将会变更为该设置号码</view
                 >
-                <view class="btn bg-primary white row-center" @click="$changeUserMobile">确定</view>
+                <view class="btn bg-primary white row-center" @tap="$changeUserMobile">确定</view>
             </view>
         </u-popup>
 
@@ -196,7 +196,7 @@
                         style="padding-left: 10rpx; width: 260rpx"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -215,7 +215,7 @@
                     <view style="width: 71px">确认密码</view>
                     <input type="password" v-model="comfirmPwd" placeholder="再次输入新密码确认" />
                 </view>
-                <view class="btn bg-primary white row-center" @click="$forgetPwd">确定</view>
+                <view class="btn bg-primary white row-center" @tap="$forgetPwd">确定</view>
             </view>
         </u-popup>
         <u-picker

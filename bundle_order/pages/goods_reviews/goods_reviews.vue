@@ -88,7 +88,7 @@ import { baseURL } from '@/config/app.js'
 import { goodsComment, getCommentInfo } from '@/api/user'
 import { uploadFile } from '@/utils/tools.js'
 import URate from '@/bundle_order/components/uview-ui/components/u-rate/u-rate.vue'
-import OrderGoods from '@/bundle_shared_components/components/order-goods/order-goods.vue'
+import OrderGoods from '@/bundle_order/components/order-goods/order-goods.vue'
 export default {
 	components: {
 			Uploader,

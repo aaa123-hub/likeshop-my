@@ -3,7 +3,7 @@
 <view class="user-spread">
 	<view class="explain row muted" v-if="vipState==0 || vipState==1">
 	    <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
-	    <span class="ml10">成为分销会员，推广下级可获得额外收益，推广越多收益越多</span>
+	    <text class="ml10">成为分销会员，推广下级可获得额外收益，推广越多收益越多</text>
 	</view>
     <loading-view v-if="showLoading"></loading-view>
     <view class="header" v-if="!showLoading">
@@ -38,7 +38,7 @@
                             <view class="label md">真实姓名：</view>
                             <input class="md" name="real_name" v-model="realName" placeholder="请输入您的真实姓名"></input>
                         </view>
-                        <view @click="showRegion=true">
+                        <view @tap="showRegion=true">
                             <view class="form-item row ">
                                 <view class="label md">现住省份：</view>
                                 <input class="md" name="region" :value="region" disabled type="text" placeholder="请选择省、市、区"></input>
@@ -52,7 +52,7 @@
                         </view>
                     </view>
                 </view>
-                <button class="apply-btn bg-primary white md mt10 row-center br60" @click="formSubmit">
+                <button class="apply-btn bg-primary white md mt10 row-center br60" @tap="formSubmit">
                     立即申请
                 </button>
                 <view class="mt20 xxs lighter row-center">提交成功后，我们将会在1-2个工作日内给您回复</view>
@@ -65,7 +65,7 @@
                     <view class="title xxl normal">申请成为分销会员</view>
                 <!--    <view class="explain row muted">
                         <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
-                        <span class="ml10">成为分销会员，推广下级可获得额外收益，推广越多收益越多</span>
+                        <text class="ml10">成为分销会员，推广下级可获得额外收益，推广越多收益越多</text>
                     </view> -->
                 </view>
                 <view class="user-result-content column-center">
@@ -132,14 +132,14 @@
             </view>
             <view class="mt20 fans-msg-box row-center bg-white md">
                 <navigator url="/bundle_misc/pages/user_fans/user_fans" hover-class="none" class="my-fans row-center normal">
-                    我的粉丝 <span class="primary ml10">{{userFans}}</span>
+                    我的粉丝 <text class="primary ml10">{{userFans}}</text>
                     <u-icon class="ml10" name="arrow-right" size="28rpx" color="#666" />
                 </navigator>
             </view>
             <view class="my-invite-box mt20 bg-white column-center">
                 <view class="my-invite-title sm normal">我的邀请码</view>
                 <view class="row bold mt20" style="font-size: 42rpx;line-height: 30rpx">
-                    {{userInfo.user.distribution_code}} <view class="invite-copy-btn ml10 xxs" @click="onCopy">点击复制</view>
+                    {{userInfo.user.distribution_code}} <view class="invite-copy-btn ml10 xxs" @tap="onCopy">点击复制</view>
                 </view>
                 <!-- <view class="row-center my-promote-banner bg-primary white">我的推广海报</view> -->
             </view>

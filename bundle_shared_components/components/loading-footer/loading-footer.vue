@@ -5,7 +5,7 @@
         <text :style="'color: ' + color">{{loadingText}}</text>
     </view>
     <view v-if="status === 'finished'" class="finished">{{ finishedText }}</view>
-    <view v-if="status === 'error'" @click="onRefresh">{{ errorText }}</view>
+    <view v-if="status === 'error'" @tap="onRefresh">{{ errorText }}</view>
     <view v-if="status === 'empty'" class="empty">
         <text v-if="!slotEmpty">暂无数据</text>
         <slot name="empty" v-else></slot>

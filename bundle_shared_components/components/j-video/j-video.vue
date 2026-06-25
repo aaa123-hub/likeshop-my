@@ -1,7 +1,7 @@
 <template>
 <view class="root" :style="{width,height}">
 		<image :style="{width,height}" class="posterImg" :src="posterUrl" mode="aspectFit"></image>
-		<view :style="{width,height}" @click="state=!state" class="box">
+		<view :style="{width,height}" @tap="state=!state" class="box">
 			<image class="playIcon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_play.png" mode="widthFix"></image>
 		</view>
 		<video :id="videoId" :style="{height,width:state?'750rpx':'1rpx'}" @pause="state=0" @timeupdate="timeupdate" @fullscreenchange="fullscreenchange" class="video" :src="url"></video>

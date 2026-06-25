@@ -137,12 +137,20 @@ export default {
 }
 
 .eco-header {
+    position: relative;
     display: flex;
-    align-items: flex-start;
-    width: 702rpx;
+    align-items: center;
+    width: calc(100% - 48rpx);
     height: 64rpx;
     margin: calc(var(--status-bar-height) + 24rpx) auto 0;
 }
+
+/* #ifdef MP-WEIXIN */
+.eco-header {
+    padding-right: 196rpx;
+    box-sizing: border-box;
+}
+/* #endif */
 
 .eco-back {
     position: relative;
@@ -164,9 +172,11 @@ export default {
 }
 
 .eco-title {
-    flex: 1;
-    height: 34rpx;
-    margin: 17rpx 42rpx 0 0;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 360rpx;
     overflow: hidden;
     color: #222222;
     font-size: 36rpx;
@@ -175,6 +185,7 @@ export default {
     line-height: 36rpx;
     text-align: center;
     white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .eco-capsule {

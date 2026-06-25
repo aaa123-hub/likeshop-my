@@ -5,14 +5,14 @@
             <view class="recent-visits-title">最近访问</view>
         </view>
 
-        <view class="recent-visits-list">
+        <view class="recent-visits-list" v-if="visitList.length">
             <view
                 v-for="item in visitList"
                 :key="item.shopId"
                 class="recent-visits-item"
                 @tap="goShopDetail(item)"
             >
-                <view v-if="!item.image" class="recent-visits-thumb"></view>
+                <view v-if="!item.image" class="recent-visits-thumb recent-visits-thumb--empty">无</view>
                 <image v-else class="recent-visits-thumb" :src="item.image" mode="aspectFill"></image>
                 <view class="recent-visits-info">
                     <view class="recent-visits-name line1">{{ item.name }}</view>
@@ -23,29 +23,65 @@
                 </view>
             </view>
         </view>
+        <view v-else class="recent-visits-empty">
+            <view class="recent-visits-empty__title">暂无最近访问</view>
+            <view class="recent-visits-empty__desc">浏览过的商家会展示在这里</view>
+        </view>
     </view>
 </template>
 
 <script>
+import { getRecentVisitShops, subscribeShop } from '@/api/app'
+
 export default {
     data() {
         return {
-            visitList: [
-                { shopId: 101, name: '数码投影仪专卖店', time: '18:00', image: '', subscribed: false },
-                { shopId: 102, name: '数码投影仪专卖店', time: '18:00', image: '', subscribed: true },
-                { shopId: 103, name: '数码投影仪专卖店', time: '18:00', image: '', subscribed: false },
-                { shopId: 104, name: '数码投影仪专卖店', time: '18:00', image: '', subscribed: true }
-            ]
+            loading: false,
+            visitList: []
         }
     },
+    onLoad() {
+        this.loadRecentVisits()
+    },
+    onPullDownRefresh() {
+        this.loadRecentVisits().finally(() => {
+            uni.stopPullDownRefresh()
+        })
+    },
     methods: {
-        goBack() {
-            uni.navigateBack({ delta: 1 })
+        async loadRecentVisits() {
+            if (this.loading) return Promise.resolve()
+            this.loading = true
+            try {
+                const res = await getRecentVisitShops({ pageNo: 1, pageSize: 30 })
+                if (res.code == 1) {
+                    this.visitList = res.data || []
+                }
+            } finally {
+                this.loading = false
+            }
         },
-        toggleSubscribe(item) {
-            item.subscribed = !item.subscribed
+        goBack() {
+            const pages = getCurrentPages()
+            if (pages.length > 1) {
+                uni.navigateBack({ delta: 1 })
+                return
+            }
+            uni.switchTab({ url: '/pages/index/index' })
+        },
+        async toggleSubscribe(item) {
+            if (!item.shopId) return
+            const nextSubscribed = !item.subscribed
+            const previousSubscribed = item.subscribed
+            item.subscribed = nextSubscribed
+            const res = await subscribeShop({ shopId: item.shopId, subscribed: nextSubscribed })
+            if (res.code != 1) {
+                item.subscribed = previousSubscribed
+                uni.showToast({ title: res.msg || '操作失败', icon: 'none' })
+            }
         },
         goShopDetail(item) {
+            if (!item.shopId) return
             uni.navigateTo({ url: `/business/pages/business_pages/store_detail?shopId=${item.shopId}` })
         }
     }
@@ -58,8 +94,8 @@ export default {
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
-    padding-top: calc(var(--status-bar-height) + 45rpx);
-    background: #ffffff url('https://lanhu-oss-proxy.lanhuapp.com/d8467d9a62a60ccdbb6908777aebe692') no-repeat center top;
+    padding-top: calc(var(--status-bar-height) + 24rpx);
+    background: #ffffff url('https://shengyuan.store/api/miniapp/files/miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
 }
@@ -72,6 +108,12 @@ export default {
     height: 64rpx;
     margin: 0 24rpx;
 }
+
+/* #ifdef MP-WEIXIN */
+.recent-visits-topbar {
+    margin-right: 220rpx;
+}
+/* #endif */
 
 .recent-visits-back {
     position: relative;
@@ -95,13 +137,13 @@ export default {
 .recent-visits-title {
     position: absolute;
     left: 50%;
-    top: 17rpx;
+    top: 50%;
     color: #222222;
     font-size: 36rpx;
     font-weight: 600;
     line-height: 40rpx;
     white-space: nowrap;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
 }
 
 .recent-visits-list {
@@ -123,10 +165,19 @@ export default {
 
 .recent-visits-thumb {
     flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 128rpx;
     height: 128rpx;
     border-radius: 8rpx;
     background: #d5d5d5;
+}
+
+.recent-visits-thumb--empty {
+    color: #9ca3af;
+    font-size: 26rpx;
+    line-height: 32rpx;
 }
 
 .recent-visits-info {
@@ -169,5 +220,24 @@ export default {
 .recent-visits-btn--subscribed {
     color: #037dfa;
     background: #d0e7ff;
+}
+
+.recent-visits-empty {
+    margin: 160rpx 48rpx 0;
+    text-align: center;
+}
+
+.recent-visits-empty__title {
+    color: #222222;
+    font-size: 32rpx;
+    font-weight: 600;
+    line-height: 44rpx;
+}
+
+.recent-visits-empty__desc {
+    margin-top: 16rpx;
+    color: #999999;
+    font-size: 26rpx;
+    line-height: 36rpx;
 }
 </style>

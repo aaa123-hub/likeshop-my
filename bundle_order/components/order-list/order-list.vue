@@ -210,7 +210,7 @@ import { loadingFun } from "@/utils/tools";
 import UTag from '@/bundle_order/components/uview-ui/components/u-tag/u-tag.vue'
 import UCountDown from '@/bundle_order/components/uview-ui/components/u-count-down/u-count-down.vue'
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
-import OrderGoods from '@/bundle_shared_components/components/order-goods/order-goods.vue'
+import OrderGoods from '@/bundle_order/components/order-goods/order-goods.vue'
 import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
 import LoadingView from '@/bundle_shared_components/components/loading-view/loading-view.vue'
 import OrderDialog from '@/bundle_shared_components/components/order-dialog/order-dialog.vue'
@@ -331,7 +331,6 @@ export default {
         let res = {};
         if (this.pay_way === 1) {
           res = await getwechatSyncCheck({ id: this.orderId });
-          console.log(res);
         }
         if (
           compareWeChatVersion("2.6.0") === 1 &&
@@ -348,9 +347,7 @@ export default {
             await this.comfirmReceive(data.transaction_id);
             await this.querycomfirmReceive(this.orderId);
             await confirmOrder(this.orderId);
-          } catch (error) {
-            console.log(error);
-          }
+          } catch (error) {}
           this.reflesh();
         } else {
           this.orderDialog();
@@ -432,7 +429,6 @@ export default {
       });
     },
     goodCount(goodLists) {
-      console.log(goodLists);
       let count = 0;
       goodLists.forEach((item) => {
         count += item.goods_num;

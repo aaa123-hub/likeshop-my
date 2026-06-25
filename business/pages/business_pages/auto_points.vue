@@ -84,7 +84,7 @@ export default {
 .auto-points-page {
     position: relative;
     min-height: 100vh;
-    padding-top: calc(var(--status-bar-height) + 45rpx);
+    padding-top: calc(var(--status-bar-height) + 24rpx);
     overflow: hidden;
     background: #f6f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/d436eea929e84f17a7bbc5f609cc7188/auto-points-bg.png') no-repeat center top;
     background-size: 100% 100%;
@@ -92,11 +92,18 @@ export default {
 }
 
 .auto-points-topbar {
+    position: relative;
     display: flex;
     align-items: center;
     height: 64rpx;
     margin: 0 24rpx;
 }
+
+/* #ifdef MP-WEIXIN */
+.auto-points-topbar {
+    margin-right: 220rpx;
+}
+/* #endif */
 
 .auto-points-back {
     position: relative;
@@ -118,7 +125,10 @@ export default {
 }
 
 .auto-points-title {
-    margin-left: 168rpx;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     color: #222222;
     font-size: 36rpx;
     font-weight: 500;

@@ -297,7 +297,8 @@ export async function prepay(data = {}) {
 //小程序订阅
 export function getMnpNotice(data) {
   return request.get("miniapp/messages/unread-count", { params: { bizType: data?.scene || data?.bizType } })
-    .then((res) => (res.code == 1 ? { ...res, data: [] } : res));
+    .then((res) => (res.code == 1 ? { ...res, data: [] } : { code: 1, data: [] }))
+    .catch(() => ({ code: 1, data: [] }));
 }
 
 //账号登录

@@ -29,7 +29,7 @@
 			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<!-- #ifdef H5 -->
-			<img style="width: 640rpx;" :src="poster" />
+			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<button class="row row-center save-btn" size="lg" @tap="savePoster">
 				<!-- #ifndef H5 -->

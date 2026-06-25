@@ -71,7 +71,7 @@ import {
 		methods: {
 			async getPoster() {
 				const res = await apiDistributionPoster()
-				this.poster = res.data.poster
+				this.poster = res.code == 1 ? (res.data && res.data.poster) || '' : ''
 			},
 			getMnpQrCode() {
 				// apiMnpQrCode().then(res => {
@@ -108,7 +108,7 @@ import {
 				// #endif
 				// #ifdef H5
 				this.$toast({
-					title: 请长按图片保存
+					title: '请长按图片保存'
 				})
 				// #endif
 			},

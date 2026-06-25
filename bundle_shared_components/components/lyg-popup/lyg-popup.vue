@@ -7,16 +7,16 @@
 			<view class="title">{{ title }}</view>
 			<view class="content">
 				请你务必审慎阅读、充分理解“服务协议”和“隐私政策”各条款，包括但不限于：为了更好的向你提供服务，我们需要收集你的设备标识、操作日志等信息用于分析、优化应用性能。你可阅读
-				<text class="link" @click="linkClick(1)">《服务协议》</text>和
-				<text class="link" @click="linkClick(2)">《隐私政策》</text>
+				<text class="link" @tap="linkClick(1)">《服务协议》</text>和
+				<text class="link" @tap="linkClick(2)">《隐私政策》</text>
 				了解详细信息。如果你同意，请点击下面按钮开始接受我们的服务。
 			</view>
 			<view class="btn">
 				<view class="flex-1">
-					<button class="plain" @click="back">拒绝，仅浏览</button>
+					<button class="plain" @tap="back">拒绝，仅浏览</button>
 				</view>
 				<view class="flex-1">
-					<button @click="confirm">同意并继续</button>
+					<button @tap="confirm">同意并继续</button>
 				</view>
 			</view>
 		</view>

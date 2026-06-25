@@ -149,13 +149,13 @@ author: likeshop.cn.team //
               <tki-qrcode
                 ref="qrcode"
                 uni="px"
-                :val="orderDetail.pickup_code"
+                :val="orderDetail.pickup_code || '测试'"
                 :size="118 * 2"
                 :showLoading="false"
               />
             </view>
             <view class="mt30 xs black qr-code"
-              >提货码：{{ orderDetail.pickup_code }}</view
+              >提货码：{{ orderDetail.pickup_code || '测试' }}</view
             >
           </view>
 
@@ -401,6 +401,7 @@ export default {
       showLoading: false,
       imageQR: "",
       priceShow: false,
+      didShowOnce: false,
     };
   },
 
@@ -423,6 +424,10 @@ export default {
   },
 
   onShow() {
+    if (!this.didShowOnce) {
+      this.didShowOnce = true;
+      return;
+    }
     this.getOrderDetailFun();
   },
 
@@ -493,7 +498,6 @@ export default {
         let res = {};
         if (this.orderDetail.pay_way === 1) {
           res = await getwechatSyncCheck({ id: this.id });
-          console.log(res);
         }
         if (
           compareWeChatVersion("2.6.0") === 1 &&
@@ -510,9 +514,7 @@ export default {
             await this.comfirmReceive(data.transaction_id);
             await this.querycomfirmReceive(this.id);
             await confirmOrder(this.id);
-          } catch (error) {
-            console.log(error);
-          }
+          } catch (error) {}
           this.getOrderDetailFun();
         } else {
           this.orderDialog();

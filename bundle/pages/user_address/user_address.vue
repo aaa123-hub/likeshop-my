@@ -69,11 +69,11 @@
         </u-modal>
         <view class="footer">
             <!-- #ifdef H5 || MP-WEIXIN -->
-            <view v-if="isWeixin" class="footer__ghost" @click="getWxAddressFun">
+            <view v-if="isWeixin" class="footer__ghost" @tap="getWxAddressFun">
                 微信导入
             </view>
             <!-- #endif -->
-            <view class="footer__btn" @click="addAddress">
+            <view class="footer__btn" @tap="addAddress">
                 {{ hasAddress ? '新增收货地址' : '+添加地址' }}
             </view>
         </view>

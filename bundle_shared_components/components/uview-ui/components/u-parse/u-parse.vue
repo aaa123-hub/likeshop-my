@@ -7,7 +7,7 @@
 		<!--#ifndef APP-PLUS-NVUE-->
 		<view id="_top" :style="showAm+(selectable?';user-select:text;-webkit-user-select:text':'')">
 			<!--#ifdef H5 || MP-360-->
-			<div :id="'rtf'+uid"></div>
+			<view :id="'rtf'+uid"></view>
 			<!--#endif-->
 			<!--#ifndef H5 || MP-360-->
 			<trees :nodes="nodes" :lazyLoad="lazyLoad" :loading="loadingImg" />

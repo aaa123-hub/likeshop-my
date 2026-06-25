@@ -72,9 +72,7 @@
                     <view class="recent-visit-title">最近访问</view>
                     <view class="recent-visit-more" @tap="goPage('/business/pages/business_pages/recent_visits')">
                         <text>查看全部</text>
-                        <view class="recent-visit-more__icon">
-                            <u-icon name="arrow-right" size="14" color="#1688ff"></u-icon>
-                        </view>
+                        <view class="recent-visit-more__icon"></view>
                     </view>
                 </view>
                 <scroll-view scroll-x="true" show-scrollbar="false" class="recent-shop-scroll">
@@ -158,6 +156,7 @@
 <script>
 import { mapActions, mapGetters } from 'vuex'
 import { getHome } from '@/api/store'
+import { getRecentVisitShops } from '@/api/app'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
@@ -169,14 +168,17 @@ export default {
             designAssets,
             businessRoutes,
             recentVisitFallback: [
-                { shopId: 101, name: '潮流集合店精选', image: 'https://shengyuan.store/api/miniapp/files/miniapp/0490c8a6210349d59eff9bed76957ea6/home-shortcut-primary.png' },
-                { shopId: 102, name: '城市鲜选', image: 'https://shengyuan.store/api/miniapp/files/miniapp/7b77de783bbd4e419331eb6ad15f12cb/home-shortcut-secondary.png' },
-                { shopId: 103, name: '悦享生活馆', image: 'https://shengyuan.store/api/miniapp/files/miniapp/f93fd57878224201b960031759dc9e69/home-shortcut-tertiary.png' },
-                { shopId: 104, name: '蓝鲸优品', image: 'https://shengyuan.store/api/miniapp/files/miniapp/5c89804113254815b6b2f95d570b60b0/home-balance-bill.png' },
-                { shopId: 105, name: '轻奢好物店', image: 'https://shengyuan.store/api/miniapp/files/miniapp/4392f8a4a0d14d49ad384109e9862452/home-ecology-icon.png' },
-                { shopId: 106, name: '优选便利铺', image: 'https://shengyuan.store/api/miniapp/files/miniapp/a9f32cef1d334fc6b924d3840ef725ee/home-notice-icon.png' },
-                { shopId: 107, name: '邻里百货', image: 'https://shengyuan.store/api/miniapp/files/miniapp/2f4807aea6dc4a8bbf0069101f459540/home-icon-more.png' }
+                { shopId: 101, name: '潮流集合店精选', image: '' },
+                { shopId: 102, name: '城市鲜选', image: '' },
+                { shopId: 103, name: '悦享生活馆', image: '' },
+                { shopId: 104, name: '蓝鲸优品', image: '' },
+                { shopId: 105, name: '轻奢好物店', image: '' },
+                { shopId: 106, name: '优选便利铺', image: '' },
+                { shopId: 107, name: '邻里百货', image: '' }
             ],
+            homeRecentVisitList: [],
+            homeLoading: false,
+            didShowOnce: false,
             homeLoaded: false
         }
     },
@@ -209,7 +211,9 @@ export default {
             return this.quickEntryList.slice(0, 5)
         },
         recentVisitList() {
-            return this.recentVisitFallback
+            if (this.homeRecentVisitList.length) return this.homeRecentVisitList
+            const homeRecentVisits = this.homeData.recentVisits || []
+            return homeRecentVisits.length ? homeRecentVisits : this.recentVisitFallback
         },
         hotActivityList() {
             return this.homeData.hotActivities || []
@@ -234,6 +238,10 @@ export default {
         this.getHomeFun()
     },
     onShow() {
+        if (!this.didShowOnce) {
+            this.didShowOnce = true
+            return
+        }
         if (this.homeLoaded) {
             this.getHomeFun()
         }
@@ -245,13 +253,24 @@ export default {
     },
     methods: {
         async getHomeFun() {
+            if (this.homeLoading) return Promise.resolve()
+            this.homeLoading = true
             try {
-                const res = await getHome(this.buildHomeParams())
+                const [res, recentVisitRes] = await Promise.all([
+                    getHome(this.buildHomeParams()),
+                    getRecentVisitShops({ pageNo: 1, pageSize: 12 })
+                ])
                 if (res.code == 1) {
                     this.homeData = res.data || {}
                     this.homeLoaded = true
                 }
+                if (recentVisitRes.code == 1) {
+                    this.homeRecentVisitList = recentVisitRes.data || []
+                }
             } catch (error) {}
+            finally {
+                this.homeLoading = false
+            }
         },
         resolveImage,
         isEmptyImage(src) {
@@ -384,7 +403,6 @@ export default {
                 uni.showToast({ title: '门店信息暂不可打开', icon: 'none' })
                 return
             }
-            console.log(shopId);
             this.goPage(`/business/pages/business_pages/store_detail?shopId=${shopId}`)
         },
         openShortcut(item) {
@@ -701,13 +719,21 @@ export default {
 }
 
 .recent-visit-more__icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28rpx;
-    height: 28rpx;
-    border-radius: 50%;
-    background: #e8f3ff;
+    position: relative;
+    width: 18rpx;
+    height: 24rpx;
+}
+
+.recent-visit-more__icon::after {
+    content: '';
+    position: absolute;
+    left: 2rpx;
+    top: 5rpx;
+    width: 10rpx;
+    height: 10rpx;
+    border-top: 3rpx solid #1688ff;
+    border-right: 3rpx solid #1688ff;
+    transform: rotate(45deg);
 }
 
 .recent-shop-scroll {
