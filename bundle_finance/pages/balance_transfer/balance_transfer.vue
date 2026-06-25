@@ -11,7 +11,7 @@
         <view class="contain transfer-money bg-white mt20">
             <view class="muted xs">转账金额</view>
             <view class="input row-center">
-                <view style="font-size: 23px; align-self: flex-end; margin-bottom: 5px">¥</view>
+                <view style="font-size: 46rpx; align-self: flex-end; margin-bottom: 10rpx">¥</view>
                 <input v-model="money" type="digit" placeholder="0.00" />
                 <view class="column" style="flex: none">
                     <view

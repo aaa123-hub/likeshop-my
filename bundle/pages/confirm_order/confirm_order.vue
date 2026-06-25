@@ -1,3 +1,4 @@
+<!--
 // +---------------------------------------------------------------------- // | likeshop开源商城系统
 // +---------------------------------------------------------------------- // |
 欢迎阅读学习系统程序代码，建议反馈是我们前进的动力 // | gitee下载：https://gitee.com/likeshop_gitee
@@ -10,6 +11,7 @@ likeshop系列产品收费版本务必购买商业授权，购买去版权授权
 +---------------------------------------------------------------------- // | author:
 likeshop.cn.team // +----------------------------------------------------------------------
 
+-->
 <template>
     <view class="confirm-order-page">
         <view class="confirm-order">
@@ -416,9 +418,7 @@ export default {
                     this.storeInfo = params
                 })
             })
-            .catch((err) => {
-                console.log(err)
-            })
+            .catch(() => {})
     },
 
     onUnload() {
@@ -528,9 +528,7 @@ export default {
 
                     // #ifdef MP-WEIXIN
                     this.authWechatMessage()
-                        .catch((err) => {
-                            console.log(err)
-                        })
+                        .catch(() => {})
                         .finally(() => {
                             this.handleOrderMethods('submit')
                         })
@@ -561,9 +559,7 @@ export default {
                     this.usableCoupon = data.usable
                     this.unusableCoupon = data.unusable
                 })
-                .catch((err) => {
-                    console.log(err)
-                })
+                .catch(() => {})
         },
 
         // 初始化页面数据
@@ -592,7 +588,6 @@ export default {
                     throw new Error(msg)
                 }
             } catch (err) {
-                console.log(err)
                 this.isFirstLoading = false
                 this.$toast({ title: '网络异常，请重新进入页面' })
             } finally {
@@ -620,7 +615,6 @@ export default {
                     throw new Error(msg)
                 }
             } catch (err) {
-                console.log(err)
                 this.$toast({ title: '下单异常，请重新操作' })
             } finally {
                 this.showLoading = false
@@ -760,6 +754,7 @@ page {
 
 .confirm-con {
     height: calc(100vh - var(--status-bar-height) - 160rpx - 154rpx - env(safe-area-inset-bottom));
+    height: calc(100dvh - var(--status-bar-height) - 160rpx - 154rpx - env(safe-area-inset-bottom));
     padding: 0 24rpx 32rpx;
     box-sizing: border-box;
 }

@@ -261,7 +261,7 @@
 
 			<view class="group-record bg-white mt20" v-if="groupRecords.length">
 				<view class="group-record__title">跟团记录</view>
-				<view v-for="(item, index) in groupRecords" :key="item.id || index" class="group-record__item">
+				<view v-for="(item, index) in groupRecords" :key="index" class="group-record__item">
 					<image v-if="item.avatar" class="group-record__avatar-image" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
 					<view v-else class="group-record__avatar"></view>
 					<view class="group-record__content">
@@ -328,11 +328,11 @@
 						<view class="goods-share-shop__name line1">{{ shareShopName }}</view>
 						<view class="goods-share-shop__rating">
 							<image v-for="item in 5" :key="item" class="goods-share-shop__star" :src="shareStarIcon" mode="aspectFit"></image>
-							<text>{{ shareShopScore }}</text>
+							<text class="goods-share-shop__score">{{ shareShopScore }}</text>
 						</view>
 						<view class="goods-share-shop__time line1">
 							<image class="goods-share-shop__time-icon" :src="shareTimeIcon" mode="aspectFit"></image>
-							<text>营业时间：{{ shareBusinessTime }}</text>
+							<text class="goods-share-shop__time-text">营业时间：{{ shareBusinessTime }}</text>
 						</view>
 					</view>
 				</view>
@@ -345,7 +345,7 @@
 						</view>
 						<view class="goods-share-qrcode">
 							<image v-if="shareQrcodeIsImage" class="goods-share-qrcode__image" :src="shareQrcode" mode="aspectFit"></image>
-							<tki-qrcode v-else-if="shareQrcode" cid="goods-detail-share-qrcode" :val="shareQrcode" :size="124" unit="upx" :showLoading="false" />
+							<image v-else-if="shareQrcode" class="goods-share-qrcode__image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
 							<view v-else class="goods-share-qrcode__loading">二维码</view>
 						</view>
 					</view>
@@ -369,7 +369,7 @@
 				<view class="content bg-body">
 					<scroll-view scroll-y="true" style="height: 700rpx">
 						<view v-if="couponList.length" class="coupon-popup-list">
-							<view class="coupon-popup-ticket" v-for="(item, index) in couponList" :key="item.id || index">
+							<view class="coupon-popup-ticket" v-for="(item, index) in couponList" :key="index">
 								<view class="coupon-popup-ticket__main">
 									<view class="coupon-popup-ticket__amount">{{ formatCouponAmount(item) }}</view>
 									<view class="coupon-popup-ticket__condition">{{ formatCouponCondition(item) }}</view>
@@ -570,7 +570,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 						return;
 					}
 				} catch (e) {}
-				this.shareQrcode = '测试';
+				this.shareQrcode = this.goodsShareLink() || 'https://shengyuan.store/test-goods-share-qr';
 				this.shareQrcodeIsImage = false;
 			},
 			resolveAvatar(avatar) {
@@ -835,7 +835,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				this.showCoupon = true;
 			},
 			onChangeGoods(e) {
-				console.log(e);
 				this.checkedGoods = e.detail;
 			},
 			showSpecFun(type, id) {
@@ -1917,6 +1916,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		}
 
 		.goods-share-shop__body {
+			flex: 1;
 			min-width: 0;
 			margin-left: 27rpx;
 			padding-top: 14rpx;
@@ -1933,8 +1933,10 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		.goods-share-shop__time {
 			display: flex;
 			align-items: center;
+			min-width: 0;
 			font-size: 24rpx;
 			font-weight: 500;
+			white-space: nowrap;
 		}
 
 		.goods-share-shop__rating {
@@ -1954,9 +1956,24 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		}
 
 		.goods-share-shop__star {
+			flex: none;
+			display: block;
 			width: 24rpx;
 			height: 23rpx;
 			margin-right: 3rpx;
+		}
+
+		.goods-share-shop__score {
+			flex: none;
+			margin-left: 6rpx;
+			line-height: 1;
+		}
+
+		.goods-share-shop__time-text {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 
 		.goods-share-close {

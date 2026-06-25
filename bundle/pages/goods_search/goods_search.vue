@@ -90,8 +90,10 @@
 					</view>
 				</view>
 			</template>
-			<loading-footer v-if="showSearchFooter" :status="footerStatus" :slot-empty="true">
-				<view slot="empty" class="empty-slot">
+			<view v-if="showSearchFooter" class="search-footer">
+				<view v-if="footerStatus === 'loading'" class="search-footer__text">加载中...</view>
+				<view v-else-if="footerStatus === 'error'" class="search-footer__text" @tap="onRefresh">加载失败，点击重新加载</view>
+				<view v-else-if="footerStatus === 'empty'" class="empty-slot">
 					<u-empty
 						mode="search"
 						text="暂无数据"
@@ -100,7 +102,8 @@
 						color="#666666"
 					></u-empty>
 				</view>
-			</loading-footer>
+				<view v-else class="search-footer__text">我可是有底线的～</view>
+			</view>
 		</view>
 		<view v-if="showFilter" class="filter-mask" @tap="showFilter = false">
 			<view class="filter-panel" @tap.stop>
@@ -195,6 +198,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return !this.goodsList.length || this.status === loadingType.LOADING || this.status === loadingType.ERROR
 			},
 			footerStatus() {
+				if (!this.goodsList.length && this.status === loadingType.FINISHED) return loadingType.EMPTY
 				return this.goodsList.length ? loadingType.FINISHED : this.status
 			},
 			comprehensive() {

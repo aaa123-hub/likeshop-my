@@ -10,7 +10,7 @@
 
       <view v-if="isLogin" class="shop-cart-page__content">
         <view v-if="cartType === 1" class="cart-list">
-          <view v-for="(item, index) in cartLists" :key="item.cart_id || index" class="cart-card">
+          <view v-for="(item, index) in cartLists" :key="index" class="cart-card">
             <view class="cart-card__shop">
               <view
                 class="cart-check"

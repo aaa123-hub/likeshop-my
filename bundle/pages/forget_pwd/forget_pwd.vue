@@ -33,7 +33,7 @@
             <view
               class="sms-btn sm row-center br60"
               :style="{ color: mobile.length == 11 ? 'red' : 'gray' }"
-              @click="sendSmsFun()"
+              @tap="sendSmsFun()"
             >
               <view v-show="canSendSms">获取验证码</view>
               <u-count-down
@@ -73,7 +73,7 @@
       <button
         class="btn bg-primary white row-center"
         :class="{ inactive }"
-        @click="forgetPwdFun"
+        @tap="forgetPwdFun"
       >
         立即重置密码
       </button>
@@ -212,15 +212,17 @@ page {
 }
 .forget-pwd-container {
   min-height: 100vh;
-  padding: 40px 20px 0;
+  padding: 80rpx 40rpx 0;
+  box-sizing: border-box;
 
   .forget-input-container {
     .input {
       height: 100rpx;
       border-radius: 10rpx;
-      width: 670rpx;
+      width: 100%;
       border: $solid-border;
       margin-top: 30rpx;
+      box-sizing: border-box;
     }
   }
 }

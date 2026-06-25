@@ -85,7 +85,6 @@ import {
 					type: 0,         // 0-会员分享海报 1-商品详情 2-砍价活动
 				})
 				.then((res) => {
-					console.log('shareRes', res)
 					this.qrCode = res.data.qr_code
 					this.showPoster = true
 				})

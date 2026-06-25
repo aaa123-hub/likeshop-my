@@ -286,8 +286,7 @@ service.interceptors.request.use(
   },
   (error) => {
     // Do something with request error
-    console.log(error); // for debug
-    Promise.reject(error);
+    return Promise.reject(error);
   }
 );
 
@@ -361,9 +360,6 @@ service.interceptors.response.use(
         msg: message,
       });
     }
-    // tryHideFullScreenLoading()
-    console.log(error);
-    console.log("err" + error); // for debug
     return Promise.reject(error);
   }
 );

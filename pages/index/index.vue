@@ -28,14 +28,14 @@
                     <view class="feature-card" @tap="openScan">
                         <view>
                             <view class="feature-title">扫一扫</view>
-                            <view class="feature-desc">辅助文案填充</view>
+                            <view class="feature-desc">扫码识别商品</view>
                         </view>
                         <image class="feature-icon" :src="designAssets.homeNoticeIcon" mode="aspectFit"></image>
                     </view>
                     <view class="feature-card" @tap="openBusinessPage(businessRoutes.pages.ecoApp)">
                         <view>
                             <view class="feature-title">生态应用</view>
-                            <view class="feature-desc">辅助文案填充</view>
+                            <view class="feature-desc">更多便民服务</view>
                         </view>
                         <image class="feature-icon" :src="designAssets.homeEcologyIcon" mode="aspectFit"></image>
                     </view>
@@ -77,7 +77,7 @@
                 </view>
                 <scroll-view scroll-x="true" show-scrollbar="false" class="recent-shop-scroll">
                     <view class="recent-shop-list">
-                        <view v-for="(item, index) in recentVisitList" :key="item.key || item.shopId || index" class="recent-shop-card" @tap="handleVisitTap(item)">
+                        <view v-for="(item, index) in recentVisitList" :key="index" class="recent-shop-card" @tap="handleVisitTap(item)">
                             <view v-if="isEmptyImage(item.image || item.cover)" class="recent-shop-card__image image-placeholder">无</view>
                             <image v-else class="recent-shop-card__image" :src="displayImage(item.image || item.cover)" mode="aspectFill"></image>
                             <view class="recent-shop-card__name line1">{{ formatRecentVisitName(item) }}</view>
@@ -90,7 +90,7 @@
             <view v-if="hotActivityList.length" class="activity-list">
                 <view v-for="(item, index) in hotActivityList" :key="index" class="activity-card" @tap="handleActivityTap(item)">
                     <view class="activity-card__title line1">{{ item.title || item.name || '热门活动' }}</view>
-                    <view class="activity-card__desc line2">{{ item.desc || item.subTitle || '活动内容待补充' }}</view>
+                    <view class="activity-card__desc line2">{{ item.desc || item.subTitle || '精选活动限时开启' }}</view>
                     <view v-if="isEmptyImage(item.cover)" class="activity-card__image image-placeholder">无</view>
                     <image v-else class="activity-card__image" :src="displayImage(item.cover)" mode="aspectFill"></image>
                 </view>
@@ -123,8 +123,8 @@
                     <view v-if="isEmptyImage(getShopImage(item))" class="shop-card__logo image-placeholder">无</view>
                     <image v-else class="shop-card__logo" :src="displayImage(getShopImage(item))" mode="aspectFill"></image>
                     <view class="shop-card__body">
-                        <view class="shop-card__name line1">{{ item.shopName || item.name || '默认门店' }}</view>
-                        <view class="shop-card__address line2">{{ item.detailAddress || item.address || '地址待补充' }}</view>
+                        <view class="shop-card__name line1">{{ item.shopName || item.name || '门店名称' }}</view>
+                        <view class="shop-card__address line2">{{ item.detailAddress || item.address || '营业状态待更新' }}</view>
                     </view>
                     <view class="shop-card__meta">
                         <view class="shop-card__status">{{ item.openStatus === 'OPEN' ? '营业中' : '未营业' }}</view>
@@ -161,6 +161,22 @@ import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 
+const homeShortcutRoutes = {
+    CATEGORY: { name: '分类', url: '/pages/sort/sort', type: 'switchTab' },
+    ORDER: { name: '订单', url: '/bundle_order/pages/user_order/user_order' },
+    MESSAGE: { name: '消息', url: '/bundle_misc/pages/notice/notice' },
+    ACTIVITY: { name: '活动', url: '/business/pages/business_pages/activity_center' },
+    WALLET: { name: '钱包', url: '/bundle_finance/pages/user_wallet/user_wallet' }
+}
+
+const homeShortcutAliases = {
+    分类: 'CATEGORY',
+    订单: 'ORDER',
+    消息: 'MESSAGE',
+    活动: 'ACTIVITY',
+    钱包: 'WALLET'
+}
+
 export default {
     data() {
         return {
@@ -168,13 +184,13 @@ export default {
             designAssets,
             businessRoutes,
             recentVisitFallback: [
-                { shopId: 101, name: '潮流集合店精选', image: '' },
-                { shopId: 102, name: '城市鲜选', image: '' },
-                { shopId: 103, name: '悦享生活馆', image: '' },
-                { shopId: 104, name: '蓝鲸优品', image: '' },
-                { shopId: 105, name: '轻奢好物店', image: '' },
-                { shopId: 106, name: '优选便利铺', image: '' },
-                { shopId: 107, name: '邻里百货', image: '' }
+                { shopId: 101, name: '默认样式', image: '' },
+                { shopId: 102, name: '默认样式', image: '' },
+                { shopId: 103, name: '默认样式', image: '' },
+                { shopId: 104, name: '默认样式', image: '' },
+                { shopId: 105, name: '默认样式', image: '' },
+                { shopId: 106, name: '默认样式', image: '' },
+                { shopId: 107, name: '默认样式', image: '' }
             ],
             homeRecentVisitList: [],
             homeLoading: false,
@@ -226,11 +242,11 @@ export default {
         },
         homeShortcutFallback() {
             return [
-                { name: '分类', image: '', url: '/pages/sort/sort', type: 'switchTab' },
-                { name: '订单', image: '', url: '/bundle_order/pages/user_order/user_order' },
-                { name: '消息', image: '', url: '/bundle_misc/pages/notice/notice' },
-                { name: '活动', image: '', url: '/business/pages/business_pages/activity_center' },
-                { name: '门店', image: '', url: '/business/pages/business_pages/store_detail' }
+                { ...homeShortcutRoutes.CATEGORY, image: '' },
+                { ...homeShortcutRoutes.ORDER, image: '' },
+                { ...homeShortcutRoutes.MESSAGE, image: '' },
+                { ...homeShortcutRoutes.ACTIVITY, image: '' },
+                { ...homeShortcutRoutes.WALLET, image: '' }
             ]
         }
     },
@@ -280,7 +296,7 @@ export default {
             return resolveImage(src, type)
         },
         formatRecentVisitName(item = {}) {
-            const name = String(item.name || item.shopName || '默认门店')
+            const name = String(item.name || item.shopName || '门店名称')
             const chars = Array.from(name)
             return chars.length > 4 ? `${chars.slice(0, 4).join('')}...` : name
         },
@@ -320,35 +336,16 @@ export default {
         },
         normalizeQuickEntry(item = {}) {
             const code = String(item.code || '').toUpperCase()
-            const quickEntryMap = {
-                CATEGORY: {
-                    name: item.title || '分类',
-                    image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/category/index' ? item.pagePath : '/pages/sort/sort',
-                    type: 'switchTab'
-                },
-                ORDER: {
-                    name: item.title || '订单',
-                    image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/order/list' ? item.pagePath : '/bundle_order/pages/user_order/user_order'
-                },
-                MESSAGE: {
-                    name: item.title || '消息',
-                    image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/message/list' ? item.pagePath : '/bundle_misc/pages/notice/notice'
-                },
-                COUPON: {
-                    name: item.title || '优惠券',
-                    image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/coupon/list' ? item.pagePath : '/bundle_user/pages/user_coupon/user_coupon'
-                },
-                WALLET: {
-                    name: item.title || '钱包',
-                    image: resolveImage(item.iconUrl || ''),
-                    url: item.pagePath && item.pagePath !== '/pages/wallet/index' ? item.pagePath : '/bundle_finance/pages/user_wallet/user_wallet'
+            const title = item.title || item.name || ''
+            const shortcutKey = homeShortcutRoutes[code] ? code : homeShortcutAliases[title]
+            if (shortcutKey) {
+                return {
+                    ...homeShortcutRoutes[shortcutKey],
+                    name: title || homeShortcutRoutes[shortcutKey].name,
+                    image: resolveImage(item.iconUrl || item.image || '')
                 }
             }
-            return quickEntryMap[code] || {
+            return {
                 name: item.title || item.code || '入口',
                 image: resolveImage(item.iconUrl || ''),
                 url: item.pagePath || ''
@@ -356,7 +353,10 @@ export default {
         },
         goPage(url) {
             uni.navigateTo({
-                url
+                url,
+                fail: () => {
+                    uni.showToast({ title: '页面暂未开放', icon: 'none' })
+                }
             })
         },
         switchTab(url) {
@@ -400,32 +400,21 @@ export default {
         handleShopTap(item) {
             const shopId = item.shopId || item.shop_id || item.merchantShopId || item.merchant_shop_id || item.id || ''
             if (!shopId) {
-                uni.showToast({ title: '门店信息暂不可打开', icon: 'none' })
+                this.goPage('/business/pages/business_pages/store_detail')
                 return
             }
             this.goPage(`/business/pages/business_pages/store_detail?shopId=${shopId}`)
         },
         openShortcut(item) {
-            if (item.type === 'switchTab') {
-                this.switchTab(item.url)
+            const code = String(item.code || '').toUpperCase()
+            const shortcutKey = homeShortcutRoutes[code] ? code : homeShortcutAliases[item.name]
+            const target = shortcutKey ? homeShortcutRoutes[shortcutKey] : item
+            if (!target.url) return
+            if (target.type === 'switchTab') {
+                this.switchTab(target.url)
                 return
             }
-            if (item.url) {
-                this.goPage(item.url)
-                return
-            }
-            const code = String(item.code || item.name || '').toUpperCase()
-            if (code === 'CATEGORY' || item.name === '分类') {
-                this.switchTab('/pages/sort/sort')
-                return
-            }
-            if (code === 'ORDER' || item.name === '订单') {
-                this.goPage('/bundle_order/pages/user_order/user_order')
-                return
-            }
-            if (code === 'MESSAGE' || item.name === '消息') {
-                this.goPage('/bundle_misc/pages/notice/notice')
-            }
+            this.goPage(target.url)
         }
     }
 }

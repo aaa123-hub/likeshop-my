@@ -58,11 +58,11 @@
                         <view class="user-kyc-page__photo-row">
                             <view class="user-kyc-page__photo-card user-kyc-page__photo-card--front" @tap="chooseKycImage('front')">
                                 <image style="width: 100%;height: 100%;" :src="kycForm.certFrontPreview || left_icon" mode="aspectFill"></image>
-                                <image v-if="!kycForm.certFrontPreview" style="width: 34.5px;height: 34.5px;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
+                                <image v-if="!kycForm.certFrontPreview" style="width: 69rpx;height: 69rpx;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
                             </view>
                             <view class="user-kyc-page__photo-card user-kyc-page__photo-card--back" @tap="chooseKycImage('back')">
                                 <image style="width: 100%;height: 100%;" :src="kycForm.certBackPreview || right_icon" mode="aspectFill"></image>
-                                <image v-if="!kycForm.certBackPreview" style="width: 34.5px;height: 34.5px;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
+                                <image v-if="!kycForm.certBackPreview" style="width: 69rpx;height: 69rpx;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
                             </view>
                         </view>
 
@@ -124,7 +124,7 @@
                                 <view class="feedback-textarea__count">{{ feedbackContent.length }}/300</view>
                             </view>
                             <view v-if="feedbackImages.length" class="feedback-preview-row">
-                                <view v-for="(item, index) in feedbackImages" :key="item.url || index" class="feedback-preview">
+                                <view v-for="(item, index) in feedbackImages" :key="index" class="feedback-preview">
                                     <image class="feedback-preview__image" :src="item.preview || item.url" mode="aspectFill"></image>
                                     <view class="feedback-preview__close" @tap="removeFeedbackImage(index)">×</view>
                                 </view>
@@ -287,7 +287,7 @@
                         <view v-if="storeDetailAlbumImages.length" class="store-detail-album-grid">
                             <view
                                 v-for="(item, index) in storeDetailAlbumImages"
-                                :key="item.id || index"
+                                :key="index"
                                 class="store-detail-album-card"
                                 @tap="previewStoreDetailAlbum(index)"
                             >
@@ -309,7 +309,7 @@
                         <view v-if="storeDetailVideos.length" class="store-detail-video-grid">
                             <view
                                 v-for="(item, index) in storeDetailVideos"
-                                :key="item.id || index"
+                                :key="index"
                                 class="store-detail-video-card"
                                 @tap="previewStoreDetailVideo(item)"
                             >
@@ -334,7 +334,7 @@
                     <view v-else-if="storeDetailActiveTab === 'comment'" class="store-detail-comment-list">
                         <view
                             v-for="(item, index) in storeDetailDisplayComments"
-                            :key="item.id || index"
+                            :key="index"
                             class="store-detail-comment-card"
                         >
                             <view class="store-detail-comment-card__head">
@@ -390,7 +390,7 @@
 
                     <view v-if="scene === 'store-qr'" class="qr-store-panel">
                         <view class="qr-code-box qr-code-box--store">
-                            <tki-qrcode ref="qrcode" :val="qrStoreValue" :size="275" unit="upx" :showLoading="false" />
+                            <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
                         </view>
                         <view class="qr-store-panel__desc">扫一扫，即可查看公域线下店信息</view>
                         <view class="qr-action-row qr-action-row--store">
@@ -409,7 +409,7 @@
                                 <view class="qr-goods-tip">长按保存二维码</view>
                             </view>
                             <view class="qr-code-box qr-code-box--goods">
-                                <tki-qrcode ref="qrcode" :val="qrGoodsValue" :size="124" unit="upx" :showLoading="false" />
+                                <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
                             </view>
                         </view>
                         <view class="qr-action-row qr-action-row--goods">
@@ -491,7 +491,7 @@
                         <view class="street-service-grid">
                             <view
                                 v-for="item in streetCategories"
-                                :key="item.key || item.name"
+                                :key="index"
                                 class="street-service-item"
                                 @tap="goPage(item.url)"
                             >
@@ -506,7 +506,7 @@
                         <view class="street-merchant-list">
                             <view
                                 v-for="(item, index) in streetMerchants"
-                                :key="item.shopId || index"
+                                :key="index"
                                 class="street-merchant-card"
                                 @tap="goPage(item.url)"
                             >
@@ -558,7 +558,7 @@
                         <view
                             class="merchant-list__item"
                             v-for="(item, index) in filteredMerchantList"
-                            :key="item.id || item.goods_id || item.shopId || index"
+                            :key="index"
                             @tap="openStreetGoodsItem(item)"
                         >
                             <view v-if="isEmptyImage(item.image || item.shopLogo)" class="merchant-list__image image-placeholder">无</view>
@@ -566,7 +566,7 @@
                             <view class="merchant-list__body">
                                 <view class="merchant-list__title line1">{{ item.name }}</view>
                                 <view class="merchant-list__stars">{{ item.priceText || item.scoreText }}</view>
-                                <view class="merchant-list__time">{{ item.meta || item.shopName || '商品信息待补充' }}</view>
+                                <view class="merchant-list__time">{{ item.meta || item.shopName || '商街精选' }}</view>
                             </view>
                         </view>
                         <view v-if="!filteredMerchantList.length" class="store-detail-media-empty">
@@ -604,7 +604,7 @@
                         </view>
                         <image v-if="introCardInfo.qrImage" class="intro-card-qr" :src="introCardInfo.qrImage" mode="aspectFit"></image>
                         <view v-else class="intro-card-qr intro-card-qr--code">
-                            <tki-qrcode :val="introCardQrValue" :size="210" unit="upx" :showLoading="false" />
+                            <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
                         </view>
                     </view>
                 </view>
@@ -620,7 +620,7 @@
                     <view class="recent-visits-list">
                         <view
                             v-for="(item, index) in recentVisitItems"
-                            :key="item.key || item.shopId || index"
+                            :key="index"
                             class="recent-visits-item"
                             @tap="openRecentVisitShop(item)"
                         >
@@ -681,7 +681,7 @@
                     </view>
 
                     <view v-else class="payment-record-list">
-                        <view v-for="item in paymentRecordList" :key="item.id || item.create_time" class="payment-record-item">
+                        <view v-for="(item, index) in paymentRecordList" :key="index" class="payment-record-item">
                             <view class="payment-record-item__main">
                                 <view class="payment-record-item__title">{{ item.type_desc || item.source_type || '付款记录' }}</view>
                                 <view class="payment-record-item__time">{{ item.create_time || item.change_time || '' }}</view>
@@ -1037,13 +1037,13 @@
                             </view>
                             <view class="store-share-shop-card__time">
                                 <image class="store-share-shop-card__time-icon" :src="shareTimeIcon" mode="aspectFit"></image>
-                                <text class="line1">{{ storeDetailBusinessHoursText }}</text>
+                                <text :class="['store-share-shop-card__time-text', storeShareTimeTextClass]">{{ storeDetailBusinessHoursText }}</text>
                             </view>
                         </view>
                     </view>
                     <view class="store-share-panel">
                         <view class="store-share-qrcode">
-                            <tki-qrcode :val="qrStoreValue" :size="275" unit="upx" :showLoading="false" />
+                            <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
                         </view>
                         <view class="store-share-tip">扫一扫，即可查看公域线下店信息</view>
                         <view class="store-share-actions">
@@ -1454,7 +1454,7 @@ export default {
                 shopName: shopBase.shopName || '店铺信息待更新',
                 shopScore: this.formatStreetScore(shopBase.shopScore, '暂无评分'),
                 businessHours: shopBase.businessHours || '',
-                detailAddress: shopBase.detailAddress || '地址待补充',
+                detailAddress: shopBase.detailAddress || '门店信息更新中',
                 latitude: shopBase.latitude || shopBase.lat || shopBase.shopLatitude || shopBase.shop_latitude || '',
                 longitude: shopBase.longitude || shopBase.lng || shopBase.shopLongitude || shopBase.shop_longitude || '',
                 openStatus: shopBase.openStatus || '',
@@ -1485,7 +1485,7 @@ export default {
         qrStoreValue() {
             const options = this.getCurrentPageOptions()
             const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
-            return shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : '测试'
+            return shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : 'https://shengyuan.store/test-store-qr'
         },
         storeSharePriceText() {
             const firstGroup = this.storeDetailGroupProducts[0] || {}
@@ -1500,7 +1500,7 @@ export default {
         },
         qrGoodsValue() {
             const goodsId = this.qrGoodsInfo.id
-            return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : this.qrStoreValue
+            return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : 'https://shengyuan.store/test-goods-qr'
         },
         storeDetailHeroImage() {
             const image = this.storeDetailData.albums?.[0]?.url || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || ''
@@ -1553,6 +1553,9 @@ export default {
                 return `营业时间：${this.storeDetailView.businessHours}`
             }
             return this.getStreetOpenStatusLabel(this.storeDetailView.openStatus) || '营业时间待更新'
+        },
+        storeShareTimeTextClass() {
+            return String(this.storeDetailBusinessHoursText || '').length > 16 ? 'is-long' : ''
         },
         storeDetailTabs() {
             const albumCount = this.storeDetailData.albums?.length || 0
@@ -2019,15 +2022,9 @@ export default {
             return values.find(value => value !== '' && value !== null && value !== undefined)
         },
         goStoreDetailGroupItem(item = {}) {
-            if (!item) {
-                uni.showToast({ title: '商品暂不可打开', icon: 'none' })
-                return
-            }
+            if (!item) return
             const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || ''
-            if (!goodsId) {
-                uni.showToast({ title: '商品暂不可打开', icon: 'none' })
-                return
-            }
+            if (!goodsId) return
             const params = [`id=${goodsId}`]
             if (item.activity_id) params.push(`activityId=${item.activity_id}`)
             if (item.price !== '' && item.price !== null && item.price !== undefined) params.push(`price=${item.price}`)
@@ -2177,23 +2174,25 @@ export default {
             }
         },
         mapStreetGoodsItem(item = {}, index = 0) {
-            const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || index
-            const shopId = item.shop_id || item.shopId || item.merchantShopId || ''
+            const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || ''
+            const shopId = item.shop_id || item.shopId || item.merchantShopId || item.merchant_shop_id || item.id || ''
             const price = item.price || item.salePrice || item.minPrice || item.min_price || item.groupPrice || item.teamPrice || 0
             const sales = item.sales_sum || item.salesCount || item.sales_count || item.virtualSales || 0
             const shopName = item.shop_name || item.shopName || item.storeName || item.shopInfo?.shopName || ''
             return {
                 ...item,
-                id: goodsId,
+                id: goodsId || shopId || index,
                 goods_id: goodsId,
                 shopId,
                 name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || item.title || '商街商品',
                 image: resolveImage(item.image || item.goods_image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl, 'goods'),
                 priceText: `¥${this.formatStoreDetailPrice(price)}`,
                 scoreText: `¥${this.formatStoreDetailPrice(price)}`,
-                meta: [shopName, sales ? `${sales}人购买` : ''].filter(Boolean).join(' · ') || '商品信息待补充',
+                meta: [shopName, sales ? `${sales}人购买` : ''].filter(Boolean).join(' · ') || '商街精选',
                 shopName,
-                url: `/bundle/pages/goods_details/goods_details?id=${goodsId}${shopId ? `&shopId=${shopId}` : ''}`
+                url: goodsId
+                    ? `/bundle/pages/goods_details/goods_details?id=${goodsId}${shopId ? `&shopId=${shopId}` : ''}`
+                    : (shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : '')
             }
         },
         openStreetGoodsItem(item = {}) {
@@ -2410,6 +2409,11 @@ export default {
     justify-content: center;
     overflow: hidden;
     background: #d5d5d5;
+}
+
+.qr-test-image {
+    width: 100%;
+    height: 100%;
 }
 
 .qr-code-box--store {
@@ -4392,7 +4396,7 @@ export default {
 .store-share-shop-card__body {
     flex: 1;
     min-width: 0;
-    margin: 15rpx 0 0 27rpx;
+    margin: 12rpx 0 0 27rpx;
 }
 
 .store-share-shop-card__name {
@@ -4426,7 +4430,7 @@ export default {
 .store-share-shop-card__time {
     display: flex;
     align-items: center;
-    margin-top: 31rpx;
+    margin-top: 22rpx;
     color: #ffffff;
     font-size: 26rpx;
     font-weight: 500;
@@ -4438,6 +4442,18 @@ export default {
     width: 25rpx;
     height: 25rpx;
     margin-right: 6rpx;
+}
+
+.store-share-shop-card__time-text {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
+
+.store-share-shop-card__time-text.is-long {
+    font-size: 22rpx;
 }
 
 .store-share-mark {

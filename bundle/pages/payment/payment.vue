@@ -36,8 +36,8 @@
 					<!-- Payway -->
 					<u-radio-group v-model="payway" style="width: 100%;">
 						<view class="payway">
-							<view class="payway-item" v-for="(item, index) in paywayList" :key="item.id"
-								@click="changePayway(item.pay_way)">
+						<view class="payway-item" v-for="(item, index) in paywayList" :key="item.id"
+							@tap="changePayway(item.pay_way)">
 								<image :src="item.icon" width="48" height="48" mode="scaleToFill" />
 								<view class="payway-item-content">
 									<text class="payway-item-content-name">{{ item.name }}</text>
@@ -197,7 +197,6 @@ wxpay,
 			// 微信支付
 			handleWechatPay(data) {
 				wxpay(data).then(res => {
-					console.log(res)
 					this.handPayResult(res)
 				})
 			},
@@ -205,14 +204,12 @@ wxpay,
 			// 支付宝支付
 			handleAlipayPay(data) {
 				alipay(data).then(res => {
-					console.log(res)
 					this.handPayResult(res)
 				})
 			},
 
 			// 钱包余额支付
 			handleWalletPay() {
-				console.log('支付成功')
 				//余额支付成功
 				this.handPayResult('success')
 			},
@@ -250,7 +247,6 @@ wxpay,
 				this.order_id = order_id
 				this.initPageData()
 			} catch (err) {
-				console.log(err)
 				uni.navigateBack()
 			}
 		},
@@ -325,7 +321,7 @@ wxpay,
 
 			.payway-container {
 				padding: 0 20rpx;
-				border-radius: 7px;
+				border-radius: 14rpx;
 				background-color: #FFFFFF;
 
 				.payway-empty {
@@ -374,7 +370,7 @@ wxpay,
 				justify-content: center;
 				align-items: center;
 				padding: 7rpx 25rpx;
-				border-radius: 60px;
+				border-radius: 120rpx;
 				margin-top: 10rpx;
 				font-size: 22rpx;
 				background-color: #FFFFFF;
@@ -389,7 +385,7 @@ wxpay,
 				align-items: center;
 				height: 74rpx;
 				font-size: 28rpx;
-				border-radius: 60px;
+				border-radius: 120rpx;
 				background: linear-gradient(270deg, #FF2C3C 0%, #F95F2F 100%);
 				color: #FFFFFF;
 

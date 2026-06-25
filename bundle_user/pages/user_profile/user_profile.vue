@@ -116,18 +116,18 @@
             <view class="modify-container column-center bg-white" v-show="showMobile">
                 <view class="title xl">{{ userInfo.mobile ? '更换手机号' : '绑定手机号' }}</view>
                 <view class="modify-row row" v-if="userInfo.mobile">
-                    <view style="width: 56px; border-right: 1px solid #e5e5e5">+86</view>
-                    <view style="margin-left: 15px">{{ userInfo.mobile }}</view>
+                    <view style="width: 112rpx; border-right: 1rpx solid #e5e5e5">+86</view>
+                    <view style="margin-left: 30rpx">{{ userInfo.mobile }}</view>
                 </view>
                 <view class="modify-row row" v-else>
-                    <view style="width: 71px">手机号</view>
+                    <view style="width: 142rpx">手机号</view>
                     <input v-model="new_mobile" placeholder="请输入绑定手机号" />
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">验证码</view>
+                    <view style="width: 142rpx">验证码</view>
                     <input
                         v-model="smsCode"
-                        style="padding-left: 5px; width: 130px"
+                        style="padding-left: 10rpx; width: 260rpx"
                         placeholder="请输入验证码"
                     />
                     <view class="send-code-btn nr row-center" @tap="$sendSms">
@@ -142,7 +142,7 @@
                     </view>
                 </view>
                 <view class="modify-row row" v-if="userInfo.mobile">
-                    <view style="width: 71px">新手机号</view>
+                    <view style="width: 142rpx">新手机号</view>
                     <input v-model="new_mobile" placeholder="请输入新的手机号码" />
                 </view>
                 <view class="primary mt10"
@@ -186,8 +186,8 @@
             <view class="modify-container column-center bg-white" v-show="showPwd">
                 <view class="title xl">设置密码</view>
                 <view class="modify-row row">
-                    <view style="width: 56px; border-right: 1px solid #e5e5e5">+86</view>
-                    <view style="margin-left: 15px">{{ userInfo.mobile }}</view>
+                    <view style="width: 112rpx; border-right: 1rpx solid #e5e5e5">+86</view>
+                    <view style="margin-left: 30rpx">{{ userInfo.mobile }}</view>
                 </view>
                 <view class="modify-row row">
                     <view style="width: 142rpx">验证码</view>
@@ -208,11 +208,11 @@
                     </view>
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">设置密码</view>
+                    <view style="width: 142rpx">设置密码</view>
                     <input type="password" v-model="pwd" placeholder="请输入新密码" />
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">确认密码</view>
+                    <view style="width: 142rpx">确认密码</view>
                     <input type="password" v-model="comfirmPwd" placeholder="再次输入新密码确认" />
                 </view>
                 <view class="btn bg-primary white row-center" @tap="$forgetPwd">确定</view>
@@ -296,7 +296,6 @@ export default {
             this.oaAuth()
         },
         handleUser() {
-            console.log(123465)
             uni.redirectTo({
                 url: '/bundle_user/pages/user_set/user_set'
             })
@@ -324,7 +323,6 @@ export default {
             // #endif
             // #ifdef MP-WEIXIN
             if (e.detail.avatarUrl) {
-                console.log(e.detail.avatarUrl)
                 this.uploadImage(e.detail.avatarUrl)
             }
             // #endif
@@ -451,7 +449,6 @@ export default {
         },
         // end
         timeChange(timestamp) {
-            console.log(timestamp, 'timestamp')
         },
         onConfirm(value) {
             this.$setUserInfo(value[0] + 1)
@@ -593,7 +590,6 @@ export default {
         // #endif
         // 监听从裁剪页发布的事件，获得裁剪结果
         uni.$on('uAvatarCropper', (path) => {
-            console.log(path)
             this.uploadImage(path)
         })
         this.getUserProfile = trottle(this.getUserProfile, 500, this)

@@ -1,18 +1,17 @@
 <template xlang="wxml" minapp="mpvue">
-	<view class="tki-qrcode">
+	<view class="tki-qrcode" :style="{width:cpSize+'px',height:cpSize+'px'}">
 		<!-- #ifndef MP-ALIPAY -->
-		<canvas class="tki-qrcode-canvas" :canvas-id="cid" :style="{width:cpSize+'px',height:cpSize+'px'}" />
+		<canvas class="tki-qrcode-canvas" :canvas-id="cid" :id="cid" :width="cpSize" :height="cpSize" :style="{width:cpSize+'px',height:cpSize+'px'}" />
 		<!-- #endif -->
 		<!-- #ifdef MP-ALIPAY -->
 		<canvas :id="cid" :width="cpSize" :height="cpSize" class="tki-qrcode-canvas" />
 		<!-- #endif -->
-		<image v-show="show" :src="result" :style="{width:cpSize+'px',height:cpSize+'px'}" />
+		<image v-if="show && result" class="tki-qrcode-image" :src="result" :style="{width:cpSize+'px',height:cpSize+'px'}" />
 	</view>
 </template>
 
 <script>
 import QRCode from "./qrcode.js"
-let qrcode
 export default {
 	name: "tki-qrcode",
 	props: {
@@ -87,10 +86,17 @@ export default {
 		}
 	},
 	methods: {
+		makeCode() {
+			if (!this.loadMake && !this.onval) return
+			if (this._empty(this.val) || !this.cpSize) return
+			setTimeout(() => {
+				this._makeCode()
+			}, 100)
+		},
 		_makeCode() {
 			let that = this
 			if (!this._empty(this.val)) {
-				qrcode = new QRCode({
+				this.qrcode = new QRCode({
 					context: that, // 上下文环境
 					canvasId:that.cid, // canvas-id
 					usingComponents: that.usingComponents, // 是否是自定义组件
@@ -118,7 +124,7 @@ export default {
 		},
 		_clearCode() {
 			this._result('')
-			qrcode.clear()
+			if (this.qrcode) this.qrcode.clear()
 		},
 		_saveCode() {
 			let that = this;
@@ -136,7 +142,7 @@ export default {
 			}
 		},
 		_result(res) {
-			this.result = res;
+			this.result = typeof res === 'string' ? res : '';
 			this.$emit('result', res)
 		},
 		_empty(v) {
@@ -170,41 +176,37 @@ export default {
 		val: function (n, o) {
 			if (this.onval) {
 				if (n != o && !this._empty(n)) {
-					setTimeout(() => {
-						this._makeCode()
-					}, 0);
+					this.makeCode()
 				}
 			}
 		}
 	},
 	computed: {
 		cpSize() {
-			if(this.unit == "upx"){
-				return uni.upx2px(this.size)
-			}else{
-				return this.size
-			}
+			const size = this.unit == "upx" ? uni.upx2px(this.size) : this.size
+			return Math.max(1, Math.round(Number(size) || 0))
 		}
 	},
 	mounted: function () {
-		if (this.loadMake) {
-			if (!this._empty(this.val)) {
-				setTimeout(() => {
-					this._makeCode()
-				}, 0);
-			}
-		}
+		this.makeCode()
 	},
 }
 </script>
 <style>
 .tki-qrcode {
   position: relative;
+  display: inline-block;
 }
 .tki-qrcode-canvas {
-  position: fixed;
-  top: -99999upx;
-  left: -99999upx;
-  z-index: -99999;
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.tki-qrcode-image {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 </style>

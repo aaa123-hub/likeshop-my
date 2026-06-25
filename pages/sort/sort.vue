@@ -1,6 +1,9 @@
 <template>
     <view class="sort-page">
         <view class="sort-header">
+            <view class="sort-nav">
+                <text class="sort-nav__title">分类</text>
+            </view>
             <view class="sort-search">
                 <view class="sort-search__glass">
                     <view class="sort-search__glass-circle"></view>
@@ -62,7 +65,7 @@
                     <view v-if="likeGoods.length" class="sort-like-grid">
                         <navigator
                             v-for="(item, index) in likeGoods"
-                            :key="item.id || index"
+                            :key="index"
                             class="sort-like-card"
                             hover-class="none"
                             :url="`/bundle/pages/goods_details/goods_details?id=${item.id || 1}`"
@@ -251,8 +254,23 @@ export default {
 
 .sort-header {
     flex: none;
-    padding: calc(var(--page-safe-top) + 18rpx) 24rpx 18rpx;
+    padding: calc(var(--page-safe-top) + 12rpx) 24rpx 18rpx;
     background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+}
+
+.sort-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 64rpx;
+    margin-bottom: 14rpx;
+}
+
+.sort-nav__title {
+    color: #222222;
+    font-size: 34rpx;
+    font-weight: 600;
+    line-height: 48rpx;
 }
 
 .sort-search {

@@ -16,7 +16,7 @@
 						:class="'dot ' + (index == currentSwiper ? 'active' : '')"></view>
 				</view>
 			</template>
-			<template v-lese v-for="(item, index) in lists" >
+			<template v-else v-for="(item, index) in lists" >
 				<view :key="index" :data-item="item" style="width:100%;height:100%;" @tap="goPage(item)" v-if="index < 1">
 					<image mode="aspectFill" :width="'calc(100% - ' + previousMargin + ')'" height="100%"
 						:border-radius="radius" :src="item.image"></image>

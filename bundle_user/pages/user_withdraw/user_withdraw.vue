@@ -6,7 +6,7 @@
 					<template v-if="item.value == 1 || item.value == 2">
 						<view class="bg-white withdraw-container mt20">
 							<view class="input row-center">
-								<view style="font-size: 23px;align-self: flex-end;margin-bottom: 5px">¥</view>
+								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
 								<input v-model="money" placeholder="0.00"></input>
 								<view class="column" style="flex: none;">
 									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
@@ -53,7 +53,7 @@
 						</view>
 						<view class="bg-white withdraw-container mt10">
 							<view class="input row-center">
-								<view style="font-size: 23px;align-self: flex-end;margin-bottom: 5px">¥</view>
+								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
 								<input v-model="money" placeholder="0.00"></input>
 								<view class="column" style="flex: none;">
 									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
@@ -100,7 +100,7 @@
 						</view>
 						<view class="bg-white withdraw-container mt10">
 							<view class="input row-center">
-								<view style="font-size: 23px;align-self: flex-end;margin-bottom: 5px">¥</view>
+								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
 								<input v-model="money" placeholder="0.00"></input>
 								<view class="column" style="flex: none;">
 									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
@@ -145,7 +145,7 @@
 						</view>
 						<view class="bg-white withdraw-container mt10">
 							<view class="input row-center">
-								<view style="font-size: 23px;align-self: flex-end;margin-bottom: 5px">¥</view>
+								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
 								<input v-model="money" placeholder="0.00"></input>
 								<view class="column" style="flex: none;">
 									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
@@ -242,7 +242,6 @@
 				const {
 					widthDrawConfig
 				} = this;
-				console.log(widthDrawConfig, "widthDrawConfig")
 				this.money = widthDrawConfig.able_withdraw.toString()
 			},
 
@@ -296,8 +295,6 @@
 					subbank,
 					widthDrawWay
 				} = this;
-				console.log(realName, "###", active, "###", money);
-
 				switch (parseInt(type)) {
 					case withdrawType.ACCOUNT:
 						break;

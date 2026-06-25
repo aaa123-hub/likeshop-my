@@ -1,19 +1,7 @@
-// +---------------------------------------------------------------------- // |
-likeshop开源商城系统 //
-+---------------------------------------------------------------------- // |
-欢迎阅读学习系统程序代码，建议反馈是我们前进的动力 // |
-gitee下载：https://gitee.com/likeshop_gitee // |
-github下载：https://github.com/likeshop-github // |
-访问官网：https://www.likeshop.cn // | 访问社区：https://home.likeshop.cn // |
-访问手册：http://doc.likeshop.cn // | 微信公众号：likeshop技术社区 // |
-likeshop系列产品在gitee、github等公开渠道开源版本可免费商用，未经许可不能去除前后端官方版权标识
-// |
-likeshop系列产品收费版本务必购买商业授权，购买去版权授权后，方可去除前后端官方版权标识
-// | 禁止对系统程序代码以任何目的，任何形式的再发布 // |
-likeshop团队版权所有并拥有最终解释权 //
-+---------------------------------------------------------------------- // |
-author: likeshop.cn.team //
-+----------------------------------------------------------------------
+<!--
+likeshop开源商城系统
+author: likeshop.cn.team
+-->
 
 <template>
   <view>
@@ -79,7 +67,7 @@ author: likeshop.cn.team //
         <view
           v-if="orderDetail.delivery_type == 1"
           class="receiving-card contain"
-          @click="onAddressExpress"
+          @tap="onAddressExpress"
         >
           <image
             class="icon-md mr20"
@@ -146,13 +134,7 @@ author: likeshop.cn.team //
               :class="{ 'qr-contain--die': orderDetail.verification_status }"
               ref="qr-image"
             >
-              <tki-qrcode
-                ref="qrcode"
-                uni="px"
-                :val="orderDetail.pickup_code || '测试'"
-                :size="118 * 2"
-                :showLoading="false"
-              />
+              <image src="/static/images/test-qrcode.png" style="width: 236rpx;height: 236rpx;" mode="aspectFit"></image>
             </view>
             <view class="mt30 xs black qr-code"
               >提货码：{{ orderDetail.pickup_code || '测试' }}</view
@@ -244,7 +226,7 @@ author: likeshop.cn.team //
           <view
             class="row-center muted"
             style="padding: 40rpx 0"
-            @click="priceShow = !priceShow"
+            @tap="priceShow = !priceShow"
           >
             <view>
               <text class="mr10" v-if="priceShow"> 收起 </text>
@@ -663,7 +645,7 @@ export default {
 }
 
 .order-details .img-line {
-  height: 1.5px;
+  height: 3rpx;
   width: 100%;
   display: block;
 }
@@ -703,11 +685,11 @@ export default {
 }
 
 .footer .plain {
-  border: 1px solid #bbbbbb;
+  border: 1rpx solid #bbbbbb;
 }
 
 .footer .plain.red {
-  border: 1px solid $color-primary;
+  border: 1rpx solid $color-primary;
 }
 
 .tips-dialog {
@@ -725,7 +707,7 @@ export default {
   align-items: center;
   min-height: 160rpx;
   padding: 20rpx;
-  border-top: 1px solid #f2f2f2;
+  border-top: 1rpx solid #f2f2f2;
 }
 
 .receiving-content {
@@ -757,11 +739,11 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 140px;
-  height: 140px;
-  padding: 8px;
-  border: 1px solid #cccccc;
-  border-radius: 5px;
+  width: 280rpx;
+  height: 280rpx;
+  padding: 16rpx;
+  border: 1rpx solid #cccccc;
+  border-radius: 10rpx;
 }
 
 .qr-contain--die {
@@ -782,7 +764,7 @@ export default {
 
 .qr-code {
   padding: 8rpx 30rpx;
-  border-radius: 60px;
+  border-radius: 120rpx;
   background-color: #f6f6f6;
 }
 

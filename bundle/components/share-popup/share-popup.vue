@@ -14,7 +14,7 @@
 				</view>
 				<view class="share-card__qr-wrap">
 					<image v-if="isQrcodeImage" class="share-card__qr" :src="mnpQrcode" mode="aspectFit"></image>
-					<tki-qrcode v-else-if="mnpQrcode" cid="goods-share-qrcode" :val="mnpQrcode" :size="282" unit="upx" :showLoading="false" />
+					<image v-else-if="mnpQrcode" class="share-card__qr" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
 					<view v-else class="share-card__qr-loading">二维码生成中</view>
 				</view>
 				<view class="share-card__tip">长按识别二维码查看商品</view>

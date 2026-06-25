@@ -21,7 +21,7 @@
 
             <view class="qrcode-box" @tap="previewQrcode">
                 <image v-if="server.qrcode || server.image" class="qrcode-box__image" :src="server.qrcode || server.image" mode="aspectFit"></image>
-                <view v-else class="qrcode-box__empty">暂无客服二维码</view>
+                <image v-else class="qrcode-box__image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
             </view>
             <view class="qrcode-tip">长按识别或点击预览二维码添加客服</view>
 
@@ -72,6 +72,7 @@
 
 <script>
 import UModal from '@/bundle_user/components/uview-ui/components/u-modal/u-modal.vue'
+import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 import { getService } from '@/api/app'
 import { copy } from '@/utils/tools'
 import { resolveImage } from '@/utils/image-placeholder'
@@ -79,7 +80,8 @@ import { resolveImage } from '@/utils/image-placeholder'
 export default {
     name: 'contactOffical',
     components: {
-        UModal
+        UModal,
+        TkiQrcode
     },
     data() {
         return {
@@ -94,7 +96,8 @@ export default {
             goodsName: '',
             shopName: '',
             showPhoneCall: false,
-            content: '即将拨打客服电话'
+            content: '即将拨打客服电话',
+            testQrcodeValue: 'https://shengyuan.store/test-service-qr'
         }
     },
     onLoad(options = {}) {
@@ -156,7 +159,10 @@ export default {
         },
         previewQrcode() {
             const url = this.server.qrcode || this.server.image
-            if (!url) return
+            if (!url) {
+                uni.showToast({ title: '当前显示测试二维码', icon: 'none' })
+                return
+            }
             uni.previewImage({
                 urls: [url],
                 current: url

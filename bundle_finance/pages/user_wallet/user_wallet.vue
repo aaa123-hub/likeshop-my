@@ -24,14 +24,13 @@
                 <view class="wallet-card__value">¥{{ formatMoney(wallet.user_money) }}</view>
             </view>
         </view>
-        <navigator
+        <view
             v-if="wallet.open_withdraw !== 0"
             class="wallet-btn"
-            hover-class="none"
-            url="/bundle_user/pages/user_withdraw/user_withdraw"
+            @tap="handleWithdrawTap"
         >
             提现
-        </navigator>
+        </view>
         <view class="wallet-records-card">
             <view class="wallet-tabs">
                 <view
@@ -197,6 +196,12 @@ export default {
         if (res.code == 1) {
           this.withdrawList = res.data.lists || res.data || []
         }
+      })
+    },
+    handleWithdrawTap() {
+      uni.showToast({
+        title: '功能暂未开放',
+        icon: 'none'
       })
     }
 

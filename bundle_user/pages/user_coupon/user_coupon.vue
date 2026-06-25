@@ -16,7 +16,7 @@
     <view class="coupon-list">
         <view v-if="loading" class="coupon-loading">加载中...</view>
         <template v-else-if="currentList.length">
-            <view v-for="(item, index) in currentList" :key="item.id || index" :class="['coupon-card', active !== 0 ? 'coupon-card--disabled' : '']">
+            <view v-for="(item, index) in currentList" :key="index" :class="['coupon-card', active !== 0 ? 'coupon-card--disabled' : '']">
                 <view class="coupon-card__price">
                     <text class="coupon-card__symbol">¥</text>
                     <text class="coupon-card__money">{{ formatMoney(item.money) }}</text>
