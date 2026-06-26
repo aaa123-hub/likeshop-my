@@ -99,8 +99,8 @@
 import { getCommentList, getCommentCategory } from '../../../api/store'
 import { loadingType } from '../../../utils/type'
 import URate from '@/bundle_order/components/uview-ui/components/u-rate/u-rate.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
-import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
+import LoadingFooter from '@/components/loading-footer/loading-footer.vue'
 
 export default {
     data() {
@@ -215,7 +215,6 @@ export default {
                         if (commentList.length <= 0) {
                             this.status = loadingType.EMPTY
                         } else {
-                            console.log('commentList false')
                             this.isEmpty = false
                         }
                     })

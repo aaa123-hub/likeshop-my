@@ -60,7 +60,8 @@ export default {
         page_size: 6
       }).then(res => {
         if (res.code == 1) {
-            this.goodsList = res.data.list
+            const data = res.data || {}
+            this.goodsList = Array.isArray(data.list) ? data.list : []
         }
       });
     }

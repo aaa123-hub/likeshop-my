@@ -2,7 +2,7 @@
     <view class="uploader-container row wrap">
         <view class="upload-image-box" v-for="(item, index) in fileList" :key="index" :style="{width: previewSize, height: previewSize}">
             <custom-image mode="aspectFit" class="img-preview" radius="10rpx" :src="item.url" :width="previewSize" :height="previewSize" />
-            <view class="close-icon row-center" @tap="deleteImage($event, index)">
+            <view v-if="deletable" class="close-icon row-center" @tap="deleteImage($event, index)">
                 <u-icon name="close" size="30" color="white" />
             </view>
         </view>
@@ -29,7 +29,7 @@
 
 <script>
 import UIcon from '@/bundle_order/components/uview-ui/components/u-icon/u-icon.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
 
     export default {
   components: {
@@ -76,8 +76,10 @@ import CustomImage from '@/bundle_shared_components/components/custom-image/cust
         },
         methods: {
             handleImage() {
+                const remaining = this.maxUpload - this.fileList.length
+                if (remaining <= 0) return
                 uni.chooseImage({
-                    count: this.mutiple ? this.maxUpload : 1,
+                    count: this.mutiple ? remaining : 1,
                     success: (res) => {
                         this.$emit("after-read", res.tempFiles)
                     }

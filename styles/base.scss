@@ -1,10 +1,17 @@
 @import "./builder.scss";
 
 page {
+    --app-max-width: 750rpx;
+    --app-safe-top: var(--status-bar-height, 0px);
+    --app-safe-bottom: constant(safe-area-inset-bottom);
+    --app-safe-bottom: env(safe-area-inset-bottom);
+    --app-window-bottom: var(--window-bottom, 0px);
+    --app-page-height: 100vh;
     /* 定义一些主题色及基础样式 */
     font-family: PingFang SC, Arial, Hiragino Sans GB, Microsoft YaHei, sans-serif;
     font-size: 28rpx;
     color: $color-normal;
+    padding-bottom: constant(safe-area-inset-bottom);
 	padding-bottom: env(safe-area-inset-bottom);
     background-color: $color-body;
     width: 100%;
@@ -12,7 +19,37 @@ page {
     overflow-x: hidden;
     box-sizing: border-box;
     -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
 }
+
+@supports (height: 100dvh) {
+    page {
+        --app-page-height: 100dvh;
+    }
+}
+
+body,
+uni-page-body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* #ifdef H5 */
+uni-page-body,
+uni-page-wrapper,
+uni-page {
+    max-width: var(--app-max-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body {
+    background-color: $color-body;
+}
+/* #endif */
 
 view,
 scroll-view,
@@ -26,6 +63,7 @@ image {
 
 image {
     max-width: 100%;
+    vertical-align: middle;
 }
 
 scroll-view {
@@ -36,32 +74,69 @@ scroll-view {
 .cart-footer,
 .footer,
 .payment-footer {
-    max-width: 750rpx;
+    max-width: var(--app-max-width);
     margin-left: auto;
     margin-right: auto;
+    left: 0;
+    right: 0;
 }
 
 .safe-area-bottom {
+    padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
 }
 
 .safe-area-inset-bottom {
+    height: constant(safe-area-inset-bottom);
     height: env(safe-area-inset-bottom);
     flex: none;
 }
 
+.safe-area-padding-bottom {
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-top {
+    padding-top: var(--app-safe-top);
+}
+
+.safe-area-bottom-fixed {
+    bottom: constant(safe-area-inset-bottom);
+    bottom: env(safe-area-inset-bottom);
+}
+
 .page-adaptive {
     width: 100%;
-    max-width: 750rpx;
+    max-width: var(--app-max-width);
     min-height: 100vh;
     min-height: 100dvh;
     margin: 0 auto;
     overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.app-width-adaptive {
+    width: 100%;
+    max-width: var(--app-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
 }
 
 .full-height-adaptive {
     min-height: 100vh;
     min-height: 100dvh;
+}
+
+.screen-height-adaptive {
+    height: 100vh;
+    height: 100dvh;
+}
+
+.tabbar-bottom-adaptive {
+    padding-bottom: calc(var(--app-window-bottom) + constant(safe-area-inset-bottom));
+    padding-bottom: calc(var(--app-window-bottom) + env(safe-area-inset-bottom));
 }
 
 .flex1{

@@ -83,7 +83,7 @@ export default {
                         ...item,
                         cardBg: cardBackgrounds[index % cardBackgrounds.length],
                         arrow: arrowImages[index % arrowImages.length],
-                        icon: resolveImage(item.icon, 'goods')
+                        icon: resolveImage(item.iconUrl || item.icon, 'goods')
                     }))
                 }
             }).finally(() => {
@@ -99,12 +99,18 @@ export default {
             uni.switchTab({ url: '/pages/index/index' })
         },
         openApp(item) {
+            const targetUrl = item.entryUrl || item.pagePath || item.linkUrl || ''
+            if (targetUrl && /^\//.test(targetUrl)) {
+                uni.navigateTo({ url: targetUrl })
+                return
+            }
             if (item.pagePath) {
                 uni.navigateTo({ url: item.pagePath })
                 return
             }
-            if (item.linkUrl && /^https?:\/\//i.test(item.linkUrl)) {
-                uni.setClipboardData({ data: item.linkUrl })
+            if (targetUrl && /^https?:\/\//i.test(targetUrl)) {
+                uni.setClipboardData({ data: targetUrl })
+                uni.showToast({ title: '链接已复制', icon: 'none' })
                 return
             }
             uni.showToast({ title: item.urlText || '暂未配置应用链接', icon: 'none' })

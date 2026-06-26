@@ -61,9 +61,6 @@
 			</view>
 		</u-popup>
 		<!-- #endif -->
-		<poster v-if="enablePoster" :type="type" :share-id="shareId" :config="config"
-			:qrcode="mnpQrcode" :link="getLink" @success="handleSuccess" @fail="handleFail"
-			:b-share-title="bargainShare.share_title" :b-share-intro="bargainShare.share_intro"/>
 	</view>
 </template>
 
@@ -80,13 +77,10 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 		baseURL,
 		basePath
 	} from '@/config/app'
-	import poster from './poster.vue'
-	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	// import {TtAppNameEnum} from '@/utils/enum'
 	export default {
 		components: {
-			UPopup,
-			TkiQrcode
+			UPopup
 		},
 		props: {
 			value: {
@@ -143,11 +137,7 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 			showshare(val) {
 				if (val) this.prepareQrcode()
 			},
-			showPoster(val) {
-				if (!val) {
-					this.enablePoster = false
-				}
-			}
+			showPoster() {}
 		},
 		methods: {
 			async prepareQrcode() {
@@ -181,11 +171,11 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 					this.setQrcodeValue(qrCode)
 					if(this.type == 2 && res.data) this.bargainShare = res.data.extra
 				}
-				this.enablePoster = true
+				this.handleSuccess(this.isQrcodeImage ? this.mnpQrcode : this.config.image)
 				// #endif
 
 				// #ifdef APP-PLUS || H5
-				this.enablePoster = true
+				this.handleSuccess(this.config.image)
 				// #endif
 			},
 			// 获取商品页面二维码数据

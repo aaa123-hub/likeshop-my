@@ -16,7 +16,9 @@
                                 <view class="address-card__name">
                                     {{ item.contact }}
                                 </view>
+                                <view v-if="item.gender" class="address-card__gender">{{ item.gender }}</view>
                                 <view class="address-card__phone">{{ item.telephone }}</view>
+                                <view v-if="item.is_default == '1'" class="address-card__default">默认</view>
                             </view>
                             <view class="address-card__detail">
                                 {{ item.province }} {{ item.city }} {{ item.district }}
@@ -165,8 +167,9 @@ export default {
         getAddressListsFun() {
             getAddressLists().then((res) => {
                 if (res.code == 1) {
-                    if (res.data.length) {
-                        this.addressList = res.data
+                    const list = Array.isArray(res.data) ? res.data : []
+                    this.addressList = list
+                    if (list.length) {
                         this.hasAddress = true
                     } else {
                         this.hasAddress = false
@@ -321,6 +324,21 @@ export default {
     .address-card__phone {
         margin-left: 18rpx;
         font-size: 28rpx;
+    }
+
+    .address-card__gender,
+    .address-card__default {
+        margin-left: 12rpx;
+        padding: 4rpx 12rpx;
+        color: #1f7af4;
+        font-size: 22rpx;
+        background: #eaf3ff;
+        border-radius: 999rpx;
+    }
+
+    .address-card__default {
+        color: #ffffff;
+        background: #1f7af4;
     }
 
     .address-card__detail {

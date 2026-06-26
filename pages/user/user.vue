@@ -57,7 +57,7 @@
                 </view>
             </view>
 
-            <image class="my-page__strategy" :src="designAssets.myStrategyBanner" mode="scaleToFill" @tap="goPage(businessRoutes.pages.pageIndex.url)"></image>
+            <image class="my-page__strategy" :src="designAssets.myStrategyBanner" mode="scaleToFill" @tap="goPage(businessRoutes.pages.mallGuide.url)"></image>
 
             <view class="my-section my-section--online">
                 <view class="my-section__head">
@@ -162,6 +162,7 @@ import Cache from '@/utils/cache'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
+import { getService } from '@/api/app'
 
 export default {
     data() {
@@ -179,6 +180,7 @@ export default {
     },
     onLoad() {
         setTabbar()
+        this.getServiceInfo()
     },
     onShow() {
         this.getUser()
@@ -236,6 +238,17 @@ export default {
         closeServiceModal() {
             this.showServiceModal = false
         },
+        getServiceInfo() {
+            getService().then(res => {
+                if (res.code != 1) return
+                const data = res.data || {}
+                this.serviceContacts = [
+                    { ...this.serviceContacts[0], value: data.wechat || this.serviceContacts[0].value },
+                    { ...this.serviceContacts[1], value: data.qq || this.serviceContacts[1].value },
+                    { ...this.serviceContacts[2], value: data.phone || this.serviceContacts[2].value }
+                ]
+            })
+        },
         contactService(item) {
             if (item.type === '手机号') {
                 uni.makePhoneCall({ phoneNumber: item.value.replace(/\s/g, '') })
@@ -252,7 +265,7 @@ export default {
         onlineOrderEntries() {
             return [
                 { name: '待付款', url: '/bundle_order/pages/user_order/user_order?type=pay', image: designAssets.myOrderPay, badge: this.userInfo.wait_pay },
-                { name: '待发货', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
+                { name: '待发货', url: '/bundle_order/pages/user_order/user_order?type=ship', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
                 { name: '待收货/核销', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myOrderReceive, badge: this.userInfo.wait_take },
                 { name: '待取积分', url: '/bundle_order/pages/user_order/user_order?points=1', image: designAssets.myOrderPoints, badge: this.userInfo.wait_comment },
                 { name: '售后', url: '/bundle_order/pages/post_sale/post_sale', image: designAssets.myOrderAfterSale, badge: this.userInfo.after_sale }

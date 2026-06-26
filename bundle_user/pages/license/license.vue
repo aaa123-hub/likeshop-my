@@ -12,24 +12,31 @@
             <view class="license-status__remark" v-if="statusRemark">{{ statusRemark }}</view>
             <view class="license-status__time" v-if="statusTime">{{ statusTime }}</view>
         </view>
-        <view class="license-card">
+        <view class="license-approved" v-if="isApproved">
+            <view class="license-approved__title">资质已通过</view>
+            <view class="license-approved__row"><text>商家名称</text><text>{{ form.merchantName || '-' }}</text></view>
+            <view class="license-approved__row"><text>联系电话</text><text>{{ form.contactMobile || '-' }}</text></view>
+            <view class="license-approved__row"><text>联系邮箱</text><text>{{ form.email || '-' }}</text></view>
+            <view class="license-approved__desc" v-if="form.remark">{{ form.remark }}</view>
+        </view>
+        <view class="license-card" v-if="!isApproved">
             <view class="license-item">
                 <view class="license-item__label">店铺名称</view>
-                <input class="license-item__input" v-model="form.merchantName" placeholder="请输入您的店铺名称" placeholder-class="license-placeholder" />
+                <input class="license-item__input" v-model="form.merchantName" :disabled="isApproved" placeholder="请输入您的店铺名称" placeholder-class="license-placeholder" />
             </view>
             <view class="license-item">
                 <view class="license-item__label">联系电话</view>
-                <input class="license-item__input" v-model="form.contactMobile" type="number" maxlength="11" placeholder="请输入您的电话" placeholder-class="license-placeholder" />
+                <input class="license-item__input" v-model="form.contactMobile" :disabled="isApproved" type="number" maxlength="11" placeholder="请输入您的电话" placeholder-class="license-placeholder" />
             </view>
             <view class="license-item">
                 <view class="license-item__label">电子邮箱</view>
-                <input class="license-item__input" v-model="form.email" placeholder="请输入您的电子邮箱" placeholder-class="license-placeholder" />
+                <input class="license-item__input" v-model="form.email" :disabled="isApproved" placeholder="请输入您的电子邮箱" placeholder-class="license-placeholder" />
             </view>
         </view>
-        <view class="license-extra">
+        <view class="license-extra" v-if="!isApproved">
             <view class="license-desc">
                 <view class="license-desc__title">网店说明</view>
-                <textarea class="license-desc__textarea" v-model="form.remark" placeholder="请输入网店说明" placeholder-class="license-placeholder" maxlength="200"></textarea>
+                <textarea class="license-desc__textarea" v-model="form.remark" :disabled="isApproved" placeholder="请输入网店说明" placeholder-class="license-placeholder" maxlength="200"></textarea>
                 <view class="license-desc__count">{{ form.remark.length }}/200</view>
             </view>
         </view>
@@ -94,7 +101,12 @@ import Navbar from '@/components/navbar/navbar.vue'
                 if (status === 'REJECTED' || status === 'REJECT') return 'license-status__value--danger'
                 return 'license-status__value--pending'
             },
+            isApproved() {
+                const status = this.auditStatus
+                return status === 'APPROVED' || status === 'PASS'
+            },
             submitButtonText() {
+                if (this.isApproved) return '已通过'
                 return this.auditStatus ? '重新提交' : '去开通'
             }
         },
@@ -115,7 +127,7 @@ import Navbar from '@/components/navbar/navbar.vue'
                         this.form.email = this.pickValue(res.data, ['email', 'merchantEmail', 'merchant_email', 'contactEmail', 'contact_email', 'settlementAccountNo', 'settlement_account_no']) || this.form.email
                         this.form.settlementAccountNo = this.pickValue(res.data, ['settlementAccountNo', 'settlement_account_no', 'email', 'merchantEmail', 'merchant_email']) || this.form.settlementAccountNo
                         this.form.qualificationUrl = this.pickValue(res.data, ['qualificationUrl', 'qualification_url']) || this.form.qualificationUrl
-                        this.form.remark = this.pickValue(res.data, ['remark', 'description', 'shopDescription', 'shop_description', 'storeDescription', 'store_description', 'onlineShopDescription', 'online_shop_description', 'auditRemark']) || this.form.remark
+                        this.form.remark = this.pickValue(res.data, ['shopDescription', 'shop_description', 'storeDescription', 'store_description', 'onlineShopDescription', 'online_shop_description', 'description', 'merchantRemark', 'merchant_remark', 'remark']) || this.form.remark
                     }
                 })
             },
@@ -127,6 +139,7 @@ import Navbar from '@/components/navbar/navbar.vue'
             },
             submitApply() {
                 if (this.submitting) return
+                if (this.isApproved) return
                 const message = this.validateForm()
                 if (message) {
                     this.$toast({ title: message })
@@ -272,6 +285,41 @@ import Navbar from '@/components/navbar/navbar.vue'
         font-size: 26rpx;
         line-height: 38rpx;
         color: #8a8f99;
+    }
+
+    .license-approved {
+        flex: none;
+        z-index: 3;
+        margin: 0 0 18rpx;
+        padding: 26rpx 24rpx;
+        background: #ffffff;
+        border-radius: 24rpx;
+        box-shadow: 0 14rpx 30rpx rgba(23, 172, 106, 0.12);
+    }
+
+    .license-approved__title {
+        margin-bottom: 18rpx;
+        color: #17ac6a;
+        font-size: 32rpx;
+        font-weight: 700;
+    }
+
+    .license-approved__row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12rpx 0;
+        color: #444444;
+        font-size: 26rpx;
+    }
+
+    .license-approved__desc {
+        margin-top: 14rpx;
+        padding: 18rpx;
+        color: #666666;
+        font-size: 24rpx;
+        line-height: 36rpx;
+        background: #f6fbf8;
+        border-radius: 16rpx;
     }
 
     .license-item {

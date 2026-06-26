@@ -309,13 +309,14 @@ export default {
     applyVipDetailFun() {
       applyVipDetail().then(res => {
         if(res.code == 1) {
-            switch(res.data.status) {
+            const data = res.data || {}
+            switch(data.status) {
                 case 0:
                     // 待审核
                 case 2:
                     // 审核不通过
                     this.vipState = 1;
-                    this.applyObject = res.data
+                    this.applyObject = data
                     break;
                 case 1:
                     this.getPromoteHomeFun();

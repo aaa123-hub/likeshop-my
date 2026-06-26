@@ -99,9 +99,12 @@
             <view class="row-info row-between bdb-line">
                 <view class="label md">版权信息</view>
             </view>
-            <view class="row-info row-between">
+            <view class="row-info row-between" @tap="goAboutUs">
                 <view class="label md">关于我们</view>
-                <view>v{{ version }}</view>
+                <view class="row">
+                    <view>v{{ version }}</view>
+                    <u-icon name="arrow-right" />
+                </view>
             </view>
 
             <view class="bg-primary white save-btn row-center lg" @tap="logout">退出登录</view>
@@ -361,6 +364,11 @@ export default {
         goToExplain(value) {
             uni.navigateTo({
                 url: '/bundle_user/pages/server_explan/server_explan?type=' + value
+            })
+        },
+        goAboutUs() {
+            uni.navigateTo({
+                url: '/business/pages/business_pages/about_us'
             })
         },
         toSetPayPwd() {

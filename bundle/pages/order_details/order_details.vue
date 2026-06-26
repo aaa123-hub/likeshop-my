@@ -496,7 +496,10 @@ export default {
             await this.comfirmReceive(data.transaction_id);
             await this.querycomfirmReceive(this.id);
             await confirmOrder(this.id);
-          } catch (error) {}
+          } catch (error) {
+            this.orderDialog();
+            return;
+          }
           this.getOrderDetailFun();
         } else {
           this.orderDialog();

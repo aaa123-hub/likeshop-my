@@ -84,10 +84,11 @@ export default {
         id: this.id
       }).then(res => {
         if (res.code == 1) {
-          this.articleDetail = res.data
-          //wxParse.wxParse('content', 'html', res.data.content, this, 15)
+          const data = res.data || {}
+          this.articleDetail = data
+          //wxParse.wxParse('content', 'html', data.content, this, 15)
           setTimeout(() => {
-            this.article_content = res.data.content;
+            this.article_content = data.content || '';
           }, 200);
           setTimeout(() => {
               this.showLoading = false

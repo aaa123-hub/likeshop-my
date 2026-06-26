@@ -154,7 +154,7 @@ import UPopup from '@/activity/components/uview-ui/components/u-popup/u-popup.vu
 					this.mnpQrcode = String(qrCode).replaceAll("\r\n", "")
 
 					if(this.type == 2) {
-						this.bargainShare = res.data.extra
+						this.bargainShare = res && res.data ? res.data.extra : null
 					}
 				}
 				this.enablePoster = true

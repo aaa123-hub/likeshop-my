@@ -64,7 +64,7 @@
                         :key="idx"
                         class="comment-img"
                         :data-current="idx"
-                        :data-uri="item"
+                        :data-uri="item.comment_image"
                         @tap="previewImage"
                     >
                         <custom-image width="160rpx" height="160rpx" radius="6rpx" :src="i" />
@@ -103,8 +103,8 @@ import { getOrderCommentList } from '../../../api/store'
 import { loadingFun } from '@/utils/tools'
 import URate from '@/bundle_order/components/uview-ui/components/u-rate/u-rate.vue'
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
-import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
+import LoadingFooter from '@/components/loading-footer/loading-footer.vue'
 
 export default {
     data() {
@@ -123,12 +123,11 @@ export default {
 		},
     props: {
         type: {
-            type: Number | String
+            type: [Number, String]
         }
     },
 
     beforeMount() {
-        console.log(this.type)
         this.getOrderCommentListFun()
     },
 
@@ -163,7 +162,7 @@ export default {
         },
         previewImage(e) {
             const { current, uri } = e.currentTarget.dataset
-            let urls = [uri]
+            let urls = uri || []
             uni.previewImage({
                 current,
                 // 当前显示图片的http链接

@@ -43,7 +43,7 @@
                         </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">姓名</text>
-                            <input v-model="kycForm.realName" class="user-kyc-page__input" placeholder="请输入真实姓名" placeholder-class="user-kyc-page__placeholder"></input>
+                                <input v-model="kycForm.realName" class="user-kyc-page__input" :disabled="!canEditKyc" placeholder="请输入真实姓名" placeholder-class="user-kyc-page__placeholder"></input>
                         </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">证件类型</text>
@@ -51,7 +51,7 @@
                         </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">证件号码</text>
-                            <input v-model="kycForm.certNo" class="user-kyc-page__input" placeholder="请输入证件号码" placeholder-class="user-kyc-page__placeholder"></input>
+                                <input v-model="kycForm.certNo" class="user-kyc-page__input" :disabled="!canEditKyc" placeholder="请输入证件号码" placeholder-class="user-kyc-page__placeholder"></input>
                         </view>
 
                         <view class="user-kyc-page__section-title">证件照片</view>
@@ -66,7 +66,7 @@
                             </view>
                         </view>
 
-                        <view :class="['user-kyc-page__submit', kycSubmitting ? 'is-disabled' : '']" @tap="submitKycForm">{{ kycSubmitting ? '提交中...' : '提交申请' }}</view>
+                        <view :class="['user-kyc-page__submit', kycSubmitting || !canEditKyc ? 'is-disabled' : '']" @tap="submitKycForm">{{ kycSubmitText }}</view>
                     </view>
                 </view>
             </template>
@@ -777,7 +777,7 @@
 
                             <view class="payment-filter-sheet__actions">
                                 <view class="payment-filter-sheet__action payment-filter-sheet__action--ghost" @tap="resetPaymentFilter">重置</view>
-                                <view class="payment-filter-sheet__action" @tap="closePaymentFilter">确定</view>
+                                <view class="payment-filter-sheet__action" @tap="applyPaymentFilter">确定</view>
                             </view>
                         </view>
                     </view>
@@ -879,8 +879,8 @@
                         </view>
 
                         <view class="payment-filter-sheet__actions">
-                            <view class="payment-filter-sheet__action payment-filter-sheet__action--ghost">重置</view>
-                            <view class="payment-filter-sheet__action">确定</view>
+                            <view class="payment-filter-sheet__action payment-filter-sheet__action--ghost" @tap="resetPaymentFilter">重置</view>
+                            <view class="payment-filter-sheet__action" @tap="applyPaymentFilter">确定</view>
                         </view>
                     </view>
                 </view>
@@ -1447,6 +1447,15 @@ export default {
         kycAuditMessage() {
             return this.kycStatusInfo.rejectReasonMessage || this.kycStatusInfo.reject_reason_message || this.kycStatusInfo.auditMessage || this.kycStatusInfo.audit_message || ''
         },
+        canEditKyc() {
+            const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
+            return !status || status === 'NOT_SUBMITTED' || status === 'REJECTED' || status === 'FAILED'
+        },
+        kycSubmitText() {
+            if (this.kycSubmitting) return '提交中...'
+            if (!this.canEditKyc) return this.kycStatusText || '已提交'
+            return this.kycStatusClass === 'is-error' ? '重新提交' : '提交申请'
+        },
         storeDetailView() {
             const shopBase = this.storeDetailData.shopBase || {}
             return {
@@ -1664,6 +1673,7 @@ export default {
             })
         },
         async chooseKycImage(type) {
+            if (!this.canEditKyc) return
             const result = await this.chooseUploadedImage()
             if (type === 'front') {
                 this.kycForm.certFrontUrl = result.fileUrl
@@ -1681,6 +1691,7 @@ export default {
         },
         async submitKycForm() {
             if (this.kycSubmitting) return
+            if (!this.canEditKyc) return
             if (!this.kycForm.realName || !this.kycForm.certNo || !this.kycForm.certFrontUrl || !this.kycForm.certBackUrl) {
                 uni.showToast({ title: '请填写完整认证信息', icon: 'none' })
                 return
@@ -1834,9 +1845,17 @@ export default {
                 item.active = index === 0
             })
         },
+        applyPaymentFilter() {
+            this.showPaymentFilter = false
+            return this.loadPaymentRecords()
+        },
         async loadPaymentRecords() {
             try {
+                const method = this.paymentMethodOptions.find(item => item.active)?.label || '全部'
+                const status = this.paymentStatusOptions.find(item => item.active)?.label || '全部'
                 const res = await getAccountLog({
+                    source: method === '法币' ? 'FIAT' : '',
+                    status: status === '全部' ? '' : status,
                     pageNo: 1,
                     pageSize: 20
                 })
@@ -2064,7 +2083,38 @@ export default {
             })
         },
         toastStoreShareSave() {
-            uni.showToast({ title: '请长按二维码保存', icon: 'none' })
+            const imageUrl = this.storeDetailHeroImage || this.storeDetailView.shopLogo
+            if (!imageUrl || this.isEmptyImage(imageUrl)) {
+                uni.showToast({ title: '暂无可保存图片', icon: 'none' })
+                return
+            }
+            uni.showLoading({ title: '保存中...', mask: true })
+            uni.downloadFile({
+                url: imageUrl,
+                success: (downloadRes) => {
+                    const filePath = downloadRes.tempFilePath
+                    if (!filePath) {
+                        uni.hideLoading()
+                        uni.showToast({ title: '图片下载失败', icon: 'none' })
+                        return
+                    }
+                    uni.saveImageToPhotosAlbum({
+                        filePath,
+                        success: () => {
+                            uni.hideLoading()
+                            uni.showToast({ title: '已保存到相册', icon: 'success' })
+                        },
+                        fail: () => {
+                            uni.hideLoading()
+                            uni.showToast({ title: '请授权相册权限后重试', icon: 'none' })
+                        }
+                    })
+                },
+                fail: () => {
+                    uni.hideLoading()
+                    uni.showToast({ title: '图片下载失败', icon: 'none' })
+                }
+            })
         },
         async loadStreetIndex() {
             if (this.streetLoaded) return
@@ -5092,7 +5142,6 @@ export default {
 }
 
 .user-kyc-page__copy {
-    width: 372rpx;
     padding-top: 44rpx;
 }
 

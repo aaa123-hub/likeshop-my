@@ -172,7 +172,7 @@
 </template>
 
 <script>
-	import Uploader from '@/bundle_order/components/uploader/uploader.vue'
+	import Uploader from '@/bundle_user/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
@@ -257,8 +257,9 @@
 			getWithdrawConfigFun() {
 				getWithdrawConfig().then(res => {
 					if (res.code == 1) {
-						this.widthDrawConfig = res.data
-						this.widthDrawWay = res.data.type
+						const data = res.data || {}
+						this.widthDrawConfig = data
+						this.widthDrawWay = Array.isArray(data.type) ? data.type : []
 					}
 				});
 			},
@@ -333,9 +334,15 @@
 					});
 					return;
 				}
+				const currentWay = widthDrawWay.find(item => item.value == type) || widthDrawWay[active] || {}
+				if (!currentWay.value) {
+					return this.$toast({
+						title: '暂无可用提现方式'
+					})
+				}
 
 				const data = {
-					type: widthDrawWay[active].value,
+					type: currentWay.value,
 					money: money,
 					account: account,
 					real_name: realName,
@@ -347,11 +354,12 @@
 				};
 				applyWithdraw(data).then(res => {
 					if (res.code == 1) {
+						const result = res.data || {}
 						this.$toast({
 							title: '提交成功'
 						}, {
 							tab: 2,
-							url: '/bundle_finance/pages/widthdraw_result/widthdraw_result?id=' + res.data.id
+							url: '/bundle_finance/pages/widthdraw_result/widthdraw_result?id=' + (result.id || '')
 						});
 					}
 				});

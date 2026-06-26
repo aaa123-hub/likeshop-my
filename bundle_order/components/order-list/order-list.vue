@@ -211,9 +211,9 @@ import UTag from '@/bundle_order/components/uview-ui/components/u-tag/u-tag.vue'
 import UCountDown from '@/bundle_order/components/uview-ui/components/u-count-down/u-count-down.vue'
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
 import OrderGoods from '@/bundle_order/components/order-goods/order-goods.vue'
-import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
-import LoadingView from '@/bundle_shared_components/components/loading-view/loading-view.vue'
-import OrderDialog from '@/bundle_shared_components/components/order-dialog/order-dialog.vue'
+import LoadingFooter from '@/components/loading-footer/loading-footer.vue'
+import LoadingView from '@/components/loading-view/loading-view.vue'
+import OrderDialog from '@/bundle_order/components/order-dialog/order-dialog.vue'
 export default {
   data() {
     return {
@@ -266,12 +266,12 @@ export default {
       this.orderList = [];
       this.status = loadingType.LOADING;
       this.type = 0;
-      this.getOrderListFun();
+      return this.getOrderListFun();
     },
 
     reload() {
       this.status = loadingType.LOADING;
-      this.getOrderListFun();
+      return this.getOrderListFun();
     },
 
     orderDialog() {
@@ -347,7 +347,10 @@ export default {
             await this.comfirmReceive(data.transaction_id);
             await this.querycomfirmReceive(this.orderId);
             await confirmOrder(this.orderId);
-          } catch (error) {}
+          } catch (error) {
+            this.orderDialog();
+            return;
+          }
           this.reflesh();
         } else {
           this.orderDialog();

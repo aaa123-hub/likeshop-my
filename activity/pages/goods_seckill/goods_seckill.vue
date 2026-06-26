@@ -105,35 +105,36 @@ export default {
       } = this;
       getSeckillTime().then(res => {
         if (res.code == 1) {
-          if (!res.data.length && res.data.length <= 0) {
+          const list = Array.isArray(res.data) ? res.data : [];
+          if (list.length <= 0) {
             this.isDataNull = true
             return;
           }
 
-          let index = res.data.findIndex(item => item.status == 1);
+          let index = list.findIndex(item => item.status == 1);
 
           if (index == -1) {
-            index = res.data.findIndex(item => item.status == 0);
+            index = list.findIndex(item => item.status == 0);
           }
 
           if (index == -1) {
             index = 0;
           }
 
-          res.data[index].active = 1;
+          list[index].active = 1;
           currentView = index - 2;
-          currentStatus = res.data[index].status;
+          currentStatus = list[index].status;
 
           if (currentView < 0) {
             currentView = 0;
           }
 
-          this.seckillTime = res.data;
-          this.id = res.data[index].id;
+          this.seckillTime = list;
+          this.id = list[index].id;
           this.currentView = currentView;
           this.currentStatus = currentStatus;
 
-          this.getSeckillGoodsFun(res.data[index].id);
+          this.getSeckillGoodsFun(list[index].id);
         }
       });
     },

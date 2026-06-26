@@ -33,6 +33,14 @@
                 <view class="contact-row__btn" @tap="onCopy(server.wechat)">复制</view>
             </view>
 
+            <view class="contact-row" v-if="server.qq">
+                <view class="contact-row__main">
+                    <view class="contact-row__label">客服QQ</view>
+                    <view class="contact-row__value">{{ server.qq }}</view>
+                </view>
+                <view class="contact-row__btn" @tap="onCopy(server.qq)">复制</view>
+            </view>
+
             <view class="contact-row" v-if="server.phone">
                 <view class="contact-row__main">
                     <view class="contact-row__label">客服电话</view>
@@ -72,7 +80,6 @@
 
 <script>
 import UModal from '@/bundle_user/components/uview-ui/components/u-modal/u-modal.vue'
-import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 import { getService } from '@/api/app'
 import { copy } from '@/utils/tools'
 import { resolveImage } from '@/utils/image-placeholder'
@@ -80,8 +87,7 @@ import { resolveImage } from '@/utils/image-placeholder'
 export default {
     name: 'contactOffical',
     components: {
-        UModal,
-        TkiQrcode
+        UModal
     },
     data() {
         return {
@@ -90,14 +96,14 @@ export default {
                 image: resolveImage('', 'avatar'),
                 qrcode: '',
                 wechat: '',
+                qq: '',
                 phone: '',
                 time: '工作日 09:00-18:00'
             },
             goodsName: '',
             shopName: '',
             showPhoneCall: false,
-            content: '即将拨打客服电话',
-            testQrcodeValue: 'https://shengyuan.store/test-service-qr'
+            content: '即将拨打客服电话'
         }
     },
     onLoad(options = {}) {
@@ -137,6 +143,7 @@ export default {
         copyServiceSummary() {
             const list = [
                 this.server.wechat ? `客服微信：${this.server.wechat}` : '',
+                this.server.qq ? `客服QQ：${this.server.qq}` : '',
                 this.server.phone ? `客服电话：${this.server.phone}` : '',
                 this.server.time ? `服务时间：${this.server.time}` : '',
                 this.goodsName ? `咨询商品：${this.goodsName}` : '',

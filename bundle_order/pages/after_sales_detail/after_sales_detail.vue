@@ -107,7 +107,7 @@
 <script>
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
 import UModal from '@/bundle_order/components/uview-ui/components/u-modal/u-modal.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
 	// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------

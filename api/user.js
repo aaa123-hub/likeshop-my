@@ -73,6 +73,7 @@ function normalizeUserProfile(data = {}) {
         nickname: data.nickname || data.nickName || data.userName || fakeUserInfo().nickname,
         sn: data.sn || data.userNo || data.inviteCode || data.openId || fakeUserInfo().sn,
         mobile: data.mobile || data.phone || '',
+        create_time: data.create_time || data.createTime || data.createdAt || data.registerTime || '暂未记录',
         sex: normalizeGenderForView(genderValue),
         user_money: data.user_money ?? data.balance ?? data.walletBalance ?? 0,
         user_integral: data.user_integral ?? data.availablePoints ?? data.points ?? 0,
@@ -329,12 +330,12 @@ export function delAddress(id) {
 }
 
 export function getOneAddress(id) {
-    return request.get(`miniapp/addresses/${id}`).catch(() => request.get('miniapp/addresses').then((res) => {
+    return request.get('miniapp/addresses').then((res) => {
         if (res.code != 1) return res
         const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.items || res.data?.rows || [])
         const item = list.find((it) => String(it.id || it.addressId) === String(id)) || null
         return { ...res, data: item }
-    })).then((res) => {
+    }).then((res) => {
         if (res.code == 1 && res.data) {
             return {
                 ...res,
@@ -553,6 +554,8 @@ export function getAccountLog(params) {
     return request.get('miniapp/wallet/ledger', {
         params: {
             bizType: params?.bizType || params?.source || params?.type,
+            status: params?.status,
+            payStatus: params?.payStatus || params?.status,
             startTime: params?.startTime,
             endTime: params?.endTime,
             pageNo: params?.pageNo || params?.page_no || 1,
@@ -685,6 +688,8 @@ export function changeUserMobile(data) {
         mobile: data.new_mobile || data.mobile || data.phone,
         smsCode: data.smsCode || data.code,
         code: data.code,
+        jsCode: data.jsCode || data.loginCode || data.code,
+        loginCode: data.loginCode || data.jsCode || data.code,
         encryptedData: data.encryptedData || data.encrypted_data,
         encrypted_data: data.encrypted_data || data.encryptedData,
         iv: data.iv

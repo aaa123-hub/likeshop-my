@@ -371,12 +371,14 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
             $getBargainDetail(id) {
                 getBargainDetail({bargain_id: id}).then(res => {
                     if(res.code == 1) {
-                        this.activityObj = res.data;
-                        this.status = res.data.status;
+                        const data = res.data || {};
+                        const goodsItem = Array.isArray(data.goods_item) ? data.goods_item[0] || {} : {};
+                        this.activityObj = data;
+                        this.status = data.status;
                         this.showLoadingView = false;
-                        this.userSpecText = res.data.goods_item[0].spec_value_str
+                        this.userSpecText = goodsItem.spec_value_str || ''
                         this.userSpec = {
-                            id: res.data.goods_item[0].id
+                            id: goodsItem.id || ''
                         }
                         // let url = config.baseURL.replace(/\/api\//g, "/mobile/");
                         let options = {
@@ -403,18 +405,19 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                 }
                 launchBargain(data).then(res => {
                     if(res.code == 1) {
+                        const data = res.data || {};
                         this.$toast({title: res.msg});
-                        this.knifePrice = res.data.knife_price;
-                        this.diffPrice = res.data.diff_price;
-                        this.precent = res.data.progress * 100;
+                        this.knifePrice = data.knife_price || 0;
+                        this.diffPrice = data.diff_price || 0;
+                        this.precent = (data.progress || 0) * 100;
                         if(this.precent > 100) {
                             this.precent = 100
                         }
                         this.showBargainPop = true;
-                        this.bargainId = res.data.id;
+                        this.bargainId = data.id;
                         this.showLoadingView = true;
                         uni.showLoading()
-                        this.$getBargainActivityDetail(res.data.id);
+                        this.$getBargainActivityDetail(data.id);
                     }
                 })
             },
@@ -425,11 +428,12 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                     id: id
                 }).then(res => {
                     if(res.code == 1) {
+                        const data = res.data || {};
                         uni.hideLoading()
-                        this.status = res.data.status;
-                        this.bargainObj = res.data;
-                        timestamp = res.data.over_time;
-                        this.precent = res.data.progress * 100;
+                        this.status = data.status;
+                        this.bargainObj = data;
+                        timestamp = data.over_time || 0;
+                        this.precent = (data.progress || 0) * 100;
                         if(this.precent > 100) {
                             this.precent = 100
                         }
@@ -468,8 +472,9 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                     id: this.bargainId
                 }).then(res => {
                     if(res.code == 1) {
-                        this.knifePrice = res.data.knife_price;
-                        this.precent = res.data.progress * 100;
+                        const data = res.data || {};
+                        this.knifePrice = data.knife_price || 0;
+                        this.precent = (data.progress || 0) * 100;
                         if(this.precent > 100) {
                             this.precent = 100
                         }

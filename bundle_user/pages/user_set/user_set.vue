@@ -60,7 +60,7 @@
             </view>
             <view class="row-info row bdb-line">
                 <view class="label md">注册时间 </view>
-                <view class="md row" style="flex: 1">{{ userInfo.create_time }}</view>
+                <view class="md row" style="flex: 1">{{ userInfo.create_time || '暂未记录' }}</view>
             </view>
         </view>
         <u-popup type="center" closeable v-model="showMobile" mode="center" border-radius="14">
@@ -458,8 +458,10 @@ export default {
 
         async getPhoneNumber(e) {
             const { encryptedData, iv } = e.detail
-            let data = {
+                let data = {
                 code: this.code,
+                jsCode: this.code,
+                loginCode: this.code,
                 encrypted_data: encryptedData,
                 iv
             }

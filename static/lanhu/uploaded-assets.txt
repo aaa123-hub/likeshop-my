@@ -6,6 +6,36 @@
 # Request type: multipart/form-data without charset
 # Total: 101
 
+[success] 首页快捷入口图标 - 分类
+key: home_shortcut_category
+local: https://lanhu-oss-proxy.lanhuapp.com/410ccd1aedbae6ca6d4de02dade0e890
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/7f63a1c5a2ee4078b3148915403d074f/home-shortcut-category.png
+
+[success] 首页快捷入口图标 - 订单
+key: home_shortcut_order
+local: https://lanhu-oss-proxy.lanhuapp.com/e116db07c2666bead8408becab46158e
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/3cd070ca256d411fb824001454a5eb97/home-shortcut-order.png
+
+[success] 首页快捷入口图标 - 消息
+key: home_shortcut_message
+local: https://lanhu-oss-proxy.lanhuapp.com/0d5b75809f4b3fc5bb2ac23facbec89a
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/a90fd6a6345f48dd9d6a0771c5ff6127/home-shortcut-message.png
+
+[success] 首页快捷入口图标 - 活动
+key: home_shortcut_activity
+local: https://lanhu-oss-proxy.lanhuapp.com/e8e0b020a98bb7d9bad209e3b22f6ecb
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/be7a73d9cccc41f29bede6d23e1c5a36/home-shortcut-activity.png
+
+[success] 首页快捷入口图标 - 钱包
+key: home_shortcut_wallet
+local: https://lanhu-oss-proxy.lanhuapp.com/82075429ada00649169c1be2219f928c
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/33f3be5718014c6b957a62c7f0c91f14/home-shortcut-wallet.png
+
 [success] 活动中心兑换弹窗背景 - activity_exchange_dialog_bg.png
 key: assets_activity_exchange_activity_exchange_dialog_bg
 local: /static/lanhu/assets/activity-exchange/activity_exchange_dialog_bg.png

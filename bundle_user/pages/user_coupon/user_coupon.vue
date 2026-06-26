@@ -31,8 +31,14 @@
             </view>
         </template>
         <view v-else class="coupon-empty">
+            <view class="coupon-empty__icon">
+                <view class="coupon-empty__stub"></view>
+                <view class="coupon-empty__dot coupon-empty__dot--left"></view>
+                <view class="coupon-empty__dot coupon-empty__dot--right"></view>
+            </view>
             <view class="coupon-empty__title">暂无优惠券</view>
             <view class="coupon-empty__desc">有可用优惠券时会展示在这里</view>
+            <view class="coupon-empty__button" @tap="useCoupon">去首页看看</view>
         </view>
     </view>
 </view>
@@ -125,6 +131,7 @@ export default {
     display: flex;
     height: 88rpx;
     background: #ffffff;
+    box-shadow: 0 8rpx 22rpx rgba(24, 40, 80, 0.04);
 }
 
 .coupon-tab {
@@ -174,6 +181,26 @@ export default {
     overflow: hidden;
     background: #ffffff;
     box-shadow: 0 10rpx 30rpx rgba(24, 40, 80, 0.05);
+}
+
+.coupon-card::before,
+.coupon-card::after {
+    content: '';
+    position: absolute;
+    left: 190rpx;
+    width: 28rpx;
+    height: 28rpx;
+    border-radius: 50%;
+    background: #f6f7fb;
+    z-index: 2;
+}
+
+.coupon-card::before {
+    top: -14rpx;
+}
+
+.coupon-card::after {
+    bottom: -14rpx;
 }
 
 .coupon-card__price {
@@ -250,12 +277,50 @@ export default {
 }
 
 .coupon-empty {
-    margin: 140rpx 6rpx 0;
-    padding: 80rpx 30rpx;
+    margin: 120rpx 6rpx 0;
+    padding: 74rpx 30rpx 64rpx;
     background: #ffffff;
     border-radius: 24rpx;
     text-align: center;
     box-shadow: 0 12rpx 36rpx rgba(24, 40, 80, 0.04);
+}
+
+.coupon-empty__icon {
+    position: relative;
+    width: 210rpx;
+    height: 126rpx;
+    margin: 0 auto 34rpx;
+    border-radius: 22rpx;
+    background: linear-gradient(135deg, #fff5ed 0%, #ffe2d8 100%);
+    overflow: hidden;
+}
+
+.coupon-empty__stub {
+    position: absolute;
+    left: 36rpx;
+    top: 40rpx;
+    width: 138rpx;
+    height: 18rpx;
+    border-radius: 18rpx;
+    background: rgba(255, 76, 54, 0.22);
+    box-shadow: 0 34rpx 0 rgba(255, 76, 54, 0.14);
+}
+
+.coupon-empty__dot {
+    position: absolute;
+    top: 49rpx;
+    width: 30rpx;
+    height: 30rpx;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+.coupon-empty__dot--left {
+    left: -15rpx;
+}
+
+.coupon-empty__dot--right {
+    right: -15rpx;
 }
 
 .coupon-empty__title {
@@ -270,5 +335,20 @@ export default {
     color: #999999;
     font-size: 24rpx;
     line-height: 34rpx;
+}
+
+.coupon-empty__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 216rpx;
+    height: 64rpx;
+    margin: 34rpx auto 0;
+    border-radius: 32rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    font-weight: 600;
+    background: linear-gradient(90deg, #ff8b3d 0%, #ff2c3c 100%);
+    box-shadow: 0 10rpx 22rpx rgba(255, 76, 54, 0.18);
 }
 </style>

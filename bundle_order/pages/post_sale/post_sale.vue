@@ -13,6 +13,8 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
+import Tabs from '@/bundle_order/components/tabs/tabs.vue'
+import Tab from '@/bundle_order/components/tab/tab.vue'
 import AfterSalesList from '@/bundle_order/components/after-sales-list/after-sales-list.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
@@ -58,6 +60,8 @@ export default {
 
   components: {
 			Navbar,
+			Tabs,
+			Tab,
 			AfterSalesList
 		},
   props: {},
@@ -84,7 +88,8 @@ export default {
             break;
     }
 
-    let myComponent = this.$refs[afterSaleType] && this.$refs[afterSaleType][0];
+    const current = this.$refs[afterSaleType]
+    const myComponent = Array.isArray(current) ? current[0] : current
     if (myComponent && myComponent.getAfterSaleListFun) {
       myComponent.getAfterSaleListFun();
     }
@@ -113,8 +118,10 @@ export default {
           this.active = type == AfterSaleType.NORMAL ? 0 : type == AfterSaleType.HANDLING ? 1 : 2
       }
 
-      if(this.$refs[type] && this.$refs[type][0] && this.$refs[type][0].getAfterSaleListFun) {
-          this.$refs[type][0].getAfterSaleListFun()
+      const current = this.$refs[type]
+      const component = Array.isArray(current) ? current[0] : current
+      if(component && component.getAfterSaleListFun) {
+          component.getAfterSaleListFun()
       }
     },
 

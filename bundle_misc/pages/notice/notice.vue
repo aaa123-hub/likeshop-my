@@ -88,8 +88,9 @@ export default {
         page_no: this.page,
       }).then(function(res) {
         if (res.code == 1) {
-          var list = res.data.list || [];
-          var more = res.data.more;
+          var data = res.data || {};
+          var list = Array.isArray(data.list) ? data.list : [];
+          var more = data.more;
           that.lists = that.lists.concat(list);
           that.page++;
           if (!more) {

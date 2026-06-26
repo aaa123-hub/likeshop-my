@@ -3,8 +3,7 @@ import { mapMutations, mapActions } from "vuex";
 import { inputInviteCode } from "@/api/user";
 import { userShare, getConfig } from "@/api/app";
 import Cache from "@/utils/cache";
-import { strToParams, showModal, setTabbar } from "@/utils/tools";
-import { wxMnpLogin } from "@/utils/login";
+import { strToParams, setTabbar } from "@/utils/tools";
 export default {
   globalData: {
     navHeight: "",
@@ -24,9 +23,6 @@ export default {
     //绑定邀请码
     this.bindCode(options);
   },
-  onHide: function () {
-    console.log("App Hide");
-  },
   methods: {
     ...mapMutations(["SETCONFIG"]),
     ...mapActions(["getUser"]),
@@ -42,10 +38,7 @@ export default {
             navHeight = statusBarHeight + 48;
           }
           this.globalData.navHeight = navHeight;
-        },
-        fail(err) {
-          console.log(err);
-        },
+        }
       });
     },
     async getShareInfo() {
@@ -67,9 +60,15 @@ export default {
     },
     bindCode(options) {
       if (!options.query) return;
-      let invite_code =
-        options.query.invite_code ||
-        strToParams(decodeURIComponent(options.query.scene)).invite_code;
+      const scene = options.query.scene;
+      let invite_code = options.query.invite_code;
+      if (!invite_code && scene) {
+        try {
+          invite_code = strToParams(decodeURIComponent(scene)).invite_code;
+        } catch (e) {
+          return;
+        }
+      }
       if (invite_code) {
         inputInviteCode({
           code: invite_code,
@@ -88,7 +87,14 @@ export default {
 @import "styles/base.scss";
 /* #ifdef H5 */
 uni-tabbar .uni-tabbar {
+  left: 0 !important;
+  right: 0 !important;
+  max-width: var(--app-max-width, 750rpx) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  height: calc(112rpx + constant(safe-area-inset-bottom)) !important;
   height: calc(112rpx + env(safe-area-inset-bottom)) !important;
+  padding-bottom: constant(safe-area-inset-bottom) !important;
   padding-bottom: env(safe-area-inset-bottom) !important;
   box-sizing: border-box !important;
 }

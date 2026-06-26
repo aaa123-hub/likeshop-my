@@ -158,8 +158,16 @@ import { mapActions, mapGetters } from 'vuex'
 import { getHome } from '@/api/store'
 import { getRecentVisitShops } from '@/api/app'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
-import { designAssets, designAssetList } from '@/utils/design-assets'
+import { designAssets } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
+
+const homeShortcutFallbackImages = {
+    CATEGORY: 'https://shengyuan.store/api/miniapp/files/miniapp/7f63a1c5a2ee4078b3148915403d074f/home-shortcut-category.png',
+    ORDER: 'https://shengyuan.store/api/miniapp/files/miniapp/3cd070ca256d411fb824001454a5eb97/home-shortcut-order.png',
+    MESSAGE: 'https://shengyuan.store/api/miniapp/files/miniapp/a90fd6a6345f48dd9d6a0771c5ff6127/home-shortcut-message.png',
+    ACTIVITY: 'https://shengyuan.store/api/miniapp/files/miniapp/be7a73d9cccc41f29bede6d23e1c5a36/home-shortcut-activity.png',
+    WALLET: 'https://shengyuan.store/api/miniapp/files/miniapp/33f3be5718014c6b957a62c7f0c91f14/home-shortcut-wallet.png'
+}
 
 const homeShortcutRoutes = {
     CATEGORY: { name: '分类', url: '/pages/sort/sort', type: 'switchTab' },
@@ -183,15 +191,7 @@ export default {
             homeData: {},
             designAssets,
             businessRoutes,
-            recentVisitFallback: [
-                { shopId: 101, name: '默认样式', image: '' },
-                { shopId: 102, name: '默认样式', image: '' },
-                { shopId: 103, name: '默认样式', image: '' },
-                { shopId: 104, name: '默认样式', image: '' },
-                { shopId: 105, name: '默认样式', image: '' },
-                { shopId: 106, name: '默认样式', image: '' },
-                { shopId: 107, name: '默认样式', image: '' }
-            ],
+            recentVisitFallback: [],
             homeRecentVisitList: [],
             homeLoading: false,
             didShowOnce: false,
@@ -242,11 +242,11 @@ export default {
         },
         homeShortcutFallback() {
             return [
-                { ...homeShortcutRoutes.CATEGORY, image: '' },
-                { ...homeShortcutRoutes.ORDER, image: '' },
-                { ...homeShortcutRoutes.MESSAGE, image: '' },
-                { ...homeShortcutRoutes.ACTIVITY, image: '' },
-                { ...homeShortcutRoutes.WALLET, image: '' }
+                { ...homeShortcutRoutes.CATEGORY, image: homeShortcutFallbackImages.CATEGORY },
+                { ...homeShortcutRoutes.ORDER, image: homeShortcutFallbackImages.ORDER },
+                { ...homeShortcutRoutes.MESSAGE, image: homeShortcutFallbackImages.MESSAGE },
+                { ...homeShortcutRoutes.ACTIVITY, image: homeShortcutFallbackImages.ACTIVITY },
+                { ...homeShortcutRoutes.WALLET, image: homeShortcutFallbackImages.WALLET }
             ]
         }
     },
@@ -342,13 +342,14 @@ export default {
                 return {
                     ...homeShortcutRoutes[shortcutKey],
                     name: title || homeShortcutRoutes[shortcutKey].name,
-                    image: resolveImage(item.iconUrl || item.image || '')
+                    image: resolveImage(item.iconUrl || item.icon || item.image || homeShortcutFallbackImages[shortcutKey] || ''),
+                    url: item.entryUrl || item.pagePath || item.url || homeShortcutRoutes[shortcutKey].url
                 }
             }
             return {
                 name: item.title || item.code || '入口',
-                image: resolveImage(item.iconUrl || ''),
-                url: item.pagePath || ''
+                image: resolveImage(item.iconUrl || item.icon || item.image || ''),
+                url: item.entryUrl || item.pagePath || item.url || item.linkUrl || ''
             }
         },
         goPage(url) {
@@ -410,6 +411,11 @@ export default {
             const shortcutKey = homeShortcutRoutes[code] ? code : homeShortcutAliases[item.name]
             const target = shortcutKey ? homeShortcutRoutes[shortcutKey] : item
             if (!target.url) return
+            if (/^https?:\/\//i.test(target.url)) {
+                uni.setClipboardData({ data: target.url })
+                uni.showToast({ title: '链接已复制', icon: 'none' })
+                return
+            }
             if (target.type === 'switchTab') {
                 this.switchTab(target.url)
                 return

@@ -268,8 +268,8 @@ import {
 } from "@/api/user";
 import { loadingFun } from "@/utils/tools";
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
-import LoadingFooter from '@/bundle_shared_components/components/loading-footer/loading-footer.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
+import LoadingFooter from '@/components/loading-footer/loading-footer.vue'
 
 export default {
   data() {
@@ -295,7 +295,6 @@ export default {
   },
 
   created() {
-    console.log("type", this.type);
     uni.$on("refreshsale", () => {
       this.reflesh();
     });
@@ -309,7 +308,6 @@ export default {
   },
   methods: {
     cancelApplyFun() {
-      console.log(this.id, "id");
       cancelApply({
         id: this.id,
       }).then((res) => {
@@ -327,7 +325,6 @@ export default {
       loadingFun(getAfterSaleList, page, lists, loadingStatus, {
         type: this.type,
       }).then((res) => {
-        console.log(res, "res");
         if (res) {
           this.page = res.page;
           this.loadingStatus = res.status;
@@ -354,13 +351,12 @@ export default {
     },
 
     showDialog(id) {
-      console.log(id, "showDialog");
       this.id = id;
       this.confirmDialog = true;
     },
 
     hideDialog() {
-      this.comfirmDialog = false;
+      this.confirmDialog = false;
     },
   },
 };

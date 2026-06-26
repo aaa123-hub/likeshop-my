@@ -25,16 +25,16 @@
             <view class="order-switch__title">我的订单</view>
         </view>
         <view class="order-type-switch">
-            <view :class="['order-switch__item', activeTop === 0 ? 'is-active' : '']" @tap="changeTopType(0)">
+            <view :class="['order-switch__item', activeTop === 'order' ? 'is-active' : '']" @tap="changeTopType('order')">
                 全部订单
             </view>
-            <view :class="['order-switch__item', activeTop === 1 ? 'is-active' : '']" @tap="changeTopType(1)">
+            <view :class="['order-switch__item', activeTop === 'points' ? 'is-active' : '']" @tap="changeTopType('points')">
                 待领取积分
             </view>
         </view>
         <view class="order-tabs">
             <view
-                v-for="(item, index) in order"
+                v-for="(item, index) in currentTabs"
                 :key="index"
                 :class="['order-tabs__item', active === index ? 'is-active' : '']"
                 @tap="changeShow(index)"
@@ -44,17 +44,21 @@
         </view>
     </view>
     <view class="order-content">
-        <block
-            v-for="(item, index) in order"
-            :key="item.type"
-        >
+        <block v-if="activeTop === 'order'">
             <order-list
+                v-for="(item, index) in order"
+                :key="item.type"
                 v-if="item.isShow"
                 v-show="active === index"
                 :order-type="item.type"
                 :ref="'order' + item.type"
             ></order-list>
         </block>
+        <view v-else class="points-placeholder">
+            <view class="points-placeholder__title">待领取积分功能准备中</view>
+            <view class="points-placeholder__desc">当前先按积分来源分类展示，后续接入积分领取数据后可直接查看对应明细。</view>
+            <view class="points-placeholder__card">{{ currentTabs[active] && currentTabs[active].name }}暂无可领取积分</view>
+        </view>
     </view>
 </view>
 </template>
@@ -68,28 +72,40 @@ import UIcon from '@/bundle_order/components/uview-ui/components/u-icon/u-icon.v
 export default {
   data() {
     return {
-      activeTop: 0,
-      active: orderType.ALL,
+      activeTop: 'order',
+      active: 0,
       order: [{
         name: '全部',
         type: orderType.ALL,
         isShow: false
       }, {
-        name: '待付款',
+        name: '待支付',
         type: orderType.PAY,
+        isShow: false
+      }, {
+        name: '待发货',
+        type: orderType.SHIP,
         isShow: false
       }, {
         name: '待收货',
         type: orderType.DELIVERY,
         isShow: false
       }, {
-        name: '已完成',
-        type: orderType.FINISH,
-        isShow: false
+        name: '售后',
+        type: 'afterSale',
+        isShow: false,
+        url: '/bundle_order/pages/post_sale/post_sale'
+      }],
+      pointsTabs: [{
+        name: '全部'
       }, {
-        name: '已关闭',
-        type: orderType.CLOSE,
-        isShow: false
+        name: '线上待领取'
+      }, {
+        name: '线下待领取'
+      }, {
+        name: '联盟待领取'
+      }, {
+        name: '领取记录'
       }]
     };
   },
@@ -99,39 +115,62 @@ export default {
 			UIcon
 		},
   props: {},
-  onLoad: function (options) {
+  computed: {
+    currentTabs() {
+      return this.activeTop === 'order' ? this.order : this.pointsTabs
+    }
+  },
+  onLoad: function (options = {}) {
     if (options && options.points == 1) {
-      this.changeTopType(1)
+      this.changeTopType('points')
       return
     }
-    const{order} = this
-    let type = options.type || orderType.ALL;
-	let index = order.findIndex(item => item.type == type)
-    this.changeShow(index);
+    const { order } = this
+    const type = options.type || orderType.ALL;
+    const index = order.findIndex(item => item.type == type)
+    this.changeShow(index >= 0 ? index : 0);
   },
 
   onPullDownRefresh: function () {
+    if (this.activeTop === 'points') {
+      uni.stopPullDownRefresh()
+      return
+    }
     const {active, order} = this
-   const current = this.$refs['order' + order[active].type]
-   if (current && current[0] && current[0].reflesh) current[0].reflesh()
-   else uni.stopPullDownRefresh()
+    const current = this.$refs['order' + order[active].type]
+    const component = Array.isArray(current) ? current[0] : current
+    if (component && component.reflesh) {
+      Promise.resolve(component.reflesh()).finally(() => uni.stopPullDownRefresh())
+      return
+    }
+    uni.stopPullDownRefresh()
   },
 
   onReachBottom: function () {
+	  if (this.activeTop === 'points') return
 	  const {active, order} = this
-	const current = this.$refs['order' + order[active].type]
-	if (current && current[0] && current[0].getOrderListFun) current[0].getOrderListFun()
+    const current = this.$refs['order' + order[active].type]
+    const component = Array.isArray(current) ? current[0] : current
+    if (component && component.getOrderListFun) component.getOrderListFun()
   },
   methods: {
     changeShow(index) {
-		if(index != -1) {
+		if(index >= 0) {
+			const item = this.currentTabs[index]
+			if (!item) return
+			if (item && item.url) {
+				uni.navigateTo({ url: item.url })
+				return
+			}
 			this.active = index
-			this.order[index].isShow = true
+			if (this.activeTop === 'order') this.order[index].isShow = true
 		}
     },
     changeTopType(type) {
       this.activeTop = type
-      const targetType = type === 1 ? orderType.FINISH : orderType.ALL
+      this.active = 0
+      if (type === 'points') return
+      const targetType = orderType.ALL
       const index = this.order.findIndex(item => item.type == targetType)
       this.changeShow(index)
       this.$nextTick(() => {
@@ -245,5 +284,32 @@ export default {
 
 .order-content {
   min-height: calc(100vh - 184rpx);
+}
+
+.points-placeholder {
+  padding: 80rpx 32rpx 0;
+  text-align: center;
+}
+
+.points-placeholder__title {
+  color: #222222;
+  font-size: 34rpx;
+  font-weight: 600;
+}
+
+.points-placeholder__desc {
+  margin-top: 20rpx;
+  color: #8a8f99;
+  font-size: 26rpx;
+  line-height: 40rpx;
+}
+
+.points-placeholder__card {
+  margin-top: 36rpx;
+  padding: 36rpx 24rpx;
+  color: #666666;
+  font-size: 28rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
 }
 </style>

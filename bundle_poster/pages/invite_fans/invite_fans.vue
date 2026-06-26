@@ -85,7 +85,8 @@ import {
 					type: 0,         // 0-会员分享海报 1-商品详情 2-砍价活动
 				})
 				.then((res) => {
-					this.qrCode = res.data.qr_code
+					const data = res && res.data ? res.data : {}
+					this.qrCode = data.qr_code || data.qrCode || data.qrcode || ''
 					this.showPoster = true
 				})
 			},

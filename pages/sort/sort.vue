@@ -188,11 +188,15 @@ export default {
         async getCategoryList() {
             if (this.categoryLoading) return Promise.resolve()
             this.categoryLoading = true
+            const activeCategoryId = this.currentCategory.id
             try {
                 const res = await getCatrgory()
                 if (res.code == 1) {
                     this.cateList = res.data || []
-                    this.activeIndex = 0
+                    const nextIndex = activeCategoryId !== undefined && activeCategoryId !== null
+                        ? this.cateList.findIndex((item) => String(item.id) === String(activeCategoryId))
+                        : this.activeIndex
+                    this.activeIndex = nextIndex >= 0 && nextIndex < this.sideCategories.length ? nextIndex : 0
                 }
             } catch (error) {
                 console.error('[sort-tab] getCategoryList failed:', error)
@@ -242,12 +246,14 @@ export default {
 
 <style lang="scss">
 .sort-page {
-    --page-safe-top: var(--status-bar-height, 44rpx);
+    --page-safe-top: var(--app-safe-top, var(--status-bar-height, 44rpx));
     display: flex;
     flex-direction: column;
     height: 100vh;
     height: 100dvh;
-    min-height: 100vh;
+    min-height: var(--app-page-height, 100vh);
+    max-width: var(--app-max-width, 750rpx);
+    margin: 0 auto;
     overflow: hidden;
     background: #ffffff;
 }
@@ -421,7 +427,8 @@ export default {
 }
 
 .sort-content__inner {
-    padding: 10rpx 24rpx calc(180rpx + var(--window-bottom) + env(safe-area-inset-bottom)) 26rpx;
+    padding: 10rpx 24rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + constant(safe-area-inset-bottom)) 26rpx;
+    padding: 10rpx 24rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + env(safe-area-inset-bottom)) 26rpx;
     box-sizing: border-box;
 }
 
@@ -475,6 +482,7 @@ export default {
     justify-content: center;
     width: 132rpx;
     height: 132rpx;
+    margin: 0 auto;
     border-radius: 14rpx;
     background: #eef1f5;
 }

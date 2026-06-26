@@ -414,7 +414,7 @@ import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-c
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
 import UTag from '@/bundle/components/uview-ui/components/u-tag/u-tag.vue'
 import UBackTop from '@/bundle/components/uview-ui/components/u-back-top/u-back-top.vue'
-import GoodsLike from '@/bundle_shared_components/components/goods-like/goods-like.vue'
+import GoodsLike from '@/components/goods-like/goods-like.vue'
 	import SpecPopup from '@/bundle/components/spec-popup/spec-popup.vue'
 	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	import {

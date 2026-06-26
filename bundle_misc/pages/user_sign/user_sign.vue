@@ -5,17 +5,17 @@
 <view class="user-sgin">
     <view class="header">
         <view class="sign-header-card">
-            <image class="sign-header-card__avatar" :src="avatar == '' ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png' : avatar" mode="aspectFill" />
+            <image class="sign-header-card__avatar" :src="avatar || defaultAvatar" mode="aspectFill" />
             <view class="sign-header-card__content">
                 <view class="sign-header-card__main">
                     <view class="sign-header-card__points">{{integral}}</view>
                     <navigator class="sign-header-card__rule" hover-class="none" url="/bundle_misc/pages/sign_rule/sign_rule">
                         <text>我的积分</text>
-                        <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_help.png" class="sign-header-card__help" mode="aspectFit"></image>
+                        <view class="sign-header-card__help">?</view>
                     </navigator>
                 </view>
                 <navigator class="sign-header-card__detail" url="/bundle_misc/pages/sign_detail/sign_detail" hover-class="none">
-                    <image class="sign-header-card__detail-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_data.png" mode="aspectFit"></image>
+                    <view class="sign-header-card__detail-icon"></view>
                     <text>积分明细</text>
                 </navigator>
             </view>
@@ -28,7 +28,7 @@
                 <view v-for="(item, index) in signList" :key="index" class="item column-center">
                     <view :class="'circle row-center ' + (item.status == 1 ? 'active-circle' : '')">
                         <view class="num xs lighter" v-if="item.status != 1">+{{item.integral}}</view>
-                        <image class="num" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_icon_select.png" v-if="item.status == 1"></image>
+                        <view class="num sign-check" v-if="item.status == 1"></view>
                     </view>
                     <view class="day mt10 lighter sm">{{item.days}}天</view>
                 </view>
@@ -44,7 +44,7 @@
             </view>
             <view class="task">
                 <view v-for="(item, index) in makeInegral" :key="index" class="item row">
-                    <image class="img mr20" :src="item.type == 1 ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen_qiandao.png' : item.type == 2 ? 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen_pay.png' : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen_invite.png'"></image>
+                    <view :class="['task-icon', 'mr20', 'task-icon--' + (item.type || 0)]">{{ taskIconText(item.type) }}</view>
                     <view class="con">
                         <view class="md">{{item.name}}</view>
                         <view class="xs">
@@ -66,7 +66,7 @@
             <view class="sign-success-pop__score">+{{addIntegral}}</view>
             <view class="sign-success-pop__title">签到成功</view>
             <view class="sign-success-pop__reward">
-                <image class="sign-success-pop__reward-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_jifen.png" mode="aspectFit"></image>
+                <view class="sign-success-pop__reward-icon">分</view>
                 <text>{{addIntegral}}积分 + {{addGrowth}}成长值</text>
             </view>
             <view class="sign-success-pop__days">
@@ -118,7 +118,8 @@ export default {
       addIntegral: 0,
       addGrowth: 0,
       signDays: 0,
-      makeInegral: []
+      makeInegral: [],
+      defaultAvatar: 'https://shengyuan.store/api/miniapp/files/miniapp/23fbcc3e9fa1450bb088262b36bace08/user-avatar-default.png'
     };
   },
 
@@ -137,6 +138,12 @@ export default {
   methods: {
     onClose() {
       this.showPop = false
+    },
+
+    taskIconText(type) {
+      if (type == 1) return '签'
+      if (type == 2) return '购'
+      return '邀'
     },
 
     getSignListFun() {
@@ -345,7 +352,6 @@ export default {
     height: 626rpx;
     width: 560rpx;
     position: relative;
-    background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/jifen_popBg.png);
 }
 
 .u-mode-center-box {
@@ -448,9 +454,18 @@ export default {
 }
 
 .sign-header-card__help {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 26rpx;
     height: 26rpx;
     margin-left: 8rpx;
+    border: 2rpx solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    box-sizing: border-box;
+    color: #ffffff;
+    font-size: 20rpx;
+    line-height: 26rpx;
 }
 
 .sign-header-card__detail {
@@ -470,6 +485,19 @@ export default {
     width: 26rpx;
     height: 26rpx;
     margin-right: 8rpx;
+    border-radius: 7rpx;
+    border: 3rpx solid rgba(255, 255, 255, 0.92);
+    box-sizing: border-box;
+}
+
+.sign-header-card__detail-icon::after {
+    content: '';
+    display: block;
+    width: 10rpx;
+    height: 3rpx;
+    margin: 7rpx auto 0;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 3rpx;
 }
 
 .sign-page .user-sgin .main {
@@ -482,12 +510,52 @@ export default {
     overflow: hidden;
 }
 
-.sign-page .user-sgin .main .day-list .item image.num,
 .sign-page .user-sgin .main .day-list .item .num {
     width: 68rpx;
     height: 68rpx;
     max-width: 68rpx;
     max-height: 68rpx;
+}
+
+.sign-check {
+    position: relative;
+    background: linear-gradient(135deg, #ffcd60 0%, #ff8a3d 100%) !important;
+}
+
+.sign-check::after {
+    content: '';
+    position: absolute;
+    left: 22rpx;
+    top: 17rpx;
+    width: 22rpx;
+    height: 12rpx;
+    border-left: 5rpx solid #ffffff;
+    border-bottom: 5rpx solid #ffffff;
+    transform: rotate(-45deg);
+}
+
+.task-icon {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 74rpx;
+    height: 74rpx;
+    border-radius: 22rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffbe55 0%, #ff5d3a 100%);
+    box-shadow: 0 8rpx 18rpx rgba(255, 93, 58, 0.16);
+}
+
+.task-icon--2 {
+    background: linear-gradient(135deg, #69bdff 0%, #1688ff 100%);
+}
+
+.task-icon--3,
+.task-icon--0 {
+    background: linear-gradient(135deg, #8edb92 0%, #18a058 100%);
 }
 
 .sign-page .pop-container {
@@ -501,9 +569,9 @@ export default {
 
 .sign-success-pop {
     position: relative;
-    width: 560rpx;
-    max-width: 82vw;
-    padding: 92rpx 44rpx 42rpx;
+    width: 600rpx;
+    max-width: 86vw;
+    padding: 96rpx 42rpx 42rpx;
     border-radius: 36rpx;
     background: linear-gradient(180deg, #fff8ef 0%, #ffffff 42%, #ffffff 100%);
     box-shadow: 0 24rpx 60rpx rgba(92, 38, 12, 0.22);
@@ -562,7 +630,8 @@ export default {
     align-items: center;
     justify-content: center;
     margin-top: 28rpx;
-    padding: 14rpx 28rpx;
+    max-width: 100%;
+    padding: 14rpx 24rpx;
     border-radius: 34rpx;
     color: #ffffff;
     font-size: 24rpx;
@@ -572,9 +641,17 @@ export default {
 
 .sign-success-pop__reward-icon {
     flex: none;
-    width: 28rpx;
-    height: 30rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32rpx;
+    height: 32rpx;
     margin-right: 8rpx;
+    border-radius: 50%;
+    color: #ff713b;
+    font-size: 18rpx;
+    font-weight: 700;
+    background: #ffffff;
 }
 
 .sign-success-pop__days {

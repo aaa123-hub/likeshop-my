@@ -152,7 +152,7 @@ import { baseURL } from "@/config/app";
 import { getGoodsInfo, applyAfterSale, applyAgain } from "@/api/user";
 import { uploadFile, trottle } from "@/utils/tools.js";
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
 
 export default {
 	components: {
@@ -211,8 +211,6 @@ export default {
     },
 
     onSubmit() {
-      console.log(this.afterSaleId);
-
       if (this.afterSaleId) {
         this.applyAgainFun();
       } else {
@@ -239,7 +237,8 @@ export default {
       };
       applyAgain(data).then((res) => {
         if (res.code == 1) {
-          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
+          const result = res.data || {};
+          const afterSaleId = result.after_sale_id || result.refundNo || result.refundId || result.id;
           uni.$emit("refreshsale");
           this.$toast(
             {
@@ -282,7 +281,8 @@ export default {
       };
       applyAfterSale(data).then((res) => {
         if (res.code == 1) {
-          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
+          const result = res.data || {};
+          const afterSaleId = result.after_sale_id || result.refundNo || result.refundId || result.id;
           uni.$emit("refreshsale");
           this.$toast({
             title: "提交成功",
@@ -323,8 +323,9 @@ export default {
         item_id: itemId,
       }).then((res) => {
         if (res.code == 1) {
-          this.goods = res.data.goods;
-          this.reason = res.data.reason;
+          const data = res.data || {};
+          this.goods = data.goods || {};
+          this.reason = Array.isArray(data.reason) ? data.reason : [];
         }
       });
     },

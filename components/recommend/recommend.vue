@@ -61,7 +61,8 @@ export default {
         page_size: 6
       }).then(function(res) {
         if (res.code == 1) {
-            that.goodsList = res.data.list
+            const data = res.data || {}
+            that.goodsList = Array.isArray(data.list) ? data.list : []
         }
       });
     }

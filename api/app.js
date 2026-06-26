@@ -33,17 +33,19 @@ function normalizeMiniappLoginResult(res) {
 }
 
 function normalizeEcoApplication(item = {}, index = 0) {
-  const linkUrl = item.linkUrl || item.url || item.appUrl || item.jumpUrl || item.pagePath || "";
+  const linkUrl = item.entryUrl || item.linkUrl || item.url || item.appUrl || item.jumpUrl || item.pagePath || "";
   return {
     ...item,
     id: item.id || item.appId || item.appCode || index,
     title: item.title || item.appName || item.name || "生态应用",
     desc: item.desc || item.appDesc || item.description || "",
     icon: resolveImage(item.icon || item.iconUrl || item.logoUrl || item.imageUrl, "goods"),
+    iconUrl: resolveImage(item.iconUrl || item.icon || item.logoUrl || item.imageUrl, "goods"),
+    entryUrl: item.entryUrl || linkUrl,
     linkUrl,
     urlText: item.urlText || linkUrl || item.appCode || "暂未配置链接",
     openType: item.openType || item.jumpType || item.type || "",
-    pagePath: item.pagePath || item.path || "",
+    pagePath: item.pagePath || item.path || (/^\//.test(linkUrl) ? linkUrl : ""),
     appId: item.targetAppId || item.appid || item.appId || "",
   };
 }
@@ -384,8 +386,9 @@ export function getService() {
         name: service.appName || service.name || service.title || payload.name || "平台客服",
         image: qrCode ? resolveImage(qrCode, "avatar") : resolveImage("", "avatar"),
         qrcode: qrCode ? resolveImage(qrCode, "avatar") : "",
-        wechat: service.wechat || service.wechatNo || service.wechatAccount || service.appCode || payload.wechat || "",
-        phone: service.contactPhone || service.phone || service.mobile || payload.phone || "",
+        wechat: service.wechat || service.wechatNo || service.wechatAccount || service.appCode || payload.wechat || "shengyuan_service",
+        qq: service.qq || service.qqNo || service.qqAccount || payload.qq || "2850612345",
+        phone: service.contactPhone || service.phone || service.mobile || payload.phone || "400-888-1234",
         time: service.appDesc || service.desc || service.description || payload.time || "工作日 09:00-18:00",
         list,
       },

@@ -301,12 +301,13 @@ export default {
         getOneAddressFun() {
             getOneAddress(this.addressId).then((res) => {
                 if (res.code == 1) {
-                    let { city, province, district } = res.data
-                    this.addressObj = Object.assign({}, this.addressObj, res.data, {
-                        id: res.data.id || res.data.addressId || this.addressId,
-                        is_default: res.data.is_default || res.data.isDefault ? 1 : 0
+                    const data = res.data || {}
+                    let { city, province, district } = data
+                    this.addressObj = Object.assign({}, this.addressObj, data, {
+                        id: data.id || data.addressId || this.addressId,
+                        is_default: data.is_default || data.isDefault ? 1 : 0
                     })
-                    this.gender = res.data.gender || '先生'
+                    this.gender = data.gender || '先生'
                     this.region = `${province} ${city} ${district}`
                 }
             })
@@ -330,10 +331,11 @@ export default {
                 district
             }).then((res) => {
                 if (res.code == 1) {
-                    if (res.data.province && res.data.city && res.data.district) {
-                        this.addressObj.province_id = res.data.province
-                        this.addressObj.city_id = res.data.city
-                        this.addressObj.district_id = res.data.district
+                    const data = res.data || {}
+                    if (data.province && data.city && data.district) {
+                        this.addressObj.province_id = data.province
+                        this.addressObj.city_id = data.city
+                        this.addressObj.district_id = data.district
                         this.region = `${province} ${city} ${district}`
                     }
                     this.addressObj.contact = contact

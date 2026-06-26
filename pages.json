@@ -616,6 +616,13 @@
 					}
 				},
 				{
+					"path": "pages/business_pages/mall_guide",
+					"style": {
+						"navigationBarTitleText": "商城使用引导",
+						"navigationStyle": "custom"
+					}
+				},
+				{
 					"path": "pages/business_pages/my_service",
 					"style": {
 						"navigationBarTitleText": "我的-客服",

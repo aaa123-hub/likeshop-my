@@ -184,7 +184,8 @@ export default {
         page_no: 1
       }).then((res) => {
         if (res.code == 1) {
-          this.billList = res.data.lists || res.data || []
+          const data = res.data || {}
+          this.billList = Array.isArray(data.lists) ? data.lists : (Array.isArray(data) ? data : [])
         }
       })
     },
@@ -194,7 +195,8 @@ export default {
         page_no: 1
       }).then((res) => {
         if (res.code == 1) {
-          this.withdrawList = res.data.lists || res.data || []
+          const data = res.data || {}
+          this.withdrawList = Array.isArray(data.lists) ? data.lists : (Array.isArray(data) ? data : [])
         }
       })
     },
