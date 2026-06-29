@@ -572,12 +572,11 @@ export default {
                 if (code == 1) {
                     this.address = data.address
                     this.goodsLists = data.goods_lists
-                    //TODO
-                    if (data.selffetch_info) {
-                        const selffetchInfo = data.selffetch_info || {}
-                        this.storeInfo = selffetchInfo.selffetch_shop || {}
-                        this.userConsignee = selffetchInfo.contact || ''
-                        this.userMobile = selffetchInfo.mobile || ''
+                    const selffetchInfo = data.selffetch_info || data.selffetchInfo || data.pickupInfo || {}
+                    if (Object.keys(selffetchInfo).length) {
+                        this.storeInfo = selffetchInfo.selffetch_shop || selffetchInfo.selffetchShop || selffetchInfo.shop || {}
+                        this.userConsignee = selffetchInfo.contact || selffetchInfo.consignee || selffetchInfo.receiverName || ''
+                        this.userMobile = selffetchInfo.mobile || selffetchInfo.receiverMobile || ''
                     }
 
                     this.orderInfo = data

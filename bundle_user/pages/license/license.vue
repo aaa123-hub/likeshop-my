@@ -76,7 +76,7 @@ import Navbar from '@/components/navbar/navbar.vue'
                 return this.userInfo.user_id || this.userInfo.userId || this.userInfo.id
             },
             auditStatus() {
-                return this.status.audit_status || this.status.auditStatus || this.status.status
+                return String(this.status.audit_status || this.status.auditStatus || this.status.status || '').toUpperCase()
             },
             statusRemark() {
                 return this.status.audit_remark || this.status.auditRemark || this.status.remark || ''
@@ -86,10 +86,13 @@ import Navbar from '@/components/navbar/navbar.vue'
             },
             statusText() {
                 const statusMap = {
+                    SUBMITTED: '审核中',
                     PENDING: '审核中',
                     AUDITING: '审核中',
+                    SUCCESS: '已通过',
                     APPROVED: '已通过',
                     PASS: '已通过',
+                    FAILED: '未通过',
                     REJECTED: '未通过',
                     REJECT: '未通过'
                 }
@@ -186,11 +189,10 @@ import Navbar from '@/components/navbar/navbar.vue'
         position: relative;
         display: flex;
         flex-direction: column;
-        height: 100vh;
         min-height: 100vh;
         padding: 0 24rpx calc(24rpx + env(safe-area-inset-bottom));
         box-sizing: border-box;
-        overflow: hidden;
+        overflow-y: auto;
         background: #f7f8fa;
 
         > *:not(.license-bg) {
@@ -398,6 +400,7 @@ import Navbar from '@/components/navbar/navbar.vue'
         align-items: center;
         justify-content: center;
         width: 540rpx;
+        max-width: 100%;
         height: 78rpx;
         margin: 22rpx auto 0;
         color: #ffffff;

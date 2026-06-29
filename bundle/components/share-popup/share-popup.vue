@@ -14,7 +14,15 @@
 				</view>
 				<view class="share-card__qr-wrap">
 					<image v-if="isQrcodeImage" class="share-card__qr" :src="mnpQrcode" mode="aspectFit"></image>
-					<image v-else-if="mnpQrcode" class="share-card__qr" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
+					<tki-qrcode
+						v-else-if="mnpQrcode"
+						cid="share-popup-qrcode"
+						:val="mnpQrcode"
+						:size="280"
+						:onval="true"
+						:load-make="true"
+						:show-loading="false"
+					></tki-qrcode>
 					<view v-else class="share-card__qr-loading">二维码生成中</view>
 				</view>
 				<view class="share-card__tip">长按识别二维码查看商品</view>
@@ -66,6 +74,7 @@
 
 <script>
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
+import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	import {
 		mapGetters,
 	} from 'vuex'
@@ -78,9 +87,10 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 		basePath
 	} from '@/config/app'
 	// import {TtAppNameEnum} from '@/utils/enum'
-	export default {
+		export default {
 		components: {
-			UPopup
+			UPopup,
+			TkiQrcode
 		},
 		props: {
 			value: {
@@ -152,7 +162,7 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 					this.qrcodeIsImage = true
 					return
 				}
-				this.mnpQrcode = '测试'
+				this.mnpQrcode = this.getLink
 				this.qrcodeIsImage = false
 			},
 			async getPoster() {

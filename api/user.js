@@ -18,7 +18,7 @@ function normalizeListResponse(res = {}) {
 
 function normalizePageResponse(res = {}, itemNormalizer) {
     const data = res.data || {}
-    const sourceList = Array.isArray(data) ? data : (data.list || data.items || data.rows || [])
+    const sourceList = Array.isArray(data) ? data : (data.list || data.records || data.items || data.rows || data.content || [])
     const list = itemNormalizer ? sourceList.map(itemNormalizer) : sourceList
     const pageNo = data.pageNo || data.page_no || 1
     const pageSize = data.pageSize || data.page_size || list.length || 10
@@ -97,6 +97,8 @@ function normalizeGenderForView(value) {
 function normalizeGenderForApi(value) {
     if (value === 1 || value === '1' || value === 'MALE' || value === 'male' || value === '男') return 'MALE'
     if (value === 2 || value === '2' || value === 'FEMALE' || value === 'female' || value === '女') return 'FEMALE'
+    if (value === '先生') return 'MALE'
+    if (value === '女士') return 'FEMALE'
     if (value === 0 || value === '0' || value === 'UNKNOWN' || value === 'unknown') return 'UNKNOWN'
     return value
 }
@@ -108,23 +110,36 @@ function assignIfPresent(target, keys, value) {
     })
 }
 
+function findRegionNameByCode(list, code) {
+    if (!code) return ''
+    for (const item of list || []) {
+        if (String(item.value) === String(code)) return item.label || ''
+        const name = findRegionNameByCode(item.children || [], code)
+        if (name) return name
+    }
+    return ''
+}
+
 function normalizeAddress(item = {}) {
     const gender = item.gender || item.sex || item.contactGender || item.receiverGender || ''
+    const provinceCode = item.province_id || item.provinceCode || ''
+    const cityCode = item.city_id || item.cityCode || ''
+    const districtCode = item.district_id || item.districtCode || ''
     return {
         ...item,
         id: item.id || item.addressId,
         addressId: item.addressId || item.id,
         contact: item.contact || item.receiverName || item.receiver_name || '',
         telephone: item.telephone || item.mobile || item.phone || item.tel || '',
-        province: item.province || item.provinceName || '',
-        city: item.city || item.cityName || '',
-        district: item.district || item.districtName || '',
+        province: item.province || item.provinceName || findRegionNameByCode(area, provinceCode),
+        city: item.city || item.cityName || findRegionNameByCode(area, cityCode),
+        district: item.district || item.districtName || findRegionNameByCode(area, districtCode),
         address: item.address || item.detailAddress || item.detail_address || '',
         is_default: item.is_default ?? item.isDefault ?? 0,
         gender: gender === 'FEMALE' || gender === '女士' || gender === 2 || gender === '2' ? '女士' : '先生',
-        province_id: item.province_id || item.provinceCode || '',
-        city_id: item.city_id || item.cityCode || '',
-        district_id: item.district_id || item.districtCode || ''
+        province_id: provinceCode,
+        city_id: cityCode,
+        district_id: districtCode
     }
 }
 
@@ -168,20 +183,46 @@ function normalizeFavoriteProduct(item = {}) {
 
 function normalizeWallet(res = {}) {
     const data = res.data || {}
+    const balance = data.balance ?? data.user_money ?? 0
+    const withdrawableAmount = data.withdrawableAmount ?? data.withdrawable_amount ?? data.able_withdraw ?? balance
+    const withdrawTypes = Array.isArray(data.type) && data.type.length
+        ? data.type
+        : [
+            { name: '账户余额', value: 1 },
+            { name: '微信零钱', value: 2 },
+            { name: '微信收款码', value: 3 },
+            { name: '支付宝', value: 4 },
+            { name: '银行卡', value: 5 }
+        ]
     return {
         ...res,
         data: {
-            balance: data.balance || data.user_money || 0,
-            frozenAmount: data.frozenAmount || 0,
-            withdrawableAmount: data.withdrawableAmount || data.balance || 0,
+            ...data,
+            balance,
+            frozenAmount: data.frozenAmount || data.frozen_amount || 0,
+            withdrawableAmount,
             currency: data.currency || 'CNY',
-            user_money: data.balance || data.user_money || 0,
+            user_money: balance,
             frozen_amount: data.frozenAmount || data.frozen_amount || 0,
-            withdrawable_amount: data.withdrawableAmount || data.withdrawable_amount || data.balance || 0,
+            withdrawable_amount: withdrawableAmount,
+            able_withdraw: withdrawableAmount,
+            poundage_percent: data.poundagePercent ?? data.poundage_percent ?? 0,
             open_racharge: data.open_racharge ?? 1,
-            ...data
+            open_withdraw: data.open_withdraw ?? data.openWithdraw ?? 1,
+            type: withdrawTypes
         }
     }
+}
+
+function normalizeWithdrawAccountType(type) {
+    const typeMap = {
+        1: 'BALANCE',
+        2: 'WECHAT_BALANCE',
+        3: 'WECHAT_QR',
+        4: 'ALIPAY_QR',
+        5: 'BANK_CARD'
+    }
+    return typeMap[type] || type
 }
 
 function normalizeLedgerItem(item = {}) {
@@ -227,10 +268,6 @@ function normalizeLotteryRecord(item = {}) {
         send_tips: item.send_tips || item.sendTips || item.statusText || item.content || '',
         need_tips: item.need_tips || item.needTips || ''
     }
-}
-
-function normalizePayPasswordResponse() {
-    return Promise.resolve({ code: 0 })
 }
 
 function findRegionCode(list, province, city, district) {
@@ -290,13 +327,17 @@ export function getAddressLists() {
 
 export function editAddress(data) {
     const id = data.id || data.addressId
+    const gender = normalizeGenderForApi(data.gender || data.sex)
     const payload = {
         addressId: id,
         receiverName: data.contact || data.receiverName,
         mobile: data.telephone || data.mobile,
         phone: data.telephone || data.mobile,
         telephone: data.telephone || data.mobile,
-        gender: data.gender === '女士' ? 'FEMALE' : 'MALE',
+        gender,
+        sex: gender,
+        contactGender: gender,
+        receiverGender: gender,
         provinceCode: data.province_id || data.provinceCode,
         cityCode: data.city_id || data.cityCode,
         districtCode: data.district_id || data.districtCode,
@@ -309,12 +350,16 @@ export function editAddress(data) {
 }
 
 export function addAddress(data) {
+    const gender = normalizeGenderForApi(data.gender || data.sex)
     return request.post('miniapp/addresses', {
         receiverName: data.contact || data.receiverName,
         mobile: data.telephone || data.mobile,
         phone: data.telephone || data.mobile,
         telephone: data.telephone || data.mobile,
-        gender: data.gender === '女士' ? 'FEMALE' : 'MALE',
+        gender,
+        sex: gender,
+        contactGender: gender,
+        receiverGender: gender,
         provinceCode: data.province_id || data.provinceCode,
         cityCode: data.city_id || data.cityCode,
         districtCode: data.district_id || data.districtCode,
@@ -724,9 +769,10 @@ export function getUserFans(data) {
 }
 
 export function applyWithdraw(data) {
+    const accountType = data.accountType || data.type
     return request.post('miniapp/wallet/withdraw/apply', {
         amount: data.amount || data.money,
-        accountType: data.accountType || data.type,
+        accountType: normalizeWithdrawAccountType(accountType),
         accountNo: data.accountNo || data.account,
         accountName: data.accountName || data.real_name || data.realName,
         qrCodeUrl: data.qrCodeUrl || data.money_qr_code,
@@ -757,10 +803,21 @@ export function getMonthOrderDetail(params) {
     return getAccountLog(params)
 }
 
+function extractList(payload = {}) {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload.list)) return payload.list
+    if (Array.isArray(payload.records)) return payload.records
+    if (Array.isArray(payload.items)) return payload.items
+    if (Array.isArray(payload.rows)) return payload.rows
+    if (Array.isArray(payload.content)) return payload.content
+    if (payload.page && typeof payload.page === 'object') return extractList(payload.page)
+    return []
+}
+
 export function getInviteBanner(data) {
     return request.get('miniapp/eco-applications').then((res) => {
         if (res.code != 1) return res
-        return { ...res, data: res.data?.list || [] }
+        return { ...res, data: extractList(res.data || {}) }
     })
 }
 
@@ -816,6 +873,8 @@ export function submitKyc(data) {
         certNo: data.certNo || data.cert_no,
         certFrontUrl: data.certFrontUrl || data.cert_front_url || data.front,
         certBackUrl: data.certBackUrl || data.cert_back_url || data.back,
+        contractSigned: data.contractSigned ?? data.contract_signed,
+        contractTitle: data.contractTitle || data.contract_title,
         requestNo: data.requestNo || data.request_no || `kyc-${Date.now()}`
     })
 }
@@ -830,6 +889,16 @@ export function getKycStatus() {
                 ...data,
                 kycStatus: data.kycStatus || data.status || 'NOT_SUBMITTED',
                 kyc_status: data.kycStatus || data.kyc_status || data.status || 'NOT_SUBMITTED',
+                realName: data.realName || data.realNameMask || data.real_name || '',
+                real_name: data.realName || data.realNameMask || data.real_name || '',
+                certNo: data.certNo || data.certNoMask || data.cert_no || '',
+                cert_no: data.certNo || data.certNoMask || data.cert_no || '',
+                certType: data.certType || data.cert_type || 'ID_CARD',
+                cert_type: data.certType || data.cert_type || 'ID_CARD',
+                certFrontUrl: data.certFrontUrl || data.cert_front_url || '',
+                cert_front_url: data.certFrontUrl || data.cert_front_url || '',
+                certBackUrl: data.certBackUrl || data.cert_back_url || '',
+                cert_back_url: data.certBackUrl || data.cert_back_url || '',
                 auditMessage: data.auditMessage || data.message || '',
                 audit_message: data.auditMessage || data.audit_message || data.message || '',
                 rejectReasonCode: data.rejectReasonCode || '',

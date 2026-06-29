@@ -22,7 +22,7 @@
           </view>
           <view class="notice-desc line1">{{ item.content }}</view>
         </view>
-        <view v-if="index === 0" class="notice-dot"></view>
+        <view v-if="!item.read_flag && !item.readFlag" class="notice-dot"></view>
       </view>
 
       <view v-if="loadingStatus === loadingType.EMPTY" class="empty-box">
@@ -73,11 +73,12 @@ export default {
   },
   methods: {
     openDetail(item) {
+      var id = item.id || item.messageId || item.message_id || "";
       var title = encodeURIComponent(item.title || "");
       var content = encodeURIComponent(item.content || "");
       var time = encodeURIComponent(item.create_time || "");
       uni.navigateTo({
-        url: "/bundle_misc/pages/notice_detail/notice_detail?title=" + title + "&content=" + content + "&time=" + time,
+        url: "/bundle_misc/pages/notice_detail/notice_detail?id=" + id + "&title=" + title + "&content=" + content + "&time=" + time,
       });
     },
     getNoticeListsFun() {

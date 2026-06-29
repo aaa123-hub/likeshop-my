@@ -42,11 +42,11 @@ export default {
             const shareInfo = Cache.get('shareInfo')
             const sym = window.location.href.includes('?') ? '&' : '?'
             const option = {
-                shareTitle: '100%开源免费商用电商系统',
+                shareTitle: '商用电商系统',
                 shareLink:
                     window.location.href + sym + 'invite_code=' + this.$store.getters.inviteCode,
                 shareImage: '',
-                shareDesc: 'likeshop已经把小程序、安卓APP、苹果APP都免费开源出来了'
+                shareDesc: ''
             }
             if (!options) {
                 if (shareInfo) {

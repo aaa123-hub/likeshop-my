@@ -228,14 +228,6 @@
             :range="sexList"
             @confirm="onConfirm"
          />
-		<view class="xs muted" style="margin: 50rpx 0;">
-			<view class="row-center">
-				由 likeshop 提供免费开源商城系统
-			</view>
-			<view class="row-center">
-				© likeshop.cn
-			</view>
-		</view>
     </view>
 </template>
 

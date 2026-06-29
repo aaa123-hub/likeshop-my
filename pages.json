@@ -157,7 +157,8 @@
 				{
 					"path": "pages/user_withdraw/user_withdraw",
 					"style": {
-						"navigationBarTitleText": "提现"
+						"navigationBarTitleText": "提现",
+						"navigationStyle": "custom"
 					}
 				},
 				{

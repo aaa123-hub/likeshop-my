@@ -20,6 +20,7 @@
 
 <script>
 import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vue'
+import { getMessageDetail, readMessage } from '@/api/user'
 
 export default {
   components: {
@@ -28,6 +29,7 @@ export default {
   data() {
     return {
       detail: {
+        id: "",
         title: "",
         time: "",
         content: "",
@@ -36,10 +38,12 @@ export default {
   },
   onLoad(options) {
     this.detail = {
+      id: options.id || "",
       title: decodeURIComponent(options.title || ""),
       time: decodeURIComponent(options.time || ""),
       content: decodeURIComponent(options.content || ""),
     };
+    if (this.detail.id) this.loadMessageDetail(this.detail.id);
   },
   computed: {
     detailTitle() {
@@ -53,6 +57,20 @@ export default {
     },
   },
   methods: {
+    loadMessageDetail(id) {
+      getMessageDetail(id).then((res) => {
+        if (res.code == 1 && res.data) {
+          const data = res.data;
+          this.detail = {
+            id,
+            title: data.title || this.detail.title,
+            time: data.create_time || data.createTime || data.sendTime || this.detail.time,
+            content: data.content || this.detail.content,
+          };
+          readMessage(id);
+        }
+      });
+    },
     goBack() {
       const pages = getCurrentPages();
       if (pages.length > 1) {

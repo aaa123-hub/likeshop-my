@@ -1,3 +1,5 @@
+import { filterEnabledRoutes, guardRoute } from '@/utils/feature-flags'
+
 export const businessRoutes = {
   tabs: {
     home: { name: "首页", url: "/pages/index/index", openType: "switchTab" },
@@ -107,8 +109,13 @@ export const businessTabGroups = {
   ],
 };
 
+for (const key of Object.keys(businessTabGroups)) {
+  businessTabGroups[key] = filterEnabledRoutes(businessTabGroups[key]);
+}
+
 export function openBusinessRoute(route) {
   if (!route || !route.url) return;
+  if (!guardRoute(route.url)) return;
   if (route.openType === "switchTab") {
     uni.switchTab({ url: route.url });
     return;

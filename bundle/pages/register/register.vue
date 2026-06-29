@@ -259,7 +259,11 @@ export default {
           setTimeout(() => {
             uni.navigateBack();
           }, 1000);
+        } else {
+          this.$toast({ title: res.msg || '注册失败' });
         }
+      }).catch((err) => {
+        this.$toast({ title: err?.msg || err?.message || '注册失败' });
       });
     },
 
@@ -283,7 +287,11 @@ export default {
           this.canSendSms = false;
           this.$toast(res.msg);
           if (this.$refs.countDown && this.$refs.countDown.start) this.$refs.countDown.start();
+        } else {
+          this.$toast({ title: res.msg || '验证码发送失败' });
         }
+      }).catch((err) => {
+        this.$toast({ title: err?.msg || err?.message || '验证码发送失败' });
       });
     },
   },

@@ -31,10 +31,12 @@ const state = {
 const mutations = {
 	LOGIN(state, opt = {}) {
 		const userId = opt.userId || opt.user_id || opt.id || state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
+		const openId = opt.openId || opt.openid || opt.open_id || state.userInfo.openId || state.userInfo.openid || state.userInfo.open_id
 		state.token = opt.token;
 		state.userInfo = {
 			...state.userInfo,
-			...(userId ? { userId, user_id: userId, id: userId } : {})
+			...(userId ? { userId, user_id: userId, id: userId } : {}),
+			...(openId ? { openId, openid: openId, open_id: openId } : {})
 		}
 		Cache.set(TOKEN, opt.token, 59 * 24 * 60 * 60);
 		Cache.set(USER_INFO, state.userInfo)

@@ -170,7 +170,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				minPrice: '',
 				maxPrice: '',
 				sortType: '',
-				timeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'
+				timeIcon: '/static/lanhu/slices/street/searchlist_time.png'
 			};
 		},
 

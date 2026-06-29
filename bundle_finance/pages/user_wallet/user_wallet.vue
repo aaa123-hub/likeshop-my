@@ -201,9 +201,8 @@ export default {
       })
     },
     handleWithdrawTap() {
-      uni.showToast({
-        title: '功能暂未开放',
-        icon: 'none'
+      uni.navigateTo({
+        url: '/bundle_user/pages/user_withdraw/user_withdraw'
       })
     }
 

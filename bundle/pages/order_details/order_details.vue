@@ -134,10 +134,17 @@ author: likeshop.cn.team
               :class="{ 'qr-contain--die': orderDetail.verification_status }"
               ref="qr-image"
             >
-              <image src="/static/images/test-qrcode.png" style="width: 236rpx;height: 236rpx;" mode="aspectFit"></image>
+              <tki-qrcode
+                ref="qrcode"
+                :val="pickupQrValue"
+                :size="118"
+                :onval="true"
+                :load-make="true"
+                :show-loading="false"
+              ></tki-qrcode>
             </view>
             <view class="mt30 xs black qr-code"
-              >提货码：{{ orderDetail.pickup_code || '测试' }}</view
+              >提货码：{{ pickupQrValue }}</view
             >
           </view>
 
@@ -580,7 +587,10 @@ export default {
         this.orderDetail.team_status == 1 ? (result = true) : (result = false);
       }
 
-      return result;
+      return result && !!this.pickupQrValue;
+    },
+    pickupQrValue() {
+      return this.orderDetail.pickup_code || this.orderDetail.pickupCode || this.orderDetail.verifyCode || this.orderDetail.order_sn || this.orderDetail.orderNo || '';
     },
     teamStatus() {
       return (status) => {

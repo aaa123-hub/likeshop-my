@@ -21,7 +21,7 @@
 
             <view class="qrcode-box" @tap="previewQrcode">
                 <image v-if="server.qrcode || server.image" class="qrcode-box__image" :src="server.qrcode || server.image" mode="aspectFit"></image>
-                <image v-else class="qrcode-box__image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
+                <view v-else class="qrcode-box__empty">暂无客服二维码</view>
             </view>
             <view class="qrcode-tip">长按识别或点击预览二维码添加客服</view>
 
@@ -167,7 +167,7 @@ export default {
         previewQrcode() {
             const url = this.server.qrcode || this.server.image
             if (!url) {
-                uni.showToast({ title: '当前显示测试二维码', icon: 'none' })
+                uni.showToast({ title: '暂无客服二维码', icon: 'none' })
                 return
             }
             uni.previewImage({

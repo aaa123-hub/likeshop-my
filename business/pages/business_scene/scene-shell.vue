@@ -66,6 +66,14 @@
                             </view>
                         </view>
 
+                        <view class="user-kyc-page__contract" @tap="openKycContract">
+                            <view class="user-kyc-page__contract-copy">
+                                <view class="user-kyc-page__contract-title">合同签署</view>
+                                <view class="user-kyc-page__contract-desc">{{ contractSigned ? '已阅读并签署申请合同' : '提交前需滑动阅读完整合同并签署' }}</view>
+                            </view>
+                            <view :class="['user-kyc-page__contract-status', contractSigned ? 'is-signed' : '']">{{ contractSigned ? '已签署' : '去签署' }}</view>
+                        </view>
+
                         <view :class="['user-kyc-page__submit', kycSubmitting || !canEditKyc ? 'is-disabled' : '']" @tap="submitKycForm">{{ kycSubmitText }}</view>
                     </view>
                 </view>
@@ -390,7 +398,7 @@
 
                     <view v-if="scene === 'store-qr'" class="qr-store-panel">
                         <view class="qr-code-box qr-code-box--store">
-                            <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
+                            <tki-qrcode cid="store-page-qrcode" :val="qrStoreValue" :size="275" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
                         </view>
                         <view class="qr-store-panel__desc">扫一扫，即可查看公域线下店信息</view>
                         <view class="qr-action-row qr-action-row--store">
@@ -409,7 +417,7 @@
                                 <view class="qr-goods-tip">长按保存二维码</view>
                             </view>
                             <view class="qr-code-box qr-code-box--goods">
-                                <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
+                                <tki-qrcode cid="goods-page-qrcode" :val="qrGoodsValue" :size="152" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
                             </view>
                         </view>
                         <view class="qr-action-row qr-action-row--goods">
@@ -604,7 +612,7 @@
                         </view>
                         <image v-if="introCardInfo.qrImage" class="intro-card-qr" :src="introCardInfo.qrImage" mode="aspectFit"></image>
                         <view v-else class="intro-card-qr intro-card-qr--code">
-                            <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
+                            <tki-qrcode cid="intro-card-qrcode" :val="introCardQrValue" :size="204" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
                         </view>
                     </view>
                 </view>
@@ -1040,11 +1048,11 @@
                                 <text :class="['store-share-shop-card__time-text', storeShareTimeTextClass]">{{ storeDetailBusinessHoursText }}</text>
                             </view>
                         </view>
-                    </view>
-                    <view class="store-share-panel">
-                        <view class="store-share-qrcode">
-                            <image class="qr-test-image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
                         </view>
+                        <view class="store-share-panel">
+                            <view class="store-share-qrcode">
+                                <tki-qrcode cid="store-share-qrcode" :val="qrStoreValue" :size="275" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
+                            </view>
                         <view class="store-share-tip">扫一扫，即可查看公域线下店信息</view>
                         <view class="store-share-actions">
                             <view class="store-share-action store-share-action--cyan" @tap="toastStoreShareSave">保存图片</view>
@@ -1053,6 +1061,23 @@
                     </view>
                     <image class="store-share-mark" :src="shareCloseIcon" mode="aspectFit" @tap="showStoreSharePopup = false"></image>
                 </scroll-view>
+            </view>
+        </u-popup>
+        <u-popup v-model="showKycContractPopup" mode="bottom" border-radius="28" :mask-close-able="false">
+            <view class="kyc-contract-popup">
+                <view class="kyc-contract-popup__header">
+                    <view class="kyc-contract-popup__title">{{ kycContractTitle }}</view>
+                    <view class="kyc-contract-popup__close" @tap="closeKycContract">×</view>
+                </view>
+                <scroll-view scroll-y class="kyc-contract-popup__scroll" @scrolltolower="handleKycContractBottom">
+                    <view class="kyc-contract-popup__section" v-for="(item, index) in kycContractSections" :key="index">
+                        <view class="kyc-contract-popup__section-title">{{ item.title }}</view>
+                        <view class="kyc-contract-popup__paragraph" v-for="(paragraph, paragraphIndex) in item.paragraphs" :key="paragraphIndex">{{ paragraph }}</view>
+                    </view>
+                    <view class="kyc-contract-popup__bottom-tip">已阅读至合同底部</view>
+                </scroll-view>
+                <view class="kyc-contract-popup__notice">{{ contractReadDone ? '已阅读完毕，可确认签署。' : '请滑动到底部以确保阅读完毕，再签署。' }}</view>
+                <view :class="['kyc-contract-popup__button', contractReadDone ? '' : 'is-disabled']" @tap="confirmKycContract">确认签署并提交</view>
             </view>
         </u-popup>
     </view>
@@ -1066,6 +1091,7 @@ import { getAccountLog, getInviteInfo, getKycStatus, scanOfflinePayment, submitF
 import { getDesignAsset, designAssetList, designAssets } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, tabbarList, uploadFile } from '@/utils/tools'
+import { guardRoute, showFeatureDisabledToast } from '@/utils/feature-flags'
 import Navbar from '@/components/navbar/navbar.vue'
 import UPopup from '@/business/components/uview-ui/components/u-popup/u-popup.vue'
 import UIcon from '@/business/components/uview-ui/components/u-icon/u-icon.vue'
@@ -1132,6 +1158,9 @@ export default {
             },
             kycStatusInfo: {},
             kycSubmitting: false,
+            showKycContractPopup: false,
+            contractReadDone: false,
+            contractSigned: false,
             qrStoreMarkIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/ddc12d20f1064f9c949327f88bea0498/3180ae811deadda0dbd6b79667bc5bb1.png',
             qrGoodsMarkIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
             feedbackTags: ['下载/加载问题', '体验功能', '平台问题', '新功能建议', '其他', '违规举报'],
@@ -1237,28 +1266,28 @@ export default {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: '',
                     url: '/business/pages/business_pages/store_detail'
                 },
                 {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: '',
                     url: '/business/pages/business_pages/store_detail'
                 },
                 {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: '',
                     url: '/business/pages/business_pages/store_detail'
                 },
                 {
                     name: '广州市越秀区斌记面家',
                     score: '5.0',
                     meta: '营业中 · 越秀区北京路 120 号',
-                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                    image: '',
                     url: '/business/pages/business_pages/store_detail'
                 }
             ],
@@ -1431,6 +1460,7 @@ export default {
                 SUBMITTED: '审核中',
                 AUDITING: '审核中',
                 APPROVED: '已通过',
+                SUCCESS: '已通过',
                 PASS: '已通过',
                 REJECTED: '未通过',
                 FAILED: '未通过'
@@ -1439,7 +1469,7 @@ export default {
         },
         kycStatusClass() {
             const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
-            if (status === 'APPROVED' || status === 'PASS') return 'is-success'
+            if (status === 'APPROVED' || status === 'SUCCESS' || status === 'PASS') return 'is-success'
             if (status === 'REJECTED' || status === 'FAILED') return 'is-error'
             if (status === 'PENDING' || status === 'SUBMITTED' || status === 'AUDITING') return 'is-pending'
             return ''
@@ -1455,6 +1485,42 @@ export default {
             if (this.kycSubmitting) return '提交中...'
             if (!this.canEditKyc) return this.kycStatusText || '已提交'
             return this.kycStatusClass === 'is-error' ? '重新提交' : '提交申请'
+        },
+        kycContractTitle() {
+            return '角色申请合同'
+        },
+        kycContractSections() {
+            return [
+                {
+                    title: '一、适用范围',
+                    paragraphs: [
+                        '本合同适用于申请成为商家、区级运营中心、市级子公司、推广者及居间服务角色的用户。申请人提交资料前，应完整阅读并理解本合同内容。',
+                        '申请成为商家需签署商家入驻合同并提交相关资料；申请成为运营中心或子公司需签署对应合同、提交相关资料并按平台规则缴纳保证金；申请成为推广者需签署推广者合同、提交相关资料并按平台规则缴纳保证金；涉及居间服务的，还需签署居间合同。'
+                    ]
+                },
+                {
+                    title: '二、资料与审核',
+                    paragraphs: [
+                        '申请人承诺提交的姓名、证件、资质、联系方式及其他资料真实、准确、完整、合法。平台有权对资料进行人工审核，并根据审核结果通过、驳回或要求补充资料。',
+                        '申请资料提交后进入审核流程，审核期间申请人应保持联系方式畅通。因资料不完整、不真实或不符合平台要求造成的审核延迟或失败，由申请人自行承担。'
+                    ]
+                },
+                {
+                    title: '三、保证金与权益',
+                    paragraphs: [
+                        '如申请角色需要缴纳保证金，申请人应按平台页面、后台审核或另行通知的金额与方式缴纳。保证金用于保障申请角色在平台经营、推广、运营或服务过程中的履约责任。',
+                        '申请人申请退还押金或保证金时，平台将弹窗提醒：退款后，当前账号的权益、收益视为自动放弃。申请人确认退款申请即代表已知悉并同意该后果。',
+                        '押金或保证金支持无理由退款，提交申请后进入人工审核。退款到账时间、审核资料及处理方式以平台实际审核结果为准。'
+                    ]
+                },
+                {
+                    title: '四、签署确认',
+                    paragraphs: [
+                        '申请人滑动阅读至合同底部并点击确认签署，即表示已充分阅读、理解并同意本合同全部条款，愿意按照平台规则提交申请并接受后续审核。',
+                        '如申请人不同意本合同任一条款，应立即停止签署和提交申请。'
+                    ]
+                }
+            ]
         },
         storeDetailView() {
             const shopBase = this.storeDetailData.shopBase || {}
@@ -1494,7 +1560,7 @@ export default {
         qrStoreValue() {
             const options = this.getCurrentPageOptions()
             const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
-            return shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : 'https://shengyuan.store/test-store-qr'
+            return shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : '/pages/street/street'
         },
         storeSharePriceText() {
             const firstGroup = this.storeDetailGroupProducts[0] || {}
@@ -1509,7 +1575,7 @@ export default {
         },
         qrGoodsValue() {
             const goodsId = this.qrGoodsInfo.id
-            return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : 'https://shengyuan.store/test-goods-qr'
+            return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : '/pages/index/index'
         },
         storeDetailHeroImage() {
             const image = this.storeDetailData.albums?.[0]?.url || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || ''
@@ -1626,6 +1692,7 @@ export default {
         scene: {
             immediate: true,
             handler(value) {
+                if (!this.guardScene(value)) return
                 if (value === 'street') {
                     this.loadStreetIndex()
                 }
@@ -1651,6 +1718,16 @@ export default {
         }
     },
     methods: {
+        guardScene(scene) {
+            const sceneRouteMap = {
+                'activity-center': '/business/pages/business_pages/activity_center',
+                'activity-exchange': '/business/pages/business_pages/activity_exchange'
+            }
+            const route = sceneRouteMap[scene]
+            if (!route || guardRoute(route)) return true
+            setTimeout(() => this.goBack(), 800)
+            return false
+        },
         chooseUploadedImage() {
             return new Promise((resolve, reject) => {
                 uni.chooseImage({
@@ -1687,6 +1764,12 @@ export default {
             const res = await getKycStatus()
             if (res.code == 1) {
                 this.kycStatusInfo = res.data || {}
+                this.kycForm.realName = res.data.realName || res.data.real_name || this.kycForm.realName
+                this.kycForm.certNo = res.data.certNo || res.data.cert_no || this.kycForm.certNo
+                this.kycForm.certFrontUrl = res.data.certFrontUrl || res.data.cert_front_url || this.kycForm.certFrontUrl
+                this.kycForm.certFrontPreview = res.data.certFrontUrl || res.data.cert_front_url || this.kycForm.certFrontPreview
+                this.kycForm.certBackUrl = res.data.certBackUrl || res.data.cert_back_url || this.kycForm.certBackUrl
+                this.kycForm.certBackPreview = res.data.certBackUrl || res.data.cert_back_url || this.kycForm.certBackPreview
             }
         },
         async submitKycForm() {
@@ -1696,11 +1779,41 @@ export default {
                 uni.showToast({ title: '请填写完整认证信息', icon: 'none' })
                 return
             }
+            if (!this.contractSigned) {
+                this.openKycContract()
+                return
+            }
+            this.performSubmitKyc()
+        },
+        openKycContract() {
+            if (!this.canEditKyc) return
+            this.contractReadDone = false
+            this.showKycContractPopup = true
+        },
+        closeKycContract() {
+            this.showKycContractPopup = false
+        },
+        handleKycContractBottom() {
+            this.contractReadDone = true
+        },
+        confirmKycContract() {
+            if (!this.contractReadDone) {
+                uni.showToast({ title: '请先滑动到底部阅读完整合同', icon: 'none' })
+                return
+            }
+            this.contractSigned = true
+            this.showKycContractPopup = false
+            this.submitKycForm()
+        },
+        async performSubmitKyc() {
+            if (this.kycSubmitting) return
             this.kycSubmitting = true
             try {
                 const res = await submitKyc({
                     ...this.kycForm,
-                    certType: 'ID_CARD'
+                    certType: 'ID_CARD',
+                    contractSigned: 1,
+                    contractTitle: this.kycContractTitle
                 })
                 if (res.code == 1) {
                     this.kycStatusInfo = {
@@ -1708,6 +1821,7 @@ export default {
                         kycStatus: res.data?.kycStatus || 'PENDING',
                         auditMessage: res.data?.auditMessage || '资料已提交，请等待审核'
                     }
+                    this.contractSigned = false
                     uni.showToast({ title: '提交成功', icon: 'success' })
                     this.loadKycStatus()
                     return
@@ -1827,6 +1941,8 @@ export default {
             this.showPaymentFilter = false
         },
         openActivityExchange() {
+            showFeatureDisabledToast('activityExchange')
+            return
             this.showActivityExchangeModal = true
         },
         closeActivityExchange() {
@@ -2166,7 +2282,7 @@ export default {
                 shopId,
                 name: item.shopName || item.name || fallback.name || '',
                 score: this.formatStreetScore(item.shopScore ?? item.score ?? fallback.score),
-                image: item.shopLogo || item.image || fallback.image || getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'),
+                image: item.shopLogo || item.image || fallback.image || '',
                 meta: metaParts.join(' · ') || fallback.meta || '营业状态待更新',
                 url: shopId
                     ? `/business/pages/business_pages/store_detail?shopId=${shopId}`
@@ -5495,6 +5611,52 @@ export default {
     box-shadow: 0 12rpx 28rpx rgba(13, 123, 248, 0.34);
 }
 
+.user-kyc-page__contract {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 34rpx;
+    padding: 24rpx;
+    background: #f5f8ff;
+    border: 1rpx solid #e3edff;
+    border-radius: 20rpx;
+}
+
+.user-kyc-page__contract-copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-kyc-page__contract-title {
+    color: #202020;
+    font-size: 30rpx;
+    line-height: 42rpx;
+    font-weight: 700;
+}
+
+.user-kyc-page__contract-desc {
+    margin-top: 8rpx;
+    color: #667085;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.user-kyc-page__contract-status {
+    flex: none;
+    margin-left: 24rpx;
+    padding: 10rpx 20rpx;
+    color: #0d79f5;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    background: #ffffff;
+    border-radius: 999rpx;
+}
+
+.user-kyc-page__contract-status.is-signed {
+    color: #12a150;
+    background: #eaf8f0;
+}
+
 .user-kyc-page__submit {
     display: flex;
     align-items: center;
@@ -5512,6 +5674,99 @@ export default {
 
 .user-kyc-page__submit.is-disabled {
     opacity: 0.65;
+}
+
+.kyc-contract-popup {
+    padding: 28rpx 28rpx calc(32rpx + env(safe-area-inset-bottom));
+    background: #ffffff;
+    border-radius: 28rpx 28rpx 0 0;
+}
+
+.kyc-contract-popup__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 22rpx;
+}
+
+.kyc-contract-popup__title {
+    color: #202020;
+    font-size: 34rpx;
+    line-height: 48rpx;
+    font-weight: 700;
+}
+
+.kyc-contract-popup__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54rpx;
+    height: 54rpx;
+    color: #667085;
+    font-size: 44rpx;
+    line-height: 54rpx;
+}
+
+.kyc-contract-popup__scroll {
+    height: 640rpx;
+    padding: 24rpx;
+    box-sizing: border-box;
+    background: #f8fafc;
+    border-radius: 20rpx;
+}
+
+.kyc-contract-popup__section + .kyc-contract-popup__section {
+    margin-top: 28rpx;
+}
+
+.kyc-contract-popup__section-title {
+    color: #202020;
+    font-size: 30rpx;
+    line-height: 42rpx;
+    font-weight: 700;
+}
+
+.kyc-contract-popup__paragraph {
+    margin-top: 14rpx;
+    color: #475467;
+    font-size: 26rpx;
+    line-height: 42rpx;
+}
+
+.kyc-contract-popup__bottom-tip {
+    padding: 34rpx 0 10rpx;
+    color: #98a2b3;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    text-align: center;
+}
+
+.kyc-contract-popup__notice {
+    margin-top: 20rpx;
+    color: #667085;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    text-align: center;
+}
+
+.kyc-contract-popup__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 92rpx;
+    margin-top: 18rpx;
+    color: #ffffff;
+    font-size: 32rpx;
+    font-weight: 700;
+    background: linear-gradient(180deg, #1986ff 0%, #0d79f5 100%);
+    border-radius: 46rpx;
+    box-shadow: 0 14rpx 30rpx rgba(17, 120, 239, 0.2);
+}
+
+.kyc-contract-popup__button.is-disabled {
+    color: #98a2b3;
+    background: #edf1f7;
+    box-shadow: none;
 }
 
 .wallet-mode {

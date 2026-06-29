@@ -76,7 +76,7 @@ function normalizeOrderStatus(status) {
 }
 
 function normalizeOrderPage(data = {}) {
-  const list = (data.list || data.items || data.rows || []).map(normalizeOrderListItem);
+  const list = (data.list || data.records || data.items || data.rows || data.content || []).map(normalizeOrderListItem);
   return {
     ...data,
     list,

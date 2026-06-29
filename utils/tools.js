@@ -262,8 +262,13 @@ export function uploadFile(path) {
       fileType: "image",
       cloudPath: "",
       success: (res) => {
-        console.log("uploadFile res ==> ", res);
-        let data = JSON.parse(res.data);
+        let data;
+        try {
+          data = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+        } catch (error) {
+          reject(error);
+          return;
+        }
         if (data.code === "0") {
           data = {
             ...data,
@@ -285,8 +290,7 @@ export function uploadFile(path) {
         }
       },
       fail: (err) => {
-        console.log(err);
-        reject();
+        reject(err);
       },
     });
   });
@@ -368,9 +372,7 @@ export function setTabbar() {
       text: item.name,
       iconPath: item.un_selected_icon,
       selectedIconPath: item.selected_icon,
-      fail(res) {
-        console.log(res);
-      },
+      fail() {},
       success(res) {
         // console.log(res)
       },

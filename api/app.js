@@ -2,6 +2,9 @@ import request from "@/utils/request";
 import wechath5 from "@/utils/wechath5";
 import { client } from "@/utils/tools";
 import { resolveImage } from "@/utils/image-placeholder";
+import store from "@/store";
+import Cache from "@/utils/cache";
+import { USER_INFO } from "@/config/cachekey";
 
 function normalizeMiniappLoginResult(res) {
   const payload = res && res.data ? res.data : res;
@@ -50,6 +53,17 @@ function normalizeEcoApplication(item = {}, index = 0) {
   };
 }
 
+function extractList(payload = {}) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.list)) return payload.list;
+  if (Array.isArray(payload.records)) return payload.records;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray(payload.rows)) return payload.rows;
+  if (Array.isArray(payload.content)) return payload.content;
+  if (payload.page && typeof payload.page === "object") return extractList(payload.page);
+  return [];
+}
+
 function buildMiniappLoginPayload(data = {}) {
   const jsCode = data.jsCode || data.loginCode || data.code;
 
@@ -78,6 +92,14 @@ function normalizePayMethod(method) {
     wallet: "BALANCE",
   };
   return payMethodMap[String(method || "").toLowerCase()] || method || "BALANCE";
+}
+
+function currentOpenId() {
+  const userInfo = store.getters.userInfo || {};
+  const cachedUserInfo = Cache.get(USER_INFO) || {};
+  return userInfo.openId || userInfo.openid || userInfo.open_id
+    || cachedUserInfo.openId || cachedUserInfo.openid || cachedUserInfo.open_id
+    || "";
 }
 
 function normalizePaymentResult(data = {}) {
@@ -281,19 +303,26 @@ export function opLogin(data) {
 
 //预支付接口
 export async function prepay(data = {}) {
+  const openId = data.openId || data.openid || data.open_id || currentOpenId();
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
     bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
     payScene: data.payScene || "MINIAPP",
     payMethod: normalizePayMethod(data.payMethod || data.pay_way || data.payWay),
     clientIp: data.clientIp || "127.0.0.1",
-    openId: data.openId || data.openid || data.open_id,
+    openId,
     idempotentKey:
       data.idempotentKey ||
       `pay-${data.order_id || data.bizOrderNo || Date.now()}-${normalizePayMethod(data.pay_way)}`,
     client,
   });
   return normalizePaymentResponse(res);
+}
+
+export function queryPayment(data = {}) {
+  const payOrderNo = data.payOrderNo || data.pay_order_no || data.pay_order_id || data.order_id;
+  if (!payOrderNo) return Promise.resolve({ code: 0, msg: "缺少支付单号", data: null });
+  return request.get(`miniapp/payments/${payOrderNo}`).then(normalizePaymentResponse);
 }
 
 //小程序订阅
@@ -340,13 +369,22 @@ export function getJsconfig() {
 }
 
 // 忘记密码
-export function forgetPwd(data) {
-  return Promise.resolve({ code: 0, msg: "当前小程序接口文档暂未提供找回密码接口" });
+export function forgetPwd(data = {}) {
+  return request.post("miniapp/auth/password/reset", {
+    mobile: data.mobile || data.phone,
+    smsCode: data.smsCode || data.code,
+    code: data.code || data.smsCode,
+    password: data.password || data.newPassword || data.new_password,
+    newPassword: data.newPassword || data.new_password || data.password,
+  });
 }
 
 // 发送短信
-export function sendSms(data) {
-  return Promise.resolve({ code: 0, msg: "当前后端暂未提供小程序短信发送接口", data: null });
+export function sendSms(data = {}) {
+  return request.post("miniapp/sms/send", {
+    mobile: data.mobile || data.phone,
+    scene: data.scene || data.key || data.type || "LOGIN",
+  });
 }
 
 // Html5 注册账号
@@ -373,7 +411,7 @@ export function getAfterSaleGuar() {
 export function getService() {
   return request.get("miniapp/eco-applications").then((res) => {
     const payload = res.data || {};
-    const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || []);
+    const list = extractList(payload);
     const service = list.find((item) => {
       const text = `${item.appCode || ""}${item.appName || ""}${item.name || ""}${item.title || ""}`.toLowerCase();
       return text.includes("service") || text.includes("客服") || text.includes("contact");
@@ -400,7 +438,7 @@ export function getEcoApplications(params = {}) {
   return request.get("miniapp/eco-applications", { params }).then((res) => {
     if (res.code != 1) return res;
     const payload = res.data || {};
-    const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || []);
+    const list = extractList(payload);
     return {
       ...res,
       data: list.map(normalizeEcoApplication),
@@ -469,7 +507,7 @@ export function getConfig() {
 // 注册赠送优惠券
 export function getRegisterCoupon() {
   return request.get("miniapp/coupons", { params: { pageNo: 1, pageSize: 20 } })
-    .then((res) => ({ ...res, data: res.data?.list || [] }));
+    .then((res) => ({ ...res, data: extractList(res.data || {}) }));
 }
 
 // 获取支付配置

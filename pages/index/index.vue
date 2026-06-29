@@ -160,6 +160,7 @@ import { getRecentVisitShops } from '@/api/app'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
+import { guardRoute, isRouteEnabled } from '@/utils/feature-flags'
 
 const homeShortcutFallbackImages = {
     CATEGORY: 'https://shengyuan.store/api/miniapp/files/miniapp/7f63a1c5a2ee4078b3148915403d074f/home-shortcut-category.png',
@@ -210,7 +211,7 @@ export default {
         },
         quickEntryList() {
             const source = this.homeData.quickEntries || []
-            const list = source.map((item) => this.normalizeQuickEntry(item)).filter(Boolean)
+            const list = source.map((item) => this.normalizeQuickEntry(item)).filter(Boolean).filter((item) => !item.url || isRouteEnabled(item.url))
             return list.length ? list : this.homeShortcutFallback
         },
         bannerList() {
@@ -232,7 +233,10 @@ export default {
             return homeRecentVisits.length ? homeRecentVisits : this.recentVisitFallback
         },
         hotActivityList() {
-            return this.homeData.hotActivities || []
+            return (this.homeData.hotActivities || []).filter((item) => {
+                const type = String(item.activityType || item.activity_type || item.type || '').toUpperCase()
+                return type !== 'BARGAIN' && (!item.url || isRouteEnabled(item.url))
+            })
         },
         recommendedProductList() {
             return this.homeData.recommendedProducts || []
@@ -247,7 +251,7 @@ export default {
                 { ...homeShortcutRoutes.MESSAGE, image: homeShortcutFallbackImages.MESSAGE },
                 { ...homeShortcutRoutes.ACTIVITY, image: homeShortcutFallbackImages.ACTIVITY },
                 { ...homeShortcutRoutes.WALLET, image: homeShortcutFallbackImages.WALLET }
-            ]
+            ].filter((item) => isRouteEnabled(item.url))
         }
     },
     onLoad() {
@@ -353,10 +357,11 @@ export default {
             }
         },
         goPage(url) {
+            if (!guardRoute(url)) return
             uni.navigateTo({
                 url,
                 fail: () => {
-                    uni.showToast({ title: '页面暂未开放', icon: 'none' })
+                    uni.showToast({ title: '页面打开失败', icon: 'none' })
                 }
             })
         },

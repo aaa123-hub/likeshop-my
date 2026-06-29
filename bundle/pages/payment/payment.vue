@@ -85,7 +85,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 	 */
 	import {
 		prepay,
-		getPayway
+		getPayway,
+		queryPayment
 	} from '@/api/app'
 	import {
 wxpay,
@@ -118,6 +119,7 @@ wxpay,
 				loadingSkeleton: true, // 骨架屏Loading
 				loadingPay: false, // 支付处理中Loading
 				hasPayResult: false,
+				payOrderNo: '',
 			}
 		},
 
@@ -167,10 +169,8 @@ wxpay,
 					payMethod: this.payway,
 					bizOrderNo: this.order_id,
 					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER'
-				}).then(({
-					code,
-					data
-				}) => {
+				}).then(({ code, data }) => {
+					this.payOrderNo = data?.payOrderNo || data?.pay_order_no || this.payOrderNo
 					switch (code) {
 						case 1:
 							this.handleWechatPay(data);
@@ -215,8 +215,12 @@ wxpay,
 			},
 
 			// 支付后处理
-			handPayResult(result) {
+			async handPayResult(result) {
 				this.hasPayResult = true
+				if (result === 'success' && this.payOrderNo) {
+					const confirmed = await this.confirmPaymentResult()
+					if (!confirmed) return
+				}
 				switch (result) {
 					case 'success':
 						uni.$emit('payment', {
@@ -233,6 +237,20 @@ wxpay,
 				}
 				// 页面出栈
 				// uni.navigateBack()
+			},
+			async confirmPaymentResult() {
+				try {
+					const res = await queryPayment({ payOrderNo: this.payOrderNo })
+					const status = String(res.data?.payStatus || res.data?.pay_status || '').toUpperCase()
+					if (res.code == 20001 || status === 'PAID' || status === 'SUCCESS') return true
+					this.$toast({ title: res.msg || '支付状态确认中，请稍后查看订单' })
+					uni.$emit('payment', { result: false, order_id: this.order_id })
+					return false
+				} catch (error) {
+					this.$toast({ title: '支付状态确认失败，请稍后查看订单' })
+					uni.$emit('payment', { result: false, order_id: this.order_id })
+					return false
+				}
 			}
 		},
 

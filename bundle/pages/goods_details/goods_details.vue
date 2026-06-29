@@ -345,7 +345,15 @@
 						</view>
 						<view class="goods-share-qrcode">
 							<image v-if="shareQrcodeIsImage" class="goods-share-qrcode__image" :src="shareQrcode" mode="aspectFit"></image>
-							<image v-else-if="shareQrcode" class="goods-share-qrcode__image" src="/static/images/test-qrcode.png" mode="aspectFit"></image>
+							<tki-qrcode
+								v-else-if="shareQrcode"
+								cid="goods-share-qrcode"
+								:val="shareQrcode"
+								:size="206"
+								:onval="true"
+								:load-make="true"
+								:show-loading="false"
+							></tki-qrcode>
 							<view v-else class="goods-share-qrcode__loading">二维码</view>
 						</view>
 					</view>
@@ -570,7 +578,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 						return;
 					}
 				} catch (e) {}
-				this.shareQrcode = this.goodsShareLink() || 'https://shengyuan.store/test-goods-share-qr';
+				this.shareQrcode = this.goodsShareLink();
 				this.shareQrcodeIsImage = false;
 			},
 			resolveAvatar(avatar) {
@@ -597,7 +605,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				uni.navigateTo({ url: `/bundle_user/pages/contact_offical/contact_offical?${params}` })
 			},
 			showGuidePending() {
-				uni.showToast({ title: '使用攻略暂未开放', icon: 'none' })
+				uni.navigateTo({ url: '/bundle_user/pages/server_explan/server_explan?type=2' })
 			},
 			toastShareSave() {
 				uni.showToast({ title: '请长按二维码或图片保存', icon: 'none' })
@@ -894,7 +902,11 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				}).then(res => {
 					if (res.code == 1) {
 						this.onBuy(e);
+					} else {
+						this.$toast({ title: res.msg || '拼团暂不可用' });
 					}
+				}).catch((err) => {
+					this.$toast({ title: err?.msg || err?.message || '拼团暂不可用' });
 				});
 			},
 			async addSelectedGoodsToCart() {

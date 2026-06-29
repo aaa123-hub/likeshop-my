@@ -1,454 +1,564 @@
 <template>
-	<view class="user-withdraw">
-		<view class="user-tab-container">
-			<tabs :active="active" :line-width="40" @change="onChange" :config="{itemWidth: 200}">
-				<tab :title="item.name" :name="item.value" v-for="(item, index) in widthDrawWay" :key="index">
-					<template v-if="item.value == 1 || item.value == 2">
-						<view class="bg-white withdraw-container mt20">
-							<view class="input row-center">
-								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
-								<input v-model="money" placeholder="0.00"></input>
-								<view class="column" style="flex: none;">
-									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
-									<view class="xs" style="color: #BBBBBB">可提现余额￥{{widthDrawConfig.able_withdraw}}
-									</view>
-								</view>
-							</view>
-							<view class="tips mt20 muted row xs" v-if="item.value == 2">
-								提示：提现需扣除服务费{{widthDrawConfig.poundage_percent}}%，请自行缴纳税款
-								<!-- <view class="primary ml10">¥ {{widthDrawConfig.able_withdraw}}</view> -->
-							</view>
-						</view>
-						<view class="withdraw-btn bg-primary lg white row-center" @tap="applyWithdrawFun(item.value)">
-							确认提现</view>
-						<navigator url="/bundle_finance/pages/user_withdraw_code/user_withdraw_code" hover-class="none"
-							class="mt20 nr lighter row-center">提现记录</navigator>
-					</template>
-					<template v-if="item.value == 3">
-						<view class="bg-white form-container">
-							<view class="input-item row md">
-								<view class="input-label ">微信账号</view>
-								<input v-model="account" placeholder="请输入微信账号"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">真实姓名</view>
-								<input v-model="realName" placeholder="请输入真实姓名"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">备注</view>
-								<input v-model="remark" placeholder="（选填）"></input>
-							</view>
-							<view class="uploader-container row mt20">
-								<uploader @after-read="afterRead" :file-list="fileList" :max-upload="1"
-									:deletable="true" useSlot @delete="handleDelete">
-									<view>
-										<view class="upload-area row-center">
-											<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/uploader_icon.png"></image>
-										</view>
-										<view class="mt10 normal nr" style="line-height: 36rpx;text-align: center;">
-											微信收款码</view>
-									</view>
-								</uploader>
-							</view>
-						</view>
-						<view class="bg-white withdraw-container mt10">
-							<view class="input row-center">
-								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
-								<input v-model="money" placeholder="0.00"></input>
-								<view class="column" style="flex: none;">
-									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
-									<view class="xs" style="color: #BBBBBB">可提现余额￥{{widthDrawConfig.able_withdraw}}
-									</view>
-								</view>
-							</view>
-							<view class="tips mt10 muted row xs">
-								提示：提现需扣除服务费{{widthDrawConfig.poundage_percent}}%，请自行缴纳税款
-								<!-- <view  class="primary ml5">¥ {{widthDrawConfig.able_withdraw}}</view> -->
-							</view>
-						</view>
-						<view class="withdraw-btn bg-primary lg white row-center" @tap="applyWithdrawFun(item.value)">
-							确认提现</view>
-						<navigator url="/bundle_finance/pages/user_withdraw_code/user_withdraw_code" hover-class="none"
-							class="mt20 nr lighter row-center">提现记录</navigator>
-					</template>
-					<template v-if="item.value == 4">
-						<view class="bg-white form-container">
-							<view class="input-item row md">
-								<view class="input-label ">支付宝账号</view>
-								<input v-model="account" placeholder="请输入支付宝账号"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">真实姓名</view>
-								<input v-model="realName" placeholder="请输入真实姓名"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">备注</view>
-								<input v-model="remark" placeholder="（选填）"></input>
-							</view>
-							<view class="uploader-container row mt20">
-								<uploader @after-read="afterRead" :file-list="fileList" :max-upload="1"
-									:deletable="true" useSlot @delete="handleDelete">
-									<view class="column-center">
-										<view class="upload-area row-center">
-											<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/uploader_icon.png"></image>
-										</view>
-										<view class="mt10 normal nr" style="line-height: 36rpx;text-align: center;">
-											支付宝收款码</view>
-									</view>
-								</uploader>
-							</view>
-						</view>
-						<view class="bg-white withdraw-container mt10">
-							<view class="input row-center">
-								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
-								<input v-model="money" placeholder="0.00"></input>
-								<view class="column" style="flex: none;">
-									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
-									<view class="xs" style="color: #BBBBBB">可提现余额￥{{widthDrawConfig.able_withdraw}}
-									</view>
-								</view>
-							</view>
-							<view class="tips mt10 muted row xs">
-								提示：提现需扣除服务费{{widthDrawConfig.poundage_percent}}%，请自行缴纳税款
-								<!-- <view class="primary ml5">¥ {{widthDrawConfig.able_withdraw}}</view> -->
-							</view>
-						</view>
-						<view class="withdraw-btn bg-primary lg white row-center" @tap="applyWithdrawFun(item.value)">
-							确认提现</view>
-						<navigator url="/bundle_finance/pages/user_withdraw_code/user_withdraw_code" hover-class="none"
-							class="mt20 nr lighter row-center">
-							提现记录
-						</navigator>
-					</template>
-					<template v-if="item.value == 5">
-						<view class="bg-white form-container">
-							<view class="input-item row md">
-								<view class="input-label ">银行卡账号</view>
-								<input v-model="account" placeholder="请输入银行卡账号"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">真实姓名</view>
-								<input v-model="realName" placeholder="请输入真实姓名"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">提现银行</view>
-								<input v-model="bank" placeholder="请输入提现银行"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">银行支行</view>
-								<input v-model="subbank" placeholder="请输入银行支行"></input>
-							</view>
-							<view class="input-item row md">
-								<view class="input-label ">备注</view>
-								<input v-model="remark" placeholder="（选填）"></input>
-							</view>
-						</view>
-						<view class="bg-white withdraw-container mt10">
-							<view class="input row-center">
-								<view style="font-size: 46rpx;align-self: flex-end;margin-bottom: 10rpx">¥</view>
-								<input v-model="money" placeholder="0.00"></input>
-								<view class="column" style="flex: none;">
-									<view class="xs primary" style="text-align: right;" @tap="allWithdraw">全部提现</view>
-									<view class="xs" style="color: #BBBBBB">可提现余额￥{{widthDrawConfig.able_withdraw}}
-									</view>
-								</view>
-							</view>
-							<view class="tips mt10 muted row xs">
-								提示：提现需扣除服务费{{widthDrawConfig.poundage_percent}}%，请自行缴纳税款
-								<!-- <view class="primary ml5">¥ {{widthDrawConfig.able_withdraw}}</view> -->
-							</view>
-						</view>
-						<view class="withdraw-btn bg-primary lg white row-center" @tap="applyWithdrawFun(item.value)">
-							确认提现</view>
-						<navigator url="/bundle_finance/pages/user_withdraw_code/user_withdraw_code" hover-class="none"
-							class="mt20 nr lighter row-center">
-							提现记录
-						</navigator>
-					</template>
-				</tab>
-			</tabs>
-		</view>
-	</view>
+    <view class="withdraw-page">
+        <navbar title="提现" :is-back="true" :border-bottom="false"></navbar>
+
+        <view class="withdraw-hero">
+            <view class="withdraw-hero__label">可提现金额</view>
+            <view class="withdraw-hero__amount">¥{{ availableAmountText }}</view>
+            <view class="withdraw-hero__meta">
+                <text>手续费 {{ feePercentText }}</text>
+                <text class="withdraw-hero__dot"></text>
+                <text>预计到账 ¥{{ arriveAmountText }}</text>
+            </view>
+        </view>
+
+        <view class="withdraw-card">
+            <view class="withdraw-section-title">提现方式</view>
+            <view v-if="withdrawWays.length" class="withdraw-way-grid">
+                <view
+                    v-for="item in withdrawWays"
+                    :key="item.value"
+                    :class="['withdraw-way', currentType == item.value ? 'withdraw-way--active' : '']"
+                    @tap="selectWithdrawWay(item.value)"
+                >
+                    <view class="withdraw-way__name">{{ item.name }}</view>
+                    <view class="withdraw-way__desc">{{ wayDesc(item.value) }}</view>
+                </view>
+            </view>
+            <view v-else class="withdraw-empty">暂无可用提现方式</view>
+        </view>
+
+        <view class="withdraw-card withdraw-amount-card">
+            <view class="withdraw-section-title">提现金额</view>
+            <view class="withdraw-amount-input">
+                <text class="withdraw-amount-input__symbol">¥</text>
+                <input v-model="money" type="digit" placeholder="0.00" placeholder-class="withdraw-placeholder" />
+                <view class="withdraw-all" @tap="allWithdraw">全部</view>
+            </view>
+            <view class="withdraw-balance-row">
+                <text>可提现 ¥{{ availableAmountText }}</text>
+                <text>服务费 ¥{{ feeAmountText }}</text>
+            </view>
+        </view>
+
+        <view v-if="needAccountInfo" class="withdraw-card">
+            <view class="withdraw-section-title">收款信息</view>
+            <view class="withdraw-field">
+                <view class="withdraw-field__label">{{ accountLabel }}</view>
+                <input v-model="account" class="withdraw-field__input" :placeholder="accountPlaceholder" placeholder-class="withdraw-placeholder" />
+            </view>
+            <view class="withdraw-field">
+                <view class="withdraw-field__label">真实姓名</view>
+                <input v-model="realName" class="withdraw-field__input" placeholder="请输入真实姓名" placeholder-class="withdraw-placeholder" />
+            </view>
+            <template v-if="isBankWithdraw">
+                <view class="withdraw-field">
+                    <view class="withdraw-field__label">提现银行</view>
+                    <input v-model="bank" class="withdraw-field__input" placeholder="请输入开户银行" placeholder-class="withdraw-placeholder" />
+                </view>
+                <view class="withdraw-field">
+                    <view class="withdraw-field__label">银行支行</view>
+                    <input v-model="subbank" class="withdraw-field__input" placeholder="请输入银行支行" placeholder-class="withdraw-placeholder" />
+                </view>
+            </template>
+            <view class="withdraw-field">
+                <view class="withdraw-field__label">备注</view>
+                <input v-model="remark" class="withdraw-field__input" placeholder="选填" placeholder-class="withdraw-placeholder" />
+            </view>
+            <view v-if="needQrCode" class="withdraw-upload">
+                <view class="withdraw-upload__title">{{ qrCodeLabel }}</view>
+                <uploader @after-read="afterRead" :file-list="[]" :max-upload="1" :deletable="false" useSlot>
+                    <view class="withdraw-upload__box">
+                        <image v-if="qrCode" class="withdraw-upload__image" :src="qrCode" mode="aspectFill"></image>
+                        <view v-else class="withdraw-upload__empty">
+                            <image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/uploader_icon.png" mode="aspectFit"></image>
+                            <text>上传收款码</text>
+                        </view>
+                    </view>
+                </uploader>
+                <view v-if="qrCode" class="withdraw-upload__delete" @tap="handleDelete">重新上传</view>
+            </view>
+        </view>
+
+        <view class="withdraw-tips">
+            <view>提现申请提交后进入平台审核，到账时间以后端审核结果为准。</view>
+            <view>提现可能扣除服务费，请自行承担并申报相关税费。</view>
+        </view>
+
+        <view class="withdraw-footer">
+            <view :class="['withdraw-submit', submitting || !canSubmit ? 'withdraw-submit--disabled' : '']" @tap="applyWithdrawFun">
+                {{ submitting ? '提交中...' : '确认提现' }}
+            </view>
+            <navigator url="/bundle_finance/pages/user_withdraw_code/user_withdraw_code" hover-class="none" class="withdraw-record">查看提现记录</navigator>
+        </view>
+    </view>
 </template>
 
 <script>
-	import Uploader from '@/bundle_user/components/uploader/uploader.vue'
-// +----------------------------------------------------------------------
-	// | LikeShop100%开源免费商用电商系统
-	// +----------------------------------------------------------------------
-	// | 欢迎阅读学习系统程序代码，建议反馈是我们前进的动力
-	// | 开源版本可自由商用，保留版权即可
-	// | 商业版本务必购买商业授权，以免引起法律纠纷
-	// | 禁止对系统程序代码以任何目的，任何形式的再发布
-	// | Gitee下载：https://gitee.com/likeshop_gitee/likeshop
-	// | 访问官网：https://www.likemarket.net
-	// | 访问社区：https://home.likemarket.net
-	// | 访问手册：http://doc.likemarket.net
-	// | 微信公众号：好象科技
-	// | 好象科技开发团队 版权所有 拥有最终解释权
-	// +----------------------------------------------------------------------
-	// | Author: LikeShopTeam
-	// +----------------------------------------------------------------------
-	import {
-		applyWithdraw,
-		getWithdrawConfig
-	} from "@/api/user";
-	import {
-		uploadFile,
-		trottle
-	} from "@/utils/tools";
-	import {
-		baseURL
-	} from '@/config/app';
-	import {
-		withdrawType
-	} from "@/utils/type"
-	export default {
-		data() {
-			return {
-				active: 0,
-				money: '',
-				account: '',
-				realName: '',
-				bank: '',
-				subbank: '',
-				qrCode: '',
-				remark: '',
-				fileList: [],
-				widthDrawConfig: {},
-				widthDrawWay: []
-			};
-		},
+import Navbar from '@/components/navbar/navbar.vue'
+import Uploader from '@/bundle_user/components/uploader/uploader.vue'
+import { applyWithdraw, getWithdrawConfig } from '@/api/user'
+import { uploadFile } from '@/utils/tools'
+import { withdrawType } from '@/utils/type'
 
-		components: {
-			Uploader
-		},
-		props: {},
-
-		/**
-		 * 生命周期函数--监听页面加载
-		 */
-		onLoad: function(options) {
-			this.getWithdrawConfigFun();
-			this.applyWithdrawFun = trottle(this.applyWithdrawFun, 1000, this),
-
-			Uploader
-
-		},
-
-
-		methods: {
-			allWithdraw(e) {
-				const {
-					widthDrawConfig
-				} = this;
-				this.money = widthDrawConfig.able_withdraw.toString()
-			},
-
-			onChange(e) {
-				this.active = e
-				this.account = "";
-				this.realName = "";
-				this.qrCode = "";
-				this.remark = ""
-				this.fileList = [];
-			},
-
-			getWithdrawConfigFun() {
-				getWithdrawConfig().then(res => {
-					if (res.code == 1) {
-						const data = res.data || {}
-						this.widthDrawConfig = data
-						this.widthDrawWay = Array.isArray(data.type) ? data.type : []
-					}
-				});
-			},
-
-			afterRead(e) {
-				const file = e;
-				uni.showLoading({
-					title: '正在上传中...',
-					mask: true
-				});
-				file.forEach(item => {
-					uploadFile(item.path).then(res => {
-						uni.hideLoading();
-						this.fileList.push(res);
-						this.qrCode = res.url;
-					});
-				})
-			},
-
-			handleDelete(index) {
-				this.fileList.splice(index, 1)
-			},
-
-			// 申请提现
-			applyWithdrawFun(type) {
-				let {
-					active,
-					account,
-					realName,
-					qrCode,
-					remark,
-					money,
-					bank,
-					subbank,
-					widthDrawWay
-				} = this;
-				switch (parseInt(type)) {
-					case withdrawType.ACCOUNT:
-						break;
-					case withdrawType.WECHAT:
-						break
-					case withdrawType.PAY_WECHAT:
-					case withdrawType.PAY_ALIPAY:
-						if (!account) return this.$toast({
-							title: '请输入账户信息'
-						})
-						if (!realName) return this.$toast({
-							title: '请输入真实姓名'
-						})
-						if (!qrCode) return this.$toast({
-							title: '请上传收款码'
-						})
-						break;
-					case withdrawType.BANK:
-						if (!account) return this.$toast({
-							title: '请输入账户信息'
-						})
-						if (!realName) return this.$toast({
-							title: '请输入真实姓名'
-						})
-						if (!bank) return this.$toast({
-							title: '请输入提现银行'
-						})
-						if (!subbank) return this.$toast({
-							title: '请输入银行支行'
-						})
-				}
-
-				if (!money) {
-					this.$toast({
-						title: '请输入提现金额'
-					});
-					return;
-				}
-				const currentWay = widthDrawWay.find(item => item.value == type) || widthDrawWay[active] || {}
-				if (!currentWay.value) {
-					return this.$toast({
-						title: '暂无可用提现方式'
-					})
-				}
-
-				const data = {
-					type: currentWay.value,
-					money: money,
-					account: account,
-					real_name: realName,
-					money_qr_code: qrCode,
-					remark: remark,
-					bank,
-					subbank,
-					idempotentKey: `withdraw-${Date.now()}`
-				};
-				applyWithdraw(data).then(res => {
-					if (res.code == 1) {
-						const result = res.data || {}
-						this.$toast({
-							title: '提交成功'
-						}, {
-							tab: 2,
-							url: '/bundle_finance/pages/widthdraw_result/widthdraw_result?id=' + (result.id || '')
-						});
-					}
-				});
-			}
-
-		}
-	};
+export default {
+    components: {
+        Navbar,
+        Uploader
+    },
+    data() {
+        return {
+            currentType: '',
+            money: '',
+            account: '',
+            realName: '',
+            bank: '',
+            subbank: '',
+            qrCode: '',
+            remark: '',
+            fileList: [],
+            widthDrawConfig: {},
+            withdrawWays: [],
+            submitting: false
+        }
+    },
+    computed: {
+        availableAmount() {
+            return Number(this.widthDrawConfig.able_withdraw || this.widthDrawConfig.withdrawable_amount || this.widthDrawConfig.withdrawableAmount || 0)
+        },
+        availableAmountText() {
+            return this.formatMoney(this.availableAmount)
+        },
+        feePercent() {
+            return Number(this.widthDrawConfig.poundage_percent || this.widthDrawConfig.poundagePercent || 0)
+        },
+        feePercentText() {
+            return `${this.feePercent || 0}%`
+        },
+        moneyAmount() {
+            return Number(this.money || 0)
+        },
+        feeAmount() {
+            return this.moneyAmount > 0 ? this.moneyAmount * this.feePercent / 100 : 0
+        },
+        feeAmountText() {
+            return this.formatMoney(this.feeAmount)
+        },
+        arriveAmountText() {
+            return this.formatMoney(Math.max(this.moneyAmount - this.feeAmount, 0))
+        },
+        currentWay() {
+            return this.withdrawWays.find(item => String(item.value) === String(this.currentType)) || {}
+        },
+        needAccountInfo() {
+            return [withdrawType.PAY_WECHAT, withdrawType.PAY_ALIPAY, withdrawType.BANK].includes(Number(this.currentType))
+        },
+        needQrCode() {
+            return [withdrawType.PAY_WECHAT, withdrawType.PAY_ALIPAY].includes(Number(this.currentType))
+        },
+        isBankWithdraw() {
+            return Number(this.currentType) === withdrawType.BANK
+        },
+        accountLabel() {
+            if (Number(this.currentType) === withdrawType.PAY_WECHAT) return '微信账号'
+            if (Number(this.currentType) === withdrawType.PAY_ALIPAY) return '支付宝账号'
+            if (this.isBankWithdraw) return '银行卡号'
+            return '收款账号'
+        },
+        accountPlaceholder() {
+            return `请输入${this.accountLabel}`
+        },
+        qrCodeLabel() {
+            return Number(this.currentType) === withdrawType.PAY_ALIPAY ? '支付宝收款码' : '微信收款码'
+        },
+        canSubmit() {
+            return Boolean(this.currentWay.value && this.moneyAmount > 0 && this.moneyAmount <= this.availableAmount)
+        }
+    },
+    onLoad() {
+        this.getWithdrawConfigFun()
+    },
+    methods: {
+        formatMoney(value) {
+            return Number(value || 0).toFixed(2)
+        },
+        wayDesc(type) {
+            const descMap = {
+                [withdrawType.ACCOUNT]: '转入账户余额',
+                [withdrawType.WECHAT]: '转入微信零钱',
+                [withdrawType.PAY_WECHAT]: '通过微信收款码审核打款',
+                [withdrawType.PAY_ALIPAY]: '通过支付宝收款码审核打款',
+                [withdrawType.BANK]: '审核后打款至银行卡'
+            }
+            return descMap[type] || '提交后平台审核'
+        },
+        selectWithdrawWay(value) {
+            if (String(this.currentType) === String(value)) return
+            this.currentType = value
+            this.account = ''
+            this.realName = ''
+            this.bank = ''
+            this.subbank = ''
+            this.qrCode = ''
+            this.remark = ''
+            this.fileList = []
+        },
+        allWithdraw() {
+            this.money = this.availableAmount ? this.formatMoney(this.availableAmount) : ''
+        },
+        getWithdrawConfigFun() {
+            getWithdrawConfig().then(res => {
+                if (res.code == 1) {
+                    const data = res.data || {}
+                    const ways = Array.isArray(data.type) ? data.type : []
+                    this.widthDrawConfig = data
+                    this.withdrawWays = ways.filter(item => item && item.value)
+                    this.currentType = this.withdrawWays[0]?.value || ''
+                } else {
+                    this.$toast({ title: res.msg || '提现配置获取失败' })
+                }
+            }).catch((err) => {
+                this.$toast({ title: err?.msg || err?.message || '提现配置获取失败' })
+            })
+        },
+        afterRead(files) {
+            const list = Array.isArray(files) ? files : [files]
+            if (!list.length) return
+            uni.showLoading({ title: '正在上传中...', mask: true })
+            uploadFile(list[0].path).then(res => {
+                this.fileList = [res]
+                this.qrCode = res.url
+            }).catch((err) => {
+                this.$toast({ title: err?.msg || err?.message || '上传失败' })
+            }).finally(() => {
+                uni.hideLoading()
+            })
+        },
+        handleDelete(index) {
+            if (typeof index === 'number') this.fileList.splice(index, 1)
+            else this.fileList = []
+            this.qrCode = ''
+        },
+        validateForm() {
+            if (!this.currentWay.value) return '暂无可用提现方式'
+            if (!this.money) return '请输入提现金额'
+            if (this.moneyAmount <= 0) return '提现金额必须大于0'
+            if (this.moneyAmount > this.availableAmount) return '提现金额不能超过可提现金额'
+            if (this.needAccountInfo && !this.account) return `请输入${this.accountLabel}`
+            if (this.needAccountInfo && !this.realName) return '请输入真实姓名'
+            if (this.needQrCode && !this.qrCode) return `请上传${this.qrCodeLabel}`
+            if (this.isBankWithdraw && !this.bank) return '请输入提现银行'
+            if (this.isBankWithdraw && !this.subbank) return '请输入银行支行'
+            return ''
+        },
+        applyWithdrawFun() {
+            if (this.submitting) return
+            const message = this.validateForm()
+            if (message) {
+                this.$toast({ title: message })
+                return
+            }
+            this.submitting = true
+            applyWithdraw({
+                type: this.currentWay.value,
+                money: this.money,
+                account: this.account,
+                real_name: this.realName,
+                money_qr_code: this.qrCode,
+                remark: this.remark,
+                bank: this.bank,
+                subbank: this.subbank,
+                idempotentKey: `withdraw-${Date.now()}`
+            }).then(res => {
+                if (res.code == 1) {
+                    const result = res.data || {}
+                    this.$toast({ title: '提交成功' }, {
+                        tab: 2,
+                        url: `/bundle_finance/pages/widthdraw_result/widthdraw_result?id=${result.id || result.withdrawId || ''}`
+                    })
+                } else {
+                    this.$toast({ title: res.msg || '提现申请失败' })
+                }
+            }).catch((err) => {
+                this.$toast({ title: err?.msg || err?.message || '提现申请失败' })
+            }).finally(() => {
+                this.submitting = false
+            })
+        }
+    }
+}
 </script>
+
 <style lang="scss">
-	.van-tabs .van-tabs__wrap {
-		border-radius: 10rpx;
-	}
+page {
+    background: #f3f7ff;
+}
 
-	.van-tabs__line {
-		background: linear-gradient(90deg, #F79C0C 0%, #FF2C3C 100%);
-		bottom: 8rpx !important;
-		/* width: 50rpx !important; */
-		height: 6rpx !important;
-		border-radius: 100rpx;
-	}
+.withdraw-page {
+    min-height: 100vh;
+    padding: 0 24rpx calc(180rpx + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background: linear-gradient(180deg, #eaf4ff 0%, #f6f8fb 420rpx, #f6f8fb 100%);
+}
 
-	.user-withdraw {
-		.user-tab-container {
-			padding: 20rpx 30rpx;
+.withdraw-hero {
+    margin-top: 24rpx;
+    padding: 36rpx 32rpx;
+    color: #ffffff;
+    background: linear-gradient(135deg, #1678ff 0%, #0bb4ff 100%);
+    border-radius: 28rpx;
+    box-shadow: 0 18rpx 46rpx rgba(22, 120, 255, 0.24);
+}
 
-			::v-deep .scroll-view-h {
-				background-color: #FFFFFF;
-			}
+.withdraw-hero__label {
+    font-size: 26rpx;
+    line-height: 36rpx;
+    opacity: 0.86;
+}
 
-			.withdraw-container {
-				padding: 52rpx 72rpx;
-				border-radius: 20rpx;
+.withdraw-hero__amount {
+    margin-top: 12rpx;
+    font-size: 60rpx;
+    line-height: 78rpx;
+    font-weight: 800;
+}
 
-				.input {
-					border-bottom: $solid-border;
+.withdraw-hero__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 18rpx;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    opacity: 0.92;
+}
 
-					input {
-						width: 100%;
-						height: 94rpx;
-						text-align: left;
-						font-size: 66rpx;
-						margin-left: 30rpx;
-					}
-				}
-			}
+.withdraw-hero__dot {
+    width: 8rpx;
+    height: 8rpx;
+    margin: 0 14rpx;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+}
 
-			.withdraw-btn {
-				background: linear-gradient(80deg, #F95F2F 0%, #FF2C3C 100%);
-				line-height: 44rpx;
-				height: 84rpx;
-				margin-top: 30rpx;
-				border-radius: 100rpx;
-			}
+.withdraw-card {
+    margin-top: 22rpx;
+    padding: 28rpx 24rpx;
+    background: #ffffff;
+    border-radius: 24rpx;
+    box-shadow: 0 12rpx 36rpx rgba(31, 55, 88, 0.06);
+}
 
-			.form-container {
-				border-radius: 20rpx;
-				padding: 0 36rpx 26rpx;
-				line-height: 36rpx;
-				margin-top: 10rpx;
+.withdraw-section-title {
+    color: #1f2937;
+    font-size: 30rpx;
+    line-height: 42rpx;
+    font-weight: 700;
+}
 
-				.input-item {
-					padding: 28rpx 0 30rpx;
-					border-bottom: $solid-border;
-				}
+.withdraw-way-grid {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 20rpx -8rpx -12rpx;
+}
 
-				.input-label {
-					width: 200rpx;
-					text-align: left;
-					line-height: 36rpx;
-				}
+.withdraw-way {
+    width: calc(50% - 16rpx);
+    min-height: 118rpx;
+    margin: 0 8rpx 16rpx;
+    padding: 20rpx;
+    box-sizing: border-box;
+    background: #f6f8fb;
+    border: 2rpx solid transparent;
+    border-radius: 20rpx;
+}
 
-				input {
-					flex: 1;
-				}
+.withdraw-way--active {
+    background: #eef6ff;
+    border-color: #1678ff;
+}
 
-				.uploader-container {
-					.upload-area {
-						width: 160rpx;
-						height: 160rpx;
-						border: 4rpx dashed #E5E5E5;
-						border-radius: 10rpx;
+.withdraw-way__name {
+    color: #111827;
+    font-size: 28rpx;
+    line-height: 38rpx;
+    font-weight: 700;
+}
 
-						image {
-							width: 54rpx;
-							height: 44rpx;
-						}
-					}
-				}
-			}
-		}
-	}
+.withdraw-way__desc {
+    margin-top: 8rpx;
+    color: #667085;
+    font-size: 22rpx;
+    line-height: 32rpx;
+}
+
+.withdraw-empty {
+    margin-top: 20rpx;
+    color: #98a2b3;
+    font-size: 26rpx;
+    line-height: 38rpx;
+}
+
+.withdraw-amount-card {
+    padding-bottom: 22rpx;
+}
+
+.withdraw-amount-input {
+    display: flex;
+    align-items: center;
+    margin-top: 24rpx;
+    padding-bottom: 22rpx;
+    border-bottom: 1rpx solid #edf0f5;
+}
+
+.withdraw-amount-input__symbol {
+    color: #1f2937;
+    font-size: 42rpx;
+    font-weight: 700;
+}
+
+.withdraw-amount-input input {
+    flex: 1;
+    min-width: 0;
+    height: 84rpx;
+    margin-left: 18rpx;
+    color: #111827;
+    font-size: 58rpx;
+    font-weight: 700;
+}
+
+.withdraw-all {
+    flex: none;
+    padding: 12rpx 22rpx;
+    color: #1678ff;
+    font-size: 26rpx;
+    line-height: 36rpx;
+    background: #edf6ff;
+    border-radius: 999rpx;
+}
+
+.withdraw-balance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 18rpx;
+    color: #667085;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.withdraw-field {
+    display: flex;
+    align-items: center;
+    min-height: 92rpx;
+    border-bottom: 1rpx solid #edf0f5;
+}
+
+.withdraw-field__label {
+    flex: none;
+    width: 170rpx;
+    color: #344054;
+    font-size: 27rpx;
+    line-height: 38rpx;
+}
+
+.withdraw-field__input {
+    flex: 1;
+    min-width: 0;
+    height: 92rpx;
+    color: #111827;
+    font-size: 27rpx;
+    text-align: right;
+}
+
+.withdraw-placeholder {
+    color: #b4bbc8;
+}
+
+.withdraw-upload {
+    margin-top: 24rpx;
+}
+
+.withdraw-upload__title {
+    color: #344054;
+    font-size: 27rpx;
+    line-height: 38rpx;
+}
+
+.withdraw-upload__box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 176rpx;
+    height: 176rpx;
+    margin-top: 18rpx;
+    overflow: hidden;
+    background: #f6f8fb;
+    border: 2rpx dashed #d9e2ef;
+    border-radius: 20rpx;
+}
+
+.withdraw-upload__image {
+    width: 100%;
+    height: 100%;
+}
+
+.withdraw-upload__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #98a2b3;
+    font-size: 22rpx;
+    line-height: 32rpx;
+}
+
+.withdraw-upload__empty image {
+    width: 54rpx;
+    height: 44rpx;
+    margin-bottom: 12rpx;
+}
+
+.withdraw-tips {
+    margin: 22rpx 6rpx 0;
+    color: #8a94a6;
+    font-size: 24rpx;
+    line-height: 40rpx;
+}
+
+.withdraw-footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 18rpx 32rpx calc(22rpx + env(safe-area-inset-bottom));
+    background: rgba(246, 248, 251, 0.96);
+    box-shadow: 0 -12rpx 30rpx rgba(31, 55, 88, 0.06);
+}
+
+.withdraw-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 88rpx;
+    color: #ffffff;
+    font-size: 30rpx;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1678ff 0%, #0bb4ff 100%);
+    border-radius: 44rpx;
+    box-shadow: 0 14rpx 30rpx rgba(22, 120, 255, 0.22);
+}
+
+.withdraw-submit--disabled {
+    opacity: 0.56;
+}
+
+.withdraw-record {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16rpx;
+    color: #667085;
+    font-size: 26rpx;
+    line-height: 36rpx;
+}
 </style>
