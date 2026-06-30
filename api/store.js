@@ -100,8 +100,14 @@ function normalizeGoodsListItem(item = {}) {
         shopId: item.shopId || item.shop_id || item.merchantShopId || item.merchant_shop_id || '',
         shop_name: item.shop_name || item.shopName || item.storeName || (item.shopInfo && item.shopInfo.shopName) || '',
         shopName: item.shopName || item.shop_name || item.storeName || (item.shopInfo && item.shopInfo.shopName) || '',
-        sales_sum: item.sales_sum || item.salesCount || item.sales_count || 0,
-        tags: item.tags || []
+        sales_sum: item.sales_sum || item.salesCount || item.sales_count || item.saleCount || item.virtualSales || 0,
+        comment_count: item.comment_count || item.commentCount || item.reviewCount || 0,
+        score: item.score || item.star || item.goodsScore || item.productScore || '',
+        unit: item.unit || item.unitName || '',
+        category_name: item.category_name || item.categoryName || item.cateName || '',
+        subtitle: item.subtitle || item.subTitle || item.sellingPoint || item.shortDesc || item.description || '',
+        tags: item.tags || item.labels || item.tagList || [],
+        stock: valueOr(item.stock, valueOr(item.stockQty, valueOr(item.stockQuantity, '')))
     })
 }
 
@@ -239,13 +245,20 @@ function normalizeCartItem(item = {}) {
         sku_id: item.sku_id || item.skuId || item.itemSkuId || item.item_id,
         goods_id: item.goods_id || item.spuId || item.productId || normalized.goods_id,
         name: item.name || item.spuName || item.productName || item.title || normalized.name,
+        subtitle: item.subtitle || item.subTitle || item.sellingPoint || item.shortDesc || normalized.subtitle || '',
         img: image,
         image,
         price: item.price || item.salePrice || item.unitPrice || normalized.price,
+        market_price: item.market_price || item.marketPrice || item.originPrice || normalized.market_price,
         goods_num: quantity,
         quantity,
         spec_value_str: item.spec_value_str || item.skuName || item.specValue || '',
         item_stock: item.item_stock || item.stockQty || item.stock || 0,
+        unit: item.unit || item.unitName || normalized.unit || '',
+        weight: item.weight || item.goodsWeight || item.netWeight || '',
+        sales_sum: item.sales_sum || item.salesCount || item.sales_count || normalized.sales_sum || 0,
+        service_tags: item.service_tags || item.serviceTags || item.tags || normalized.tags || [],
+        status_text: item.status_text || item.statusText || item.cartStatusText || '',
         selected: valueOr(item.selected, valueOr(item.checked, 1)),
         cart_status: valueOr(item.cart_status, valueOr(item.cartStatus, 0)),
         shop_id: item.shop_id || item.shopId || normalized.shop_id,
@@ -298,14 +311,17 @@ function normalizeCommentPage(data = {}) {
 }
 
 function normalizeHomeData(data = {}) {
+    var recommendedProducts = data.recommendedProducts || data.recommendProducts || data.goodsList || data.products || data.productList || data.recommendGoods || data.recommendedGoods || data.goods || []
+    var recommendedShops = data.recommendedShops || data.recommendShops || data.shopList || data.shops || data.merchantShops || []
+    var hotActivities = data.hotActivities || data.activities || data.activityList || []
     return Object.assign({}, data, {
         navigation_menu: data.navigation_menu || data.quickEntries || [],
         quickEntries: data.quickEntries || data.navigation_menu || [],
         banners: data.banners || [],
-        recommendedProducts: (data.recommendedProducts || []).map(normalizeGoodsListItem),
-        recommendedShops: (data.recommendedShops || []).map(normalizeStreetShop),
+        recommendedProducts: (Array.isArray(recommendedProducts) ? recommendedProducts : []).map(normalizeGoodsListItem),
+        recommendedShops: (Array.isArray(recommendedShops) ? recommendedShops : []).map(normalizeStreetShop),
         recentVisits: data.recentVisits || [],
-        hotActivities: data.hotActivities || [],
+        hotActivities: Array.isArray(hotActivities) ? hotActivities : [],
         walletCard: data.walletCard || {
             balance: data.balance || 0,
             currency: 'CNY'
@@ -494,6 +510,7 @@ export function getStreetGoods(data = {}) {
     var params = {
         keyword: data.keyword || '',
         categoryId: data.categoryId || data.category_id,
+        categoryName: data.categoryName || data.category_name,
         shopId: data.shopId || data.shop_id,
         sortType: data.sortType || data.sort_type,
         pageNo: data.pageNo || data.page_no || 1,
@@ -532,14 +549,7 @@ export function getStreetGoods(data = {}) {
                 })
             })
         }).catch(function() {
-            return getStreetIndex({ keyword: data.keyword }).then(function(res) {
-                if (res.code != 1) return res
-                return Object.assign({}, res, {
-                    data: {
-                        list: (res.data && res.data.recommendedShops) || []
-                    }
-                })
-            })
+            return { code: 1, data: { list: [], total: 0, pageNo: params.pageNo, pageSize: params.pageSize, hasNext: false } }
         })
     })
 }

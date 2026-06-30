@@ -83,7 +83,7 @@ export default {
         page
       } = this;
 
-      loadingFun(getAccountLog, page, detailList, loadingStatus, {source: 2}).then(res => {
+      loadingFun(getAccountLog, page, detailList, loadingStatus, { bizType: 'POINTS', source: 'POINTS', type: 'POINTS' }).then(res => {
           if(res) {
               this.page = res.page;
               this.detailList = res.dataList

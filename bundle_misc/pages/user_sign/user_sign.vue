@@ -100,6 +100,7 @@ import UPopup from '@/bundle_misc/components/uview-ui/components/u-popup/u-popup
 // +----------------------------------------------------------------------
 import { getSignList, userSign, getSignRule } from "@/api/user";
 import {trottle} from '@/utils/tools.js'
+import { mapActions } from 'vuex'
 export default {
 	components: {
 			Navbar,
@@ -136,6 +137,7 @@ export default {
   },
 
   methods: {
+    ...mapActions(['getUser']),
     onClose() {
       this.showPop = false
     },
@@ -183,6 +185,7 @@ export default {
           this.signDays = days
           this.canSign = 1
           this.integral = Number(this.integral || 0) + Number(integral || 0)
+          this.getUser()
           this.signList = this.signList.map((item, index) => {
             if (index < Number(days || 1)) return Object.assign({}, item, { status: 1 })
             return item

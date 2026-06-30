@@ -37,26 +37,6 @@
                 </view>
             </view>
 
-            <view class="my-page__asset-panel">
-                <view class="my-page__gift-card" @tap="goPage(businessRoutes.pages.wallet.url)">
-                    <image class="my-page__card-bg my-page__card-bg--gift" :src="designAssets.myGiftCard" mode="scaleToFill"></image>
-                    <view class="my-page__card-name my-page__card-name--gift">我的礼品卡</view>
-                    <view class="my-page__card-number my-page__card-number--gift">{{ userInfo.coupon || 0 }}张</view>
-                </view>
-                <view class="my-page__asset-right">
-                    <view class="my-page__asset-item my-page__asset-item--points" @tap="goPage('/bundle_misc/pages/user_sign/user_sign')">
-                        <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myPointsCard" mode="scaleToFill"></image>
-                        <view class="my-page__card-name my-page__card-name--points">我的积分</view>
-                        <view class="my-page__card-number my-page__card-number--points">{{ userInfo.user_integral || 0 }}</view>
-                    </view>
-                    <view class="my-page__asset-item my-page__asset-item--coupon" @tap="goPage('/bundle_user/pages/user_coupon/user_coupon')">
-                        <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myCouponCard" mode="scaleToFill"></image>
-                        <view class="my-page__card-name my-page__card-name--coupon">我的优惠券</view>
-                        <view class="my-page__card-number my-page__card-number--coupon">{{ userInfo.coupon || 0 }}张</view>
-                    </view>
-                </view>
-            </view>
-
             <image class="my-page__strategy" :src="designAssets.myStrategyBanner" mode="scaleToFill" @tap="goPage(businessRoutes.pages.mallGuide.url)"></image>
 
             <view class="my-section my-section--online">
@@ -285,6 +265,7 @@ export default {
         },
         valueEntries() {
             return [
+                { name: `我的积分\n${this.userInfo.user_integral || 0}`, url: '/bundle_misc/pages/user_sign/user_sign', image: designAssets.myOrderPoints },
                 { name: '待领取\n线上订单', url: '/bundle_order/pages/user_order/user_order?points=1', image: designAssets.myValueOnline },
                 { name: '待领取\n线下订单', url: '/business/pages/business_pages/face_pay', image: designAssets.myValueOffline },
                 { name: '联盟订单', url: '/pages/street/street', image: designAssets.myValueAlliance, openType: 'switchTab' },
@@ -330,7 +311,7 @@ export default {
 .my-page__screen {
     position: relative;
     width: 100%;
-    min-height: calc(2266rpx + var(--page-safe-top));
+    min-height: calc(1918rpx + var(--page-safe-top));
     overflow: visible;
 }
 
@@ -576,8 +557,8 @@ export default {
 .my-page__merchant {
     position: absolute;
     left: 47rpx;
+    right: 47rpx;
     top: calc(var(--page-safe-top) + 299rpx);
-    width: 656rpx;
     height: 157rpx;
 }
 
@@ -585,7 +566,7 @@ export default {
     position: absolute;
     left: 0;
     top: 0;
-    width: 656rpx;
+    width: 100%;
     height: 157rpx;
 }
 
@@ -623,135 +604,28 @@ export default {
     margin-left: 20rpx;
 }
 
-.my-page__asset-panel {
-    position: absolute;
-    left: 26rpx;
-    top: calc(var(--page-safe-top) + 395rpx);
-    width: 698rpx;
-    height: 349rpx;
-    background: rgba(255, 255, 255, 1);
-    border-radius: 15rpx;
-}
-
-.my-page__gift-card {
-    position: absolute;
-    left: 22rpx;
-    top: 50rpx;
-    width: 311rpx;
-    height: 269rpx;
-    overflow: hidden;
-}
-
-.my-page__card-bg {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 0;
-}
-
-.my-page__card-bg--gift {
-    width: 311rpx;
-    height: 269rpx;
-}
-
-.my-page__card-bg--asset {
-    width: 311rpx;
-    height: 123rpx;
-}
-
-.my-page__card-name {
-    position: absolute;
-    z-index: 1;
-    font-size: 24rpx;
-    font-family: PingFangSC-Regular, sans-serif;
-    font-weight: normal;
-    line-height: 24rpx;
-    white-space: nowrap;
-}
-
-.my-page__card-name--gift {
-    left: 27rpx;
-    top: 31rpx;
-    color: rgba(208, 50, 1, 1);
-}
-
-.my-page__card-name--points {
-    left: 22rpx;
-    top: 25rpx;
-    color: rgba(1, 59, 208, 1);
-}
-
-.my-page__card-name--coupon {
-    left: 26rpx;
-    top: 25rpx;
-    color: rgba(54, 1, 208, 1);
-}
-
-.my-page__card-number {
-    position: absolute;
-    z-index: 1;
-    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
-    font-size: 35rpx;
-    font-weight: 500;
-    line-height: 24rpx;
-    white-space: nowrap;
-}
-
-.my-page__card-number--gift {
-    left: 28rpx;
-    top: 74rpx;
-    color: rgba(208, 50, 1, 1);
-}
-
-.my-page__card-number--points {
-    left: 27rpx;
-    top: 62rpx;
-    color: rgba(35, 1, 208, 1);
-}
-
-.my-page__card-number--coupon {
-    left: 27rpx;
-    top: 62rpx;
-    color: rgba(54, 1, 208, 1);
-}
-
-.my-page__asset-right {
-    position: absolute;
-    left: 355rpx;
-    top: 50rpx;
-    width: 311rpx;
-    height: 269rpx;
-}
-
-.my-page__asset-item {
-    position: relative;
-    width: 311rpx;
-    height: 123rpx;
-    overflow: hidden;
-}
-
-.my-page__asset-item + .my-page__asset-item {
-    margin-top: 23rpx;
-}
-
 .my-page__strategy {
     position: absolute;
     left: 26rpx;
-    top: calc(var(--page-safe-top) + 780rpx);
-    width: 698rpx;
-    height: 135rpx;
+    right: 26rpx;
+    top: calc(var(--page-safe-top) + 395rpx);
+    height: 184rpx;
+    border-radius: 24rpx;
+    box-shadow: 0 16rpx 38rpx rgba(31, 122, 244, 0.12);
+    width: auto;
 }
 
 .my-section {
     position: absolute;
     left: 26rpx;
-    width: 698rpx;
-    background: rgba(255, 255, 255, 1);
-    border-radius: 15rpx;
+    right: 26rpx;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 24rpx;
+    box-shadow: 0 12rpx 30rpx rgba(28, 45, 90, 0.06);
 }
 
 .my-section--online {
-    top: calc(var(--page-safe-top) + 941rpx);
+    top: calc(var(--page-safe-top) + 611rpx);
     min-height: 213rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
@@ -762,22 +636,22 @@ export default {
 }
 
 .my-section--pair-1 {
-    top: calc(var(--page-safe-top) + 1175rpx);
+    top: calc(var(--page-safe-top) + 845rpx);
 }
 
 .my-section--pair-2 {
-    top: calc(var(--page-safe-top) + 1409rpx);
+    top: calc(var(--page-safe-top) + 1079rpx);
 }
 
 .my-section--value {
-    top: calc(var(--page-safe-top) + 1643rpx);
+    top: calc(var(--page-safe-top) + 1313rpx);
     min-height: 237rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-section--feature {
-    top: calc(var(--page-safe-top) + 1902rpx);
+    top: calc(var(--page-safe-top) + 1572rpx);
     min-height: 322rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;

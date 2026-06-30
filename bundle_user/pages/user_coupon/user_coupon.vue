@@ -82,7 +82,7 @@ export default {
         }
     },
     onShow() {
-        this.loadCouponList()
+        this.loadAllCouponCounts()
     },
     methods: {
         changeTab(index) {
@@ -91,8 +91,15 @@ export default {
             this.loadCouponList()
         },
         async loadCouponList() {
-            const type = this.currentType
+            return this.loadCouponByType(this.currentType)
+        },
+        async loadAllCouponCounts() {
             this.loading = true
+            await Promise.all(this.coupons.map(item => this.loadCouponByType(item.type, false)))
+            this.loading = false
+        },
+        async loadCouponByType(type, manageLoading = true) {
+            if (manageLoading) this.loading = true
             try {
                 const res = await getMyCoupon({ type, status: type })
                 const list = res.code == 1 ? (Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.lists || [])) : []
@@ -104,7 +111,7 @@ export default {
                 const index = this.coupons.findIndex(item => item.type === type)
                 if (index !== -1) this.$set(this.coupons[index], 'num', 0)
             } finally {
-                this.loading = false
+                if (manageLoading) this.loading = false
             }
         },
         formatMoney(value) {

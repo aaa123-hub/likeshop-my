@@ -909,6 +909,7 @@
                             <text>可提现金额</text>
                             <text>¥123.34</text>
                         </view>
+                        <view class="wallet-card__withdraw" @tap="goPage('/bundle_user/pages/user_withdraw/user_withdraw?type=1&source=fiat_balance')">提现到本地余额</view>
                     </view>
                     <view class="card">
                         <view class="section-title">
@@ -1210,20 +1211,7 @@ export default {
             albumImages: [
                 ...designAssetList.sceneAlbum
             ],
-            merchantList: [
-                {
-                    name: '广州市越秀区斌记面家',
-                    image: ''
-                },
-                {
-                    name: '广州市越秀区斌记面家',
-                    image: ''
-                },
-                {
-                    name: '广州市越秀区斌记面家',
-                    image: ''
-                }
-            ],
+            merchantList: [],
             storeDetailCapsuleImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_2.png'),
             storeDetailAddressIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/78a66305c5c34a91bc0c6b60f8198b6f/store-address-icon.png'),
             storeDetailStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
@@ -1259,6 +1247,8 @@ export default {
             streetSearchText: '输入关键词',
             streetKeyword: '',
             listKeyword: '',
+            streetGoodsLoadKey: '',
+            streetGoodsLoading: false,
             streetLoaded: false,
             navigating: false,
             streetMerchants: [
@@ -1699,9 +1689,7 @@ export default {
                 if (value === 'user-kyc') {
                     this.loadKycStatus()
                 }
-                if (value === 'street-goods') {
-                    this.loadStreetGoods()
-                }
+                if (value === 'street-goods') return
                 if (value === 'store-detail' || value === 'store-group' || value === 'store-qr' || value === 'goods-qr') {
                     this.loadStoreDetail()
                 }
@@ -2323,6 +2311,14 @@ export default {
         },
         async loadStreetGoods() {
             const options = this.getCurrentPageOptions()
+            const loadKey = JSON.stringify({
+                keyword: this.listKeyword || '',
+                categoryId: options.categoryId || options.category_id || '',
+                shopId: options.shopId || options.shop_id || ''
+            })
+            if (this.streetGoodsLoading && this.streetGoodsLoadKey === loadKey) return
+            this.streetGoodsLoadKey = loadKey
+            this.streetGoodsLoading = true
             try {
                 const res = await getStreetGoods({
                     keyword: this.listKeyword,
@@ -2337,6 +2333,8 @@ export default {
             } catch (error) {
                 console.error('[street-goods] load failed:', error)
                 uni.showToast({ title: '商街商品加载失败', icon: 'none' })
+            } finally {
+                this.streetGoodsLoading = false
             }
         },
         mapStreetGoodsItem(item = {}, index = 0) {
@@ -5795,6 +5793,19 @@ export default {
     height: 1rpx;
     margin: 24rpx 0;
     background: rgba(255, 255, 255, 0.26);
+}
+
+.wallet-card__withdraw {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 72rpx;
+    margin-top: 24rpx;
+    color: #1f7af4;
+    font-size: 28rpx;
+    font-weight: 600;
+    border-radius: 36rpx;
+    background: #ffffff;
 }
 
 .filter-box {

@@ -226,6 +226,9 @@ export default {
             value.district_id = parseInt(district_id)
             value.is_default = is_default
             value.gender = this.gender
+            value.sex = this.gender === '女士' ? 2 : 1
+            value.contactGender = this.gender
+            value.receiverGender = this.gender
             value.id = addressId
             delete value.region
 
@@ -298,6 +301,13 @@ export default {
             this.addressObj.address = e.detail.value
         },
 
+        normalizeGender(value) {
+            const gender = String(value === undefined || value === null ? '' : value).trim()
+            if (['女士', '女', '2', 'female', 'FEMALE'].includes(gender)) return '女士'
+            if (['先生', '男士', '男', '1', 'male', 'MALE'].includes(gender)) return '先生'
+            return '先生'
+        },
+
         getOneAddressFun() {
             getOneAddress(this.addressId).then((res) => {
                 if (res.code == 1) {
@@ -307,7 +317,7 @@ export default {
                         id: data.id || data.addressId || this.addressId,
                         is_default: data.is_default || data.isDefault ? 1 : 0
                     })
-                    this.gender = data.gender || '先生'
+                    this.gender = this.normalizeGender(data.sex ?? data.contactGender ?? data.receiverGender ?? data.contact_gender ?? data.receiver_gender ?? data.genderText ?? data.genderName ?? data.gender ?? data.title)
                     this.region = `${province} ${city} ${district}`
                 }
             })

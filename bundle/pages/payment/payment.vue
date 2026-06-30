@@ -112,6 +112,7 @@ wxpay,
 				timeout: 0, // 倒计时间戳
 				payway: '', // 支付方式
 				paywayList: [], // 支付方式列表
+				desiredPayway: '',
 				pageMode: '',
 
 				loadingSkeleton: true, // 骨架屏Loading
@@ -131,8 +132,15 @@ wxpay,
 			getPaywayValue(item) {
 				return item && (item.pay_way || item.payMethod || item.payWay) ? (item.pay_way || item.payMethod || item.payWay) : item
 			},
+			normalizePaywayValue(value) {
+				const text = String(value || '').toUpperCase()
+				if (['WECHAT', 'WECHAT_PAY', 'WX', 'WX_PAY', 'WEIXIN', 'WECHAT_JSAPI', 'JSAPI'].includes(text)) return 'WECHAT_JSAPI'
+				if (['BALANCE', 'WALLET', 'WALLET_PAY', 'USER_MONEY'].includes(text)) return 'BALANCE'
+				if (['ALIPAY', 'ALI_PAY'].includes(text)) return 'ALIPAY'
+				return value
+			},
 			normalizePaywayItem(item = {}, index = 0) {
-				const value = this.getPaywayValue(item)
+				const value = this.normalizePaywayValue(this.getPaywayValue(item))
 				return {
 					key: item.id || value || index,
 					value,
@@ -162,12 +170,16 @@ wxpay,
 				}).then(data => {
 					this.loadingSkeleton = false
 					data = data || {}
-					this.amount = data.order_amount || data.payAmount || 0
+					this.amount = this.amount || data.order_amount || data.payAmount || 0
 					this.paywayList = (data.pay || []).map((item, index) => this.normalizePaywayItem(item, index)).filter(item => item.value)
-					this.payway = this.paywayList.length ? this.paywayList[0].value : ''
+					const desiredPayway = this.normalizePaywayValue(this.desiredPayway)
+					const matchedPayway = this.paywayList.find(item => item.value === desiredPayway)
+					this.payway = matchedPayway ? matchedPayway.value : (this.paywayList.length ? this.paywayList[0].value : '')
 					// 倒计时
 					const startTimestamp = new Date().getTime() / 1000
-					const endTimestamp = data.cancel_time * 1
+					const rawEndTimestamp = data.cancel_time || data.cancelTime || data.expireTime || data.expire_time
+					const parsedEndTimestamp = typeof rawEndTimestamp === 'string' && rawEndTimestamp.includes('-') ? new Date(rawEndTimestamp).getTime() / 1000 : Number(rawEndTimestamp)
+					const endTimestamp = Number.isNaN(parsedEndTimestamp) || !parsedEndTimestamp ? startTimestamp + 30 * 60 : parsedEndTimestamp
 					this.timeout = Math.max(endTimestamp ? endTimestamp - startTimestamp : 0, 0)
 					this.isExpired = !this.isFacePay && this.timeout <= 0
 				}).catch(err => {
@@ -194,7 +206,8 @@ wxpay,
 					pay_way: this.payway,
 					payMethod: this.payway,
 					bizOrderNo: this.order_id,
-					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER'
+					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER',
+					amount: this.amount
 				}).then((res) => {
 					const { code, data, rawCode, msg, message } = res || {}
 					if (code != 1 && code != 10001 && code != 20001) {
@@ -202,6 +215,10 @@ wxpay,
 						return
 					}
 					this.payOrderNo = data?.payOrderNo || data?.pay_order_no || this.payOrderNo
+					if (this.payway === 'BALANCE' && code == 1) {
+						this.handleWalletPay()
+						return
+					}
 					switch (code) {
 						case 1:
 							this.handleWechatPay(data);
@@ -227,6 +244,10 @@ wxpay,
 
 			// 微信支付
 			handleWechatPay(data) {
+				if (!data || !data.timeStamp || !data.nonceStr || !data.package || !data.paySign) {
+					this.$toast({ title: '微信支付参数不完整，请重新选择支付方式' })
+					return
+				}
 				wxpay(data).then(res => {
 					this.handPayResult(res)
 				})
@@ -301,11 +322,13 @@ wxpay,
 			const from = options.from
 			const order_id = options.order_id
 			this.pageMode = options.mode || ''
+			this.desiredPayway = options.pay_way || options.payWay || options.payMethod || ''
 
 			try {
 				if (!from && !order_id) throw new Error('页面参数有误')
 				this.from = from
 				this.order_id = order_id
+				this.amount = Number(options.amount || 0)
 				this.initPageData()
 			} catch (err) {
 				uni.navigateBack()
@@ -313,7 +336,7 @@ wxpay,
 		},
 
 		onUnload() {
-			if (!this.hasPayResult) this.handPayResult('fail')
+			this.hasPayResult = true
 		},
 		computed: {
 			normalizedPaywayList() {

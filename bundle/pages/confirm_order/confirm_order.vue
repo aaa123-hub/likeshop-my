@@ -112,7 +112,8 @@ likeshop.cn.team // +-----------------------------------------------------------
 
                     <view class="divider"></view>
                     <view class="shop-row">
-                        <view class="shop-logo"></view>
+                        <image v-if="shopLogo" class="shop-logo" :src="shopLogo" mode="aspectFill"></image>
+                        <view v-else class="shop-logo"></view>
                         <text class="shop-name">{{ shopName }}</text>
                     </view>
                     <view class="divider"></view>
@@ -283,10 +284,12 @@ import { teamBuy } from '@/api/activity'
 import { prepay, getMnpNotice, getPayway } from '@/api/app'
 import { wxpay, alipay } from '@/utils/pay'
 import PriceFormat from '@/bundle/components/price-format/price-format.vue'
+import CouponObj from '@/bundle_shared_components/components/coupon-obj/coupon-obj.vue'
 
 export default {
 	components: {
 			PriceFormat,
+			CouponObj,
 			UPopup
 		},
     data() {
@@ -340,6 +343,10 @@ export default {
         shopName() {
             const firstGoods = this.goodsLists[0] || {}
             return firstGoods.shop_name || firstGoods.store_name || this.orderInfo.shop_name || '店铺名称'
+        },
+        shopLogo() {
+            const firstGoods = this.goodsLists[0] || {}
+            return firstGoods.shop_logo || firstGoods.shopLogo || this.orderInfo.shop_logo || this.orderInfo.shopLogo || firstGoods.image_str || firstGoods.image || ''
         },
         freightText() {
             if (!this.address.id && this.currentDelivery.sign === 'express') {
@@ -639,7 +646,7 @@ export default {
 
                 if (code == 1) {
                     uni.redirectTo({
-                        url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}`
+                        url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}&pay_way=${encodeURIComponent(this.payWay)}&payWay=${encodeURIComponent(this.payWay)}`
                     })
                 } else {
                     throw new Error(msg)

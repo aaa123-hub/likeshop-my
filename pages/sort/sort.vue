@@ -306,7 +306,7 @@ export default {
         buildSearchUrl(item) {
             const id = item.id || ''
             const name = encodeURIComponent(item.name || '')
-            return `/bundle/pages/goods_search/goods_search?id=${id}&name=${name}`
+            return `/bundle/pages/goods_search/goods_search?id=${id}&name=${name}&type=1&from=category`
         },
         getCategoryChildren(item) {
             return (item && (item.sons || item.children)) || []

@@ -148,6 +148,7 @@
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 import UNumberBox from '@/bundle/components/uview-ui/components/u-number-box/u-number-box.vue'
 import PriceFormat from '@/bundle/components/price-format/price-format.vue'
+import { resolveImage } from '@/utils/image-placeholder'
 export default {
   data() {
     return {
@@ -217,8 +218,14 @@ export default {
     goodsType: {
       type: Number,
     },
+    selectedSkuId: {
+      type: [String, Number],
+      default: '',
+    },
   },
-  mounted() {},
+  mounted() {
+    this.initGoods(this.goods || {});
+  },
 
   computed: {
     // 选择的规格参数等
@@ -237,29 +244,18 @@ export default {
       else return `请选择 ${spec_str.slice(0, spec_str.length - 1)}`;
     },
     specImage() {
-      return this.checkedGoods.image || this.checkedGoods.imageUrl || this.checkedGoods.skuImage || this.goods?.image || this.goods?.poster || this.goods?.goods_image?.[0] || '';
+      const goodsImages = Array.isArray(this.goods?.goods_image) ? this.goods.goods_image : [];
+      return resolveImage(this.checkedGoods.image || this.checkedGoods.imageUrl || this.checkedGoods.skuImage || this.checkedGoods.skuImageUrl || this.checkedGoods.goodsImage || this.goods?.image || this.goods?.poster || goodsImages[0] || '', 'goods');
     },
   },
 
   watch: {
     goods(value) {
-      this.specList = value.goods_spec || [];
-      let goodsItem = value.goods_item || [];
-      if (!goodsItem.length) return;
-      this.outOfStock = goodsItem.filter((item) => item.stock == 0);
-      // 找出库存不为0的
-      const resultArr = goodsItem.filter((item) => item.stock != 0);
-      if (resultArr.length != 0) {
-        resultArr[0].spec_value_ids_arr =
-          resultArr[0].spec_value_ids.split(",");
-        this.checkedGoods = resultArr[0];
-      } else {
-        // 无法选择
-        goodsItem[0].spec_value_ids_arr = [];
+      this.initGoods(value || {});
+    },
 
-        this.disable = goodsItem.map((item) => item.spec_value_ids.split(","));
-        this.checkedGoods = goodsItem[0];
-      }
+    selectedSkuId() {
+      this.initGoods(this.goods || {});
     },
 
     specList(value) {
@@ -303,6 +299,23 @@ export default {
     console.log("spec");
   },
   methods: {
+    initGoods(value = {}) {
+      this.specList = value.goods_spec || [];
+      let goodsItem = value.goods_item || [];
+      if (!goodsItem.length) return;
+      this.outOfStock = goodsItem.filter((item) => item.stock == 0);
+      const resultArr = goodsItem.filter((item) => item.stock != 0);
+      const target = goodsItem.find((item) => [item.item_id, item.sku_id, item.skuId, item.id, item.itemSkuId].some((value) => String(value || '') === String(this.selectedSkuId || '')));
+      if (target || resultArr.length != 0) {
+        const nextGoods = target || resultArr[0];
+        nextGoods.spec_value_ids_arr = String(nextGoods.spec_value_ids || '').split(",");
+        this.checkedGoods = nextGoods;
+      } else {
+        goodsItem[0].spec_value_ids_arr = [];
+        this.disable = goodsItem.map((item) => String(item.spec_value_ids || '').split(","));
+        this.checkedGoods = goodsItem[0];
+      }
+    },
     isDisable(e) {
       const res = this.disable.filter((item) => item == e);
       if (res.length != 0) return true;

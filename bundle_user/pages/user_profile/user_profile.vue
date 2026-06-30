@@ -416,16 +416,24 @@ export default {
             }
             changeUserMobile({
                 mobile: this.userInfo.mobile,
+                oldMobile: this.userInfo.mobile,
                 new_mobile: this.new_mobile,
+                newMobile: this.new_mobile,
+                phone: this.new_mobile,
                 code: this.smsCode,
+                smsCode: this.smsCode,
+                verifyCode: this.smsCode,
+                scene: this.smsType,
                 action: this.userInfo.mobile ? 'change' : ''
             }).then((res) => {
                 if (res.code == 1) {
                     this.showMobile = false
                     this.$toast({
-                        title: res.msg
+                        title: this.userInfo.mobile ? '手机号更换成功' : '手机号绑定成功'
                     })
                     this.$getUserInfo()
+                } else {
+                    this.$toast({ title: res.msg || '手机号绑定失败，请检查验证码' })
                 }
             })
         },
@@ -530,7 +538,12 @@ export default {
             const { encryptedData, iv } = e.detail
             let data = {
                 code: this.code,
+                smsCode: this.code,
+                jsCode: this.code,
+                loginCode: this.code,
+                wxCode: this.code,
                 encrypted_data: encryptedData,
+                encryptedData,
                 iv
             }
             this.fieldType = FieldType.MOBILE
@@ -542,9 +555,11 @@ export default {
             changeUserMobile(data).then((res) => {
                 if (res.code == 1) {
                     this.$toast({
-                        title: res.msg
+                        title: '手机号绑定成功'
                     })
                     this.$getUserInfo()
+                } else {
+                    this.$toast({ title: res.msg || '手机号绑定失败，请重新授权' })
                 }
                 // #ifdef MP-WEIXIN
                 getWxCode().then((res) => {

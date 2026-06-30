@@ -307,6 +307,7 @@ export async function prepay(data = {}) {
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
     bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
+    amount: data.amount || data.payAmount || data.order_amount,
     payScene: data.payScene || "MINIAPP",
     payMethod: normalizePayMethod(data.payMethod || data.pay_way || data.payWay),
     clientIp: data.clientIp || "127.0.0.1",

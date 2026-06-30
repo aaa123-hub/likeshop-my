@@ -75,9 +75,10 @@ function normalizeUserProfile(data = {}) {
         mobile: data.mobile || data.phone || '',
         create_time: data.create_time || data.createTime || data.createdAt || data.registerTime || '暂未记录',
         sex: normalizeGenderForView(genderValue),
-        user_money: data.user_money ?? data.balance ?? data.walletBalance ?? 0,
-        user_integral: data.user_integral ?? data.availablePoints ?? data.points ?? 0,
-        coupon: data.coupon ?? data.couponCount ?? 0,
+        user_money: data.user_money ?? data.balance ?? data.walletBalance ?? data.wallet?.balance ?? 0,
+        user_integral: data.user_integral ?? data.availablePoints ?? data.available_points ?? data.points ?? data.pointsAccount?.availablePoints ?? 0,
+        coupon: data.coupon ?? data.couponCount ?? data.availableCouponCount ?? data.available_coupon_count ?? data.couponSummary?.availableCount ?? 0,
+        gift_card_count: data.gift_card_count ?? data.giftCardCount ?? data.cardCount ?? data.giftCardSummary?.availableCount ?? 0,
         wait_pay: data.wait_pay ?? data.waitPay ?? 0,
         wait_delivery: data.wait_delivery ?? data.waitDelivery ?? 0,
         wait_take: data.wait_take ?? data.waitTake ?? data.waitReceive ?? 0,
@@ -103,6 +104,18 @@ function normalizeGenderForApi(value) {
     return value
 }
 
+function normalizeAddressGenderPayload(value) {
+    const isFemale = value === 2 || value === '2' || value === 'FEMALE' || value === 'female' || value === '女' || value === '女士'
+    const code = isFemale ? 2 : 1
+    const text = isFemale ? '女士' : '先生'
+    const apiText = isFemale ? 'FEMALE' : 'MALE'
+    return { code, text, apiText }
+}
+
+function normalizeAddressGenderText(value) {
+    return normalizeAddressGenderPayload(value).text
+}
+
 function assignIfPresent(target, keys, value) {
     if (value === undefined || value === null || value === '') return
     keys.forEach((key) => {
@@ -121,7 +134,7 @@ function findRegionNameByCode(list, code) {
 }
 
 function normalizeAddress(item = {}) {
-    const gender = item.gender || item.sex || item.contactGender || item.receiverGender || ''
+    const gender = item.sex ?? item.contactGender ?? item.receiverGender ?? item.contact_gender ?? item.receiver_gender ?? item.genderText ?? item.genderName ?? item.gender ?? ''
     const provinceCode = item.province_id || item.provinceCode || ''
     const cityCode = item.city_id || item.cityCode || ''
     const districtCode = item.district_id || item.districtCode || ''
@@ -136,7 +149,7 @@ function normalizeAddress(item = {}) {
         district: item.district || item.districtName || findRegionNameByCode(area, districtCode),
         address: item.address || item.detailAddress || item.detail_address || '',
         is_default: item.is_default ?? item.isDefault ?? 0,
-        gender: gender === 'FEMALE' || gender === '女士' || gender === 2 || gender === '2' ? '女士' : '先生',
+        gender: normalizeAddressGenderText(gender),
         province_id: provinceCode,
         city_id: cityCode,
         district_id: districtCode
@@ -183,7 +196,8 @@ function normalizeFavoriteProduct(item = {}) {
 
 function normalizeWallet(res = {}) {
     const data = res.data || {}
-    const balance = data.balance ?? data.user_money ?? 0
+    const cachedUserInfo = Cache.get(USER_INFO) || {}
+    const balance = data.balance ?? data.user_money ?? cachedUserInfo.user_money ?? cachedUserInfo.balance ?? 0
     const withdrawableAmount = data.withdrawableAmount ?? data.withdrawable_amount ?? data.able_withdraw ?? balance
     const withdrawTypes = Array.isArray(data.type) && data.type.length
         ? data.type
@@ -327,17 +341,23 @@ export function getAddressLists() {
 
 export function editAddress(data) {
     const id = data.id || data.addressId
-    const gender = normalizeGenderForApi(data.gender || data.sex)
+    const gender = normalizeAddressGenderPayload(data.gender || data.sex || data.contactGender || data.receiverGender)
     const payload = {
         addressId: id,
         receiverName: data.contact || data.receiverName,
         mobile: data.telephone || data.mobile,
         phone: data.telephone || data.mobile,
         telephone: data.telephone || data.mobile,
-        gender,
-        sex: gender,
-        contactGender: gender,
-        receiverGender: gender,
+        gender: gender.text,
+        sex: gender.code,
+        genderCode: gender.code,
+        genderText: gender.text,
+        genderName: gender.text,
+        contactGender: gender.text,
+        receiverGender: gender.text,
+        contact_gender: gender.text,
+        receiver_gender: gender.text,
+        genderEnum: gender.apiText,
         provinceCode: data.province_id || data.provinceCode,
         cityCode: data.city_id || data.cityCode,
         districtCode: data.district_id || data.districtCode,
@@ -350,16 +370,22 @@ export function editAddress(data) {
 }
 
 export function addAddress(data) {
-    const gender = normalizeGenderForApi(data.gender || data.sex)
+    const gender = normalizeAddressGenderPayload(data.gender || data.sex || data.contactGender || data.receiverGender)
     return request.post('miniapp/addresses', {
         receiverName: data.contact || data.receiverName,
         mobile: data.telephone || data.mobile,
         phone: data.telephone || data.mobile,
         telephone: data.telephone || data.mobile,
-        gender,
-        sex: gender,
-        contactGender: gender,
-        receiverGender: gender,
+        gender: gender.text,
+        sex: gender.code,
+        genderCode: gender.code,
+        genderText: gender.text,
+        genderName: gender.text,
+        contactGender: gender.text,
+        receiverGender: gender.text,
+        contact_gender: gender.text,
+        receiver_gender: gender.text,
+        genderEnum: gender.apiText,
         provinceCode: data.province_id || data.provinceCode,
         cityCode: data.city_id || data.cityCode,
         districtCode: data.district_id || data.districtCode,
@@ -634,6 +660,28 @@ export function recharge(data) {
     })
 }
 
+export function createWechatRecharge(data = {}) {
+    const amount = data.amount || data.money
+    return request.post('miniapp/wallet/recharge', {
+        amount,
+        payMethod: data.payMethod || data.pay_method || 'WECHAT_JSAPI',
+        payScene: data.payScene || 'MINIAPP',
+        idempotentKey: data.idempotentKey || `wechat-recharge-${Date.now()}`
+    }).then((res) => {
+        if (res.code != 1) return res
+        const result = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...result,
+                order_id: result.orderNo || result.rechargeNo || result.bizOrderNo || result.id,
+                orderNo: result.orderNo || result.rechargeNo || result.bizOrderNo || result.id,
+                amount: result.amount || result.rechargeAmount || amount
+            }
+        }
+    })
+}
+
 export function getRechargeRecord(params) {
     return getAccountLog(params)
 }
@@ -734,17 +782,32 @@ export function setUserInfo(data) {
 export function changeUserMobile(data) {
     const smsCode = data.smsCode || data.sms_code || data.verifyCode || data.verify_code || data.code
     const loginCode = data.jsCode || data.loginCode || data.login_code || data.wxCode || data.wx_code
+    const oldMobile = data.oldMobile || data.old_mobile || data.mobile || data.phone || ''
+    const newMobile = data.newMobile || data.new_mobile || data.newPhone || data.new_phone || data.mobile || data.phone || ''
     const payload = {
         ...data,
-        mobile: data.new_mobile || data.mobile || data.phone,
+        mobile: newMobile,
+        phone: newMobile,
+        newMobile,
+        new_mobile: newMobile,
+        newPhone: newMobile,
+        oldMobile,
+        old_mobile: oldMobile,
+        oldPhone: oldMobile,
         smsCode,
+        sms_code: smsCode,
         verifyCode: data.verifyCode || data.verify_code || smsCode,
+        verify_code: data.verify_code || data.verifyCode || smsCode,
         code: smsCode,
         jsCode: loginCode,
+        js_code: loginCode,
         loginCode,
+        login_code: loginCode,
         encryptedData: data.encryptedData || data.encrypted_data,
         encrypted_data: data.encrypted_data || data.encryptedData,
-        iv: data.iv
+        iv: data.iv,
+        scene: data.scene || data.key || data.type || 'BIND_MOBILE',
+        action: data.action || (oldMobile ? 'change' : 'bind')
     }
     return request.post('miniapp/auth/bind-mobile', payload)
 }
@@ -1003,11 +1066,48 @@ export function readMessage(messageId, params = {}) {
 }
 
 export function getSignList() {
-    return request.get('miniapp/points/sign/rules')
+    return request.get('miniapp/points/sign/rules').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const userInfo = Cache.get(USER_INFO) || {}
+        const signList = data.sign_list || data.signList || data.rules || []
+        return {
+            ...res,
+            data: {
+                ...data,
+                sign_list: Array.isArray(signList) ? signList.map((item, index) => ({
+                    days: item.days || item.day || index + 1,
+                    integral: item.integral || item.points || item.rewardPoints || data.dailySignPoints || 0,
+                    status: item.status || item.signed || 0
+                })) : [],
+                user: {
+                    ...(data.user || {}),
+                    user_integral: data.availablePoints ?? data.available_points ?? data.points ?? userInfo.user_integral ?? 0,
+                    avatar: data.avatar || userInfo.avatar || '',
+                    today_sign: data.todaySigned ?? data.today_sign ?? data.signedToday ?? 0,
+                    days: data.signDays ?? data.continuousDays ?? data.days ?? 0
+                },
+                make_inegral: data.make_inegral || data.makeIntegral || []
+            }
+        }
+    })
 }
 
 export function userSign() {
-    return request.post('miniapp/points/sign')
+    return request.post('miniapp/points/sign').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                days: data.days || data.signDays || data.continuousDays || 1,
+                growth: data.growth || data.growthValue || 0,
+                integral: data.integral || data.points || data.rewardPoints || data.addPoints || 0,
+                totalPoints: data.totalPoints || data.availablePoints || data.available_points
+            }
+        }
+    })
 }
 
 export function getSignRule() {

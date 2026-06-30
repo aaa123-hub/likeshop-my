@@ -101,7 +101,7 @@ import Navbar from '@/components/navbar/navbar.vue'
 // +----------------------------------------------------------------------
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
-import { getWallet, getAccountLog, getWithdrawRecords } from '@/api/user';
+import { getWallet, getAccountLog, getWithdrawRecords, createWechatRecharge } from '@/api/user';
 export default {
   data() {
     return {
@@ -201,8 +201,31 @@ export default {
       })
     },
     handleWithdrawTap() {
-      uni.navigateTo({
-        url: '/bundle_user/pages/user_withdraw/user_withdraw'
+      uni.showModal({
+        title: '微信入账到余额',
+        placeholderText: '请输入入账金额',
+        editable: true,
+        confirmText: '去支付',
+        success: async ({ confirm, content }) => {
+          if (!confirm) return
+          const amount = Number(content || 0)
+          if (!amount || amount <= 0) {
+            uni.showToast({ title: '请输入正确金额', icon: 'none' })
+            return
+          }
+          uni.showLoading({ title: '正在创建支付', mask: true })
+          try {
+            const res = await createWechatRecharge({ amount })
+            if (res.code != 1 || !res.data?.order_id) throw new Error(res.msg || '微信入账接口暂不可用')
+            uni.navigateTo({
+              url: `/bundle/pages/payment/payment?from=recharge&order_id=${res.data.order_id}&amount=${amount}`
+            })
+          } catch (error) {
+            uni.showToast({ title: error.message || '微信入账接口暂不可用', icon: 'none' })
+          } finally {
+            uni.hideLoading()
+          }
+        }
       })
     }
 

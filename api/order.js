@@ -4,7 +4,7 @@ import { resolveImage } from "@/utils/image-placeholder";
 let latestSubmitToken = "";
 
 function normalizeOrderItem(item = {}) {
-  const image = resolveImage(item.image || item.imageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage, "goods");
+  const image = resolveImage(item.image || item.image_str || item.imageUrl || item.goodsImageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage || item.picUrl, "goods");
   const price = item.goods_price || item.goodsPrice || item.salePrice || item.unitPrice || item.price || 0;
   return {
     ...item,
@@ -16,6 +16,7 @@ function normalizeOrderItem(item = {}) {
     name: item.name || item.spuName || item.productName || item.goodsName || item.skuName,
     image,
     image_str: item.image_str || image,
+    shop_logo: resolveImage(item.shop_logo || item.shopLogo || item.shopLogoUrl || item.storeLogo || "", "goods"),
     spec_value_str: item.spec_value_str || item.specValue || item.skuName || "",
     spec_value: item.spec_value || item.specValue || item.skuName || "",
     goods_num: item.goods_num || item.quantity || item.num || 1,
@@ -100,7 +101,7 @@ function flattenShopOrders(shopOrders = []) {
 }
 
 function normalizeOrderPreview(data = {}) {
-  const goodsLists = data.goods_lists || data.itemList || data.items || flattenShopOrders(data.shopOrders || []);
+  const goodsLists = (data.goods_lists || data.itemList || data.items || flattenShopOrders(data.shopOrders || [])).map(normalizeOrderItem);
   return {
     ...data,
     address: data.address || {},

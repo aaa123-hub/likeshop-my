@@ -67,6 +67,10 @@
 			</view>
 		</view>
 		<view v-show="!showHistory" class="result-panel">
+			<view v-if="categoryName" class="category-source">
+				<view class="category-source__label">当前分类</view>
+				<view class="category-source__name line1">{{ categoryName }}</view>
+			</view>
 			<template v-if="goodsList.length">
 				<view v-for="(item, index) in goodsList" :key="index" class="merchant-card" @tap="goResultDetail(item)">
 					<view v-if="isEmptyImage(item)" class="merchant-card__image image-placeholder">无</view>
@@ -170,6 +174,8 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				minPrice: '',
 				maxPrice: '',
 				sortType: '',
+				categoryName: '',
+				fromCategory: false,
 				timeIcon: '/static/lanhu/slices/street/searchlist_time.png'
 			};
 		},
@@ -326,13 +332,16 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 					id,
 					name,
 					type,
-					keyword
+					keyword,
+					from
 				} = option;
 				this.type = type;
 				this.keyword = keyword ? decodeURIComponent(keyword) : '';
+				this.categoryName = name ? decodeURIComponent(name) : '';
+				this.fromCategory = from === 'category' || type == 1;
 				if (id) {
 					uni.setNavigationBarTitle({
-						title: name
+						title: this.categoryName || '分类商品'
 					});
 					this.id = id;
 					this.getGoodsSearchFun();
@@ -396,7 +405,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				} = this;
 				if (status == loadingType.FINISHED) return;
 				const params = {
-					category_id: this.type == 1 ? this.id : '',
+					category_id: this.type == 1 || this.fromCategory ? this.id : '',
 					brand_id: this.type == 0 ? this.id : '',
 					page_no: page,
 					keyword,
@@ -581,6 +590,36 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 
 		.result-panel {
 			padding: 18rpx 24rpx 40rpx;
+		}
+
+		.category-source {
+			display: flex;
+			align-items: center;
+			margin-bottom: 18rpx;
+			padding: 18rpx 22rpx;
+			border-radius: 18rpx;
+			background: #ffffff;
+			box-shadow: 0 8rpx 20rpx rgba(52, 72, 109, 0.04);
+		}
+
+		.category-source__label {
+			flex: none;
+			padding: 0 14rpx;
+			color: #1688ff;
+			font-size: 22rpx;
+			line-height: 38rpx;
+			border-radius: 20rpx;
+			background: #edf6ff;
+		}
+
+		.category-source__name {
+			flex: 1;
+			min-width: 0;
+			margin-left: 14rpx;
+			color: #222222;
+			font-size: 28rpx;
+			font-weight: 600;
+			line-height: 40rpx;
 		}
 
 		.merchant-card {

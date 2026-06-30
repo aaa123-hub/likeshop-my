@@ -100,6 +100,7 @@ import Uploader from '@/bundle_user/components/uploader/uploader.vue'
 import { applyWithdraw, getWithdrawConfig } from '@/api/user'
 import { uploadFile } from '@/utils/tools'
 import { withdrawType } from '@/utils/type'
+import { mapGetters } from 'vuex'
 
 export default {
     components: {
@@ -119,12 +120,14 @@ export default {
             fileList: [],
             widthDrawConfig: {},
             withdrawWays: [],
+            presetType: '',
             submitting: false
         }
     },
     computed: {
+        ...mapGetters(['userInfo']),
         availableAmount() {
-            return Number(this.widthDrawConfig.able_withdraw || this.widthDrawConfig.withdrawable_amount || this.widthDrawConfig.withdrawableAmount || 0)
+            return Number(this.widthDrawConfig.able_withdraw || this.widthDrawConfig.withdrawable_amount || this.widthDrawConfig.withdrawableAmount || this.widthDrawConfig.balance || this.widthDrawConfig.user_money || this.userInfo.user_money || this.userInfo.balance || 0)
         },
         availableAmountText() {
             return this.formatMoney(this.availableAmount)
@@ -184,7 +187,8 @@ export default {
             return Boolean(this.isWithdrawOpen && this.currentWay.value && this.moneyAmount > 0 && this.moneyAmount <= this.availableAmount)
         }
     },
-    onLoad() {
+    onLoad(options = {}) {
+        this.presetType = options.type || options.accountType || ''
         this.getWithdrawConfigFun()
     },
     methods: {
@@ -227,13 +231,33 @@ export default {
                     const ways = Array.isArray(data.type) ? data.type : []
                     this.widthDrawConfig = data
                     this.withdrawWays = ways.filter(item => item && item.value)
-                    this.currentType = this.withdrawWays[0]?.value || ''
+                    if (!this.withdrawWays.length) this.withdrawWays = this.defaultWithdrawWays()
+                    this.currentType = this.resolveInitialWithdrawType()
                 } else {
+                    this.widthDrawConfig = { user_money: this.userInfo.user_money || this.userInfo.balance || 0, open_withdraw: 1 }
+                    this.withdrawWays = this.defaultWithdrawWays()
+                    this.currentType = this.resolveInitialWithdrawType()
                     this.$toast({ title: res.msg || '提现配置获取失败' })
                 }
             }).catch((err) => {
+                this.widthDrawConfig = { user_money: this.userInfo.user_money || this.userInfo.balance || 0, open_withdraw: 1 }
+                this.withdrawWays = this.defaultWithdrawWays()
+                this.currentType = this.resolveInitialWithdrawType()
                 this.$toast({ title: err?.msg || err?.message || '提现配置获取失败' })
             })
+        },
+        resolveInitialWithdrawType() {
+            const preset = this.withdrawWays.find(item => String(item.value) === String(this.presetType))
+            return preset?.value || this.withdrawWays[0]?.value || ''
+        },
+        defaultWithdrawWays() {
+            return [
+                { name: '账户余额', value: withdrawType.ACCOUNT },
+                { name: '微信零钱', value: withdrawType.WECHAT },
+                { name: '微信收款码', value: withdrawType.PAY_WECHAT },
+                { name: '支付宝', value: withdrawType.PAY_ALIPAY },
+                { name: '银行卡', value: withdrawType.BANK }
+            ]
         },
         afterRead(files) {
             const list = Array.isArray(files) ? files : [files]

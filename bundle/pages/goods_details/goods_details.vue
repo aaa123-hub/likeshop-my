@@ -67,7 +67,7 @@
 			<view class="merchant-card" @tap="goShopDetail">
 				<view class="merchant-card__head">
 					<view class="merchant-card__shop">
-						<view class="merchant-card__avatar"></view>
+						<image class="merchant-card__avatar" :src="shareShopLogo" mode="aspectFill"></image>
 						<view class="merchant-card__name line1">{{ goodsDetail.shop_name || '萨洛蒙官方旗舰店' }}</view>
 						<u-icon name="arrow-right" size="22" color="#ffffff"></u-icon>
 					</view>
@@ -86,8 +86,26 @@
 							<text>分享</text>
 						</view>
 					</view>
+					<view class="merchant-card__price-meta">
+						<view class="merchant-card__meta-item">
+							<text class="merchant-card__meta-label">到手价</text>
+							<text class="merchant-card__meta-value">¥{{ displayMinPrice }}</text>
+						</view>
+						<view v-if="Number(displayMarketPrice) > Number(displayMinPrice)" class="merchant-card__meta-item">
+							<text class="merchant-card__meta-label">原价</text>
+							<text class="merchant-card__meta-market">¥{{ displayMarketPrice }}</text>
+						</view>
+						<view class="merchant-card__meta-item">
+							<text class="merchant-card__meta-label">抢购</text>
+							<text class="merchant-card__meta-value">{{ goodsDetail.sales_sum || 0 }}人</text>
+						</view>
+					</view>
 					<view class="merchant-card__title">{{ goodsDetail.name }}</view>
+					<view v-if="goodsDetail.subtitle || goodsDetail.remark" class="merchant-card__desc line2">{{ goodsDetail.subtitle || goodsDetail.remark }}</view>
 					<view class="merchant-card__sales">{{ goodsDetail.sales_sum || 0 }}人抢购</view>
+					<view v-if="goodsTagList.length" class="merchant-card__tags">
+						<text v-for="tag in goodsTagList" :key="tag" class="merchant-card__tag line1">{{ tag }}</text>
+					</view>
 				</view>
 			</view>
 			<view class="option-panel bg-white">
@@ -101,7 +119,7 @@
 						<u-icon name="arrow-right" size="20" color="#999999"></u-icon>
 					</view>
 				</view>
-				<scroll-view v-if="styleViewMode === 'list'" scroll-x="true" class="option-panel__scroll" show-scrollbar="false">
+				<view v-if="styleViewMode === 'list'" class="option-panel__scroll">
 					<view class="option-panel__thumbs">
 						<image
 							v-for="(item, index) in previewImages"
@@ -112,7 +130,7 @@
 							@tap="selectPreviewImage(index)"
 						></image>
 					</view>
-				</scroll-view>
+				</view>
 				<view v-else class="option-panel__grid">
 					<view
 						v-for="(item, index) in previewImages"
@@ -129,19 +147,13 @@
 					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png" mode="aspectFit"></image>
 					<text class="option-row__text">{{ freightText }}</text>
 				</view>
-				<view class="option-panel__line"></view>
-				<view class="option-row option-row--between" @tap="showCouponFun">
-					<view class="option-row__left">
-						<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7f051b4aa3eb450c834bd06f53586c5d/26037f64b6984ded794031edbc6161b7.png" mode="aspectFit"></image>
-						<view v-if="couponList.length" class="coupon-badge">
-							<text class="coupon-badge__amount">{{ primaryCouponAmountText }}</text>
-							<text class="coupon-badge__condition">{{ primaryCouponConditionText }}</text>
-						</view>
-						<view v-else class="coupon-none">暂无优惠券</view>
-					</view>
-					<view class="option-row__action">
-						<text>{{ couponList.length ? '立即领取' : '暂无可领' }}</text>
-						<u-icon name="arrow-right" size="20" color="#222222"></u-icon>
+			</view>
+			<view class="goods-extra bg-white mt20" v-if="goodsInfoRows.length">
+				<view class="goods-extra__title">商品信息</view>
+				<view class="goods-extra__grid">
+					<view v-for="row in goodsInfoRows" :key="row.label" class="goods-extra__item">
+						<view class="goods-extra__label">{{ row.label }}</view>
+						<view class="goods-extra__value line1">{{ row.value }}</view>
 					</view>
 				</view>
 			</view>
@@ -161,36 +173,6 @@
 					<view class="row step">
 						<view class="number xxs">3</view>
 						<view class="sm">满员发货</view>
-					</view>
-				</view>
-			</view>
-			<view class="discount mt20 bg-white" v-if="false && (couponList.length || goodsDetail.order_give_integral)">
-				<view class="row" style="align-items: flex-start;">
-					<view class="text muted">优惠</view>
-					<view style="flex: 1">
-						<view :class="['row coupons', {mb30: goodsDetail.order_give_integral > 0}]"
-							v-if="couponList.length" @tap="showCouponFun">
-							<view class="flexnone">
-							<u-tag text="领券" size="mini" type="primary" mode="plain" />
-							</view>
-							<view class="con row ml20" style="flex: 1">
-								<view v-for="(item, index) in couponList" :key="index" class="coupons-item  mr20">
-									<view v-if="index < 2" class="row xs">
-										<view class="line1">
-											{{ item.use_condition }}
-										</view>
-									</view>
-								</view>
-							</view>
-							<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
-						</view>
-						<view class="row integral" style="align-items: flex-start;"
-							v-if="goodsDetail.order_give_integral">
-							<view class="flexnone">
-							<u-tag text="积分" size="mini" type="primary" mode="plain" />
-							</view>
-							<view class="ml20">下单最多可获得{{goodsDetail.order_give_integral}}积分</view>
-						</view>
 					</view>
 				</view>
 			</view>
@@ -298,9 +280,13 @@
 				</view>
 				<view class="footer-action" @tap="showSpecFun(0)">
 					<view class="footer-action__avatars">
-						<view class="footer-action__avatar"></view>
-						<view class="footer-action__avatar footer-action__avatar--middle"></view>
-						<view class="footer-action__avatar"></view>
+						<image
+							v-for="(avatar, index) in groupFooterAvatars"
+							:key="index"
+							:class="['footer-action__avatar', index === 1 ? 'footer-action__avatar--middle' : '']"
+							:src="avatar"
+							mode="aspectFill"
+						></image>
 					</view>
 					<view class="footer-action__count">{{ groupFooterCount }}人已跟团</view>
 					<image class="footer-action__divider" src="https://shengyuan.store/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png" mode="scaleToFill"></image>
@@ -317,6 +303,7 @@
 		<spec-popup :show="showSpec" :goods="goodsDetail" :is-seckill="goodsType == 1" @close="showSpec = false"
 			:show-add="popupType == 1 || popupType == 0" :show-buy="popupType == 2 || popupType == 0"
 			:showConfirm="popupType == 3" @buynow="onBuy" @addcart="onAddCart" @change="onChangeGoods"
+			:selected-sku-id="checkedGoods.item_id || checkedGoods.sku_id || checkedGoods.skuId || checkedGoods.id"
 			:group="Boolean(isGroup)" :red-btn-text="btnText.red" :yellow-btn-text="btnText.yellow"
 			@confirm="onConfirm"></spec-popup>
 
@@ -338,6 +325,8 @@
 				</view>
 				<view class="goods-share-panel">
 					<image class="goods-share-main" :src="resolveGoodsImage(goodsDetail.poster || goodsDetail.image)" mode="aspectFill"></image>
+					<view class="goods-share-title line2">{{ goodsDetail.name || '商品详情' }}</view>
+					<view class="goods-share-meta line1">{{ shareShopName }} · 已售{{ goodsDetail.sales_sum || 0 }}</view>
 					<view class="goods-share-info">
 						<view class="goods-share-price">
 							<text class="goods-share-price__symbol">¥</text><text class="goods-share-price__main">{{ sharePriceMain }}</text><text class="goods-share-price__decimal">{{ sharePriceDecimal }}</text>
@@ -365,35 +354,6 @@
 				<image class="goods-share-close" :src="shareCloseIcon" mode="aspectFit" @tap="showShareBtn = false"></image>
 			</view>
 		</u-popup>
-		<!-- 领券 -->
-		<u-popup v-model="showCoupon" mode="bottom" border-radius="14">
-			<view>
-				<view class="row-between" style="padding: 30rpx">
-					<view class="title md bold">领券</view>
-					<view class="close" @tap="showCoupon = false">
-						<image class="icon-lg" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_close.png"></image>
-					</view>
-				</view>
-				<view class="content bg-body">
-					<scroll-view scroll-y="true" style="height: 700rpx">
-						<view v-if="couponList.length" class="coupon-popup-list">
-							<view class="coupon-popup-ticket" v-for="(item, index) in couponList" :key="index">
-								<view class="coupon-popup-ticket__main">
-									<view class="coupon-popup-ticket__amount">{{ formatCouponAmount(item) }}</view>
-									<view class="coupon-popup-ticket__condition">{{ formatCouponCondition(item) }}</view>
-								</view>
-								<view class="coupon-popup-ticket__action" @tap="receiveCoupon(item)">{{ item.is_get ? '已领' : '领取' }}</view>
-							</view>
-						</view>
-						<view v-else class="coupon-empty">
-							<view class="coupon-empty__title">暂无可领取优惠券</view>
-							<view class="coupon-empty__desc">下单优惠会自动展示在结算页</view>
-						</view>
-					</scroll-view>
-				</view>
-			</view>
-		</u-popup>
-
 		<view class="share-money" :class="{ show: showCommission && enableCommission}">
 			<view class="row-end">
 				<view class="share-close row-center" @tap="showCommission=false">
@@ -420,7 +380,6 @@ import Navbar from '@/components/navbar/navbar.vue'
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
-import UTag from '@/bundle/components/uview-ui/components/u-tag/u-tag.vue'
 import UBackTop from '@/bundle/components/uview-ui/components/u-back-top/u-back-top.vue'
 import GoodsLike from '@/components/goods-like/goods-like.vue'
 	import SpecPopup from '@/bundle/components/spec-popup/spec-popup.vue'
@@ -433,8 +392,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 	} from '@/api/store';
 	import {
 		collectGoods,
-		getCoupon
-	} from '@/api/user';
+		} from '@/api/user';
 	import {
 		teamCheck
 	} from '@/api/activity';
@@ -471,7 +429,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			UPopup,
 			UCountDown,
 			UIcon,
-			UTag,
 			UBackTop,
 			SpecPopup,
 			TkiQrcode
@@ -483,7 +440,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				isFirstLoading: true,
 				isNull: false,
 				showSpec: false,
-				showCoupon: false,
 				showShareBtn: false,
 				shareQrcode: '',
 				shareQrcodeIsImage: false,
@@ -497,7 +453,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				goodsLike: [],
 				goodsType: 0,
 				checkedGoods: {},
-				couponList: [],
 				comment: {},
 				countTime: 0,
 				tagStyle: {
@@ -507,6 +462,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				teamFound: [],
 				isGroup: 0,
 				id: '',
+				targetSkuId: '',
 				showDownload: false,
 				distribution: {},
 				groupRecords: [],
@@ -533,6 +489,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			} else {
 				this.id = options.id;
 			}
+			this.targetSkuId = options.skuId || options.itemId || options.item_id || '';
 			this.refreshCartNum();
 		},
 		onShow() {
@@ -619,12 +576,9 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			onHeroSwiperChange(e) {
 				this.activePreviewIndex = e.detail.current || 0;
 			},
-			formatCouponAmount(item = {}) {
-				const amount = item.money || item.amount || item.discountAmount || item.couponAmount || item.value;
-				return amount ? `${amount}元` : (item.name || item.couponName || '优惠券');
-			},
-			formatCouponCondition(item = {}) {
-				return item.use_condition || item.useCondition || item.conditionText || item.condition || '下单可用';
+			formatPlainTags(value) {
+				const tags = Array.isArray(value) ? value : String(value || '').split(',');
+				return tags.map(item => typeof item === 'string' ? item.trim() : (item.name || item.title || item.label || '')).filter(Boolean);
 			},
 			normalizePrice(value, fallback = 0) {
 				const next = Number(value ?? fallback ?? 0);
@@ -648,6 +602,22 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 					itemId,
 					goodsNum: sku.goodsNum || sku.goods_num || sku.quantity || 1
 				};
+			},
+			isSameSku(item = {}, skuId) {
+				if (!skuId) return false;
+				return [item.item_id, item.sku_id, item.skuId, item.id, item.itemSkuId].some(value => String(value || '') === String(skuId));
+			},
+			normalizeCheckedSku(item = {}) {
+				const specIds = item.spec_value_ids || item.specValueIds || item.spec_value_ids_str || '';
+				return Object.assign({}, item, {
+					spec_value_ids: specIds,
+					spec_value_ids_arr: Array.isArray(item.spec_value_ids_arr) ? item.spec_value_ids_arr : String(specIds || '').split(',')
+				});
+			},
+			getDefaultCheckedGoods(goodsItem = []) {
+				const target = goodsItem.find(item => this.isSameSku(item, this.targetSkuId));
+				const available = goodsItem.find(item => Number(item.stock || 0) > 0);
+				return this.normalizeCheckedSku(target || available || goodsItem[0] || {});
 			},
 			validTeamId() {
 				return this.team.team_id || this.team.teamId || this.team.id || '';
@@ -673,7 +643,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const nextSubscribed = !this.shopSubscribed;
 				subscribeShop({ shopId, subscribed: nextSubscribed }).then(res => {
 					if (res.code != 1) {
-						uni.showToast({ title: res.msg || '订阅失败', icon: 'none' });
+						uni.showToast({ title: '订阅功能暂不可用，请稍后再试', icon: 'none' });
 						return;
 					}
 					this.shopSubscribed = nextSubscribed;
@@ -682,7 +652,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 						icon: 'none'
 					});
 				}).catch(() => {
-					uni.showToast({ title: '订阅失败', icon: 'none' });
+					uni.showToast({ title: '订阅功能暂不可用，请稍后再试', icon: 'none' });
 				});
 			},
 			applyDefaultGoodsDetail() {
@@ -694,7 +664,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				this.teamFound = [];
 				this.groupRecords = [];
 				this.comment = {};
-				this.couponList = [];
 				this.activePreviewIndex = 0;
 				this.goodsLike = [
 					{ id: 1, name: '轻便舒适跑步鞋', image, min_price: '1899.00' },
@@ -775,8 +744,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 					this.activePreviewIndex = 0;
 					this.comment = comment || {};
 					this.goodsLike = Array.isArray(like) ? like : [];
-					this.couponList = Array.isArray(data.coupon_list) ? data.coupon_list : [];
-					this.checkedGoods = data.goods_item?.find(item => Number(item.stock || 0) > 0) || data.goods_item?.[0] || {};
+					this.checkedGoods = this.getDefaultCheckedGoods(data.goods_item || []);
 					this.countTime = time;
 					this.goodsType = activity?.type || 0;
 					this.team = team ? team : {};
@@ -799,16 +767,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 					this.$nextTick(() => {
 						this.isFirstLoading = false;
 					});
-				}
-			},
-			async receiveCoupon(item) {
-				if (!item || item.is_get) return;
-				const couponId = item.id || item.couponId;
-				if (!couponId) return;
-				const res = await getCoupon(couponId);
-				if (res.code == 1) {
-					this.$toast({ title: res.msg || '领取成功' });
-					item.is_get = true;
 				}
 			},
 			async collectGoodsFun() {
@@ -838,12 +796,8 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 					this.getGoodsDetailFun();
 				}
 			},
-			showCouponFun() {
-				if (!this.isLogin) return toLogin();
-				this.showCoupon = true;
-			},
 			onChangeGoods(e) {
-				this.checkedGoods = e.detail;
+				this.checkedGoods = this.normalizeCheckedSku(e.detail || {});
 			},
 			showSpecFun(type, id) {
 				if (!this.isLogin) return toLogin();
@@ -928,7 +882,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 							this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
 						}
 					}
-					this.$toast({ title: msg || '已加入购物车', icon: 'success' });
+					this.$toast({ title: '已加入购物车', icon: 'success' });
 				}
 			},
 			async onAddCart(e) {
@@ -947,7 +901,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const {
 					code,
 					data,
-					msg
 				} = await addCart({
 					item_id: itemId,
 					skuId: itemId,
@@ -964,7 +917,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 						}
 					}
 					this.$toast({
-						title: msg,
+						title: '已加入购物车',
 						icon: 'success'
 					});
 					this.showSpec = false;
@@ -1021,7 +974,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				return goodsType == 0 && earnings > 0 && is_show == 1
 			},
 			previewImages() {
-				return this.swiperList || []
+				return (this.swiperList || []).filter(Boolean)
 			},
 			showGroupFooter() {
 				return true
@@ -1030,16 +983,16 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				return this.team.people_num || this.team.join_num || this.team.joinNum || this.goodsDetail.group_people_num || this.goodsDetail.groupPeopleNum || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || 0
 			},
 			displayMinPrice() {
-				return this.normalizePrice(this.goodsDetail.min_price ?? this.goodsDetail.minPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price)
+				return this.normalizePrice(this.checkedGoods.price ?? this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.min_price ?? this.goodsDetail.minPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price)
 			},
 			displayMaxPrice() {
-				return this.normalizePrice(this.goodsDetail.max_price ?? this.goodsDetail.maxPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price, this.displayMinPrice)
+				return this.normalizePrice(this.checkedGoods.price ?? this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.max_price ?? this.goodsDetail.maxPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price, this.displayMinPrice)
 			},
 			displayMarketPrice() {
-				return this.normalizePrice(this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice, this.displayMaxPrice)
+				return this.normalizePrice(this.checkedGoods.market_price ?? this.checkedGoods.marketPrice ?? this.checkedGoods.originPrice ?? this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice, this.displayMaxPrice)
 			},
 			displayTeamPrice() {
-				return this.normalizePrice(this.team.team_min_price ?? this.team.teamMinPrice ?? this.team.groupPrice ?? this.displayMinPrice, this.displayMinPrice)
+				return this.normalizePrice(this.checkedGoods.team_price ?? this.checkedGoods.teamPrice ?? this.team.team_min_price ?? this.team.teamMinPrice ?? this.team.groupPrice ?? this.displayMinPrice, this.displayMinPrice)
 			},
 			sharePriceText() {
 				return this.normalizePrice(this.goodsType == 2 ? this.displayTeamPrice : this.displayMinPrice)
@@ -1058,6 +1011,12 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const shop = this.goodsDetail.shop || this.goodsDetail.shopInfo || this.goodsDetail.shop_info || {}
 				return this.resolveAvatar(this.goodsDetail.shop_logo || this.goodsDetail.shopLogo || this.goodsDetail.shopLogoUrl || this.goodsDetail.shop_logo_url || this.goodsDetail.storeLogo || this.goodsDetail.store_logo || shop.shopLogo || shop.shop_logo || shop.logo || shop.logoUrl || shop.image || shop.cover || '')
 			},
+			groupFooterAvatars() {
+				const records = this.groupRecords.length ? this.groupRecords : this.flattenTeamRecords(this.teamFound)
+				const avatars = records.map(item => item.avatar).filter(Boolean).slice(0, 3)
+				while (avatars.length < 3) avatars.push('')
+				return avatars.map(avatar => this.resolveAvatar(avatar))
+			},
 			shareShopScore() {
 				const score = this.goodsDetail.shop_score ?? this.goodsDetail.shopScore ?? this.goodsDetail.shop?.shopScore ?? this.goodsDetail.shop?.score ?? 5
 				const value = Number(score)
@@ -1066,11 +1025,24 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			shareBusinessTime() {
 				return this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '8:00-16:00'
 			},
-			primaryCouponAmountText() {
-				return this.formatCouponAmount(this.couponList[0] || {})
+			goodsTagList() {
+				return this.formatPlainTags(this.goodsDetail.service_tags || this.goodsDetail.serviceTags || this.goodsDetail.tags || this.goodsDetail.labels).slice(0, 4)
 			},
-			primaryCouponConditionText() {
-				return this.formatCouponCondition(this.couponList[0] || {})
+			goodsInfoRows() {
+				const rows = [
+					{ label: '库存', value: this.goodsDetail.stock || this.goodsDetail.stockQty },
+					{ label: '销量', value: this.goodsDetail.sales_sum || this.goodsDetail.salesCount },
+					{ label: '评价', value: this.comment.total || this.goodsDetail.comment_count || this.goodsDetail.commentCount },
+					{ label: '积分', value: this.goodsDetail.order_give_integral || this.goodsDetail.giveIntegral || this.goodsDetail.integral },
+					{ label: '售后', value: this.goodsDetail.after_sale || this.goodsDetail.afterSale },
+					{ label: '发货', value: this.goodsDetail.delivery_desc || this.goodsDetail.deliveryDesc || this.goodsDetail.freight_desc || this.freightText },
+					{ label: '分类', value: this.goodsDetail.category_name || this.goodsDetail.categoryName },
+					{ label: '货号', value: this.goodsDetail.sn || this.goodsDetail.goods_sn || this.goodsDetail.productNo }
+				]
+				return rows.filter(row => row.value !== undefined && row.value !== null && row.value !== '').map(row => ({
+					label: row.label,
+					value: row.label === '积分' ? `下单可得${row.value}积分` : row.value
+				}))
 			},
 			selectedSpecText() {
 				return this.checkedGoods.spec_value_str || this.checkedGoods.skuName || this.checkedGoods.name || '默认'
@@ -1251,6 +1223,44 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			height: 26rpx;
 		}
 
+		.merchant-card__price-meta {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12rpx;
+			margin-top: 18rpx;
+		}
+
+		.merchant-card__meta-item {
+			display: flex;
+			align-items: baseline;
+			min-width: 0;
+			padding: 8rpx 14rpx;
+			border-radius: 18rpx;
+			background: #f6f9ff;
+		}
+
+		.merchant-card__meta-label {
+			flex: none;
+			margin-right: 8rpx;
+			color: #8b95a5;
+			font-size: 22rpx;
+			line-height: 30rpx;
+		}
+
+		.merchant-card__meta-value {
+			color: #ff2e2e;
+			font-size: 24rpx;
+			font-weight: 600;
+			line-height: 32rpx;
+		}
+
+		.merchant-card__meta-market {
+			color: #9aa2af;
+			font-size: 24rpx;
+			line-height: 32rpx;
+			text-decoration: line-through;
+		}
+
 		.merchant-card__title {
 			margin-top: 18rpx;
 			color: #222222;
@@ -1265,10 +1275,78 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			font-size: 22rpx;
 		}
 
+		.merchant-card__desc {
+			margin-top: 10rpx;
+			color: #666666;
+			font-size: 24rpx;
+			line-height: 34rpx;
+		}
+
+		.merchant-card__tags {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10rpx;
+			margin-top: 14rpx;
+		}
+
+		.merchant-card__tag {
+			max-width: 180rpx;
+			padding: 0 12rpx;
+			color: #037dfa;
+			font-size: 22rpx;
+			line-height: 34rpx;
+			border-radius: 18rpx;
+			background: #edf6ff;
+			box-sizing: border-box;
+		}
+
 		.option-panel {
 			margin: 26rpx 26rpx 0;
 			padding: 18rpx 24rpx;
 			border-radius: 26rpx;
+		}
+
+		.goods-extra {
+			margin: 24rpx 26rpx 0;
+			padding: 26rpx 24rpx 28rpx;
+			border-radius: 24rpx;
+			box-sizing: border-box;
+		}
+
+		.goods-extra__title {
+			color: #222222;
+			font-size: 30rpx;
+			font-weight: 600;
+			line-height: 42rpx;
+		}
+
+		.goods-extra__grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 18rpx;
+			margin-top: 22rpx;
+		}
+
+		.goods-extra__item {
+			min-width: 0;
+			padding: 18rpx;
+			border-radius: 18rpx;
+			background: #f7f9fc;
+			box-sizing: border-box;
+		}
+
+		.goods-extra__label {
+			color: #8b95a5;
+			font-size: 22rpx;
+			line-height: 30rpx;
+		}
+
+		.goods-extra__value {
+			margin-top: 8rpx;
+			color: #222222;
+			font-size: 26rpx;
+			font-weight: 500;
+			line-height: 36rpx;
 		}
 
 		.option-panel__style-head,
@@ -1307,16 +1385,22 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 		.option-panel__scroll {
 			width: 100%;
-			white-space: nowrap;
+		}
+
+		.option-panel__thumbs {
+			align-items: flex-start;
+			flex-wrap: wrap;
+			gap: 14rpx;
 		}
 
 		.option-panel__thumb {
-			display: inline-block;
+			display: block;
+			flex: 0 0 92rpx;
 			width: 92rpx;
 			height: 92rpx;
-			margin-right: 14rpx;
 			border-radius: 14rpx;
 			border: 2rpx solid transparent;
+			box-sizing: border-box;
 
 			&.is-active {
 				border-color: #037dfa;
@@ -1403,113 +1487,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		.option-row__text {
 			margin-left: 18rpx;
 			color: #222222;
-			font-size: 24rpx;
-		}
-
-		.coupon-badge {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			width: 210rpx;
-			height: 64rpx;
-			margin-left: 18rpx;
-			padding: 0 22rpx 0 18rpx;
-			color: #ffffff;
-			background: url('https://shengyuan.store/api/miniapp/files/miniapp/2ea924839ffd492da81800a02655c339/c922c5cecffb59ce657b550342816bf3.png') center/100% 100% no-repeat;
-			box-sizing: border-box;
-		}
-
-		.coupon-badge__amount {
-			max-width: 96rpx;
-			font-size: 26rpx;
-			font-weight: 700;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		.coupon-badge__condition {
-			max-width: 72rpx;
-			font-size: 18rpx;
-			line-height: 22rpx;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		.coupon-none {
-			margin-left: 18rpx;
-			color: #999999;
-			font-size: 24rpx;
-		}
-
-		.coupon-popup-list {
-			padding: 18rpx 24rpx 34rpx;
-		}
-
-		.coupon-popup-ticket {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			height: 150rpx;
-			margin-bottom: 18rpx;
-			padding: 0 34rpx 0 36rpx;
-			color: #ffffff;
-			background: url('https://shengyuan.store/api/miniapp/files/miniapp/2ea924839ffd492da81800a02655c339/c922c5cecffb59ce657b550342816bf3.png') center/100% 100% no-repeat;
-			box-sizing: border-box;
-		}
-
-		.coupon-popup-ticket__main {
-			min-width: 0;
-		}
-
-		.coupon-popup-ticket__amount {
-			font-size: 44rpx;
-			font-weight: 700;
-			line-height: 54rpx;
-		}
-
-		.coupon-popup-ticket__condition {
-			max-width: 360rpx;
-			margin-top: 8rpx;
-			font-size: 22rpx;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		.coupon-popup-ticket__action {
-			flex: none;
-			width: 104rpx;
-			height: 48rpx;
-			color: #ff4b4b;
-			font-size: 24rpx;
-			font-weight: 600;
-			line-height: 48rpx;
-			text-align: center;
-			background: #ffffff;
-			border-radius: 24rpx;
-		}
-
-		.coupon-empty {
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-			height: 700rpx;
-			padding: 0 48rpx;
-			text-align: center;
-		}
-
-		.coupon-empty__title {
-			color: #222222;
-			font-size: 30rpx;
-			font-weight: 500;
-		}
-
-		.coupon-empty__desc {
-			margin-top: 16rpx;
-			color: #999999;
 			font-size: 24rpx;
 		}
 
@@ -1838,10 +1815,10 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			.footer-action {
 				display: flex;
 				align-items: center;
-				flex: none;
-				width: 425rpx;
+				flex: 1;
+				min-width: 0;
 				height: 80rpx;
-				margin-left: 46rpx;
+				margin-left: 28rpx;
 				padding: 0;
 				color: #ffffff;
 				background: #037dfa;
@@ -2008,11 +1985,26 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 		.goods-share-main {
 			width: 100%;
-			height: 46vh;
-			max-height: 510rpx;
+			height: 40vh;
+			max-height: 460rpx;
 			min-height: 320rpx;
 			border-radius: 23rpx;
 			background: #d5d5d5;
+		}
+
+		.goods-share-title {
+			margin-top: 18rpx;
+			color: #222222;
+			font-size: 30rpx;
+			font-weight: 600;
+			line-height: 40rpx;
+		}
+
+		.goods-share-meta {
+			margin-top: 8rpx;
+			color: #8b95a5;
+			font-size: 24rpx;
+			line-height: 34rpx;
 		}
 
 		.goods-share-info {

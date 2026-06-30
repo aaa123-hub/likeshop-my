@@ -33,18 +33,31 @@
               </view>
 
               <view class="cart-card__body">
-                <view class="cart-card__image-wrap" @tap="goGoodsDetail(item.goods_id)">
+                <view class="cart-card__image-wrap" @tap="goGoodsDetail(item)">
                   <image v-if="item.img || item.image" class="cart-card__image" :src="item.img || item.image" mode="aspectFill"></image>
                   <view v-else class="cart-card__image cart-card__image--empty">商品</view>
                 </view>
                 <view class="cart-card__info">
-                  <view class="cart-card__name line2" @tap="goGoodsDetail(item.goods_id)">{{ item.name }}</view>
-                  <view class="cart-card__spec line1" @tap="goGoodsDetail(item.goods_id)">{{ item.spec_value_str || '默认规格' }}</view>
+                  <view class="cart-card__name line2" @tap="goGoodsDetail(item)">{{ item.name }}</view>
+                  <view v-if="item.subtitle" class="cart-card__subtitle line1">{{ item.subtitle }}</view>
+                  <view class="cart-card__spec line1" @tap="goGoodsDetail(item)">{{ item.spec_value_str || '默认规格' }}</view>
+                  <view v-if="formatCartTags(item).length" class="cart-card__tags">
+                    <text v-for="tag in formatCartTags(item)" :key="tag" class="cart-card__tag line1">{{ tag }}</text>
+                  </view>
+                  <view class="cart-card__meta">
+                    <text v-if="item.sales_sum">已售{{ item.sales_sum }}</text>
+                    <text v-if="getItemStock(item) < 999999">库存{{ getItemStock(item) }}</text>
+                    <text v-if="item.unit">单位：{{ item.unit }}</text>
+                    <text v-if="item.weight">{{ item.weight }}</text>
+                  </view>
                   <view class="cart-card__bottom">
-                    <view class="cart-card__price">
-                      <text class="cart-card__price-symbol">¥</text>
-                      <text class="cart-card__price-main">{{ formatPrice(item.price)[0] }}</text>
-                      <text class="cart-card__price-decimal">.{{ formatPrice(item.price)[1] }}</text>
+                    <view class="cart-card__price-wrap">
+                      <view class="cart-card__price">
+                        <text class="cart-card__price-symbol">¥</text>
+                        <text class="cart-card__price-main">{{ formatPrice(item.price)[0] }}</text>
+                        <text class="cart-card__price-decimal">.{{ formatPrice(item.price)[1] }}</text>
+                      </view>
+                      <view v-if="item.market_price && Number(item.market_price) > Number(item.price || 0)" class="cart-card__market">¥{{ formatMoney(item.market_price) }}</view>
                     </view>
                     <view class="cart-card__num u-numberbox">
                       <button
@@ -215,7 +228,10 @@ export default {
         const wasBatchDelete = Array.isArray(this.cartId);
         this.cartId = "";
         if (wasBatchDelete) this.isManageMode = false;
+        this.$toast({ title: wasBatchDelete ? '已删除选中商品' : '商品已删除', icon: 'success' });
         this.getCartListFun();
+      } else {
+        this.$toast({ title: '删除失败，请稍后重试' });
       }
     },
     changeDelPopup(cartId) {
@@ -253,10 +269,13 @@ export default {
     toggleManageMode() {
       this.isManageMode = !this.isManageMode;
     },
-    goGoodsDetail(goodsId) {
+    goGoodsDetail(item) {
+      const goodsId = typeof item === 'object' ? item.goods_id : item;
       if (!goodsId) return;
+      const skuId = typeof item === 'object' ? (item.item_id || item.sku_id || item.skuId || item.itemSkuId || '') : '';
+      const query = skuId ? `&skuId=${encodeURIComponent(skuId)}&itemId=${encodeURIComponent(skuId)}` : '';
       uni.navigateTo({
-        url: `/bundle/pages/goods_details/goods_details?id=${goodsId}`,
+        url: `/bundle/pages/goods_details/goods_details?id=${goodsId}${query}`,
       });
     },
     deleteSelectedGoods() {
@@ -283,6 +302,7 @@ export default {
           selected: selectedValue,
           checked: selectedValue,
         })));
+        uni.showToast({ title: selectedValue ? '已选中商品' : '已取消选中', icon: 'none' });
       } catch (error) {
         uni.showToast({ title: '购物车状态同步失败', icon: 'none' });
       } finally {
@@ -299,6 +319,14 @@ export default {
     },
     formatPrice(value) {
       return Number(value || 0).toFixed(2).split('.');
+    },
+    formatMoney(value) {
+      const price = Number(value || 0);
+      return price.toFixed(price % 1 === 0 ? 0 : 2);
+    },
+    formatCartTags(item = {}) {
+      const tags = Array.isArray(item.service_tags) ? item.service_tags : [];
+      return tags.map((tag) => typeof tag === 'string' ? tag : (tag.name || tag.title || tag.label || '')).filter(Boolean).slice(0, 3);
     },
     normalizeCartStatus(value) {
       if (value === undefined || value === null || value === '') return 0;
@@ -395,8 +423,10 @@ export default {
             goods_num: nextValue,
           });
           if (res.code != 1) {
-            uni.showToast({ title: res.msg || '数量同步失败', icon: 'none' });
+            uni.showToast({ title: '数量同步失败，请稍后重试', icon: 'none' });
             this.getCartListFun();
+          } else {
+            uni.showToast({ title: '数量已更新', icon: 'none' });
           }
         } catch (error) {
           uni.showToast({ title: '数量同步失败', icon: 'none' });
@@ -617,6 +647,43 @@ export default {
   line-height: 30rpx;
 }
 
+.cart-card__subtitle {
+  margin-top: 8rpx;
+  color: #6b7280;
+  font-size: 22rpx;
+  line-height: 30rpx;
+}
+
+.cart-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 10rpx;
+  overflow: hidden;
+}
+
+.cart-card__tag {
+  max-width: 150rpx;
+  padding: 0 10rpx;
+  color: #1677ff;
+  font-size: 20rpx;
+  line-height: 30rpx;
+  border-radius: 15rpx;
+  background: #eef6ff;
+  box-sizing: border-box;
+}
+
+.cart-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx 16rpx;
+  min-height: 28rpx;
+  margin-top: 8rpx;
+  color: #9aa2af;
+  font-size: 20rpx;
+  line-height: 28rpx;
+}
+
 .cart-card__bottom {
   display: flex;
   align-items: center;
@@ -625,12 +692,23 @@ export default {
   margin-top: auto;
 }
 
-.cart-card__price {
+.cart-card__price-wrap {
   flex: 1;
   min-width: 0;
+}
+
+.cart-card__price {
   color: #ff2c3c;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.cart-card__market {
+  margin-top: 2rpx;
+  color: #b5bac4;
+  font-size: 20rpx;
+  line-height: 28rpx;
+  text-decoration: line-through;
 }
 
 .cart-card__price-symbol,

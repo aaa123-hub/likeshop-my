@@ -107,8 +107,20 @@
                 >
                     <view v-if="isEmptyImage(item.image || item.goods_image)" class="goods-card__image image-placeholder">无</view>
                     <image v-else class="goods-card__image" :src="displayImage(item.image || item.goods_image, 'goods')" mode="aspectFill"></image>
-                    <view class="goods-card__name line2">{{ item.name }}</view>
-                    <view class="goods-card__price">¥{{ item.price || 0 }}</view>
+                    <view class="goods-card__name line2">{{ item.name || item.goods_name || '推荐商品' }}</view>
+                    <view v-if="item.subtitle || item.category_name" class="goods-card__desc line1">{{ item.subtitle || item.category_name }}</view>
+                    <view v-if="formatGoodsTags(item).length" class="goods-card__tags">
+                        <text v-for="tag in formatGoodsTags(item)" :key="tag" class="goods-card__tag line1">{{ tag }}</text>
+                    </view>
+                    <view class="goods-card__bottom">
+                        <view class="goods-card__price">¥{{ formatPrice(item.price) }}</view>
+                        <view v-if="item.market_price && Number(item.market_price) > Number(item.price || 0)" class="goods-card__market">¥{{ formatPrice(item.market_price) }}</view>
+                    </view>
+                    <view class="goods-card__meta">
+                        <text v-if="item.sales_sum">已售{{ item.sales_sum }}</text>
+                        <text v-if="item.score">{{ item.score }}分</text>
+                    </view>
+                    <view v-if="item.shopName || item.shop_name" class="goods-card__shop line1">{{ item.shopName || item.shop_name }}</view>
                 </navigator>
             </view>
 
@@ -298,6 +310,14 @@ export default {
         },
         displayImage(src, type = 'common') {
             return resolveImage(src, type)
+        },
+        formatPrice(value) {
+            const price = Number(value || 0)
+            return price.toFixed(price % 1 === 0 ? 0 : 2)
+        },
+        formatGoodsTags(item = {}) {
+            const tags = Array.isArray(item.tags) ? item.tags : []
+            return tags.map(tag => typeof tag === 'string' ? tag : (tag.name || tag.title || tag.label || '')).filter(Boolean).slice(0, 2)
         },
         formatRecentVisitName(item = {}) {
             const name = String(item.name || item.shopName || '门店名称')
@@ -846,6 +866,7 @@ export default {
 }
 
 .goods-card {
+    min-width: 0;
     padding: 16rpx;
     background: #ffffff;
     border-radius: 18rpx;
@@ -863,19 +884,72 @@ export default {
 }
 
 .goods-card__name {
-    min-height: 68rpx;
+    min-height: 64rpx;
     margin-top: 14rpx;
     color: #222222;
     font-size: 26rpx;
     line-height: 34rpx;
 }
 
-.goods-card__price {
+.goods-card__desc,
+.goods-card__shop {
     margin-top: 8rpx;
+    color: #7b8494;
+    font-size: 22rpx;
+    line-height: 30rpx;
+}
+
+.goods-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8rpx;
+    min-height: 34rpx;
+    margin-top: 10rpx;
+    overflow: hidden;
+}
+
+.goods-card__tag {
+    max-width: 132rpx;
+    padding: 0 10rpx;
+    color: #1688ff;
+    font-size: 20rpx;
+    line-height: 32rpx;
+    border-radius: 16rpx;
+    background: #eef6ff;
+    box-sizing: border-box;
+}
+
+.goods-card__bottom {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    margin-top: 10rpx;
+}
+
+.goods-card__price {
     color: #ff2c3c;
     font-size: 28rpx;
     font-weight: 600;
     line-height: 38rpx;
+}
+
+.goods-card__market {
+    margin-left: 10rpx;
+    color: #b5bac4;
+    font-size: 22rpx;
+    line-height: 30rpx;
+    text-decoration: line-through;
+}
+
+.goods-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 30rpx;
+    margin-top: 6rpx;
+    color: #9aa2af;
+    font-size: 22rpx;
+    line-height: 30rpx;
 }
 
 .shop-list {
