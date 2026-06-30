@@ -33,56 +33,86 @@
                 </view>
             </scroll-view>
 
-            <scroll-view
-                class="sort-content"
-                scroll-y
-                scroll-with-animation
-                refresher-enabled
-                :refresher-triggered="refreshing"
-                :scroll-into-view="contentAnchor"
-                @refresherrefresh="refreshCategoryList"
-            >
-                <view id="sort-content-top" class="sort-content__inner">
-                    <view class="sort-topline">
-                        <text class="sort-topline__title">{{ currentCategory.name || '热卖类目' }}</text>
-                    </view>
-
-                    <view class="sort-grid">
-                        <navigator
-                            v-for="(item, index) in hotCategories"
-                            :key="`${item.name}-${index}`"
-                            class="sort-grid__item"
-                            hover-class="none"
-                            :url="buildSearchUrl(item)"
-                        >
-                            <view v-if="isEmptyImage(item.image)" class="sort-grid__image image-placeholder">无</view>
-                            <image v-else class="sort-grid__image" :src="item.image" mode="aspectFit"></image>
-                            <text class="sort-grid__name line1">{{ item.name }}</text>
-                        </navigator>
-                    </view>
-
-                    <view v-if="likeGoods.length" class="sort-section-title">猜你喜欢</view>
-                    <view v-if="likeGoods.length" class="sort-like-grid">
-                        <navigator
-                            v-for="(item, index) in likeGoods"
-                            :key="index"
-                            class="sort-like-card"
-                            hover-class="none"
-                            :url="`/bundle/pages/goods_details/goods_details?id=${item.id || 1}`"
-                        >
-                            <view v-if="isEmptyImage(item.image)" class="sort-like-card__image image-placeholder">无</view>
-                            <image v-else class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
-                            <view class="sort-like-card__body">
-                                <text class="sort-like-card__name line2">{{ item.name }}</text>
-                                <view class="sort-like-card__footer">
-                                    <text class="sort-like-card__price">¥{{ item.price }}</text>
-                                    <text class="sort-like-card__sold">{{ item.sold }}人付款</text>
+            <view class="sort-content">
+                <view v-if="secondCategoryOptions.length" class="sort-second-tabs">
+                    <view class="sort-second-tabs__row">
+                        <scroll-view class="sort-second-tabs__scroll" scroll-x :show-scrollbar="false">
+                            <view class="sort-second-tabs__list">
+                                <view
+                                    v-for="(item, index) in secondCategoryOptions"
+                                    :key="`${item.name}-${index}`"
+                                    :class="['sort-second-tabs__item', index === activeSecondIndex ? 'is-active' : '']"
+                                    @tap="changeSecondCategory(index)"
+                                >
+                                    <text class="line1">{{ item.name }}</text>
                                 </view>
                             </view>
-                        </navigator>
+                        </scroll-view>
+                        <view class="sort-second-tabs__arrow" @tap="toggleSecondPanel">
+                            <view :class="['sort-second-tabs__arrow-icon', showSecondPanel ? 'is-open' : '']"></view>
+                        </view>
+                    </view>
+                    <view v-if="showSecondPanel" class="sort-second-panel">
+                        <view
+                            v-for="(item, index) in secondCategoryOptions"
+                            :key="`panel-${item.name}-${index}`"
+                            :class="['sort-second-panel__item', index === activeSecondIndex ? 'is-active' : '']"
+                            @tap="changeSecondCategory(index)"
+                        >
+                            <text class="line1">{{ item.name }}</text>
+                        </view>
                     </view>
                 </view>
-            </scroll-view>
+                <scroll-view
+                    class="sort-content__scroll"
+                    scroll-y
+                    scroll-with-animation
+                    refresher-enabled
+                    :refresher-triggered="refreshing"
+                    :scroll-into-view="contentAnchor"
+                    @refresherrefresh="refreshCategoryList"
+                >
+                    <view id="sort-content-top" class="sort-content__inner">
+                        <view v-for="(group, groupIndex) in categoryGroups" :key="`${group.name}-${groupIndex}`" class="sort-category-group">
+                            <view v-if="group.name" class="sort-category-group__title">{{ group.name }}</view>
+                            <view class="sort-grid">
+                                <navigator
+                                    v-for="(item, index) in group.children"
+                                    :key="`${item.name}-${index}`"
+                                    class="sort-grid__item"
+                                    hover-class="none"
+                                    :url="buildSearchUrl(item)"
+                                >
+                                    <view v-if="isEmptyImage(item.image)" class="sort-grid__image image-placeholder">无</view>
+                                    <image v-else class="sort-grid__image" :src="item.image" mode="aspectFit"></image>
+                                    <text class="sort-grid__name line1">{{ item.name }}</text>
+                                </navigator>
+                            </view>
+                        </view>
+
+                        <view v-if="likeGoods.length" class="sort-section-title">猜你喜欢</view>
+                        <view v-if="likeGoods.length" class="sort-like-grid">
+                            <navigator
+                                v-for="(item, index) in likeGoods"
+                                :key="index"
+                                class="sort-like-card"
+                                hover-class="none"
+                                :url="`/bundle/pages/goods_details/goods_details?id=${item.id || 1}`"
+                            >
+                                <view v-if="isEmptyImage(item.image)" class="sort-like-card__image image-placeholder">无</view>
+                                <image v-else class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
+                                <view class="sort-like-card__body">
+                                    <text class="sort-like-card__name line2">{{ item.name }}</text>
+                                    <view class="sort-like-card__footer">
+                                        <text class="sort-like-card__price">¥{{ item.price }}</text>
+                                        <text class="sort-like-card__sold">{{ item.sold }}人付款</text>
+                                    </view>
+                                </view>
+                            </navigator>
+                        </view>
+                    </view>
+                </scroll-view>
+            </view>
         </view>
     </view>
 </template>
@@ -124,6 +154,8 @@ export default {
     data() {
         return {
             activeIndex: 0,
+            activeSecondIndex: 0,
+            showSecondPanel: false,
             contentAnchor: '',
             searchKeyword: '',
             refreshing: false,
@@ -140,14 +172,43 @@ export default {
         currentCategory() {
             return this.sideCategories[this.activeIndex] || {}
         },
-        hotCategories() {
-            const sons = this.currentCategory.sons || this.currentCategory.children || []
-            const source = sons.length ? sons : fallbackHotCategories
-            return source.slice(0, 9).map((item, index) => ({
-                id: item.id || item.categoryId,
-                name: item.name || fallbackHotCategories[index % fallbackHotCategories.length].name,
-                image: this.resolveImage(item.icon || item.image || item.iconUrl || item.imageUrl || item.pic || item.cover, index)
-            }))
+        secondCategories() {
+            return this.getCategoryChildren(this.currentCategory)
+        },
+        secondCategoryOptions() {
+            if (!this.secondCategories.length) return []
+            return [{ name: '全部' }].concat(this.secondCategories)
+        },
+        categoryGroups() {
+            if (!this.secondCategories.length) {
+                return [{
+                    name: '',
+                    children: fallbackHotCategories.map((item, index) => this.formatCategoryItem(item, index))
+                }]
+            }
+
+            if (this.activeSecondIndex === 0) {
+                const children = this.secondCategories.reduce((list, item, groupIndex) => {
+                    const thirdCategories = this.getCategoryChildren(item)
+                    const source = thirdCategories.length ? thirdCategories : [item]
+                    return list.concat(source.map((child, index) => this.formatCategoryItem(child, groupIndex + index)))
+                }, [])
+                return [{ name: '', children }]
+            }
+
+            const activeSecondCategory = this.secondCategories[this.activeSecondIndex - 1]
+            const visibleSecondCategories = this.activeSecondIndex > 0 && activeSecondCategory
+                ? [activeSecondCategory]
+                : this.secondCategories
+
+            return visibleSecondCategories.map((item, groupIndex) => {
+                const thirdCategories = this.getCategoryChildren(item)
+                const children = thirdCategories.length ? thirdCategories : [item]
+                return {
+                    name: this.activeSecondIndex > 0 ? '' : item.name || '',
+                    children: children.map((child, index) => this.formatCategoryItem(child, groupIndex + index))
+                }
+            })
         },
         likeGoods() {
             const goodsList = this.currentCategory.goodsList || this.currentCategory.products || []
@@ -197,6 +258,7 @@ export default {
                         ? this.cateList.findIndex((item) => String(item.id) === String(activeCategoryId))
                         : this.activeIndex
                     this.activeIndex = nextIndex >= 0 && nextIndex < this.sideCategories.length ? nextIndex : 0
+                    this.normalizeSecondCategory()
                 }
             } catch (error) {
                 console.error('[sort-tab] getCategoryList failed:', error)
@@ -214,15 +276,47 @@ export default {
         changeCategory(index) {
             if (index === this.activeIndex) return
             this.activeIndex = index
+            this.activeSecondIndex = 0
+            this.showSecondPanel = false
             this.contentAnchor = ''
             this.$nextTick(() => {
                 this.contentAnchor = 'sort-content-top'
             })
         },
+        changeSecondCategory(index) {
+            if (index === this.activeSecondIndex && !this.showSecondPanel) return
+            this.activeSecondIndex = index
+            this.showSecondPanel = false
+            this.contentAnchor = ''
+            this.$nextTick(() => {
+                this.contentAnchor = 'sort-content-top'
+            })
+        },
+        toggleSecondPanel() {
+            this.showSecondPanel = !this.showSecondPanel
+        },
+        normalizeSecondCategory() {
+            if (this.activeSecondIndex >= this.secondCategoryOptions.length) {
+                this.activeSecondIndex = 0
+            }
+            if (!this.secondCategoryOptions.length) {
+                this.showSecondPanel = false
+            }
+        },
         buildSearchUrl(item) {
             const id = item.id || ''
             const name = encodeURIComponent(item.name || '')
             return `/bundle/pages/goods_search/goods_search?id=${id}&name=${name}`
+        },
+        getCategoryChildren(item) {
+            return (item && (item.sons || item.children)) || []
+        },
+        formatCategoryItem(item, index) {
+            return {
+                id: item.id || item.categoryId,
+                name: item.name || fallbackHotCategories[index % fallbackHotCategories.length].name,
+                image: this.resolveImage(item.icon || item.image || item.iconUrl || item.imageUrl || item.pic || item.cover, index)
+            }
         },
         onSortSearch() {
             const keyword = (this.searchKeyword || '').trim()
@@ -422,57 +516,162 @@ export default {
 }
 
 .sort-content {
+    display: flex;
+    flex-direction: column;
     flex: 1;
+    min-width: 0;
     height: 100%;
+    overflow: hidden;
+}
+
+.sort-content__scroll {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
 }
 
 .sort-content__inner {
-    padding: 10rpx 24rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + constant(safe-area-inset-bottom)) 26rpx;
-    padding: 10rpx 24rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + env(safe-area-inset-bottom)) 26rpx;
+    padding: 14rpx 18rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + constant(safe-area-inset-bottom)) 18rpx;
+    padding: 14rpx 18rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + env(safe-area-inset-bottom)) 18rpx;
     box-sizing: border-box;
 }
 
-.sort-topline {
-    display: flex;
-    align-items: flex-end;
-    gap: 46rpx;
-    margin-bottom: 18rpx;
+.sort-second-tabs {
+    position: relative;
+    flex: none;
+    width: 100%;
+    padding: 10rpx 18rpx 12rpx;
+    box-sizing: border-box;
+    background: #ffffff;
+    box-shadow: 0 8rpx 18rpx rgba(31, 41, 51, 0.04);
+    z-index: 2;
 }
 
-.sort-topline__active {
-    position: relative;
+.sort-second-tabs__row {
+    display: flex;
+    align-items: center;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.sort-second-tabs__scroll {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.sort-second-tabs__list {
     display: inline-flex;
     align-items: center;
-    height: 48rpx;
+    max-width: 100%;
+}
+
+.sort-second-tabs__item,
+.sort-second-panel__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 52rpx;
+    max-width: 128rpx;
+    margin-right: 10rpx;
+    padding: 0 16rpx;
+    box-sizing: border-box;
+    color: #4b5563;
+    font-size: 23rpx;
+    line-height: 32rpx;
+    border: 1rpx solid #edf1f5;
+    border-radius: 18rpx;
+    background: #f7f9fc;
+}
+
+.sort-second-tabs__item.is-active,
+.sort-second-panel__item.is-active {
     color: #1688ff;
-    font-size: 28rpx;
     font-weight: 600;
+    border-color: rgba(22, 136, 255, 0.35);
+    background: #edf7ff;
+    box-shadow: 0 8rpx 18rpx rgba(22, 136, 255, 0.1);
 }
 
-.sort-topline__marker {
+.sort-second-tabs__arrow {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52rpx;
+    height: 52rpx;
+    border-radius: 18rpx;
+    background: #f7f9fc;
+}
+
+.sort-second-tabs__arrow-icon {
+    width: 14rpx;
+    height: 14rpx;
+    border-right: 3rpx solid #6b7280;
+    border-bottom: 3rpx solid #6b7280;
+    transform: rotate(45deg) translateY(-4rpx);
+    transition: transform 0.2s ease;
+}
+
+.sort-second-tabs__arrow-icon.is-open {
+    transform: rotate(225deg) translate(-2rpx, -2rpx);
+}
+
+.sort-second-panel {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 12rpx;
+    padding: 16rpx 4rpx 4rpx 14rpx;
+    border: 1rpx solid #edf1f5;
+    border-radius: 22rpx;
+    background: #ffffff;
+    box-shadow: 0 12rpx 34rpx rgba(31, 41, 51, 0.08);
+}
+
+.sort-second-panel__item {
+    margin: 0 10rpx 12rpx 0;
+}
+
+.sort-category-group {
+    margin-bottom: 14rpx;
+}
+
+.sort-category-group__title {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 4rpx 0 22rpx;
+    padding-left: 18rpx;
+    color: #1f2933;
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 42rpx;
+}
+
+.sort-category-group__title::before {
+    position: absolute;
+    left: 0;
     width: 6rpx;
-    height: 28rpx;
-    margin-right: 16rpx;
-    border-radius: 0 8rpx 8rpx 0;
+    height: 24rpx;
+    border-radius: 999rpx;
     background: #1688ff;
-}
-
-.sort-topline__title {
-    color: #222222;
-    font-size: 34rpx;
-    font-weight: 600;
-    line-height: 46rpx;
+    content: '';
 }
 
 .sort-grid {
     display: flex;
     flex-wrap: wrap;
+    width: 100%;
     margin-bottom: 18rpx;
 }
 
 .sort-grid__item {
     width: 33.333%;
-    margin-bottom: 28rpx;
+    min-width: 0;
+    margin-bottom: 30rpx;
+    padding: 0 1rpx;
+    box-sizing: border-box;
     text-align: center;
 }
 
@@ -480,11 +679,15 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 132rpx;
-    height: 132rpx;
+    width: calc((100vw - 252rpx) / 3 - 2rpx);
+    height: calc(((100vw - 252rpx) / 3 - 2rpx) * 1.12);
+    max-width: 142rpx;
+    max-height: 160rpx;
+    min-width: 92rpx;
+    min-height: 104rpx;
     margin: 0 auto;
-    border-radius: 14rpx;
-    background: #eef1f5;
+    border-radius: 18rpx;
+    background: #f2f5f8;
 }
 
 .image-placeholder {
@@ -496,11 +699,12 @@ export default {
 
 .sort-grid__name {
     display: block;
+    max-width: 100%;
     margin-top: 12rpx;
-    color: #222222;
-    font-size: 30rpx;
-    font-weight: 600;
-    line-height: 40rpx;
+    color: #303133;
+    font-size: 24rpx;
+    font-weight: 500;
+    line-height: 32rpx;
 }
 
 .sort-section-title {

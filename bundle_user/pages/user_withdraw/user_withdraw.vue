@@ -32,7 +32,7 @@
             <view class="withdraw-section-title">提现金额</view>
             <view class="withdraw-amount-input">
                 <text class="withdraw-amount-input__symbol">¥</text>
-                <input v-model="money" type="digit" placeholder="0.00" placeholder-class="withdraw-placeholder" />
+                <input v-model="money" type="digit" placeholder="0.00" placeholder-class="withdraw-placeholder" confirm-type="done" always-embed :cursor-spacing="180" @blur="normalizeMoneyInput" />
                 <view class="withdraw-all" @tap="allWithdraw">全部</view>
             </view>
             <view class="withdraw-balance-row">
@@ -45,25 +45,25 @@
             <view class="withdraw-section-title">收款信息</view>
             <view class="withdraw-field">
                 <view class="withdraw-field__label">{{ accountLabel }}</view>
-                <input v-model="account" class="withdraw-field__input" :placeholder="accountPlaceholder" placeholder-class="withdraw-placeholder" />
+                <input v-model="account" class="withdraw-field__input" :placeholder="accountPlaceholder" placeholder-class="withdraw-placeholder" confirm-type="done" always-embed :cursor-spacing="180" />
             </view>
             <view class="withdraw-field">
                 <view class="withdraw-field__label">真实姓名</view>
-                <input v-model="realName" class="withdraw-field__input" placeholder="请输入真实姓名" placeholder-class="withdraw-placeholder" />
+                <input v-model="realName" class="withdraw-field__input" placeholder="请输入真实姓名" placeholder-class="withdraw-placeholder" confirm-type="done" always-embed :cursor-spacing="180" />
             </view>
             <template v-if="isBankWithdraw">
                 <view class="withdraw-field">
                     <view class="withdraw-field__label">提现银行</view>
-                    <input v-model="bank" class="withdraw-field__input" placeholder="请输入开户银行" placeholder-class="withdraw-placeholder" />
+                    <input v-model="bank" class="withdraw-field__input" placeholder="请输入开户银行" placeholder-class="withdraw-placeholder" confirm-type="done" always-embed :cursor-spacing="180" />
                 </view>
                 <view class="withdraw-field">
                     <view class="withdraw-field__label">银行支行</view>
-                    <input v-model="subbank" class="withdraw-field__input" placeholder="请输入银行支行" placeholder-class="withdraw-placeholder" />
+                    <input v-model="subbank" class="withdraw-field__input" placeholder="请输入银行支行" placeholder-class="withdraw-placeholder" confirm-type="done" always-embed :cursor-spacing="180" />
                 </view>
             </template>
             <view class="withdraw-field">
                 <view class="withdraw-field__label">备注</view>
-                <input v-model="remark" class="withdraw-field__input" placeholder="选填" placeholder-class="withdraw-placeholder" />
+                <input v-model="remark" class="withdraw-field__input" placeholder="选填" placeholder-class="withdraw-placeholder" confirm-type="done" always-embed :cursor-spacing="180" />
             </view>
             <view v-if="needQrCode" class="withdraw-upload">
                 <view class="withdraw-upload__title">{{ qrCodeLabel }}</view>
@@ -135,6 +135,15 @@ export default {
         feePercentText() {
             return `${this.feePercent || 0}%`
         },
+        isWithdrawOpen() {
+            return Number(this.widthDrawConfig.open_withdraw ?? this.widthDrawConfig.openWithdraw ?? 1) !== 0
+        },
+        minWithdrawAmount() {
+            return Number(this.widthDrawConfig.min_withdraw || this.widthDrawConfig.minWithdraw || this.widthDrawConfig.min_withdraw_amount || 0)
+        },
+        maxWithdrawAmount() {
+            return Number(this.widthDrawConfig.max_withdraw || this.widthDrawConfig.maxWithdraw || this.widthDrawConfig.max_withdraw_amount || 0)
+        },
         moneyAmount() {
             return Number(this.money || 0)
         },
@@ -172,7 +181,7 @@ export default {
             return Number(this.currentType) === withdrawType.PAY_ALIPAY ? '支付宝收款码' : '微信收款码'
         },
         canSubmit() {
-            return Boolean(this.currentWay.value && this.moneyAmount > 0 && this.moneyAmount <= this.availableAmount)
+            return Boolean(this.isWithdrawOpen && this.currentWay.value && this.moneyAmount > 0 && this.moneyAmount <= this.availableAmount)
         }
     },
     onLoad() {
@@ -205,6 +214,11 @@ export default {
         },
         allWithdraw() {
             this.money = this.availableAmount ? this.formatMoney(this.availableAmount) : ''
+        },
+        normalizeMoneyInput() {
+            if (!this.money) return
+            const amount = Number(this.money)
+            this.money = Number.isNaN(amount) || amount <= 0 ? '' : this.formatMoney(amount)
         },
         getWithdrawConfigFun() {
             getWithdrawConfig().then(res => {
@@ -240,15 +254,19 @@ export default {
             this.qrCode = ''
         },
         validateForm() {
+            this.normalizeMoneyInput()
+            if (!this.isWithdrawOpen) return '提现功能暂未开放'
             if (!this.currentWay.value) return '暂无可用提现方式'
             if (!this.money) return '请输入提现金额'
             if (this.moneyAmount <= 0) return '提现金额必须大于0'
             if (this.moneyAmount > this.availableAmount) return '提现金额不能超过可提现金额'
-            if (this.needAccountInfo && !this.account) return `请输入${this.accountLabel}`
-            if (this.needAccountInfo && !this.realName) return '请输入真实姓名'
+            if (this.minWithdrawAmount && this.moneyAmount < this.minWithdrawAmount) return `提现金额不能低于${this.formatMoney(this.minWithdrawAmount)}元`
+            if (this.maxWithdrawAmount && this.moneyAmount > this.maxWithdrawAmount) return `提现金额不能高于${this.formatMoney(this.maxWithdrawAmount)}元`
+            if (this.needAccountInfo && !this.account.trim()) return `请输入${this.accountLabel}`
+            if (this.needAccountInfo && !this.realName.trim()) return '请输入真实姓名'
             if (this.needQrCode && !this.qrCode) return `请上传${this.qrCodeLabel}`
-            if (this.isBankWithdraw && !this.bank) return '请输入提现银行'
-            if (this.isBankWithdraw && !this.subbank) return '请输入银行支行'
+            if (this.isBankWithdraw && !this.bank.trim()) return '请输入提现银行'
+            if (this.isBankWithdraw && !this.subbank.trim()) return '请输入银行支行'
             return ''
         },
         applyWithdrawFun() {
@@ -259,22 +277,24 @@ export default {
                 return
             }
             this.submitting = true
+            const withdrawNo = `withdraw-${Date.now()}`
             applyWithdraw({
                 type: this.currentWay.value,
-                money: this.money,
-                account: this.account,
-                real_name: this.realName,
+                money: this.moneyAmount,
+                account: this.account.trim(),
+                real_name: this.realName.trim(),
                 money_qr_code: this.qrCode,
-                remark: this.remark,
-                bank: this.bank,
-                subbank: this.subbank,
-                idempotentKey: `withdraw-${Date.now()}`
+                remark: this.remark.trim(),
+                bank: this.bank.trim(),
+                subbank: this.subbank.trim(),
+                idempotentKey: withdrawNo
             }).then(res => {
                 if (res.code == 1) {
                     const result = res.data || {}
+                    const resultId = result.id || result.withdrawId || result.withdrawNo || result.withdraw_no || withdrawNo
                     this.$toast({ title: '提交成功' }, {
                         tab: 2,
-                        url: `/bundle_finance/pages/widthdraw_result/widthdraw_result?id=${result.id || result.withdrawId || ''}`
+                        url: `/bundle_finance/pages/widthdraw_result/widthdraw_result?id=${resultId}`
                     })
                 } else {
                     this.$toast({ title: res.msg || '提现申请失败' })
@@ -296,7 +316,7 @@ page {
 
 .withdraw-page {
     min-height: 100vh;
-    padding: 0 24rpx calc(180rpx + env(safe-area-inset-bottom));
+    padding: 0 24rpx calc(260rpx + env(safe-area-inset-bottom));
     box-sizing: border-box;
     background: linear-gradient(180deg, #eaf4ff 0%, #f6f8fb 420rpx, #f6f8fb 100%);
 }
@@ -530,6 +550,7 @@ page {
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 99;
     padding: 18rpx 32rpx calc(22rpx + env(safe-area-inset-bottom));
     background: rgba(246, 248, 251, 0.96);
     box-shadow: 0 -12rpx 30rpx rgba(31, 55, 88, 0.06);

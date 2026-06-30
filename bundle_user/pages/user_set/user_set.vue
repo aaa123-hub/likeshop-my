@@ -2,13 +2,8 @@
     <view class="user-profile-container mt10">
         <navbar title="个人资料"></navbar>
         <view class="user-profile">
-            <view class="user-avatar-box column-center">
-                <button
-                    class="column column-center"
-                    hover-class="none"
-                    open-type="chooseAvatar"
-                    @chooseavatar="onChooseAvatar"
-                >
+            <view class="user-avatar-box column-center" @tap="chooseAvatarImage">
+                <view class="column column-center">
                     <image
                         class="user-avatar"
                         :src="
@@ -19,7 +14,7 @@
                     >
                     </image>
                     <view class="muted xs">点击修改头像</view>
-                </button>
+                </view>
             </view>
             <view class="row-info row bdb-line">
                 <view class="label md">ID</view>
@@ -118,19 +113,17 @@
                 style="width: 70vw; padding: 24rpx"
             >
                 <view class="title xl">修改用户名</view>
-                <form @submit="changeNameConfirm">
-                    <view label="新昵称" :labelWidth="120">
-                        <input
-                            style="height: 60rpx"
-                            class="nr"
-                            :value="userInfo.nickname"
-                            name="nickname"
-                            type="nickname"
-                            placeholder="请输入新的昵称"
-                        />
-                    </view>
-                    <button class="btn bg-primary white row-center" form-type="submit">确定</button>
-                </form>
+                <view class="nickname-field">
+                    <input
+                        v-model="newNickname"
+                        class="nickname-input nr"
+                        type="nickname"
+                        maxlength="20"
+                        placeholder="请输入新的昵称"
+                        placeholder-class="nickname-placeholder"
+                    />
+                </view>
+                <view class="btn bg-primary white row-center" @tap="changeNameConfirm">确定</view>
             </view>
         </u-popup>
         <u-popup v-model="showPwd" closeable mode="center" border-radius="14">
@@ -233,6 +226,18 @@ export default {
         codeChange(text) {
             this.tips = text
         },
+        chooseAvatarImage() {
+            this.fieldType = FieldType.AVATAR
+            uni.chooseImage({
+                count: 1,
+                sizeType: ['compressed'],
+                sourceType: ['album', 'camera'],
+                success: (res) => {
+                    const path = res.tempFilePaths && res.tempFilePaths[0]
+                    if (path) this.uploadImage(path)
+                }
+            })
+        },
         onChooseAvatar(e) {
             this.fieldType = FieldType.AVATAR
             // #ifndef MP-WEIXIN
@@ -252,15 +257,17 @@ export default {
             })
             // #endif
             // #ifdef MP-WEIXIN
-            if (e.detail.avatarUrl) {
+            if (e && e.detail && e.detail.avatarUrl) {
                 this.uploadImage(e.detail.avatarUrl)
+            } else {
+                this.chooseAvatarImage()
             }
             // #endif
         },
         // 修改用户昵称
-        async changeNameConfirm(e) {
+        async changeNameConfirm() {
             this.fieldType = FieldType.NICKNAME
-            this.newNickname = e.detail.value.nickname
+            this.newNickname = (this.newNickname || '').trim()
             if (!this.newNickname)
                 return this.$toast({
                     title: '请输入新的昵称'
@@ -451,7 +458,7 @@ export default {
         // 修改昵称
         changeName() {
             this.fieldType = FieldType.NICKNAME
-            this.newNickname = ''
+            this.newNickname = this.userInfo.nickname || ''
             this.showNickName = true
         },
         // end
@@ -616,6 +623,26 @@ export default {
             padding: 0 180rpx;
             border-radius: 20rpx;
             margin-top: 60rpx;
+        }
+
+        .nickname-field {
+            width: 100%;
+            padding: 18rpx 22rpx;
+            box-sizing: border-box;
+            border: 1rpx solid #e5e5e5;
+            border-radius: 16rpx;
+            background: #f7f8fa;
+        }
+
+        .nickname-input {
+            width: 100%;
+            height: 64rpx;
+            line-height: 64rpx;
+            color: #222222;
+        }
+
+        .nickname-placeholder {
+            color: #999999;
         }
     }
 }

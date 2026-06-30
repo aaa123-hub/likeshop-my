@@ -26,7 +26,7 @@ author: likeshop.cn.team //
         :url="'/bundle/pages/order_details/order_details?id=' + item.id"
       >
         <view class="order-header row-between">
-          <view class="row">
+          <view class="order-sn row">
             <view v-if="item.delivery_type == 2" class="mr10">
               <u-tag
                 text="自提"
@@ -45,11 +45,15 @@ author: likeshop.cn.team //
             <view v-if="item.order_type == 3" class="mr10">
               <u-tag text="砍价" size="mini" type="primary" mode="plain" />
             </view>
-            订单编号：{{ item.order_sn }}
+            <text class="line1">订单编号：{{ item.order_sn }}</text>
           </view>
-          <view :class="item.order_status == 4 ? 'muted' : 'primary'">{{
-            item.order_status_desc
-          }}</view>
+          <view :class="['order-status', isClosedOrder(item) ? 'muted' : 'primary']">{{ item.order_status_desc }}</view>
+        </view>
+        <view class="order-meta" v-if="orderMetaRows(item).length">
+          <view v-for="row in orderMetaRows(item)" :key="row.label" class="order-meta__item">
+            <text class="order-meta__label">{{ row.label }}</text>
+            <text class="order-meta__value">{{ row.value }}</text>
+          </view>
         </view>
         <view class="order-con">
           <order-goods
@@ -58,13 +62,13 @@ author: likeshop.cn.team //
           ></order-goods>
           <view class="all-price row-end">
             <text class="muted xs"
-              >共{{ goodCount(item.order_goods) }}件商品，总金额：</text
+              >{{ goodsCountText(item) }}，总金额：</text
             >
             <price-format
               :subscript-size="30"
               :first-size="30"
               :second-size="30"
-              :price="item.order_amount"
+              :price="orderAmount(item)"
             ></price-format>
           </view>
         </view>
@@ -161,7 +165,7 @@ author: likeshop.cn.team //
               size="sm"
               class="btn plain br60 primary red"
               hover-class="none"
-              @tap.stop="comfirmOrder(item.id, item.pay_way)"
+              @tap.stop="comfirmOrder(item.id, orderPayWay(item))"
             >
               确认收货
             </button>
@@ -329,13 +333,13 @@ export default {
       this.$nextTick(async () => {
         // #ifdef MP-WEIXIN
         let res = {};
-        if (this.pay_way === 1) {
+        if (this.isWechatPayWay(this.pay_way)) {
           res = await getwechatSyncCheck({ id: this.orderId });
         }
         if (
           compareWeChatVersion("2.6.0") === 1 &&
           wx.openBusinessView &&
-          this.pay_way === 1 &&
+          this.isWechatPayWay(this.pay_way) &&
           res.data &&
           res.data.order &&
           res.data.order.order_state !== 1
@@ -433,10 +437,47 @@ export default {
     },
     goodCount(goodLists) {
       let count = 0;
-      goodLists.forEach((item) => {
-        count += item.goods_num;
+      ;(goodLists || []).forEach((item) => {
+        count += Number(item.goods_num || item.quantity || item.num || 0);
       });
       return count;
+    },
+    goodsCountText(item) {
+      const backendCount = item.goods_num || item.goodsNum || item.total_num || item.totalNum || item.goods_count || item.goodsCount || item.quantity;
+      const count = backendCount || this.goodCount(item.order_goods || item.goods_lists);
+      return count ? `共${count}件商品` : '商品数量以详情为准';
+    },
+    orderAmount(item) {
+      return item.order_amount || item.payAmount || item.orderAmount || item.totalAmount || 0;
+    },
+    orderPayWay(item) {
+      return item.pay_way || item.payMethod || item.payWay;
+    },
+    isWechatPayWay(value) {
+      return value === 1 || value === '1' || value === 'WECHAT_JSAPI' || value === 'wechat' || value === 'wxpay';
+    },
+    isClosedOrder(item) {
+      return item.order_status == 4 || item.order_status === 'CANCELLED';
+    },
+    formatDeliveryType(type) {
+      const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', PICKUP: '门店自提' };
+      return map[type] || '';
+    },
+    formatPayWay(value) {
+      const map = { BALANCE: '钱包余额', WECHAT_JSAPI: '微信支付', ALIPAY: '支付宝', 1: '微信支付', 2: '支付宝', 3: '钱包余额' };
+      return map[value] || value || '';
+    },
+    formatPayStatus(status) {
+      const map = { UNPAID: '未支付', PAID: '已支付', REFUNDED: '已退款', CLOSED: '已关闭', 0: '未支付', 1: '已支付' };
+      return map[status] || status || '';
+    },
+    orderMetaRows(item) {
+      return [
+        { label: '下单时间', value: item.create_time || item.createTime || item.createdAt },
+        { label: '配送方式', value: this.formatDeliveryType(item.delivery_type || item.deliveryType) },
+        { label: '支付方式', value: this.formatPayWay(item.pay_way_text || item.payMethod || item.pay_way) },
+        { label: '支付状态', value: this.formatPayStatus(item.pay_status || item.payStatus) }
+      ].filter((row) => row.value !== undefined && row.value !== null && row.value !== '');
     },
   },
   computed: {
@@ -478,27 +519,80 @@ export default {
 <style lang="scss">
 .order-list {
   // min-height: calc(100vh - 80rpx);
-  padding: 0 20rpx;
+  padding: 0 20rpx calc(24rpx + env(safe-area-inset-bottom));
   overflow: hidden;
 
   .order-item {
-    border-radius: 10rpx;
+    border-radius: 20rpx;
+    overflow: hidden;
+    box-shadow: 0 8rpx 24rpx rgba(20, 28, 45, .05);
 
     .order-header {
-      height: 80rpx;
+      min-height: 82rpx;
       padding: 0 24rpx;
       border-bottom: 1px dotted #e5e5e5;
+      box-sizing: border-box;
+    }
+
+    .order-sn {
+      flex: 1;
+      min-width: 0;
+      margin-right: 18rpx;
+      color: #303133;
+      font-size: 25rpx;
+    }
+
+    .order-status {
+      flex: none;
+      max-width: 180rpx;
+      font-size: 25rpx;
+      text-align: right;
+    }
+
+    .order-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10rpx 18rpx;
+      padding: 16rpx 24rpx 0;
+      color: #8b9098;
+      font-size: 23rpx;
+      line-height: 32rpx;
+    }
+
+    .order-meta__item {
+      display: flex;
+      max-width: 100%;
+    }
+
+    .order-meta__label {
+      flex: none;
+      margin-right: 6rpx;
+    }
+
+    .order-meta__value {
+      min-width: 0;
+      word-break: break-all;
     }
 
     .all-price {
       text-align: right;
-      padding: 0 24rpx 20rpx;
+      padding: 4rpx 24rpx 22rpx;
+      flex-wrap: wrap;
     }
 
     .order-footer {
-      height: 100rpx;
+      min-height: 104rpx;
       border-top: $solid-border;
-      padding: 0 24rpx;
+      padding: 14rpx 24rpx;
+      box-sizing: border-box;
+      flex-wrap: wrap;
+      gap: 12rpx 0;
+
+      button {
+        height: 60rpx;
+        line-height: 60rpx;
+        font-size: 24rpx;
+      }
 
       .plain {
         border: 1px solid #bbbbbb;

@@ -18,46 +18,48 @@
 					</view>
 				</view>
 			</template>
-			<!-- Header -->
 			<view v-if="!isFacePay" class="payment-header">
-				<price-format class="u-skeleton-fillet" :subscript-size="40" :first-size="56" :second-size="40"
-					:price="amount" :weight="500" />
-				<template v-if="timeout > 0">
-					<view class="payment-count-down">
-						<text>支付剩余时间</text>
-						<u-count-down :timestamp="timeout" :font-size="22" />
-					</view>
-				</template>
+				<view class="payment-header__label">订单支付金额</view>
+				<price-format class="u-skeleton-fillet" :subscript-size="40" :first-size="64" :second-size="40"
+					:price="amount" :weight="600" />
+				<view class="payment-count-down" v-if="timeout > 0">
+					<text>剩余支付时间</text>
+					<u-count-down :timestamp="timeout" :font-size="22" @end="handleTimeout" />
+				</view>
+				<view class="payment-count-down payment-count-down--expired" v-else>
+					<text>订单支付时间已结束</text>
+				</view>
 			</view>
 
-			<!-- Main -->
 			<view class="payment-main">
 				<view class="payway-container u-skeleton-fillet">
-					<!-- Payway -->
-					<u-radio-group v-model="payway" style="width: 100%;">
-						<view class="payway">
-						<view class="payway-item" v-for="(item, index) in paywayList" :key="item.id"
-							@tap="changePayway(item.pay_way)">
-								<image :src="item.icon" width="48" height="48" mode="scaleToFill" />
-								<view class="payway-item-content">
-									<text class="payway-item-content-name">{{ item.name }}</text>
-									<text class="payway-item-content-tips">{{ item.extra }}</text>
-								</view>
-								<u-radio shape="circle" :name="item.pay_way" :active-color="primaryColor" />
+					<view class="payway-title">选择支付方式</view>
+					<view class="payway">
+						<view
+							v-for="item in normalizedPaywayList"
+							:key="item.key"
+							:class="['payway-item', payway === item.value ? 'payway-item--active' : '']"
+							@tap="changePayway(item.value)"
+						>
+							<image v-if="item.icon" class="payway-item-icon" :src="item.icon" mode="aspectFit" />
+							<view v-else class="payway-item-icon payway-item-icon--empty">{{ getPaywayInitial(item.name) }}</view>
+							<view class="payway-item-content">
+								<text class="payway-item-content-name">{{ item.name }}</text>
+								<text v-if="item.extra" class="payway-item-content-tips">{{ item.extra }}</text>
 							</view>
+							<view :class="['payway-radio', payway === item.value ? 'payway-radio--active' : '']"></view>
 						</view>
-					</u-radio-group>
+					</view>
 					<template v-if="!paywayList.length">
 						<view class="payway-empty">暂无支付方式</view>
 					</template>
 				</view>
 			</view>
 
-			<!-- Footer -->
 			<view class="payment-footer u-skeleton-fillet">
-				<view :class="['payment-submit', {'payment-submit--disabled': loadingPay}]" @tap="handlePrepay">
+				<view :class="['payment-submit', {'payment-submit--disabled': submitDisabled}]" @tap="handlePrepay">
 					<u-loading mode="circle" :show="loadingPay" />
-					<text v-show="!loadingPay">立即支付</text>
+					<text v-show="!loadingPay">{{ submitText }}</text>
 				</view>
 			</view>
 
@@ -74,8 +76,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 import Navbar from '@/components/navbar/navbar.vue'
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
 import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
-import URadioGroup from '@/bundle/components/uview-ui/components/u-radio-group/u-radio-group.vue'
-import URadio from '@/bundle/components/uview-ui/components/u-radio/u-radio.vue'
 import ULoading from '@/bundle/components/uview-ui/components/u-loading/u-loading.vue'
 import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skeleton.vue'
 	/**
@@ -99,8 +99,6 @@ wxpay,
 			Navbar,
 			UIcon,
 			UCountDown,
-			URadioGroup,
-			URadio,
 			ULoading,
 			USkeleton
 		},
@@ -120,13 +118,36 @@ wxpay,
 				loadingPay: false, // 支付处理中Loading
 				hasPayResult: false,
 				payOrderNo: '',
+				isExpired: false,
 			}
 		},
 
 		methods: {
 			// 更改支付方式
 			changePayway(value) {
-				this.$set(this, 'payway', value)
+				if (this.isExpired || this.loadingPay || !value) return
+				this.payway = value
+			},
+			getPaywayValue(item) {
+				return item && (item.pay_way || item.payMethod || item.payWay) ? (item.pay_way || item.payMethod || item.payWay) : item
+			},
+			normalizePaywayItem(item = {}, index = 0) {
+				const value = this.getPaywayValue(item)
+				return {
+					key: item.id || value || index,
+					value,
+					name: item.name || item.payName || item.pay_name || value || '支付方式',
+					extra: item.extra || item.description || item.desc || '',
+					icon: item.icon || item.iconUrl || item.logo || ''
+				}
+			},
+			getPaywayInitial(name) {
+				return String(name || '付').slice(0, 1)
+			},
+			getPayErrorText(code, message) {
+				if (code === 'A0101' || String(message || '').includes('CreatePayOrderCommand.openId')) return '缺少微信支付授权信息，请重新登录后再使用微信支付'
+				if (code === 'T5201' || message === 'WALLET_BALANCE_NOT_ENOUGH') return '钱包余额不足，请更换支付方式或充值后再试'
+				return message || '支付失败，请稍后重试'
 			},
 
 			// 初始化页面数据
@@ -142,12 +163,13 @@ wxpay,
 					this.loadingSkeleton = false
 					data = data || {}
 					this.amount = data.order_amount || data.payAmount || 0
-					this.paywayList = data.pay || []
-					this.payway = this.paywayList[0]?.pay_way || 'BALANCE'
+					this.paywayList = (data.pay || []).map((item, index) => this.normalizePaywayItem(item, index)).filter(item => item.value)
+					this.payway = this.paywayList.length ? this.paywayList[0].value : ''
 					// 倒计时
 					const startTimestamp = new Date().getTime() / 1000
 					const endTimestamp = data.cancel_time * 1
-					this.timeout = endTimestamp ? endTimestamp - startTimestamp : 0
+					this.timeout = Math.max(endTimestamp ? endTimestamp - startTimestamp : 0, 0)
+					this.isExpired = !this.isFacePay && this.timeout <= 0
 				}).catch(err => {
 					this.loadingSkeleton = false
 					this.$toast({ title: err.message || '支付信息加载失败' })
@@ -156,7 +178,11 @@ wxpay,
 
 			// 预支付处理
 			handlePrepay() {
-				if (this.loadingPay) return
+				if (this.submitDisabled) return
+				if (this.isExpired) {
+					this.$toast({ title: '订单已超时，请重新下单' })
+					return
+				}
 				if (!this.payway) {
 					this.$toast({ title: '暂无可用支付方式' })
 					return
@@ -169,7 +195,12 @@ wxpay,
 					payMethod: this.payway,
 					bizOrderNo: this.order_id,
 					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER'
-				}).then(({ code, data }) => {
+				}).then((res) => {
+					const { code, data, rawCode, msg, message } = res || {}
+					if (code != 1 && code != 10001 && code != 20001) {
+						this.$toast({ title: this.getPayErrorText(rawCode || code, msg || message) })
+						return
+					}
 					this.payOrderNo = data?.payOrderNo || data?.pay_order_no || this.payOrderNo
 					switch (code) {
 						case 1:
@@ -182,7 +213,7 @@ wxpay,
 							this.handleWalletPay();
 							break;
 						default:
-							this.handleWalletPay();
+							this.$toast({ title: '支付处理中，请稍后查看订单' })
 							break;
 					}
 				}).catch(err => {
@@ -235,8 +266,20 @@ wxpay,
 							order_id: this.order_id
 						})
 				}
-				// 页面出栈
-				// uni.navigateBack()
+				this.goPayResult(result === 'success')
+			},
+			goPayResult(success) {
+				if (success && this.from === 'order' && this.order_id) {
+					uni.redirectTo({
+						url: `/bundle_user/pages/pay_result/pay_result?id=${this.order_id}`
+					})
+					return
+				}
+				uni.navigateBack()
+			},
+			handleTimeout() {
+				this.timeout = 0
+				this.isExpired = true
 			},
 			async confirmPaymentResult() {
 				try {
@@ -273,8 +316,19 @@ wxpay,
 			if (!this.hasPayResult) this.handPayResult('fail')
 		},
 		computed: {
+			normalizedPaywayList() {
+				return this.paywayList
+			},
 			isFacePay() {
 				return this.pageMode === 'facepay' || this.from === 'facepay'
+			},
+			submitDisabled() {
+				return this.loadingPay || this.loadingSkeleton || !this.payway || this.isExpired
+			},
+			submitText() {
+				if (this.isExpired) return '支付已超时'
+				if (!this.payway) return '暂无可用支付方式'
+				return '立即支付'
 			}
 		}
 	}
@@ -285,16 +339,21 @@ wxpay,
 	page {
 		height: 100%;
 		padding: 0;
+		background: #f6f7fb;
 	}
 
-		.payment-pages {
+	.payment-pages {
+		display: flex;
+		flex-direction: column;
+		min-height: 100%;
 		height: 100%;
-		background: #f7f8fa;
+		background: #f6f7fb;
 
 		.payment {
 			display: flex;
 			flex-direction: column;
-			height: calc(100% - env(safe-area-inset-bottom));
+			flex: 1;
+			min-height: 0;
 
 			&-tips {
 				display: flex;
@@ -315,69 +374,155 @@ wxpay,
 				flex-direction: column;
 				justify-content: center;
 				align-items: center;
-				height: 300rpx;
-				background: linear-gradient(270deg, #FF2C3C 0%, #F95F2F 100%);
+				min-height: 330rpx;
+				padding: 34rpx 32rpx 72rpx;
+				box-sizing: border-box;
+				background: linear-gradient(135deg, #ff6a3c 0%, #ff2c3c 100%);
 				color: #FFFFFF;
+
+				&__label {
+					margin-bottom: 12rpx;
+					font-size: 26rpx;
+					opacity: .86;
+				}
 			}
 
 
 			&-main {
 				flex: 1;
-				margin-top: -40rpx;
-				padding: 0 20rpx;
-				overflow: hidden;
+				min-height: 0;
+				margin-top: -48rpx;
+				padding: 0 24rpx 150rpx;
+				overflow-y: auto;
+				box-sizing: border-box;
 			}
 
 
 			&-footer {
+				position: fixed;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				z-index: 20;
 				display: flex;
+				justify-content: center;
 				align-items: center;
-				height: 100rpx;
-				padding: 0 20rpx;
-				background-color: #FFFFFF;
+				padding: 18rpx 32rpx calc(18rpx + constant(safe-area-inset-bottom));
+				padding: 18rpx 32rpx calc(18rpx + env(safe-area-inset-bottom));
+				box-sizing: border-box;
+				background: rgba(255, 255, 255, .96);
+				box-shadow: 0 -10rpx 34rpx rgba(23, 29, 42, .08);
 			}
 
 			.payway-container {
-				padding: 0 20rpx;
-				border-radius: 14rpx;
+				padding: 28rpx 24rpx 8rpx;
+				border-radius: 24rpx;
 				background-color: #FFFFFF;
+				box-shadow: 0 12rpx 34rpx rgba(28, 35, 54, .06);
+
+				.payway-title {
+					margin-bottom: 8rpx;
+					font-size: 30rpx;
+					font-weight: 600;
+					color: #202124;
+				}
 
 				.payway-empty {
 					display: flex;
 					justify-content: center;
-					padding: 20rpx 0;
+					padding: 70rpx 0 80rpx;
 					font-size: 26rpx;
 					color: $color-muted;
 				}
 			}
 
 			.payway {
+				display: flex;
+				flex-direction: column;
+				gap: 18rpx;
 				width: 100%;
+				padding-top: 18rpx;
 
 				&-item {
 					width: 100%;
 					display: flex;
 					align-items: center;
-					height: 120rpx;
+					min-height: 124rpx;
+					padding: 22rpx 20rpx;
+					border: 2rpx solid #f0f1f5;
+					border-radius: 22rpx;
+					box-sizing: border-box;
+					background: #ffffff;
+					transition: background-color .2s ease, border-color .2s ease;
 
-					&:nth-child(n+2) {
-						border-top: $dashed-border;
+					&--active {
+						border-color: #ff6a3c;
+						background: #fff8f6;
+					}
+
+					&-icon {
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						flex: none;
+						width: 58rpx;
+						height: 58rpx;
+						border-radius: 50%;
+
+						&--empty {
+							font-size: 26rpx;
+							font-weight: 600;
+							color: #ff2c3c;
+							background: #ffe8e5;
+						}
 					}
 
 					&-content {
 						flex: 1;
+						min-width: 0;
 						display: flex;
 						flex-direction: column;
-						margin-left: 16rpx;
+						margin: 0 20rpx;
 
 						&-name {
-							font-size: 28rpx;
-							color: $color-black;
+							font-size: 29rpx;
+							font-weight: 500;
+							color: #202124;
 						}
 
 						&-tips {
+							margin-top: 8rpx;
 							font-size: 22rpx;
+							line-height: 30rpx;
 							color: $color-muted;
+							word-break: break-all;
+						}
+					}
+				}
+
+				.payway-radio {
+					position: relative;
+					flex: none;
+					width: 40rpx;
+					height: 40rpx;
+					border: 2rpx solid #c9cdd4;
+					border-radius: 50%;
+					box-sizing: border-box;
+
+					&--active {
+						border-color: #ff3f33;
+						background: #ff3f33;
+
+						&::after {
+							position: absolute;
+							left: 10rpx;
+							top: 5rpx;
+							width: 12rpx;
+							height: 20rpx;
+							border: solid #ffffff;
+							border-width: 0 4rpx 4rpx 0;
+							transform: rotate(45deg);
+							content: '';
 						}
 					}
 				}
@@ -387,36 +532,43 @@ wxpay,
 				display: flex;
 				justify-content: center;
 				align-items: center;
-				padding: 7rpx 25rpx;
+				padding: 8rpx 24rpx;
 				border-radius: 120rpx;
-				margin-top: 10rpx;
+				margin-top: 18rpx;
 				font-size: 22rpx;
-				background-color: #FFFFFF;
-				color: $color-normal;
+				background-color: rgba(255, 255, 255, .92);
+				color: #4b4f58;
+
+				text {
+					margin-right: 10rpx;
+				}
+
+				&--expired text {
+					margin-right: 0;
+					color: #ff2c3c;
+				}
 			}
 
 			&-submit {
-				flex: 1;
+				width: 100%;
+				max-width: 686rpx;
 				position: relative;
 				display: flex;
 				justify-content: center;
 				align-items: center;
-				height: 74rpx;
-				font-size: 28rpx;
-				border-radius: 120rpx;
-				background: linear-gradient(270deg, #FF2C3C 0%, #F95F2F 100%);
+				height: 96rpx;
+				font-size: 32rpx;
+				font-weight: 600;
+				letter-spacing: 2rpx;
+				border-radius: 999rpx;
+				background: linear-gradient(90deg, #ff7a35 0%, #ff2c3c 100%);
+				box-shadow: 0 16rpx 34rpx rgba(255, 65, 55, .28);
 				color: #FFFFFF;
+				overflow: hidden;
 
-				&--disabled::before {
-					position: absolute;
-					top: 0;
-					bottom: 0;
-					left: 0;
-					right: 0;
-					height: 100%;
-					display: block;
-					content: "";
-					background: rgba(255, 255, 255, .3) !important;
+				&--disabled {
+					background: #c9cdd4;
+					box-shadow: none;
 				}
 			}
 

@@ -249,23 +249,27 @@ likeshop.cn.team // +-----------------------------------------------------------
                 <view class="title">优惠券</view>
             </view>
             <view v-if="showCoupon">
-                <tabs :active="couponTabsIndex" :config="{ underLineWidth: 100 }">
-                    <tab :title="'可使用优惠券 (' + usableCoupon.length + ')'">
-                        <coupon-obj
-                            :list="usableCoupon"
-                            :type="0"
-                            @change="onSelectCoupon"
-                            :coupon-id="couponId"
-                        ></coupon-obj>
-                    </tab>
-                    <tab :title="'不可用优惠券 (' + unusableCoupon.length + ')'">
-                        <coupon-obj
-                            :list="unusableCoupon"
-                            :type="1"
-                            @change="onSelectCoupon"
-                        ></coupon-obj>
-                    </tab>
-                </tabs>
+                <view class="coupon-tabs">
+                    <view :class="['coupon-tab', couponTabsIndex === 0 ? 'is-active' : '']" @tap="couponTabsIndex = 0">
+                        可使用优惠券 ({{ usableCoupon.length }})
+                    </view>
+                    <view :class="['coupon-tab', couponTabsIndex === 1 ? 'is-active' : '']" @tap="couponTabsIndex = 1">
+                        不可用优惠券 ({{ unusableCoupon.length }})
+                    </view>
+                </view>
+                <coupon-obj
+                    v-if="couponTabsIndex === 0"
+                    :list="usableCoupon"
+                    :type="0"
+                    @change="onSelectCoupon"
+                    :coupon-id="couponId"
+                ></coupon-obj>
+                <coupon-obj
+                    v-else
+                    :list="unusableCoupon"
+                    :type="1"
+                    @change="onSelectCoupon"
+                ></coupon-obj>
             </view>
         </u-popup>
     </view>
@@ -274,6 +278,7 @@ likeshop.cn.team // +-----------------------------------------------------------
 <script>
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 import { orderBuy, getOrderCoupon, getDelivery } from '@/api/order'
+import { getDefaultAddress } from '@/api/user'
 import { teamBuy } from '@/api/activity'
 import { prepay, getMnpNotice, getPayway } from '@/api/app'
 import { wxpay, alipay } from '@/utils/pay'
@@ -395,6 +400,7 @@ export default {
             .then(() => {
                 uni.$on('selectaddress', (params) => {
                     this.addressId = params.id
+                    if (params.address) this.address = params.address
                     this.handleOrderMethods('info')
                 })
 
@@ -423,7 +429,9 @@ export default {
 
     onUnload() {
         // 取消全局监听
-        uni.$off(['selectaddress', 'store'])
+        uni.$off('selectaddress')
+        uni.$off('store')
+        uni.$off('payment')
     },
 
     methods: {
@@ -519,6 +527,15 @@ export default {
 
         // 点击订单提交
         onSubmitOrder() {
+            if (this.currentDelivery.sign === 'express' && !this.address.id) {
+                return this.$toast({ title: '请先选择收货地址' })
+            }
+            if (this.currentDelivery.sign === 'store' && !this.storeInfo.id) {
+                return this.$toast({ title: '请先选择自提门店' })
+            }
+            if (this.currentDelivery.sign === 'store' && (!this.userConsignee || !this.userMobile)) {
+                return this.$toast({ title: '请填写提货人和联系方式' })
+            }
             uni.showModal({
                 title: '温馨提示',
                 content: '是否确认下单?',
@@ -570,7 +587,11 @@ export default {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
 
                 if (code == 1) {
-                    this.address = data.address
+                    this.address = data.address || this.address || {}
+                    if (this.address.id) this.addressId = this.address.id
+                    if (!this.address.id && this.currentDelivery.sign === 'express') {
+                        await this.loadDefaultAddress()
+                    }
                     this.goodsLists = data.goods_lists
                     const selffetchInfo = data.selffetch_info || data.selffetchInfo || data.pickupInfo || {}
                     if (Object.keys(selffetchInfo).length) {
@@ -592,6 +613,16 @@ export default {
             } finally {
                 this.showLoading = false
             }
+        },
+
+        async loadDefaultAddress() {
+            try {
+                const res = await getDefaultAddress()
+                if (res.code == 1 && res.data && res.data.id) {
+                    this.address = res.data
+                    this.addressId = res.data.id
+                }
+            } catch (error) {}
         },
 
         // 订单提交
@@ -1122,5 +1153,40 @@ page {
     font-size: 34rpx;
     font-weight: bold;
     line-height: 36rpx;
+}
+
+.coupon-tabs {
+    display: flex;
+    align-items: center;
+    height: 88rpx;
+    padding: 0 24rpx;
+    box-sizing: border-box;
+    background: #ffffff;
+}
+
+.coupon-tab {
+    position: relative;
+    flex: 1;
+    color: #606266;
+    font-size: 28rpx;
+    line-height: 88rpx;
+    text-align: center;
+}
+
+.coupon-tab.is-active {
+    color: #037dfa;
+    font-weight: 600;
+}
+
+.coupon-tab.is-active::after {
+    position: absolute;
+    left: 50%;
+    bottom: 8rpx;
+    width: 76rpx;
+    height: 5rpx;
+    border-radius: 999rpx;
+    background: #037dfa;
+    transform: translateX(-50%);
+    content: '';
 }
 </style>

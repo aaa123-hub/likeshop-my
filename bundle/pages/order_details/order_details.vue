@@ -10,7 +10,7 @@ author: likeshop.cn.team
       <view class="header-bg"></view>
       <view class="main">
         <view class="header">
-          <view class="item" v-if="orderDetail.order_status == 0">
+          <view class="item" v-if="isOrderStatus('CREATED')">
             <view class="white lg mb10">等待买家付款</view>
             <view
               class="white sm row"
@@ -30,34 +30,34 @@ author: likeshop.cn.team
             >
           </view>
           <template v-if="orderDetail.delivery_type == 1">
-            <view class="item" v-if="orderDetail.order_status == 1">
+            <view class="item" v-if="isOrderStatus('PAID')">
               <view class="white lg mb10">等待商家发货</view>
               <view class="white sm">您的商品正在打包中，请耐心等待…</view>
             </view>
-            <view class="item" v-if="orderDetail.order_status == 2">
+            <view class="item" v-if="isOrderStatus('SHIPPED')">
               <view class="white lg mb10">已发货</view>
               <view class="white sm">您的商品正在路中，请耐心等待…</view>
             </view>
-            <view class="item" v-if="orderDetail.order_status == 3">
+            <view class="item" v-if="isOrderStatus('COMPLETED')">
               <view class="white lg mb10">已完成</view>
               <view class="white sm">商品已签收，期待再次购买！</view>
             </view>
-            <view class="item" v-if="orderDetail.order_status == 4">
+            <view class="item" v-if="isOrderStatus('CANCELLED')">
               <view class="white lg mb10">订单已关闭</view>
               <!-- <view class="white sm">原因：超时未支付</view> -->
             </view>
           </template>
 
           <template v-if="orderDetail.delivery_type == 2">
-            <view class="item" v-if="orderDetail.order_status == 1">
+            <view class="item" v-if="isOrderStatus('PAID')">
               <view class="white lg mb10">待取货</view>
               <view class="white sm">请前往指定门店取货</view>
             </view>
-            <view class="item" v-if="orderDetail.order_status == 3">
+            <view class="item" v-if="isOrderStatus('COMPLETED')">
               <view class="white lg mb10">已完成</view>
               <view class="white sm">交易已完成，感谢您的购买！</view>
             </view>
-            <view class="item" v-if="orderDetail.order_status == 4">
+            <view class="item" v-if="isOrderStatus('CANCELLED')">
               <view class="white lg mb10">订单已关闭</view>
             </view>
           </template>
@@ -217,7 +217,7 @@ author: likeshop.cn.team
           </view>
           <view class="row-between">
             <view class="">
-              <text v-if="orderDetail.order_status === 0">需</text>
+              <text v-if="isOrderStatus('CREATED')">需</text>
               <text v-else>实</text>
               付款：
             </view>
@@ -250,22 +250,77 @@ author: likeshop.cn.team
             <view class="black">{{ orderDetail.user_remark || "无" }}</view>
           </view>
         </view>
+        <view v-if="amountRows.length" class="order-info contain">
+          <view class="card-title">金额明细</view>
+          <view v-for="row in amountRows" :key="row.label" class="item row">
+            <view class="title">{{ row.label }}</view>
+            <view class="black">{{ row.value }}</view>
+          </view>
+        </view>
+        <view v-if="deliveryRows.length" class="order-info contain">
+          <view class="card-title">配送信息</view>
+          <view v-for="row in deliveryRows" :key="row.label" class="item row">
+            <view class="title">{{ row.label }}</view>
+            <view class="black">{{ row.value }}</view>
+          </view>
+        </view>
+        <view v-if="selfFetchRows.length" class="order-info contain">
+          <view class="card-title">自提信息</view>
+          <view v-for="row in selfFetchRows" :key="row.label" class="item row">
+            <view class="title">{{ row.label }}</view>
+            <view class="black">{{ row.value }}</view>
+          </view>
+        </view>
+        <view v-if="verifyRows.length" class="order-info contain">
+          <view class="card-title">核销信息</view>
+          <view v-for="row in verifyRows" :key="row.label" class="item row">
+            <view class="title">{{ row.label }}</view>
+            <view class="black">{{ row.value }}</view>
+          </view>
+        </view>
+        <view v-if="refundRows.length" class="order-info contain">
+          <view class="card-title">售后信息</view>
+          <view v-for="row in refundRows" :key="row.label" class="item row">
+            <view class="title">{{ row.label }}</view>
+            <view class="black">{{ row.value }}</view>
+          </view>
+        </view>
+        <view v-if="statusFlowRows.length" class="order-info contain">
+          <view class="card-title">订单进度</view>
+          <view v-for="(row, index) in statusFlowRows" :key="index" class="flow-item">
+            <view class="flow-dot"></view>
+            <view class="flow-content">
+              <view class="flow-title">{{ row.title }}</view>
+              <view v-if="row.desc" class="flow-desc">{{ row.desc }}</view>
+              <view v-if="row.time" class="flow-time">{{ row.time }}</view>
+            </view>
+          </view>
+        </view>
         <view class="order-info contain">
+          <view class="card-title">订单信息</view>
           <view class="item row">
             <view class="title">订单编号</view>
-            <view class="black">{{ orderDetail.order_sn }}</view>
+            <view class="black">{{ displayValue(orderDetail.order_sn) }}</view>
           </view>
           <view class="item row">
             <view class="title">订单类型</view>
-            <view class="black">{{ orderDetail.order_type_desc }}</view>
+            <view class="black">{{ displayValue(orderDetail.order_type_desc || getOrderType(orderDetail.order_type)) }}</view>
+          </view>
+          <view class="item row">
+            <view class="title">订单状态</view>
+            <view class="black">{{ displayValue(orderDetail.order_status_desc || formatOrderStatusText(orderDetail.order_status)) }}</view>
+          </view>
+          <view class="item row">
+            <view class="title">支付状态</view>
+            <view class="black">{{ displayValue(formatPayStatus(orderDetail.pay_status)) }}</view>
           </view>
           <view class="item row">
             <view class="title">支付方式</view>
-            <view class="black">{{ orderDetail.pay_way_text }}</view>
+            <view class="black">{{ displayValue(formatPayWay(orderDetail.pay_way_text || orderDetail.payMethod || orderDetail.pay_way)) }}</view>
           </view>
           <view class="item row">
             <view class="title">下单时间</view>
-            <view class="black">{{ orderDetail.create_time }}</view>
+            <view class="black">{{ displayValue(orderDetail.create_time) }}</view>
           </view>
           <view v-if="orderDetail.pay_time" class="item row">
             <view class="title">付款时间</view>
@@ -283,6 +338,10 @@ author: likeshop.cn.team
             <view class="title">关闭时间</view>
             <view class="black">{{ orderDetail.cancel_time }}</view>
           </view>
+          <view v-for="row in extraOrderRows" :key="row.label" class="item row">
+            <view class="title">{{ row.label }}</view>
+            <view class="black">{{ row.value }}</view>
+          </view>
         </view>
         <view
           class="footer bg-white row fixed"
@@ -298,7 +357,7 @@ author: likeshop.cn.team
           <view v-if="orderDetail.cancel_btn">
             <button
               size="sm"
-              class="plain br60"
+              class="footer-btn footer-btn--plain"
               hover-class="none"
               @tap="cancelOrder"
             >
@@ -313,14 +372,14 @@ author: likeshop.cn.team
               orderDetail.id
             "
           >
-            <button size="sm" class="plain br60" hover-class="none">
+            <button size="sm" class="footer-btn footer-btn--plain" hover-class="none">
               查看物流
             </button>
           </navigator>
           <view v-if="orderDetail.take_btn" class="ml20">
             <button
               size="sm"
-              class="plain br60 primary red"
+              class="footer-btn footer-btn--primary"
               hover-class="none"
               @tap.stop="comfirmOrder"
             >
@@ -330,7 +389,7 @@ author: likeshop.cn.team
           <view v-if="orderDetail.del_btn">
             <button
               size="sm"
-              class="plain br60"
+              class="footer-btn footer-btn--plain"
               hover-class="none"
               @tap="delOrder"
             >
@@ -338,7 +397,7 @@ author: likeshop.cn.team
             </button>
           </view>
           <view class="ml20" v-if="orderDetail.pay_btn">
-            <button size="sm" class="bg-primary br60 white" @tap="payNow">
+            <button size="sm" class="footer-btn footer-btn--primary" @tap="payNow">
               立即付款
             </button>
           </view>
@@ -485,13 +544,13 @@ export default {
       this.$nextTick(async () => {
         // #ifdef MP-WEIXIN
         let res = {};
-        if (this.orderDetail.pay_way === 1) {
+        if (this.isWechatPayWay(this.orderDetail.pay_way || this.orderDetail.payMethod)) {
           res = await getwechatSyncCheck({ id: this.id });
         }
         if (
           compareWeChatVersion("2.6.0") === 1 &&
           wx.openBusinessView &&
-          this.orderDetail.pay_way === 1 &&
+          this.isWechatPayWay(this.orderDetail.pay_way || this.orderDetail.payMethod) &&
           res.data &&
           res.data.order &&
           res.data.order.order_state !== 1
@@ -527,6 +586,7 @@ export default {
     },
 
     payNow() {
+      uni.$off("payment");
       uni.$on("payment", (params) => {
         setTimeout(() => {
           if (params.result) {
@@ -536,10 +596,9 @@ export default {
             this.getOrderDetailFun();
             uni.$emit("refreshorder");
           } else {
-            this.$toast({
-              title: "支付失败",
-            });
+            this.getOrderDetailFun();
           }
+          uni.$off("payment");
         }, 500);
       });
 
@@ -569,10 +628,56 @@ export default {
             // 提货码
             this.$nextTick(function () {
               const refQR = this.$refs["qrcode"];
-              refQR._makeCode();
+              if (refQR && refQR._makeCode) refQR._makeCode();
             });
           }
         });
+    },
+    pickValue(source = {}, keys = []) {
+      for (const key of keys) {
+        const value = source && source[key];
+        if (value !== undefined && value !== null && value !== '') return value;
+      }
+      return '';
+    },
+    displayValue(value) {
+      if (value === undefined || value === null || value === '') return '-';
+      if (Array.isArray(value)) return value.length ? value.join('、') : '-';
+      if (typeof value === 'object') return JSON.stringify(value);
+      return value;
+    },
+    buildRows(rows) {
+      return rows
+        .map(([label, value]) => ({ label, value: this.displayValue(value) }))
+        .filter((row) => row.value !== '-');
+    },
+    formatMoney(value) {
+      if (value === undefined || value === null || value === '') return '';
+      const amount = Number(value);
+      if (Number.isNaN(amount)) return value;
+      return `¥${amount.toFixed(2)}`;
+    },
+    joinText(list, separator = ' ') {
+      return list.filter((item) => item !== undefined && item !== null && item !== '').join(separator);
+    },
+    formatDeliveryType(type) {
+      const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', PICKUP: '门店自提' };
+      return map[type] || type;
+    },
+    formatPayStatus(status) {
+      const map = { UNPAID: '未支付', PAID: '已支付', REFUNDED: '已退款', CLOSED: '已关闭', 0: '未支付', 1: '已支付' };
+      return map[status] || status;
+    },
+    formatPayWay(value) {
+      const map = { BALANCE: '钱包余额', WECHAT_JSAPI: '微信支付', ALIPAY: '支付宝', 1: '微信支付', 2: '支付宝', 3: '钱包余额' };
+      return map[value] || value;
+    },
+    isWechatPayWay(value) {
+      return value === 1 || value === '1' || value === 'WECHAT_JSAPI' || value === 'wechat' || value === 'wxpay';
+    },
+    formatOrderStatusText(status) {
+      const map = { CREATED: '待付款', PAID: '待发货', SHIPPED: '待收货', COMPLETED: '已完成', CANCELLED: '已关闭', 0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已关闭' };
+      return map[status] || status;
     },
   },
   computed: {
@@ -589,8 +694,90 @@ export default {
 
       return result && !!this.pickupQrValue;
     },
+    isOrderStatus() {
+      const statusMap = {
+        CREATED: [0, '0', 'CREATED'],
+        PAID: [1, '1', 'PAID'],
+        SHIPPED: [2, '2', 'SHIPPED'],
+        COMPLETED: [3, '3', 'COMPLETED'],
+        CANCELLED: [4, '4', 'CANCELLED']
+      };
+      return (status) => statusMap[status].includes(this.orderDetail.order_status);
+    },
     pickupQrValue() {
       return this.orderDetail.pickup_code || this.orderDetail.pickupCode || this.orderDetail.verifyCode || this.orderDetail.order_sn || this.orderDetail.orderNo || '';
+    },
+    amountRows() {
+      return this.buildRows([
+        ['商品金额', this.formatMoney(this.pickValue(this.orderDetail, ['goods_price', 'goodsAmount', 'goods_amount']))],
+        ['运费', this.formatMoney(this.pickValue(this.orderDetail, ['shipping_price', 'freightAmount', 'freight_amount']))],
+        ['优惠金额', this.formatMoney(this.pickValue(this.orderDetail, ['discount_amount', 'discountAmount']))],
+        ['积分抵扣', this.formatMoney(this.pickValue(this.orderDetail, ['integral_amount', 'integralAmount']))],
+        ['实付金额', this.formatMoney(this.pickValue(this.orderDetail, ['order_amount', 'payAmount', 'orderAmount']))],
+        ['退款金额', this.formatMoney(this.pickValue(this.orderDetail.refund_info || {}, ['refundAmount', 'refund_amount', 'amount']))]
+      ]);
+    },
+    deliveryRows() {
+      return this.buildRows([
+        ['配送方式', this.formatDeliveryType(this.orderDetail.delivery_type)],
+        ['收货人', this.orderDetail.consignee],
+        ['联系电话', this.orderDetail.mobile],
+        ['收货地址', this.orderDetail.delivery_address],
+        ['物流公司', this.pickValue(this.orderDetail, ['express_name', 'expressName', 'shipping_name', 'shippingName'])],
+        ['物流单号', this.pickValue(this.orderDetail, ['invoice_no', 'trackingNo', 'tracking_no', 'express_no', 'expressNo'])],
+        ['发货时间', this.orderDetail.shipping_time]
+      ]);
+    },
+    selfFetchRows() {
+      const shop = this.orderDetail.selffetch_shop || {};
+      return this.buildRows([
+        ['门店名称', this.pickValue(shop, ['name', 'shopName', 'shop_name'])],
+        ['门店地址', this.pickValue(shop, ['shop_address', 'address', 'detailAddress'])],
+        ['营业时间', this.joinText([this.pickValue(shop, ['business_start_time', 'businessStartTime']), this.pickValue(shop, ['business_end_time', 'businessEndTime'])], ' - ')],
+        ['门店电话', this.pickValue(shop, ['mobile', 'phone', 'contactMobile'])],
+        ['提货码', this.pickupQrValue],
+        ['提货状态', this.orderDetail.verification_status ? '已核销' : '待核销']
+      ]);
+    },
+    verifyRows() {
+      const verify = this.orderDetail.verify_info || {};
+      if (this.orderDetail.delivery_type != 2 && !Object.keys(verify).length) return [];
+      return this.buildRows([
+        ['核销码', this.pickValue(verify, ['pickupCode', 'verifyCode', 'code']) || this.pickupQrValue],
+        ['核销状态', this.orderDetail.verification_status ? '已核销' : '未核销'],
+        ['核销时间', this.pickValue(verify, ['verifyTime', 'verify_time', 'verificationTime'])],
+        ['核销门店', this.pickValue(verify, ['shopName', 'shop_name', 'storeName'])],
+        ['核销员', this.pickValue(verify, ['staffName', 'staff_name', 'operator'])]
+      ]);
+    },
+    refundRows() {
+      const refund = this.orderDetail.refund_info || {};
+      return this.buildRows([
+        ['售后状态', this.pickValue(refund, ['statusText', 'status_text', 'refundStatusText', 'refund_status_text', 'status'])],
+        ['售后类型', this.pickValue(refund, ['typeText', 'type_text', 'refundTypeText', 'refund_type_text', 'type'])],
+        ['退款金额', this.formatMoney(this.pickValue(refund, ['refundAmount', 'refund_amount', 'amount']))],
+        ['申请原因', this.pickValue(refund, ['reason', 'refundReason', 'refund_reason'])],
+        ['申请时间', this.pickValue(refund, ['createTime', 'create_time', 'applyTime', 'apply_time'])],
+        ['处理时间', this.pickValue(refund, ['handleTime', 'handle_time', 'auditTime', 'audit_time'])]
+      ]);
+    },
+    statusFlowRows() {
+      const list = this.orderDetail.status_flow || this.orderDetail.statusFlow || [];
+      if (!Array.isArray(list)) return [];
+      return list.map((item) => ({
+        title: this.pickValue(item, ['title', 'name', 'statusText', 'status_text', 'status']) || '订单状态',
+        desc: this.pickValue(item, ['desc', 'description', 'content', 'remark']),
+        time: this.pickValue(item, ['time', 'createTime', 'create_time', 'createdAt'])
+      })).filter((item) => item.title || item.desc || item.time);
+    },
+    extraOrderRows() {
+      return this.buildRows([
+        ['支付单号', this.pickValue(this.orderDetail, ['payOrderNo', 'pay_order_no', 'transaction_id', 'transactionId'])],
+        ['第三方流水号', this.pickValue(this.orderDetail, ['outTradeNo', 'out_trade_no', 'tradeNo', 'trade_no'])],
+        ['订单来源', this.pickValue(this.orderDetail, ['source', 'orderSource', 'order_source', 'client'])],
+        ['关闭原因', this.pickValue(this.orderDetail, ['cancelReason', 'cancel_reason', 'closeReason', 'close_reason'])],
+        ['备注', this.pickValue(this.orderDetail, ['remark', 'adminRemark', 'admin_remark'])]
+      ]);
     },
     teamStatus() {
       return (status) => {
@@ -624,6 +811,8 @@ export default {
 <style lang="scss">
 .order-details {
   position: relative;
+  min-height: 100vh;
+  background: #f6f7fb;
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
@@ -631,8 +820,8 @@ export default {
   position: absolute;
   top: 0;
   width: 100%;
-  height: 200rpx;
-  background-color: $color-primary;
+  height: 260rpx;
+  background: linear-gradient(135deg, #ff7a35 0%, #ff2c3c 100%);
   z-index: 0;
 }
 
@@ -644,17 +833,32 @@ export default {
 .order-details .main {
   position: relative;
   z-index: 1;
+  padding-top: 8rpx;
 }
 
 .order-details .contain {
-  margin: 0 20rpx 20rpx;
-  border-radius: 14rpx;
+  margin: 0 24rpx 22rpx;
+  border-radius: 24rpx;
   background-color: #fff;
+  box-shadow: 0 10rpx 28rpx rgba(25, 31, 46, .05);
+  overflow: hidden;
 }
 
 .order-details .header {
-  padding: 24rpx 40rpx;
+  min-height: 160rpx;
+  padding: 34rpx 42rpx 28rpx;
   box-sizing: border-box;
+}
+
+.order-details .header .lg {
+  font-size: 38rpx;
+  font-weight: 700;
+  line-height: 52rpx;
+}
+
+.order-details .header .sm {
+  font-size: 25rpx;
+  opacity: .92;
 }
 
 .order-details .img-line {
@@ -669,21 +873,82 @@ export default {
 }
 
 .order-details .order-info {
-  padding: 12rpx 0;
+  padding: 16rpx 0;
+}
+
+.order-details .card-title {
+  padding: 22rpx 26rpx 12rpx;
+  color: #202124;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 42rpx;
 }
 
 .order-details .order-info .item {
-  padding: 12rpx 24rpx;
+  min-height: 56rpx;
+  padding: 14rpx 26rpx;
+  box-sizing: border-box;
+  color: #606266;
+  font-size: 26rpx;
 }
 
 .order-details .order-info .item .title {
-  width: 180rpx;
+  width: 176rpx;
   flex: none;
+  color: #8b9098;
+}
+
+.order-details .order-info .item .black {
+  flex: 1;
+  min-width: 0;
+  line-height: 38rpx;
+  word-break: break-all;
+}
+
+.flow-item {
+  position: relative;
+  display: flex;
+  padding: 12rpx 26rpx 18rpx;
+}
+
+.flow-dot {
+  flex: none;
+  width: 14rpx;
+  height: 14rpx;
+  margin-top: 12rpx;
+  margin-right: 18rpx;
+  border-radius: 50%;
+  background: #ff2c3c;
+}
+
+.flow-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.flow-title {
+  color: #303133;
+  font-size: 27rpx;
+  line-height: 38rpx;
+}
+
+.flow-desc,
+.flow-time {
+  margin-top: 6rpx;
+  color: #8b9098;
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
 .order-details .price > view {
-  height: 60rpx;
-  padding: 0 24rpx;
+  min-height: 64rpx;
+  padding: 0 26rpx;
+  color: #606266;
+  font-size: 26rpx;
+}
+
+.order-details .price > view:last-child {
+  min-height: 86rpx;
 }
 
 .order-details .footer {
@@ -691,18 +956,39 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 100rpx;
-  padding: 0 24rpx;
-  box-sizing: content-box;
-  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 20;
+  min-height: 112rpx;
+  padding: 16rpx 24rpx calc(16rpx + constant(safe-area-inset-bottom));
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 -10rpx 30rpx rgba(18, 24, 38, .08);
 }
 
-.footer .plain {
-  border: 1rpx solid #bbbbbb;
+.footer button::after {
+  border: 0;
 }
 
-.footer .plain.red {
-  border: 1rpx solid $color-primary;
+.footer-btn {
+  min-width: 156rpx;
+  height: 68rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  line-height: 68rpx;
+}
+
+.footer-btn--plain {
+  color: #303133;
+  background: #ffffff;
+  border: 1rpx solid #dcdfe6;
+}
+
+.footer-btn--primary {
+  color: #ffffff;
+  background: linear-gradient(90deg, #ff7a35 0%, #ff2c3c 100%);
+  box-shadow: 0 10rpx 24rpx rgba(255, 65, 55, .22);
+  border: 0;
 }
 
 .tips-dialog {
@@ -718,9 +1004,9 @@ export default {
 .receiving-card {
   display: flex;
   align-items: center;
-  min-height: 160rpx;
-  padding: 20rpx;
-  border-top: 1rpx solid #f2f2f2;
+  min-height: 152rpx;
+  padding: 24rpx;
+  box-sizing: border-box;
 }
 
 .receiving-content {
@@ -731,6 +1017,7 @@ export default {
 
 .receive {
   position: relative;
+  padding-bottom: 10rpx;
 }
 
 .delivery--die {
@@ -744,7 +1031,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 460rpx;
+  min-height: 430rpx;
 }
 
 .qr-contain {
@@ -755,8 +1042,9 @@ export default {
   width: 280rpx;
   height: 280rpx;
   padding: 16rpx;
-  border: 1rpx solid #cccccc;
-  border-radius: 10rpx;
+  border: 1rpx solid #edf0f5;
+  border-radius: 22rpx;
+  background: #ffffff;
 }
 
 .qr-contain--die {
@@ -778,7 +1066,7 @@ export default {
 .qr-code {
   padding: 8rpx 30rpx;
   border-radius: 120rpx;
-  background-color: #f6f6f6;
+  background-color: #f6f7fb;
 }
 
 .receive-info {

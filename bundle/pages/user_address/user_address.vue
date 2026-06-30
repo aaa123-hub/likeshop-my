@@ -145,8 +145,10 @@ export default {
         onSelect(e) {
             if (this.type) {
                 let { id } = e.currentTarget.dataset
+                const current = this.addressList.find(item => String(item.id) === String(id)) || {}
                 uni.$emit('selectaddress', {
-                    id
+                    id,
+                    address: current
                 })
                 uni.navigateBack()
             }
