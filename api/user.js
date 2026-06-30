@@ -510,11 +510,15 @@ export function confirmOrder(id) {
 }
 
 export function rechargeTemplate() {
-    return Promise.resolve({ code: 1, msg: '暂无推荐充值套餐', data: [] })
+    return request.get('miniapp/recharge/templates').then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return { ...res, data: data.list || data.records || data.items || [] }
+    })
 }
 
 export function getAfterSaleList(params) {
-    return request.get('miniapp/orders', { params }).then((res) => normalizePageResponse(res))
+    return request.get('miniapp/after-sales', { params }).then((res) => normalizePageResponse(res))
 }
 
 export function applyAfterSale(data) {
@@ -728,13 +732,16 @@ export function setUserInfo(data) {
 }
 
 export function changeUserMobile(data) {
+    const smsCode = data.smsCode || data.sms_code || data.verifyCode || data.verify_code || data.code
+    const loginCode = data.jsCode || data.loginCode || data.login_code || data.wxCode || data.wx_code
     const payload = {
         ...data,
         mobile: data.new_mobile || data.mobile || data.phone,
-        smsCode: data.smsCode || data.code,
-        code: data.code,
-        jsCode: data.jsCode || data.loginCode || data.code,
-        loginCode: data.loginCode || data.jsCode || data.code,
+        smsCode,
+        verifyCode: data.verifyCode || data.verify_code || smsCode,
+        code: smsCode,
+        jsCode: loginCode,
+        loginCode,
         encryptedData: data.encryptedData || data.encrypted_data,
         encrypted_data: data.encrypted_data || data.encryptedData,
         iv: data.iv
@@ -743,7 +750,7 @@ export function changeUserMobile(data) {
 }
 
 export function getLevelList() {
-    return request.get('miniapp/points/account').then((res) => {
+    return request.get('miniapp/points/sign/rules').then((res) => {
         if (res.code != 1) return res
         return {
             ...res,
@@ -845,7 +852,7 @@ export function scanOfflinePayment(data) {
 }
 
 export function getPointsAccount() {
-    return request.get('miniapp/points/account').then((res) => {
+    return request.get('miniapp/points/sign/rules').then((res) => {
         if (res.code != 1) return res
         const data = res.data || {}
         return {
@@ -996,52 +1003,15 @@ export function readMessage(messageId, params = {}) {
 }
 
 export function getSignList() {
-    return Promise.all([getPointsAccount(), getUser()]).then(([pointsRes, userRes]) => {
-        if (pointsRes.code != 1) return pointsRes
-        const points = pointsRes.data || {}
-        const user = userRes.code == 1 ? userRes.data || {} : {}
-        const signList = Array.from({ length: 7 }, (_, index) => ({
-            days: index + 1,
-            integral: index + 1,
-            status: 0
-        }))
-        return {
-            ...pointsRes,
-            data: {
-                ...points,
-                sign_list: signList,
-                list: signList,
-                user: {
-                    ...user,
-                    user_integral: points.available_points || points.availablePoints || points.total_points || 0,
-                    avatar: user.avatar || '',
-                    today_sign: 0,
-                    days: 0
-                },
-                make_inegral: []
-            }
-        }
-    })
+    return request.get('miniapp/points/sign/rules')
 }
 
 export function userSign() {
-    return getPointsAccount().then((res) => {
-        const points = res.data || {}
-        return {
-            code: 1,
-            msg: '签到成功',
-            data: {
-                fallback: true,
-                days: points.signDays || points.continuousSignDays || 1,
-                growth: 0,
-                integral: points.dailySignPoints || points.signPoints || 1
-            }
-        }
-    })
+    return request.post('miniapp/points/sign')
 }
 
 export function getSignRule() {
-    return request.get('miniapp/points/account')
+    return request.get('miniapp/points/sign/rules')
 }
 
 export function userLogout(data) {
@@ -1086,9 +1056,8 @@ export function getPrize(data) {
 }
 
 export function getUserRecord(data) {
-    return request.get('miniapp/messages', {
+    return request.get('miniapp/lottery/records', {
         params: {
-            bizType: data?.bizType || 'LOTTERY',
             pageNo: data?.pageNo || data?.page_no || 1,
             pageSize: data?.pageSize || data?.page_size || 20
         }

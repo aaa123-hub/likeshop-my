@@ -237,7 +237,6 @@ function normalizePaywayResponse(res, params = {}) {
   const amountInfo = data.amountInfo || {};
   const baseInfo = data.baseInfo || {};
   const amount = amountInfo.payAmount || data.paidAmount || data.payAmount || data.orderAmount || baseInfo.orderAmount || params.order_amount || params.amount || 0;
-  const payMethods = data.pay || data.payMethods || data.paymentMethods || defaultPaywayList();
   return {
     ...(res || {}),
     code: res && res.code == 0 ? 0 : 1,
@@ -245,21 +244,8 @@ function normalizePaywayResponse(res, params = {}) {
       ...data,
       order_amount: amount,
       cancel_time: data.cancelTime || data.expireTime || baseInfo.expireTime || params.cancel_time || now + 30 * 60,
-      pay: payMethods.map(normalizePaywayItem),
+      pay: data.pay || data.payMethods || data.paymentMethods || defaultPaywayList(),
     },
-  };
-}
-
-function normalizePaywayItem(item = {}) {
-  const payMethod = normalizePayMethod(item.payMethod || item.pay_way || item.payWay || item.id);
-  return {
-    ...item,
-    id: item.id || payMethod,
-    name: item.name || item.payName || item.pay_name || payMethod,
-    pay_way: payMethod,
-    payMethod,
-    extra: item.extra || item.description || item.desc || "",
-    icon: item.icon || item.iconUrl || item.logo || "",
   };
 }
 
@@ -318,26 +304,16 @@ export function opLogin(data) {
 //预支付接口
 export async function prepay(data = {}) {
   const openId = data.openId || data.openid || data.open_id || currentOpenId();
-  const payMethod = normalizePayMethod(data.payMethod || data.pay_way || data.payWay);
-  if (payMethod === "WECHAT_JSAPI" && !openId) {
-    return Promise.resolve({
-      code: 0,
-      rawCode: "A0101",
-      msg: "缺少微信支付授权信息，请重新登录后再使用微信支付",
-      message: "missing wechat pay config: CreatePayOrderCommand.openId",
-      data: null,
-    });
-  }
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
     bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
     payScene: data.payScene || "MINIAPP",
-    payMethod,
+    payMethod: normalizePayMethod(data.payMethod || data.pay_way || data.payWay),
     clientIp: data.clientIp || "127.0.0.1",
     openId,
     idempotentKey:
       data.idempotentKey ||
-      `pay-${data.order_id || data.bizOrderNo || Date.now()}-${payMethod}`,
+      `pay-${data.order_id || data.bizOrderNo || Date.now()}-${normalizePayMethod(data.pay_way)}`,
     client,
   });
   return normalizePaymentResponse(res);

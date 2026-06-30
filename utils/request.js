@@ -94,9 +94,6 @@ function validateRequestParams(config) {
   const method = String(config.method || "GET").toUpperCase();
   const missing = [];
 
-  if (url.startsWith("miniapp/user/profile") && !getParamValue(config, ["userId", "user_id", "id"])) {
-    missing.push("userId");
-  }
   if (/^miniapp\/(product|shop)\//.test(url) && hasInvalidPathParam(url.split("?")[0])) {
     missing.push(url.startsWith("miniapp/product/") ? "spuId" : "shopId");
   }

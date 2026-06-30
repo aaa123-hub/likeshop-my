@@ -121,16 +121,13 @@ function normalizeOrderDetail(data = {}) {
   const baseInfo = data.baseInfo || data
   const amountInfo = data.amountInfo || {}
   const itemList = (data.itemList || data.order_goods || data.goods_lists || []).map(normalizeOrderItem)
-  const orderStatus = data.orderStatus || baseInfo.orderStatus || data.order_status
-  const payAmount = amountInfo.payAmount || amountInfo.orderAmount || baseInfo.payAmount || baseInfo.orderAmount || data.payAmount || data.orderAmount || data.totalAmount || data.order_amount || 0
   return {
     ...data,
     id: data.orderNo || baseInfo.orderNo || data.id,
     order_sn: data.orderNo || baseInfo.orderNo || baseInfo.orderSn || data.order_sn,
-    order_status: orderStatus,
+    order_status: data.orderStatus || baseInfo.orderStatus || data.order_status,
     pay_status: data.payStatus || baseInfo.payStatus || data.pay_status,
-    order_amount: payAmount,
-    payAmount,
+    order_amount: amountInfo.payAmount || baseInfo.orderAmount || data.order_amount || 0,
     goods_price: amountInfo.goodsAmount || baseInfo.goodsAmount || data.goods_price || 0,
     shipping_price: amountInfo.freightAmount || baseInfo.freightAmount || data.shipping_price || 0,
     discount_amount: amountInfo.discountAmount || baseInfo.discountAmount || data.discount_amount || 0,
@@ -157,11 +154,11 @@ function normalizeOrderDetail(data = {}) {
     refund_info: data.refundInfo || data.refund_info || {},
     verify_info: data.verifyInfo || data.verify_info || {},
     team: data.team || {},
-    cancel_btn: data.cancel_btn ?? orderStatus === 'CREATED',
-    delivery_btn: data.delivery_btn ?? orderStatus === 'SHIPPED',
-    take_btn: data.take_btn ?? orderStatus === 'SHIPPED',
-    del_btn: data.del_btn ?? ['CANCELLED', 'COMPLETED'].includes(orderStatus),
-    pay_btn: data.pay_btn ?? orderStatus === 'CREATED'
+    cancel_btn: data.cancel_btn,
+    delivery_btn: data.delivery_btn,
+    take_btn: data.take_btn,
+    del_btn: data.del_btn,
+    pay_btn: data.pay_btn
   }
 }
 

@@ -109,7 +109,6 @@ export async function loadingFun(fun, page, dataList = [], status, params) {
   if (status == loadingType.FINISHED) return false;
   const { code, data } = await fun({
     page_no: page,
-    pageNo: page,
     ...params,
   });
   uni.stopPullDownRefresh();
