@@ -95,6 +95,9 @@ import UModal from '@/bundle_user/components/uview-ui/components/u-modal/u-modal
 import { getService } from '@/api/app'
 import { copy } from '@/utils/tools'
 
+const CONTACT_LOGO_URL = 'https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png'
+const CONTACT_QRCODE_URL = 'https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png'
+
 export default {
     name: 'contactOffical',
     components: {
@@ -104,8 +107,8 @@ export default {
         return {
             server: {
                 name: '平台客服',
-                image: '',
-                qrcode: '',
+                image: CONTACT_LOGO_URL,
+                qrcode: CONTACT_QRCODE_URL,
                 wechat: '',
                 qq: '',
                 phone: '',
@@ -141,8 +144,8 @@ export default {
                         ...this.server,
                         ...data,
                         name: data.name || data.appName || data.title || this.server.name,
-                        image: data.image || '',
-                        qrcode: data.qrcode || '',
+                        image: CONTACT_LOGO_URL,
+                        qrcode: CONTACT_QRCODE_URL,
                         onlineUrl: data.onlineUrl || data.online_url || ''
                     }
                 }
