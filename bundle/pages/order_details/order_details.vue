@@ -160,7 +160,7 @@ author: likeshop.cn.team
           </view>
         </view>
 
-        <view class="goods contain" style="margin-bottom: 0">
+        <view class="goods contain">
           <view class="status row-between" v-if="team.status != null">
             <view>拼团状态</view>
             <view
@@ -173,15 +173,37 @@ author: likeshop.cn.team
               {{ teamStatus(team.status) }}
             </view>
           </view>
-          <order-goods
-            :team="team"
-            :link="true"
-            :list="orderDetail.order_goods"
-            :order_type="orderDetail.order_type"
-          ></order-goods>
+          <view class="order-goods-list">
+            <view v-for="(item, index) in orderGoodsList" :key="index" class="order-goods-item">
+              <view class="order-goods-main" @tap="toGoods(item.goods_id)">
+                <custom-image class="order-goods-image" width="168rpx" height="168rpx" radius="18rpx" mode="aspectFill" lazy-load :src="item.image_str || item.image"></custom-image>
+                <view class="order-goods-info">
+                  <view class="order-goods-name line2">
+                    <text v-if="team.need" class="team-tag">{{ team.need }}人团</text>{{ item.goods_name || item.name }}
+                  </view>
+                  <view class="order-goods-spec line1">{{ item.spec_value_str || item.spec_value || '默认规格' }}</view>
+                  <view class="order-goods-bottom">
+                    <view class="order-goods-price">
+                      <price-format :weight="500" :subscript-size="24" :first-size="34" :second-size="24" :price="item.original_price || item.goods_price"></price-format>
+                    </view>
+                    <view class="order-goods-num">x{{ item.goods_num || item.num || 1 }}</view>
+                  </view>
+                </view>
+              </view>
+              <view class="order-goods-actions" v-if="item.comment_btn || item.refund_btn || item.after_status_desc">
+                <view class="after-status" v-if="item.after_status_desc">{{ item.after_status_desc }}</view>
+                <navigator hover-class="none" :url="'/bundle_order/pages/goods_reviews/goods_reviews?id=' + item.id" v-if="item.comment_btn">
+                  <button size="xs" class="goods-action-btn" hover-class="none">评价晒图</button>
+                </navigator>
+                <navigator hover-class="none" :url="'/bundle_order/pages/apply_refund/apply_refund?order_id=' + item.order_id + '&item_id=' + item.item_id" v-if="item.refund_btn">
+                  <button size="xs" class="goods-action-btn" hover-class="none">申请退款</button>
+                </navigator>
+              </view>
+            </view>
+          </view>
         </view>
 
-        <view class="price contain" style="border-radius: 0rpx 14rpx">
+        <view class="price contain">
           <view class="row-between" v-if="priceShow">
             <view>商品总价</view>
             <view class="black">
@@ -406,12 +428,7 @@ author: likeshop.cn.team
     </view>
 
     <loading-view v-if="isFirstLoading"></loading-view>
-    <order-dialog
-      ref="orderDialog"
-      :orderId="orderDetail.id"
-      :type="type"
-      @refresh="onRefresh"
-    ></order-dialog>
+    <u-modal v-model="showOrderDialog" :show-cancel-button="true" :content="orderDialogText" confirm-color="#ff2c3c" @confirm="onOrderDialogConfirm"></u-modal>
     <loading-view
       v-if="showLoading"
       background-color="transparent"
@@ -428,6 +445,8 @@ import {
   getwechatSyncCheck,
   getwxReceiveDetail,
   confirmOrder,
+  cancelOrder as cancelOrderApi,
+  delOrder as delOrderApi,
 } from "@/api/order";
 import { compareWeChatVersion } from "@/utils/tools";
 
@@ -435,6 +454,7 @@ import { prepay } from "@/api/app";
 import { wxpay, alipay } from "@/utils/pay";
 import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
+import UModal from '@/bundle/components/uview-ui/components/u-modal/u-modal.vue'
 import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 export default {
@@ -447,6 +467,7 @@ export default {
       cancelTime: 0,
       showCancel: "",
       showLoading: false,
+      showOrderDialog: false,
       imageQR: "",
       priceShow: false,
       didShowOnce: false,
@@ -458,7 +479,8 @@ export default {
 			Navbar,
 			TkiQrcode,
 			UCountDown,
-			UIcon
+			UIcon,
+			UModal
 		},
   props: {},
 
@@ -492,7 +514,24 @@ export default {
       }
     },
     orderDialog() {
-      this.$refs.orderDialog.open();
+      this.showOrderDialog = true;
+    },
+
+    async onOrderDialogConfirm() {
+      let res = null;
+      if (this.type === 0) res = await cancelOrderApi(this.orderDetail.id);
+      if (this.type === 1) res = await delOrderApi(this.orderDetail.id);
+      if (this.type === 2) res = await confirmOrder(this.orderDetail.id);
+      if (res && res.code == 1) {
+        this.showOrderDialog = false;
+        this.$toast({ title: res.msg || '操作成功' });
+        this.onRefresh();
+      }
+    },
+
+    toGoods(id) {
+      if (!id) return;
+      uni.navigateTo({ url: `/bundle/pages/goods_details/goods_details?id=${id}` });
     },
 
     delOrder() {
@@ -669,8 +708,7 @@ export default {
       return map[status] || status;
     },
     formatPayWay(value) {
-      const map = { BALANCE: '钱包余额', WECHAT_JSAPI: '微信支付', ALIPAY: '支付宝', 1: '微信支付', 2: '支付宝', 3: '钱包余额' };
-      return map[value] || value;
+      return '微信支付';
     },
     isWechatPayWay(value) {
       return value === 1 || value === '1' || value === 'WECHAT_JSAPI' || value === 'wechat' || value === 'wxpay';
@@ -681,6 +719,13 @@ export default {
     },
   },
   computed: {
+    orderGoodsList() {
+      return this.orderDetail.order_goods || this.orderDetail.goods_lists || [];
+    },
+    orderDialogText() {
+      const map = { 0: '确认取消订单吗？', 1: '确认删除订单吗？', 2: '确认收货吗？' };
+      return map[this.type] || '确认操作吗？';
+    },
     showQRSelffetch() {
       let result = false;
 
@@ -820,33 +865,138 @@ export default {
   position: absolute;
   top: 0;
   width: 100%;
-  height: 260rpx;
-  background: linear-gradient(135deg, #ff7a35 0%, #ff2c3c 100%);
+  height: 300rpx;
+  background: linear-gradient(135deg, #1677ff 0%, #04befe 52%, #35d7a0 100%);
   z-index: 0;
 }
 
 .order-details .goods .status {
   height: 88rpx;
-  padding: 0 20rpx;
+  padding: 0 26rpx;
+  color: #303133;
+  font-size: 27rpx;
+  border-bottom: 1rpx solid #f0f2f5;
+}
+
+.order-goods-list {
+  padding: 6rpx 0;
+}
+
+.order-goods-item {
+  padding: 22rpx 24rpx;
+}
+
+.order-goods-item + .order-goods-item {
+  border-top: 1rpx solid #f0f2f5;
+}
+
+.order-goods-main {
+  display: flex;
+  align-items: flex-start;
+}
+
+.order-goods-image {
+  flex: none;
+  background: #f6f7fb;
+}
+
+.order-goods-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 22rpx;
+}
+
+.order-goods-name {
+  color: #202124;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 40rpx;
+}
+
+.team-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 32rpx;
+  margin-right: 10rpx;
+  padding: 0 10rpx;
+  color: #1677ff;
+  font-size: 20rpx;
+  line-height: 32rpx;
+  border: 1rpx solid rgba(22, 119, 255, .35);
+  border-radius: 999rpx;
+  background: #eef6ff;
+}
+
+.order-goods-spec {
+  margin-top: 12rpx;
+  color: #8b9098;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.order-goods-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24rpx;
+}
+
+.order-goods-price {
+  color: #ff2c3c;
+}
+
+.order-goods-num {
+  color: #909399;
+  font-size: 24rpx;
+}
+
+.order-goods-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 64rpx;
+  padding-top: 18rpx;
+}
+
+.after-status {
+  margin-right: 18rpx;
+  color: #f1790e;
+  font-size: 24rpx;
+}
+
+.goods-action-btn {
+  height: 52rpx;
+  margin-left: 16rpx;
+  padding: 0 24rpx;
+  color: #303133;
+  font-size: 24rpx;
+  line-height: 52rpx;
+  border: 1rpx solid #dcdfe6;
+  border-radius: 999rpx;
+  background: #ffffff;
+}
+
+.goods-action-btn::after {
+  border: 0;
 }
 
 .order-details .main {
   position: relative;
   z-index: 1;
-  padding-top: 8rpx;
+  padding-top: 12rpx;
 }
 
 .order-details .contain {
   margin: 0 24rpx 22rpx;
   border-radius: 24rpx;
   background-color: #fff;
-  box-shadow: 0 10rpx 28rpx rgba(25, 31, 46, .05);
+  box-shadow: 0 12rpx 30rpx rgba(25, 31, 46, .06);
   overflow: hidden;
 }
 
 .order-details .header {
-  min-height: 160rpx;
-  padding: 34rpx 42rpx 28rpx;
+  min-height: 176rpx;
+  padding: 42rpx 42rpx 30rpx;
   box-sizing: border-box;
 }
 
@@ -945,6 +1095,10 @@ export default {
   padding: 0 26rpx;
   color: #606266;
   font-size: 26rpx;
+}
+
+.order-details .price {
+  padding: 12rpx 0 6rpx;
 }
 
 .order-details .price > view:last-child {

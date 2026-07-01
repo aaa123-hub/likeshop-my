@@ -105,16 +105,6 @@
                         <text>微信支付</text>
                         <view class="pay-radio"></view>
                     </view>
-                    <view class="divider"></view>
-                    <view class="pay-item">
-                        <image
-                            class="pay-icon bank"
-                            src="https://shengyuan.store/api/miniapp/files/miniapp/094ba7e82c9843c6996af9fe0ac4ff41/bf1f6b760680089957df01cc0be7ea9e.png"
-                            mode="scaleToFill"
-                        ></image>
-                        <text>银行卡支付</text>
-                        <view class="pay-radio"></view>
-                    </view>
                 </view>
             </view>
         </scroll-view>

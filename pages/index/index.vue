@@ -18,12 +18,6 @@
 
         <view class="home-content">
             <view class="feature-grid">
-                <navigator class="balance-card" hover-class="none" url="/bundle_finance/pages/user_wallet/user_wallet">
-                    <view class="feature-label">我的余额</view>
-                    <view class="balance-amount">¥{{ walletBalanceText }}</view>
-                    <image class="balance-image" :src="designAssets.homeBalanceBill" mode="aspectFit"></image>
-                </navigator>
-
                 <view class="feature-stack">
                     <view class="feature-card" @tap="openScan">
                         <view>
@@ -187,7 +181,7 @@ const homeShortcutRoutes = {
     ORDER: { name: '订单', url: '/bundle_order/pages/user_order/user_order' },
     MESSAGE: { name: '消息', url: '/bundle_misc/pages/notice/notice' },
     ACTIVITY: { name: '活动', url: '/business/pages/business_pages/activity_center' },
-    WALLET: { name: '钱包', url: '/bundle_finance/pages/user_wallet/user_wallet' }
+    WALLET: { name: '分账', url: '/bundle_finance/pages/user_wallet/user_wallet' }
 }
 
 const homeShortcutAliases = {
@@ -195,7 +189,7 @@ const homeShortcutAliases = {
     订单: 'ORDER',
     消息: 'MESSAGE',
     活动: 'ACTIVITY',
-    钱包: 'WALLET'
+    分账: 'WALLET'
 }
 
 export default {
@@ -215,11 +209,6 @@ export default {
         ...mapGetters(['userInfo']),
         userName() {
             return this.userInfo.nickname || this.userInfo.user_name || this.userInfo.mobile || 'XXXX'
-        },
-        walletBalanceText() {
-            const balance = this.homeData.walletCard?.balance
-            const value = balance !== undefined && balance !== null ? balance : this.userInfo.user_money
-            return Number(value || 0).toFixed(2)
         },
         quickEntryList() {
             const source = this.homeData.quickEntries || []
@@ -572,54 +561,18 @@ export default {
     justify-content: space-between;
 }
 
-.balance-card {
-    position: relative;
-    flex: 1 1 0;
-    min-width: 0;
-    height: 326rpx;
-    padding: 40rpx 28rpx;
-    overflow: hidden;
-    border: 2rpx solid #ffffff;
-    border-radius: 18rpx;
-    background: linear-gradient(180deg, #dceeff 0%, #eef7ff 100%);
-    box-sizing: border-box;
-}
-
 .feature-label {
     color: #666666;
     font-size: 30rpx;
     font-weight: 600;
 }
 
-.balance-amount {
-    margin-top: 26rpx;
-    color: #222222;
-    font-size: 56rpx;
-    font-weight: 600;
-    line-height: 72rpx;
-}
-
-.balance-image {
-    position: absolute;
-    right: 18rpx;
-    bottom: 14rpx;
-    width: 156rpx;
-    height: 156rpx;
-    opacity: 0.92;
-    z-index: 0;
-}
-
-.feature-label,
-.balance-amount {
-    position: relative;
-    z-index: 1;
-}
-
 .feature-stack {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 24rpx;
     justify-content: space-between;
-    flex: 1 1 0;
+    width: 100%;
     min-width: 0;
 }
 
@@ -627,6 +580,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex: 1 1 0;
     height: 152rpx;
     padding: 0 26rpx 0 30rpx;
     border-radius: 16rpx;

@@ -1,29 +1,39 @@
 <template>
     <view class="contact-page">
         <view class="contact-hero">
-            <view class="contact-hero__title">联系客服</view>
-            <view class="contact-hero__desc">如遇商品、订单、支付问题，可通过以下方式联系平台客服</view>
+            <view class="contact-hero__eyebrow">官方客服</view>
+            <view class="contact-hero__title">需要帮助吗</view>
+            <view class="contact-hero__desc">商品咨询、订单售后、支付问题都可以联系平台客服处理</view>
         </view>
 
         <view class="contact-card">
             <view class="contact-card__head">
-                <image class="contact-card__avatar" :src="server.image || server.qrcode" mode="aspectFill"></image>
+                <image v-if="server.image || server.qrcode" class="contact-card__avatar" :src="server.image || server.qrcode" mode="aspectFill"></image>
+                <view v-else class="contact-card__avatar contact-card__avatar--empty">客</view>
                 <view class="contact-card__info">
                     <view class="contact-card__name">{{ server.name || '平台客服' }}</view>
-                    <view class="contact-card__time">{{ server.time }}</view>
+                    <view class="contact-card__time">{{ server.time || '服务时间待配置' }}</view>
                 </view>
+                <view class="contact-card__status">在线咨询</view>
             </view>
 
             <view class="context-card" v-if="goodsName || shopName">
-                <view class="context-card__label">咨询内容</view>
-                <view class="context-card__text line1">{{ goodsName || shopName }}</view>
+                <image v-if="goodsImage" class="context-card__image" :src="goodsImage" mode="aspectFill"></image>
+                <view class="context-card__main">
+                    <view class="context-card__label">当前咨询</view>
+                    <view class="context-card__text line1">{{ goodsName || shopName }}</view>
+                    <view class="context-card__meta line1">
+                        <text v-if="price">¥{{ price }}</text>
+                        <text v-if="shopName">{{ price ? ' · ' : '' }}{{ shopName }}</text>
+                    </view>
+                </view>
             </view>
 
-            <view class="qrcode-box" @tap="previewQrcode">
+            <view v-if="server.qrcode" class="qrcode-box" @tap="previewQrcode">
                 <image v-if="server.qrcode || server.image" class="qrcode-box__image" :src="server.qrcode || server.image" mode="aspectFit"></image>
-                <view v-else class="qrcode-box__empty">暂无客服二维码</view>
             </view>
-            <view class="qrcode-tip">长按识别或点击预览二维码添加客服</view>
+            <view v-if="server.qrcode" class="qrcode-tip">长按识别或点击预览二维码添加客服</view>
+            <view v-else class="qrcode-box qrcode-box--empty">客服二维码待配置</view>
 
             <view class="contact-row" v-if="server.wechat">
                 <view class="contact-row__main">
@@ -49,22 +59,24 @@
                 <view class="contact-row__btn" @tap="showTelTips">拨打</view>
             </view>
 
+            <view v-if="!hasServiceContact" class="contact-empty">客服联系方式暂未配置，请稍后再试</view>
+
             <view class="contact-actions">
                 <!-- #ifdef MP-WEIXIN -->
                 <button open-type="contact" class="contact-action contact-action--primary">在线客服</button>
                 <!-- #endif -->
                 <!-- #ifndef MP-WEIXIN -->
-                <view class="contact-action contact-action--primary" @tap="tipsShow">在线客服</view>
+                <view class="contact-action contact-action--primary" @tap="openOnlineService">在线客服</view>
                 <!-- #endif -->
-                <view class="contact-action" @tap="copyServiceSummary">复制客服信息</view>
+                <view class="contact-action" @tap="copyServiceSummary">复制信息</view>
             </view>
         </view>
 
         <view class="contact-tips">
             <view class="contact-tips__title">温馨提示</view>
-            <view class="contact-tips__item">1. 咨询商品问题时，请提供商品名称或订单号。</view>
-            <view class="contact-tips__item">2. 在线客服不可用时，可复制微信或拨打客服电话。</view>
-            <view class="contact-tips__item">3. 客服服务时间以页面展示为准。</view>
+            <view class="contact-tips__item">1. 从商品详情进入时，客服会优先按当前商品协助处理。</view>
+            <view class="contact-tips__item">2. 如二维码、微信、电话为空，说明后台客服资料未配置。</view>
+            <view class="contact-tips__item">3. 客服服务时间以页面实际展示为准。</view>
         </view>
 
         <u-modal
@@ -82,7 +94,6 @@
 import UModal from '@/bundle_user/components/uview-ui/components/u-modal/u-modal.vue'
 import { getService } from '@/api/app'
 import { copy } from '@/utils/tools'
-import { resolveImage } from '@/utils/image-placeholder'
 
 export default {
     name: 'contactOffical',
@@ -93,23 +104,33 @@ export default {
         return {
             server: {
                 name: '平台客服',
-                image: resolveImage('', 'avatar'),
+                image: '',
                 qrcode: '',
                 wechat: '',
                 qq: '',
                 phone: '',
-                time: '工作日 09:00-18:00'
+                time: '',
+                onlineUrl: ''
             },
             goodsName: '',
+            goodsImage: '',
             shopName: '',
+            price: '',
             showPhoneCall: false,
             content: '即将拨打客服电话'
         }
     },
     onLoad(options = {}) {
         this.goodsName = decodeURIComponent(options.goodsName || '')
+        this.goodsImage = decodeURIComponent(options.goodsImage || '')
         this.shopName = decodeURIComponent(options.shopName || '')
+        this.price = decodeURIComponent(options.price || '')
         this.$getService()
+    },
+    computed: {
+        hasServiceContact() {
+            return Boolean(this.server.qrcode || this.server.wechat || this.server.qq || this.server.phone || this.server.onlineUrl)
+        }
     },
     methods: {
         $getService() {
@@ -120,18 +141,31 @@ export default {
                         ...this.server,
                         ...data,
                         name: data.name || data.appName || data.title || this.server.name,
-                        image: data.image || data.qrcode || this.server.image,
-                        qrcode: data.qrcode || data.image || ''
+                        image: data.image || '',
+                        qrcode: data.qrcode || '',
+                        onlineUrl: data.onlineUrl || data.online_url || ''
                     }
                 }
             })
         },
-        tipsShow() {
+        openOnlineService() {
+            if (this.server.onlineUrl) {
+                if (this.server.onlineUrl.indexOf('/') === 0) {
+                    uni.navigateTo({ url: this.server.onlineUrl })
+                    return
+                }
+                this.onCopy(this.server.onlineUrl)
+                return
+            }
             if (this.server.wechat) {
                 this.onCopy(this.server.wechat)
                 return
             }
-            uni.showToast({ title: '请扫码添加客服', icon: 'none' })
+            if (this.server.qrcode) {
+                this.previewQrcode()
+                return
+            }
+            uni.showToast({ title: '客服入口待配置', icon: 'none' })
         },
         onCopy(str) {
             if (!str) {
@@ -146,9 +180,14 @@ export default {
                 this.server.qq ? `客服QQ：${this.server.qq}` : '',
                 this.server.phone ? `客服电话：${this.server.phone}` : '',
                 this.server.time ? `服务时间：${this.server.time}` : '',
+                this.server.onlineUrl ? `在线客服：${this.server.onlineUrl}` : '',
                 this.goodsName ? `咨询商品：${this.goodsName}` : '',
                 this.shopName ? `店铺：${this.shopName}` : ''
             ].filter(Boolean)
+            if (!list.length) {
+                uni.showToast({ title: '暂无可复制内容', icon: 'none' })
+                return
+            }
             this.onCopy(list.join('\n'))
         },
         showTelTips() {
@@ -191,6 +230,15 @@ export default {
     color: #ffffff;
 }
 
+.contact-hero__eyebrow {
+    display: inline-flex;
+    padding: 8rpx 18rpx;
+    margin-bottom: 18rpx;
+    font-size: 22rpx;
+    border-radius: 24rpx;
+    background: rgba(255, 255, 255, 0.18);
+}
+
 .contact-hero__title {
     font-size: 44rpx;
     font-weight: 600;
@@ -228,9 +276,26 @@ export default {
     background: #eef4ff;
 }
 
+.contact-card__avatar--empty {
+    color: #037dfa;
+    font-size: 36rpx;
+    font-weight: 600;
+    line-height: 96rpx;
+    text-align: center;
+}
+
 .contact-card__info {
+    flex: 1;
     min-width: 0;
     margin-left: 20rpx;
+}
+
+.contact-card__status {
+    padding: 10rpx 18rpx;
+    color: #037dfa;
+    font-size: 22rpx;
+    border-radius: 22rpx;
+    background: #eaf5ff;
 }
 
 .contact-card__name {
@@ -246,10 +311,25 @@ export default {
 }
 
 .context-card {
+    display: flex;
+    align-items: center;
     margin-top: 28rpx;
     padding: 18rpx 22rpx;
     background: #f5f9ff;
     border-radius: 18rpx;
+}
+
+.context-card__image {
+    width: 92rpx;
+    height: 92rpx;
+    margin-right: 18rpx;
+    border-radius: 16rpx;
+    background: #eef4ff;
+}
+
+.context-card__main {
+    flex: 1;
+    min-width: 0;
 }
 
 .context-card__label {
@@ -261,6 +341,12 @@ export default {
     margin-top: 8rpx;
     color: #222222;
     font-size: 26rpx;
+}
+
+.context-card__meta {
+    margin-top: 8rpx;
+    color: #777777;
+    font-size: 22rpx;
 }
 
 .qrcode-box {
@@ -282,6 +368,13 @@ export default {
 .qrcode-box__empty {
     color: #999999;
     font-size: 26rpx;
+}
+
+.qrcode-box--empty {
+    color: #8b96a8;
+    font-size: 26rpx;
+    border: 2rpx dashed #dbe6f2;
+    background: #f7faff;
 }
 
 .qrcode-tip {
@@ -322,6 +415,16 @@ export default {
     text-align: center;
     border-radius: 26rpx;
     background: #037dfa;
+}
+
+.contact-empty {
+    margin-top: 28rpx;
+    padding: 22rpx 24rpx;
+    color: #8b6b2e;
+    font-size: 24rpx;
+    line-height: 36rpx;
+    border-radius: 18rpx;
+    background: #fff7e8;
 }
 
 .contact-actions {

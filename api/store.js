@@ -55,6 +55,12 @@ function parseDetailContent(value) {
     return ''
 }
 
+function imagesToDetailContent(images = []) {
+    return images.map(function(image) {
+        return '<img style="max-width:100%;display:block;" src="' + resolveImage(image, 'goods') + '" />'
+    }).join('')
+}
+
 function normalizeCouponItem(item = {}) {
     var threshold = item.thresholdAmount || item.minAmount || item.useThreshold
     var amount = item.amount || item.discountAmount || item.couponAmount || item.value
@@ -168,11 +174,16 @@ function normalizeSpecList(skuList = []) {
 }
 
 function normalizeGoodsDetail(detail = {}, spuId) {
-    var images = parseImageList(detail.images || detail.imageUrls || detail.albumUrls || detail.goods_image)
+    var images = parseImageList(detail.images || detail.imageUrls || detail.image_urls || detail.albumUrls || detail.album_urls || detail.goods_image || detail.mainImages || detail.main_images)
     if (!images.length && (detail.mainImageUrl || detail.cover || detail.image)) {
         images.push(detail.mainImageUrl || detail.cover || detail.image)
     }
     var goodsItem = (detail.skuList || detail.goods_item || []).map(normalizeSkuItem)
+    if (!images.length) {
+        goodsItem.forEach(function(item) {
+            if (item.image) images.push(item.image)
+        })
+    }
     if (!goodsItem.length) {
         goodsItem.push(normalizeSkuItem({
             id: detail.defaultSkuId || detail.skuId || detail.id || spuId,
@@ -187,7 +198,20 @@ function normalizeGoodsDetail(detail = {}, spuId) {
     var shopInfo = detail.shopInfo || detail.shop || detail.shop_info || {}
     var commentSummary = normalizeCommentSummary(detail.commentSummary || detail.comment || {})
     var coupons = (detail.couponList || detail.coupon_list || detail.coupons || []).map(normalizeCouponItem)
-    var content = parseDetailContent(detail.content || detail.goods_detail || detail.detail || detail.detailJson || detail.description)
+    var detailImages = parseImageList(detail.detailImages || detail.detail_images || detail.descImages || detail.desc_images || detail.descriptionImages || detail.description_images)
+    var content = parseDetailContent(detail.content || detail.goods_detail || detail.detail || detail.detailJson || detail.detail_json || detail.richText || detail.rich_text || detail.description) || imagesToDetailContent(detailImages)
+    var freightTemplate = detail.freight_template || detail.freightTemplate || detail.shippingTemplate || detail.shipping_template || {}
+    var freightAmount = valueOr(detail.freight_amount, detail.freightAmount)
+    freightAmount = valueOr(freightAmount, detail.shippingFee)
+    freightAmount = valueOr(freightAmount, detail.shipping_fee)
+    freightAmount = valueOr(freightAmount, detail.postage)
+    freightAmount = valueOr(freightAmount, freightTemplate.freightAmount)
+    freightAmount = valueOr(freightAmount, valueOr(freightTemplate.freight_amount, 0))
+    var freeShipping = valueOr(detail.freeShipping, detail.free_shipping)
+    freeShipping = valueOr(freeShipping, detail.isFreeShipping)
+    freeShipping = valueOr(freeShipping, detail.is_free_shipping)
+    freeShipping = valueOr(freeShipping, detail.postageFree)
+    freeShipping = valueOr(freeShipping, detail.postage_free)
 
     return Object.assign({}, detail, {
         id: detail.id || detail.spuId || detail.productId || spuId,
@@ -208,7 +232,7 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         sales_sum: detail.sales_sum || detail.salesCount || detail.sales_count || detail.virtualSales || 0,
         stock: valueOr(detail.stock, valueOr(detail.stockQty, goodsItem.reduce(function(sum, item) { return sum + Number(item.stock || 0) }, 0))),
         is_collect: valueOr(detail.is_collect, valueOr(detail.isCollect, valueOr(detail.collected, 0))),
-        goods_image: images.length ? images : [resolveImage('', 'goods')],
+        goods_image: images.length ? images.map(function(image) { return resolveImage(image, 'goods') }) : [resolveImage('', 'goods')],
         coupon_list: coupons,
         couponList: coupons,
         comment: commentSummary,
@@ -226,10 +250,14 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         highlight: detail.highlight || '',
         after_sale: detail.after_sale || detail.afterSale || '',
         usage_hint: detail.usage_hint || detail.usageHint || '',
-        service_tags: detail.service_tags || detail.serviceTags || '',
-        freight_type: detail.freight_type || detail.freightType || '',
-        freight_amount: valueOr(detail.freight_amount, valueOr(detail.freightAmount, 0)),
-        freight_template_id: detail.freight_template_id || detail.freightTemplateId || ''
+        service_tags: detail.service_tags || detail.serviceTags || detail.serviceLabels || detail.service_labels || detail.serviceList || detail.service_list || detail.tags || detail.labels || '',
+        freight_type: detail.freight_type || detail.freightType || detail.shippingType || detail.shipping_type || freightTemplate.freightType || freightTemplate.freight_type || (freeShipping ? 'FREE' : ''),
+        freight_amount: freightAmount,
+        freight_template_id: detail.freight_template_id || detail.freightTemplateId || freightTemplate.templateId || freightTemplate.template_id || freightTemplate.id || '',
+        freight_template: freightTemplate,
+        delivery_type: detail.delivery_type || detail.deliveryType || detail.shippingMethod || detail.shipping_method || freightTemplate.deliveryType || freightTemplate.delivery_type || '',
+        pickup_address: detail.pickup_address || detail.pickupAddress || freightTemplate.pickupAddress || freightTemplate.pickup_address || '',
+        freight_desc: detail.freight_desc || detail.freightDesc || detail.shippingDesc || detail.shipping_desc || detail.deliveryDesc || detail.delivery_desc || ''
     })
 }
 
@@ -447,7 +475,10 @@ function normalizeShopDetail(data = {}) {
         groupBuyProducts: groupProducts.filter(Boolean).map(normalizeShopGroupItem),
         comments: comments.map(normalizeShopCommentItem),
         commentTotal: data.commentTotal || data.commentCount || (data.commentSummary && data.commentSummary.total) || comments.length,
-        qrcodeInfo: data.qrcodeInfo || {}
+        qrcodeInfo: data.qrcodeInfo || data.qrCodeInfo || data.qrcode_info || data.qr_code_info || detail.qrcodeInfo || detail.qrCodeInfo || detail.qrcode_info || detail.qr_code_info || {
+            image: detail.qrCode || detail.qr_code || detail.qrcode || detail.qrcodeUrl || detail.qrcode_url || detail.qrCodeUrl || detail.qr_code_url || '',
+            url: detail.shareUrl || detail.share_url || detail.pageUrl || detail.page_url || ''
+        }
     })
 }
 

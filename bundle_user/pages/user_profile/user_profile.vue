@@ -102,7 +102,7 @@
             <view class="row-info row-between" @tap="goAboutUs">
                 <view class="label md">关于我们</view>
                 <view class="row">
-                    <view>v{{ version }}</view>
+                    <view>v{{ displayVersion }}</view>
                     <u-icon name="arrow-right" />
                 </view>
             </view>
@@ -535,13 +535,17 @@ export default {
         // end
 
         async getPhoneNumber(e) {
-            const { encryptedData, iv } = e.detail
+            const { encryptedData, iv, code: phoneCode } = e.detail
+            if (String(this.code || phoneCode || '').includes('mock')) {
+                this.$toast({ title: '微信绑定手机号请使用真机调试' })
+                return
+            }
             let data = {
-                code: this.code,
-                smsCode: this.code,
                 jsCode: this.code,
                 loginCode: this.code,
                 wxCode: this.code,
+                phoneCode,
+                phone_code: phoneCode,
                 encrypted_data: encryptedData,
                 encryptedData,
                 iv
@@ -614,7 +618,10 @@ export default {
     },
     computed: {
         ...mapState(['token']),
-        ...mapGetters(['appConfig'])
+        ...mapGetters(['appConfig']),
+        displayVersion() {
+            return this.appConfig.version || this.appConfig.appVersion || this.appConfig.app_version || this.version
+        }
     }
 }
 </script>

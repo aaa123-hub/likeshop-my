@@ -710,10 +710,15 @@ export function getInviteInfo() {
     return request.get('miniapp/alliance/card').then((res) => {
         if (res.code != 1) return res
         const data = res.data || {}
+        const cachedUserInfo = Cache.get(USER_INFO) || {}
+        const user = data.user || data.userInfo || {}
         return {
             ...res,
             data: {
                 ...data,
+                nickname: data.nickname || data.nickName || data.userName || data.name || user.nickname || user.nickName || user.userName || cachedUserInfo.nickname,
+                avatar: data.avatar || data.avatarUrl || data.headimgurl || user.avatar || user.avatarUrl || user.headimgurl || cachedUserInfo.avatar,
+                userNo: data.userNo || data.user_no || data.sn || user.userNo || user.user_no || user.sn || cachedUserInfo.sn,
                 code: data.allianceCode || data.code,
                 invite_code: data.allianceCode || data.code,
                 share_url: data.shareUrl,
@@ -909,7 +914,7 @@ export function scanOfflinePayment(data) {
         shopId: data.shopId || data.shop_id,
         qrCode: data.qrCode || data.qr_code || data.code,
         amount: data.amount || data.money,
-        payMethod: data.payMethod || data.pay_way || 'BALANCE',
+        payMethod: 'WECHAT_JSAPI',
         idempotentKey: data.idempotentKey || `offline-pay-${Date.now()}`
     })
 }
@@ -1199,14 +1204,14 @@ export function setWechatInfo(data) {
 }
 
 export function setPassword(data) {
-    return request.post('miniapp/wallet/pay-password', {
+    return request.post('miniapp/wallet/pay-password/set', {
         payPassword: data.payPassword || data.pay_password || data.password,
         pay_password: data.pay_password || data.payPassword || data.password
     })
 }
 
 export function changePayPassword(data) {
-    return request.put('miniapp/wallet/pay-password', {
+    return request.post('miniapp/wallet/pay-password/change', {
         oldPayPassword: data.oldPayPassword || data.origin_pay_password || data.old_pay_password,
         newPayPassword: data.newPayPassword || data.new_pay_password || data.pay_password,
         origin_pay_password: data.origin_pay_password || data.oldPayPassword || data.old_pay_password,

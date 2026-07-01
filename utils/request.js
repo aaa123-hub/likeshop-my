@@ -151,6 +151,7 @@ function getCurrentUserId() {
 }
 
 function shouldAttachUserId(url = "") {
+  if (/^miniapp\/orders\/[^/]+\/cancel$/.test(url)) return false;
   return [
     "miniapp/addresses",
     "miniapp/cart",

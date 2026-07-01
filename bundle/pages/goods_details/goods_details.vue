@@ -9,7 +9,7 @@
 			<view class="hero-stage">
 				<swiper class="goods-hero-swiper" :current="activePreviewIndex" circular @change="onHeroSwiperChange">
 					<swiper-item v-for="(item, index) in swiperList" :key="index">
-						<image class="goods-hero-image" :src="item" mode="aspectFill"></image>
+						<image class="goods-hero-image" :src="item" mode="aspectFit"></image>
 					</swiper-item>
 				</swiper>
 			</view>
@@ -102,7 +102,7 @@
 					</view>
 					<view class="merchant-card__title">{{ goodsDetail.name }}</view>
 					<view v-if="goodsDetail.subtitle || goodsDetail.remark" class="merchant-card__desc line2">{{ goodsDetail.subtitle || goodsDetail.remark }}</view>
-					<view class="merchant-card__sales">{{ goodsDetail.sales_sum || 0 }}人抢购</view>
+					<view class="merchant-card__sales">{{ groupFooterCount }}人已跟团买</view>
 					<view v-if="goodsTagList.length" class="merchant-card__tags">
 						<text v-for="tag in goodsTagList" :key="tag" class="merchant-card__tag line1">{{ tag }}</text>
 					</view>
@@ -126,7 +126,7 @@
 							:key="index"
 							:class="['option-panel__thumb', index === activePreviewIndex ? 'is-active' : '']"
 							:src="item"
-							mode="aspectFill"
+							mode="aspectFit"
 							@tap="selectPreviewImage(index)"
 						></image>
 					</view>
@@ -138,7 +138,7 @@
 						:class="['option-panel__grid-item', index === activePreviewIndex ? 'is-active' : '']"
 						@tap="selectPreviewImage(index)"
 					>
-						<image class="option-panel__grid-image" :src="item" mode="aspectFill"></image>
+						<image class="option-panel__grid-image" :src="item" mode="aspectFit"></image>
 						<view class="option-panel__grid-text">款式{{ index + 1 }}</view>
 					</view>
 				</view>
@@ -146,6 +146,12 @@
 				<view class="option-row">
 					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png" mode="aspectFit"></image>
 					<text class="option-row__text">{{ freightText }}</text>
+				</view>
+				<view v-if="goodsServiceList.length" class="option-row option-row--tags">
+					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/5f50e710a7024d99a4ddef3544d73eaf/8b846285dc82397ecc5ec550e2c6a507.png" mode="aspectFit"></image>
+					<view class="option-row__tags">
+						<text v-for="tag in goodsServiceList" :key="tag" class="option-row__tag">{{ tag }}</text>
+					</view>
 				</view>
 			</view>
 			<view class="goods-extra bg-white mt20" v-if="goodsInfoRows.length">
@@ -155,6 +161,12 @@
 						<view class="goods-extra__label">{{ row.label }}</view>
 						<view class="goods-extra__value line1">{{ row.value }}</view>
 					</view>
+				</view>
+			</view>
+			<view class="details bg-white mt20" v-if="goodsDetailContent">
+				<view class="title md normal">商品详情</view>
+				<view class="content">
+					<rich-text :nodes="goodsDetailContent"></rich-text>
 				</view>
 			</view>
 			<view class="group-play bg-white mt20" v-if="goodsType == 2">
@@ -211,9 +223,10 @@
 				<view class="line1 mr20" style="flex: 1;">{{ selectedSpecText }}</view>
 				<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 			</view>
-			<view class="mt20 service-row" @tap="showGuidePending">
+			<view class="mt20 service-row" @tap="showUsageGuide">
 				<view class="row bg-white" style="padding: 24rpx 24rpx;">
-					<view class="text lighter flex1">使用攻略</view>
+					<view class="text lighter flex1">{{ usageGuideTitle }}</view>
+					<view v-if="usageGuideSummary" class="service-row__summary line1">{{ usageGuideSummary }}</view>
 					<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 				</view>
 			</view>
@@ -556,13 +569,37 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const params = [
 					`goodsId=${encodeURIComponent(this.id || '')}`,
 					`goodsName=${encodeURIComponent(this.goodsDetail.name || '')}`,
+					`goodsImage=${encodeURIComponent(this.goodsDetail.image || '')}`,
 					`shopId=${encodeURIComponent(this.goodsDetail.shop_id || this.goodsDetail.shopId || '')}`,
-					`shopName=${encodeURIComponent(this.shareShopName || '')}`
+					`shopName=${encodeURIComponent(this.shareShopName || '')}`,
+					`price=${encodeURIComponent(this.sharePriceText || '')}`
 				].join('&')
 				uni.navigateTo({ url: `/bundle_user/pages/contact_offical/contact_offical?${params}` })
 			},
-			showGuidePending() {
-				uni.navigateTo({ url: '/bundle_user/pages/server_explan/server_explan?type=2' })
+			isImportSourceField(label, value) {
+				const text = `${label || ''}${value || ''}`.toLowerCase()
+				return /1688|阿里巴巴|alibaba|导入|采集|货源|供应商|supplier|source|external|third/.test(text)
+			},
+			getShopSubscribeCacheKey(shopId) {
+				return `shop_subscribed_${shopId}`
+			},
+			getCachedShopSubscribed(shopId) {
+				if (!shopId) return undefined
+				const value = uni.getStorageSync(this.getShopSubscribeCacheKey(shopId))
+				return value === '' || value === undefined || value === null ? undefined : Boolean(value)
+			},
+			showUsageGuide() {
+				const content = this.usageGuideContent
+				if (!content) {
+					uni.navigateTo({ url: '/bundle_user/pages/server_explan/server_explan?type=2' })
+					return
+				}
+				uni.showModal({
+					title: this.usageGuideTitle,
+					content,
+					showCancel: false,
+					confirmText: '知道了'
+				})
 			},
 			toastShareSave() {
 				uni.showToast({ title: '请长按二维码或图片保存', icon: 'none' })
@@ -578,7 +615,34 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			},
 			formatPlainTags(value) {
 				const tags = Array.isArray(value) ? value : String(value || '').split(',');
-				return tags.map(item => typeof item === 'string' ? item.trim() : (item.name || item.title || item.label || '')).filter(Boolean);
+				return tags.map(item => typeof item === 'string' ? item.trim() : (item.name || item.title || item.label || item.tagName || item.tag_name || item.serviceName || item.service_name || '')).filter(Boolean);
+			},
+			formatInfoValue(value) {
+				if (Array.isArray(value)) return this.formatPlainTags(value).join('、')
+				if (value && typeof value === 'object') return value.name || value.title || value.label || value.tagName || value.tag_name || value.serviceName || value.service_name || value.value || ''
+				return value
+			},
+			isEnabledValue(value) {
+				return value === true || value === 1 || value === '1' || value === 'true' || value === 'TRUE' || value === 'Y' || value === 'YES'
+			},
+			pickFirstValue(source, keys) {
+				for (const key of keys) {
+					const value = source ? source[key] : undefined
+					if (value !== undefined && value !== null && value !== '') return value
+				}
+				return ''
+			},
+			formatRichContent(value) {
+				if (Array.isArray(value)) {
+					return value.map(item => {
+						if (typeof item === 'string') return item
+						const image = item.image || item.url || item.src || item.imageUrl || item.image_url
+						const text = item.content || item.text || item.desc || item.description || ''
+						return image ? `<img src="${this.resolveGoodsImage(image)}" style="max-width:100%;height:auto;display:block;" />` : text
+					}).join('')
+				}
+				if (value && typeof value === 'object') return value.content || value.detail || value.html || value.richText || value.rich_text || ''
+				return value || ''
 			},
 			normalizePrice(value, fallback = 0) {
 				const next = Number(value ?? fallback ?? 0);
@@ -647,6 +711,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 						return;
 					}
 					this.shopSubscribed = nextSubscribed;
+					uni.setStorageSync(this.getShopSubscribeCacheKey(shopId), nextSubscribed ? 1 : 0)
 					uni.showToast({
 						title: this.shopSubscribed ? '订阅成功' : '已取消订阅',
 						icon: 'none'
@@ -739,7 +804,9 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 					this.distribution = distribution || {}
 					this.isNull = false;
 					this.goodsDetail = this.normalizeGoodsDetailForView(data);
-					this.shopSubscribed = Boolean(data.shopSubscribed || data.isShopSubscribed || data.shop?.subscribed || data.shop?.isSubscribed);
+					const shopId = data.shop_id || data.shopId || data.shop?.shopId || ''
+					const cachedSubscribed = this.getCachedShopSubscribed(shopId)
+					this.shopSubscribed = cachedSubscribed !== undefined ? cachedSubscribed : Boolean(data.shopSubscribed || data.isShopSubscribed || data.shop?.subscribed || data.shop?.isSubscribed);
 					this.swiperList = Array.isArray(goods_image) && goods_image.length ? goods_image : [data.image].filter(Boolean);
 					this.activePreviewIndex = 0;
 					this.comment = comment || {};
@@ -811,15 +878,16 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				this.popupType = type;
 				this.showSpec = true;
 			},
-			onBuy(e) {
+				onBuy(e) {
+				const skuDetail = e.detail || {};
 				let {
 					id,
 					sku_id,
 					skuId,
 					item_id,
 					goodsNum
-				} = e.detail;
-				const resolved = this.resolveSkuPayload(e.detail);
+				} = skuDetail;
+				const resolved = this.resolveSkuPayload(skuDetail);
 				const itemId = item_id || sku_id || skuId || id || resolved.itemId;
 				const quantity = goodsNum || resolved.goodsNum || 1;
 				if (!itemId) return this.$toast({ title: '请选择商品规格' });
@@ -830,6 +898,16 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				let goods = [{
 					item_id: itemId,
 					skuId: itemId,
+					goods_id: this.goodsDetail.goods_id || this.goodsDetail.goodsId || this.goodsDetail.id,
+					goods_name: this.goodsDetail.goods_name || this.goodsDetail.name,
+					name: this.goodsDetail.name,
+					image: skuDetail.image || skuDetail.imageUrl || skuDetail.skuImage || skuDetail.skuImageUrl || this.goodsDetail.image || this.previewImages[0] || '',
+					image_str: skuDetail.image || skuDetail.imageUrl || skuDetail.skuImage || skuDetail.skuImageUrl || this.goodsDetail.image || this.previewImages[0] || '',
+					shop_id: this.goodsDetail.shop_id || this.goodsDetail.shopId || this.goodsDetail.shop?.shopId || '',
+					shop_name: this.shareShopName,
+					shop_logo: this.shareShopLogo,
+					shopLogo: this.shareShopLogo,
+					spec_value_str: skuDetail.spec_value_str || skuDetail.skuName || skuDetail.name || this.selectedSpecText,
 					quantity,
 					num: quantity
 				}];
@@ -980,7 +1058,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				return true
 			},
 			groupFooterCount() {
-				return this.team.people_num || this.team.join_num || this.team.joinNum || this.goodsDetail.group_people_num || this.goodsDetail.groupPeopleNum || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || 0
+				return this.team.joinedCount || this.team.joined_count || this.team.join_num || this.team.joinNum || this.team.salesCount || this.team.sales_count || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || this.goodsDetail.joinedCount || this.goodsDetail.joined_count || this.goodsDetail.sales_sum || this.goodsDetail.salesCount || 0
 			},
 			displayMinPrice() {
 				return this.normalizePrice(this.checkedGoods.price ?? this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.min_price ?? this.goodsDetail.minPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price)
@@ -1025,35 +1103,79 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			shareBusinessTime() {
 				return this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '8:00-16:00'
 			},
+			usageGuideTitle() {
+				return this.goodsDetail.usage_title || this.goodsDetail.usageTitle || '使用攻略'
+			},
+			usageGuideContent() {
+				return this.formatInfoValue(this.goodsDetail.usage_guide || this.goodsDetail.usageGuide || this.goodsDetail.usage_hint || this.goodsDetail.usageHint || this.goodsDetail.highlight || '')
+			},
+			usageGuideSummary() {
+				return String(this.usageGuideContent || '').replace(/<[^>]+>/g, '').slice(0, 18)
+			},
 			goodsTagList() {
-				return this.formatPlainTags(this.goodsDetail.service_tags || this.goodsDetail.serviceTags || this.goodsDetail.tags || this.goodsDetail.labels).slice(0, 4)
+				return this.formatPlainTags(this.goodsDetail.tags || this.goodsDetail.labels || this.goodsDetail.goods_tags || this.goodsDetail.goodsTags || this.goodsServiceList).slice(0, 4)
+			},
+			goodsServiceList() {
+				const detail = this.goodsDetail || {}
+				const tags = this.formatPlainTags(detail.service_tags || detail.serviceTags || detail.services || detail.serviceList || detail.service_list)
+				const serviceMap = [
+					{ text: '七天无理由', keys: ['seven_day_return', 'sevenDayReturn', 'seven_days_return', 'sevenDaysReturn', 'is_seven_day_return', 'isSevenDayReturn', 'no_reason_return', 'noReasonReturn', 'support_refund', 'supportRefund'] },
+					{ text: '极速发货', keys: ['fast_delivery', 'fastDelivery', 'quick_delivery', 'quickDelivery', 'speed_delivery', 'speedDelivery', 'is_fast_delivery', 'isFastDelivery'] },
+					{ text: '运费险', keys: ['freight_insurance', 'freightInsurance', 'shipping_insurance', 'shippingInsurance', 'freight_risk', 'freightRisk', 'is_freight_insurance', 'isFreightInsurance'] }
+				]
+				serviceMap.forEach(item => {
+					const value = this.pickFirstValue(detail, item.keys)
+					if ((this.isEnabledValue(value) || value === '是' || value === '支持') && !tags.includes(item.text)) tags.push(item.text)
+				})
+				return tags
 			},
 			goodsInfoRows() {
+				const detail = this.goodsDetail || {}
+				const template = detail.freight_template || detail.freightTemplate || {}
 				const rows = [
-					{ label: '库存', value: this.goodsDetail.stock || this.goodsDetail.stockQty },
-					{ label: '销量', value: this.goodsDetail.sales_sum || this.goodsDetail.salesCount },
-					{ label: '评价', value: this.comment.total || this.goodsDetail.comment_count || this.goodsDetail.commentCount },
-					{ label: '积分', value: this.goodsDetail.order_give_integral || this.goodsDetail.giveIntegral || this.goodsDetail.integral },
-					{ label: '售后', value: this.goodsDetail.after_sale || this.goodsDetail.afterSale },
-					{ label: '发货', value: this.goodsDetail.delivery_desc || this.goodsDetail.deliveryDesc || this.goodsDetail.freight_desc || this.freightText },
-					{ label: '分类', value: this.goodsDetail.category_name || this.goodsDetail.categoryName },
-					{ label: '货号', value: this.goodsDetail.sn || this.goodsDetail.goods_sn || this.goodsDetail.productNo }
+					{ label: '库存', value: detail.stock || detail.stockQty },
+					{ label: '销量', value: detail.sales_sum || detail.salesCount },
+					{ label: '跟团', value: this.groupFooterCount ? `${this.groupFooterCount}人已跟团` : '' },
+					{ label: '评价', value: this.comment.total || detail.comment_count || detail.commentCount },
+					{ label: '运费', value: this.freightText },
+					{ label: '服务', value: this.goodsServiceList },
+					{ label: '积分', value: detail.order_give_integral || detail.giveIntegral || detail.integral },
+					{ label: '售后', value: detail.after_sale || detail.afterSale || detail.after_sale_desc || detail.afterSaleDesc },
+					{ label: '提示', value: detail.usage_hint || detail.usageHint || detail.highlight },
+					{ label: '发货', value: detail.delivery_desc || detail.deliveryDesc || detail.shipping_desc || detail.shippingDesc || detail.freight_desc || this.freightText },
+					{ label: '运费设置', value: template.name || template.title || detail.freight_template_name || detail.freightTemplateName || detail.delivery_template_name || detail.deliveryTemplateName },
+					{ label: '分类', value: detail.category_name || detail.categoryName }
 				]
-				return rows.filter(row => row.value !== undefined && row.value !== null && row.value !== '').map(row => ({
+				return rows.map(row => ({
+					label: row.label,
+					value: this.formatInfoValue(row.value)
+				})).filter(row => row.value !== undefined && row.value !== null && row.value !== '' && !this.isImportSourceField(row.label, row.value)).map(row => ({
 					label: row.label,
 					value: row.label === '积分' ? `下单可得${row.value}积分` : row.value
 				}))
+			},
+			goodsDetailContent() {
+				return this.formatRichContent(this.goodsDetail.goods_detail || this.goodsDetail.goodsDetail || this.goodsDetail.content || this.goodsDetail.detail || this.goodsDetail.detailJson || this.goodsDetail.detail_json || this.goodsDetail.richText || this.goodsDetail.rich_text || this.goodsDetail.description || this.goodsDetail.desc || '')
 			},
 			selectedSpecText() {
 				return this.checkedGoods.spec_value_str || this.checkedGoods.skuName || this.checkedGoods.name || '默认'
 			},
 			freightText() {
-				const type = this.goodsDetail.freight_type || this.goodsDetail.freightType
-				const amount = Number(this.goodsDetail.freight_amount ?? this.goodsDetail.freightAmount ?? 0)
-				if (type === 'PICKUP') return '线下自提'
-				if (type === 'TEMPLATE') return amount > 0 ? `运费 ¥${amount}` : '按运费模板计算'
-				if (type === 'FIXED') return amount > 0 ? `运费 ¥${amount}` : '固定运费'
-				return '免运费'
+				const detail = this.goodsDetail || {}
+				if (detail.freight_desc || detail.freightDesc || detail.shipping_desc || detail.shippingDesc) return detail.freight_desc || detail.freightDesc || detail.shipping_desc || detail.shippingDesc
+				const template = detail.freight_template || detail.freightTemplate || detail.shipping_template || detail.shippingTemplate || {}
+				const type = String(detail.freight_type || detail.freightType || detail.shippingType || detail.shipping_type || detail.postage_type || detail.postageType || template.freightType || template.freight_type || template.type || '').toUpperCase()
+				const deliveryType = String(detail.delivery_type || detail.deliveryType || detail.shippingMethod || detail.shipping_method || template.deliveryType || template.delivery_type || '').toUpperCase()
+				const pickupAddress = detail.pickup_address || detail.pickupAddress || template.pickupAddress || template.pickup_address
+				const amount = Number(detail.freight_amount ?? detail.freightAmount ?? detail.shippingFee ?? detail.shipping_fee ?? detail.postage ?? detail.express_fee ?? detail.expressFee ?? template.freightAmount ?? template.freight_amount ?? template.firstPrice ?? template.first_price ?? 0)
+				const freeShipping = detail.freeShipping || detail.free_shipping || detail.isFreeShipping || detail.is_free_shipping || detail.postageFree || detail.postage_free || detail.is_free_express || detail.isFreeExpress || template.freeShipping || template.free_shipping
+				const deliveryText = deliveryType === 'PICKUP' ? '线下自提' : deliveryType === 'MIXED' ? '配送/自提' : deliveryType === 'DELIVERY' ? '快递配送' : ''
+				if (deliveryType === 'PICKUP') return pickupAddress ? `${deliveryText}：${pickupAddress}` : deliveryText
+				if (type === 'FREE' || type === 'FREE_SHIPPING' || type === '0' || this.isEnabledValue(freeShipping) || amount === 0) return deliveryText ? `${deliveryText} · 包邮` : '包邮'
+				if (type === 'FIXED') return `${deliveryText ? `${deliveryText} · ` : ''}${amount > 0 ? `运费 ¥${amount.toFixed(2)}` : '固定运费'}`
+				if (type === 'TEMPLATE' || template.id || template.name) return `${deliveryText ? `${deliveryText} · ` : ''}${amount > 0 ? `运费 ¥${amount.toFixed(2)}` : '按运费模板计算'}`
+				if (amount > 0) return `${deliveryText ? `${deliveryText} · ` : ''}运费 ¥${amount.toFixed(2)}`
+				return deliveryText || '包邮'
 			}
 		}
 	};
@@ -1087,7 +1209,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 		.goods-hero-image {
 			display: block;
-			background: #eef4ff;
+			background: #ffffff;
 		}
 
 		.seckill {
@@ -1349,6 +1471,13 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			line-height: 36rpx;
 		}
 
+		.service-row__summary {
+			max-width: 360rpx;
+			margin-right: 16rpx;
+			color: #999999;
+			font-size: 24rpx;
+		}
+
 		.option-panel__style-head,
 		.option-panel__thumbs {
 			display: flex;
@@ -1400,6 +1529,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			height: 92rpx;
 			border-radius: 14rpx;
 			border: 2rpx solid transparent;
+			background: #f7f9fc;
 			box-sizing: border-box;
 
 			&.is-active {
@@ -1432,6 +1562,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			width: 100%;
 			height: 220rpx;
 			border-radius: 14rpx;
+			background: #ffffff;
 		}
 
 		.option-panel__grid-text {
@@ -1474,6 +1605,11 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			min-height: 50rpx;
 		}
 
+		.option-row--tags {
+			align-items: flex-start;
+			margin-top: 18rpx;
+		}
+
 		.option-row__icon {
 			width: 38rpx;
 			height: 38rpx;
@@ -1488,6 +1624,28 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			margin-left: 18rpx;
 			color: #222222;
 			font-size: 24rpx;
+		}
+
+		.option-row__tags {
+			display: flex;
+			flex: 1;
+			flex-wrap: wrap;
+			gap: 10rpx;
+			min-width: 0;
+			margin-left: 18rpx;
+		}
+
+		.option-row__tag {
+			max-width: 220rpx;
+			padding: 0 14rpx;
+			overflow: hidden;
+			color: #037dfa;
+			font-size: 22rpx;
+			line-height: 36rpx;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+			background: #edf6ff;
+			border-radius: 18rpx;
 		}
 
 		.option-row__action {
@@ -1739,15 +1897,24 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			}
 
 			&>.content {
-				padding: 0 20rpx 20rpx;
+				padding: 0 20rpx 24rpx;
 				overflow: hidden;
+				color: #333333;
+				font-size: 26rpx;
+				line-height: 1.7;
 
 				::v-deep image {
+					max-width: 100%;
+					height: auto;
+					border-radius: 12rpx;
 					vertical-align: middle;
 				}
 
 				// #ifdef H5
 				::v-deep img {
+					max-width: 100%;
+					height: auto;
+					border-radius: 12rpx;
 					vertical-align: middle;
 				}
 

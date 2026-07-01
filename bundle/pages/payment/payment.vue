@@ -89,8 +89,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		queryPayment
 	} from '@/api/app'
 	import {
-wxpay,
-		alipay
+		wxpay
 	} from '@/utils/pay'
 
 	export default {
@@ -127,7 +126,7 @@ wxpay,
 			// 更改支付方式
 			changePayway(value) {
 				if (this.isExpired || this.loadingPay || !value) return
-				this.payway = value
+				this.payway = 'WECHAT_JSAPI'
 			},
 			getPaywayValue(item) {
 				return item && (item.pay_way || item.payMethod || item.payWay) ? (item.pay_way || item.payMethod || item.payWay) : item
@@ -135,9 +134,7 @@ wxpay,
 			normalizePaywayValue(value) {
 				const text = String(value || '').toUpperCase()
 				if (['WECHAT', 'WECHAT_PAY', 'WX', 'WX_PAY', 'WEIXIN', 'WECHAT_JSAPI', 'JSAPI'].includes(text)) return 'WECHAT_JSAPI'
-				if (['BALANCE', 'WALLET', 'WALLET_PAY', 'USER_MONEY'].includes(text)) return 'BALANCE'
-				if (['ALIPAY', 'ALI_PAY'].includes(text)) return 'ALIPAY'
-				return value
+				return ''
 			},
 			normalizePaywayItem(item = {}, index = 0) {
 				const value = this.normalizePaywayValue(this.getPaywayValue(item))
@@ -154,7 +151,6 @@ wxpay,
 			},
 			getPayErrorText(code, message) {
 				if (code === 'A0101' || String(message || '').includes('CreatePayOrderCommand.openId')) return '缺少微信支付授权信息，请重新登录后再使用微信支付'
-				if (code === 'T5201' || message === 'WALLET_BALANCE_NOT_ENOUGH') return '钱包余额不足，请更换支付方式或充值后再试'
 				return message || '支付失败，请稍后重试'
 			},
 
@@ -171,10 +167,9 @@ wxpay,
 					this.loadingSkeleton = false
 					data = data || {}
 					this.amount = this.amount || data.order_amount || data.payAmount || 0
-					this.paywayList = (data.pay || []).map((item, index) => this.normalizePaywayItem(item, index)).filter(item => item.value)
-					const desiredPayway = this.normalizePaywayValue(this.desiredPayway)
-					const matchedPayway = this.paywayList.find(item => item.value === desiredPayway)
-					this.payway = matchedPayway ? matchedPayway.value : (this.paywayList.length ? this.paywayList[0].value : '')
+					const wechatPayway = (data.pay || []).map((item, index) => this.normalizePaywayItem(item, index)).find(item => item.value === 'WECHAT_JSAPI')
+					this.paywayList = [wechatPayway || this.normalizePaywayItem({ id: 'WECHAT_JSAPI', name: '微信支付', pay_way: 'WECHAT_JSAPI', extra: '使用微信支付' })]
+					this.payway = 'WECHAT_JSAPI'
 					// 倒计时
 					const startTimestamp = new Date().getTime() / 1000
 					const rawEndTimestamp = data.cancel_time || data.cancelTime || data.expireTime || data.expire_time
@@ -203,8 +198,8 @@ wxpay,
 				prepay({
 					from: this.from,
 					order_id: this.order_id,
-					pay_way: this.payway,
-					payMethod: this.payway,
+					pay_way: 'WECHAT_JSAPI',
+					payMethod: 'WECHAT_JSAPI',
 					bizOrderNo: this.order_id,
 					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER',
 					amount: this.amount
@@ -215,19 +210,9 @@ wxpay,
 						return
 					}
 					this.payOrderNo = data?.payOrderNo || data?.pay_order_no || this.payOrderNo
-					if (this.payway === 'BALANCE' && code == 1) {
-						this.handleWalletPay()
-						return
-					}
 					switch (code) {
 						case 1:
 							this.handleWechatPay(data);
-							break;
-						case 10001:
-							this.handleAlipayPay(data);
-							break;
-						case 20001:
-							this.handleWalletPay();
 							break;
 						default:
 							this.$toast({ title: '支付处理中，请稍后查看订单' })
@@ -251,19 +236,6 @@ wxpay,
 				wxpay(data).then(res => {
 					this.handPayResult(res)
 				})
-			},
-
-			// 支付宝支付
-			handleAlipayPay(data) {
-				alipay(data).then(res => {
-					this.handPayResult(res)
-				})
-			},
-
-			// 钱包余额支付
-			handleWalletPay() {
-				//余额支付成功
-				this.handPayResult('success')
 			},
 
 			// 支付后处理

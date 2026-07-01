@@ -95,7 +95,8 @@ function flattenShopOrders(shopOrders = []) {
     return list.concat(items.map((item) => normalizeOrderItem({
       ...item,
       shop_id: item.shop_id || shop.shopId,
-      shop_name: item.shop_name || shop.shopName
+      shop_name: item.shop_name || shop.shopName,
+      shop_logo: item.shop_logo || item.shopLogo || shop.shopLogo || shop.shop_logo || shop.logo || shop.logoUrl || shop.image
     })));
   }, []);
 }

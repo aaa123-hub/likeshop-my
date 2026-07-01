@@ -464,8 +464,7 @@ export default {
       return map[type] || '';
     },
     formatPayWay(value) {
-      const map = { BALANCE: '钱包余额', WECHAT_JSAPI: '微信支付', ALIPAY: '支付宝', 1: '微信支付', 2: '支付宝', 3: '钱包余额' };
-      return map[value] || value || '';
+      return '微信支付';
     },
     formatPayStatus(status) {
       const map = { UNPAID: '未支付', PAID: '已支付', REFUNDED: '已退款', CLOSED: '已关闭', 0: '未支付', 1: '已支付' };

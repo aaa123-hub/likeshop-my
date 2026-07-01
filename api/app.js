@@ -36,20 +36,21 @@ function normalizeMiniappLoginResult(res) {
 }
 
 function normalizeEcoApplication(item = {}, index = 0) {
-  const linkUrl = item.entryUrl || item.linkUrl || item.url || item.appUrl || item.jumpUrl || item.pagePath || "";
+  const linkUrl = item.entryUrl || item.entry_url || item.linkUrl || item.link_url || item.url || item.appUrl || item.app_url || item.jumpUrl || item.jump_url || item.pagePath || item.page_path || "";
+  const image = item.icon || item.iconUrl || item.icon_url || item.logoUrl || item.logo_url || item.imageUrl || item.image_url || item.image || item.cover;
   return {
     ...item,
-    id: item.id || item.appId || item.appCode || index,
-    title: item.title || item.appName || item.name || "生态应用",
-    desc: item.desc || item.appDesc || item.description || "",
-    icon: resolveImage(item.icon || item.iconUrl || item.logoUrl || item.imageUrl, "goods"),
-    iconUrl: resolveImage(item.iconUrl || item.icon || item.logoUrl || item.imageUrl, "goods"),
-    entryUrl: item.entryUrl || linkUrl,
+    id: item.id || item.appId || item.app_id || item.appCode || item.app_code || index,
+    title: item.title || item.appName || item.app_name || item.name || "生态应用",
+    desc: item.desc || item.appDesc || item.app_desc || item.description || "",
+    icon: resolveImage(image, "goods"),
+    iconUrl: resolveImage(image, "goods"),
+    entryUrl: item.entryUrl || item.entry_url || linkUrl,
     linkUrl,
-    urlText: item.urlText || linkUrl || item.appCode || "暂未配置链接",
-    openType: item.openType || item.jumpType || item.type || "",
-    pagePath: item.pagePath || item.path || (/^\//.test(linkUrl) ? linkUrl : ""),
-    appId: item.targetAppId || item.appid || item.appId || "",
+    urlText: item.urlText || item.url_text || linkUrl || item.appCode || item.app_code || "暂未配置链接",
+    openType: item.openType || item.open_type || item.jumpType || item.jump_type || item.type || "",
+    pagePath: item.pagePath || item.page_path || item.path || (/^\//.test(linkUrl) ? linkUrl : ""),
+    appId: item.targetAppId || item.target_app_id || item.appid || item.appId || item.app_id || "",
   };
 }
 
@@ -82,16 +83,11 @@ function shouldFallbackMiniappLogin(res) {
 function normalizePayMethod(method) {
   const payMethodMap = {
     1: "WECHAT_JSAPI",
-    2: "ALIPAY",
-    3: "BALANCE",
     wechat: "WECHAT_JSAPI",
     wxpay: "WECHAT_JSAPI",
     wechat_jsapi: "WECHAT_JSAPI",
-    alipay: "ALIPAY",
-    balance: "BALANCE",
-    wallet: "BALANCE",
   };
-  return payMethodMap[String(method || "").toLowerCase()] || method || "BALANCE";
+  return payMethodMap[String(method || "").toLowerCase()] || "WECHAT_JSAPI";
 }
 
 function currentOpenId() {
@@ -252,13 +248,6 @@ function normalizePaywayResponse(res, params = {}) {
 function defaultPaywayList() {
   return [
     {
-      id: "BALANCE",
-      name: "余额支付",
-      pay_way: "BALANCE",
-      extra: "使用账户余额支付",
-      icon: "https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png",
-    },
-    {
       id: "WECHAT_JSAPI",
       name: "微信支付",
       pay_way: "WECHAT_JSAPI",
@@ -309,12 +298,12 @@ export async function prepay(data = {}) {
     bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
     amount: data.amount || data.payAmount || data.order_amount,
     payScene: data.payScene || "MINIAPP",
-    payMethod: normalizePayMethod(data.payMethod || data.pay_way || data.payWay),
+    payMethod: "WECHAT_JSAPI",
     clientIp: data.clientIp || "127.0.0.1",
     openId,
     idempotentKey:
       data.idempotentKey ||
-      `pay-${data.order_id || data.bizOrderNo || Date.now()}-${normalizePayMethod(data.pay_way)}`,
+      `pay-${data.order_id || data.bizOrderNo || Date.now()}-WECHAT_JSAPI`,
     client,
   });
   return normalizePaymentResponse(res);
@@ -417,18 +406,20 @@ export function getService() {
       const text = `${item.appCode || ""}${item.appName || ""}${item.name || ""}${item.title || ""}`.toLowerCase();
       return text.includes("service") || text.includes("客服") || text.includes("contact");
     }) || payload.service || payload.customerService || payload.contact || {};
-    const qrCode = service.qrCode || service.qrCodeUrl || service.qrcode || service.wechatQrCode || service.imageUrl || service.iconUrl || payload.qrCodeUrl || payload.serviceQrCode;
+    const qrCode = service.qrCode || service.qrCodeUrl || service.qrcode || service.wechatQrCode || service.wechatQr || service.imageUrl || service.iconUrl || payload.qrCodeUrl || payload.serviceQrCode;
+    const avatar = service.avatar || service.avatarUrl || service.logo || service.logoUrl || service.icon || service.iconUrl || service.imageUrl || qrCode;
     return {
       ...res,
       code: res.code == 1 ? 1 : res.code,
       data: {
         name: service.appName || service.name || service.title || payload.name || "平台客服",
-        image: qrCode ? resolveImage(qrCode, "avatar") : resolveImage("", "avatar"),
+        image: avatar ? resolveImage(avatar, "avatar") : "",
         qrcode: qrCode ? resolveImage(qrCode, "avatar") : "",
-        wechat: service.wechat || service.wechatNo || service.wechatAccount || service.appCode || payload.wechat || "shengyuan_service",
-        qq: service.qq || service.qqNo || service.qqAccount || payload.qq || "2850612345",
-        phone: service.contactPhone || service.phone || service.mobile || payload.phone || "400-888-1234",
-        time: service.appDesc || service.desc || service.description || payload.time || "工作日 09:00-18:00",
+        wechat: service.wechat || service.wechatNo || service.wechatAccount || service.wechatId || service.wechat_id || payload.wechat || "",
+        qq: service.qq || service.qqNo || service.qqAccount || payload.qq || "",
+        phone: service.contactPhone || service.servicePhone || service.phone || service.mobile || payload.phone || "",
+        time: service.serviceTime || service.service_time || service.workTime || service.work_time || service.appDesc || service.desc || service.description || payload.time || "",
+        onlineUrl: service.onlineUrl || service.online_url || service.entryUrl || service.linkUrl || service.url || "",
         list,
       },
     };
@@ -442,7 +433,11 @@ export function getEcoApplications(params = {}) {
     const list = extractList(payload);
     return {
       ...res,
-      data: list.map(normalizeEcoApplication),
+      data: {
+        ...payload,
+        list: list.map(normalizeEcoApplication),
+        customerService: payload.customerService || payload.customer_service || {},
+      },
     };
   });
 }
@@ -525,5 +520,14 @@ export function getPayway(params = {}) {
 
 // 获取微信小程序码-生成海报需使用
 export function getShareMnQrcode(params) {
-  return request.get("miniapp/shop/" + (params.shopId || params.shop_id || ''), { params });
+  const shopId = params.shopId || params.shop_id || '';
+  if (!shopId) {
+    return Promise.resolve({
+      code: 1,
+      data: {
+        path: params.url || params.path || '',
+      },
+    });
+  }
+  return request.get("miniapp/shop/" + shopId, { params });
 }

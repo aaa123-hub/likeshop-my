@@ -255,7 +255,10 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return resolveImage(item.image || item.goods_image || item.cover, 'goods')
 			},
 			getGoodsScore(item) {
-				return item.score || item.star || '5.0'
+				const score = item.shopScore ?? item.shop_score ?? item.score ?? item.star ?? item.rating
+				if (score === '' || score === null || score === undefined) return '暂无评分'
+				const value = Number(score)
+				return Number.isNaN(value) ? String(score) : value.toFixed(1)
 			},
 			getGoodsTime(item) {
 				return item.business_time || item.time_desc || '8:00-16:00'

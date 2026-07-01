@@ -12,6 +12,7 @@
         <custom-image
           class="goods-img mr20"
           radius="10rpx"
+          mode="aspectFit"
           @tap="previewImage(specImage)"
           :src="specImage"
         ></custom-image>
@@ -468,6 +469,7 @@ export default {
       width: 180rpx;
       height: 180rpx;
       flex: none;
+      background: #f7f9fc;
     }
   }
 
