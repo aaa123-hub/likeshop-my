@@ -251,7 +251,7 @@ export default {
                     })
                     .catch((err) => {
                         return this.$toast({
-                            title: err?.msg || err?.message || '保存失败'
+                            title: (err && (err.msg || err.message)) || '保存失败'
                         })
                     })
             } else {
@@ -273,7 +273,7 @@ export default {
                     })
                     .catch((err) => {
                         return this.$toast({
-                            title: err?.msg || err?.message || '添加失败'
+                            title: (err && (err.msg || err.message)) || '添加失败'
                         })
                     })
             }
@@ -317,7 +317,17 @@ export default {
                         id: data.id || data.addressId || this.addressId,
                         is_default: data.is_default || data.isDefault ? 1 : 0
                     })
-                    this.gender = this.normalizeGender(data.sex ?? data.contactGender ?? data.receiverGender ?? data.contact_gender ?? data.receiver_gender ?? data.genderText ?? data.genderName ?? data.gender ?? data.title)
+                    this.gender = this.normalizeGender(
+                        data.sex ||
+                            data.contactGender ||
+                            data.receiverGender ||
+                            data.contact_gender ||
+                            data.receiver_gender ||
+                            data.genderText ||
+                            data.genderName ||
+                            data.gender ||
+                            data.title
+                    )
                     this.region = `${province} ${city} ${district}`
                 }
             })

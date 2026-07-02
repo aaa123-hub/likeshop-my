@@ -237,16 +237,13 @@ author: likeshop.cn.team
               <price-format :price="orderDetail.integral_amount"></price-format>
             </view>
           </view>
-          <view class="row-between">
-            <view class="">
-              <text v-if="isOrderStatus('CREATED')">需</text>
-              <text v-else>实</text>
-              付款：
-            </view>
-            <view class="primary xl">
+          <view class="row-between price-pay-row">
+            <view class="price-pay-label">{{ isOrderStatus('CREATED') ? '待支付金额' : '实付金额' }}</view>
+            <view class="price-pay-amount">
               <price-format
-                :first-size="34"
-                :second-size="34"
+                :first-size="42"
+                :second-size="30"
+                :subscript-size="30"
                 :price="orderDetail.order_amount"
               >
               </price-format>
@@ -330,7 +327,7 @@ author: likeshop.cn.team
           </view>
           <view class="item row">
             <view class="title">订单状态</view>
-            <view class="black">{{ displayValue(orderDetail.order_status_desc || formatOrderStatusText(orderDetail.order_status)) }}</view>
+            <view class="black order-status-text">{{ displayValue(formatOrderStatusText(orderDetail.order_status || orderDetail.order_status_desc)) }}</view>
           </view>
           <view class="item row">
             <view class="title">支付状态</view>
@@ -342,23 +339,23 @@ author: likeshop.cn.team
           </view>
           <view class="item row">
             <view class="title">下单时间</view>
-            <view class="black">{{ displayValue(orderDetail.create_time) }}</view>
+            <view class="black">{{ displayValue(formatDisplayTime(orderDetail.create_time)) }}</view>
           </view>
           <view v-if="orderDetail.pay_time" class="item row">
             <view class="title">付款时间</view>
-            <view class="black">{{ orderDetail.pay_time }}</view>
+            <view class="black">{{ formatDisplayTime(orderDetail.pay_time) }}</view>
           </view>
           <view v-if="orderDetail.shipping_time" class="item row">
             <view class="title">发货时间</view>
-            <view class="black">{{ orderDetail.shipping_time }}</view>
+            <view class="black">{{ formatDisplayTime(orderDetail.shipping_time) }}</view>
           </view>
           <view v-if="orderDetail.confirm_take_time" class="item row">
             <view class="title">成交时间</view>
-            <view class="black">{{ orderDetail.confirm_take_time }}</view>
+            <view class="black">{{ formatDisplayTime(orderDetail.confirm_take_time) }}</view>
           </view>
           <view v-if="orderDetail.cancel_time" class="item row">
             <view class="title">关闭时间</view>
-            <view class="black">{{ orderDetail.cancel_time }}</view>
+            <view class="black">{{ formatDisplayTime(orderDetail.cancel_time) }}</view>
           </view>
           <view v-for="row in extraOrderRows" :key="row.label" class="item row">
             <view class="title">{{ row.label }}</view>
@@ -699,13 +696,27 @@ export default {
     joinText(list, separator = ' ') {
       return list.filter((item) => item !== undefined && item !== null && item !== '').join(separator);
     },
+    formatDisplayTime(value) {
+      if (!value) return '';
+      if (typeof value === 'string' && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) {
+        const normalized = value.replace('T', ' ').replace(/-/g, '/');
+        const [date = '', time = ''] = normalized.split(' ');
+        const [year, month, day] = date.split('/');
+        return `${year}年${month}月${day}日${time.slice(0, 5)}`.trim();
+      }
+      const time = Number(value);
+      const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000);
+      if (Number.isNaN(date.getTime())) return String(value);
+      const pad = (num) => String(num).padStart(2, '0');
+      return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    },
     formatDeliveryType(type) {
       const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', PICKUP: '门店自提' };
       return map[type] || type;
     },
     formatPayStatus(status) {
-      const map = { UNPAID: '未支付', PAID: '已支付', REFUNDED: '已退款', CLOSED: '已关闭', 0: '未支付', 1: '已支付' };
-      return map[status] || status;
+      const map = { UNPAID: '未支付', WAIT_PAY: '未支付', PAID: '已支付', SUCCESS: '已支付', REFUNDED: '已退款', REFUND: '已退款', CLOSED: '已关闭', CANCELLED: '已关闭', CANCELED: '已关闭', 0: '未支付', 1: '已支付' };
+      return map[String(status).toUpperCase()] || map[status] || status;
     },
     formatPayWay(value) {
       return '微信支付';
@@ -714,8 +725,11 @@ export default {
       return value === 1 || value === '1' || value === 'WECHAT_JSAPI' || value === 'wechat' || value === 'wxpay';
     },
     formatOrderStatusText(status) {
-      const map = { CREATED: '待付款', PAID: '待发货', SHIPPED: '待收货', COMPLETED: '已完成', CANCELLED: '已关闭', 0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已关闭' };
-      return map[status] || status;
+      const text = String(status || '')
+      if (/^submit-/i.test(text)) return '订单已提交'
+      const map = { CREATED: '待付款', WAIT_PAY: '待付款', PENDING_PAY: '待付款', UNPAID: '待付款', SUBMITTED: '订单已提交', SUBMIT: '订单已提交', PAID: '待发货', WAIT_SHIP: '待发货', WAIT_DELIVERY: '待发货', SHIPPED: '待收货', WAIT_RECEIVE: '待收货', DELIVERED: '待收货', COMPLETED: '已完成', SUCCESS: '已完成', FINISHED: '已完成', REFUNDING: '售后处理中', REFUNDED: '已退款', CANCELLED: '已关闭', CANCELED: '已关闭', CLOSED: '已关闭', CLOSE: '已关闭', CLOSED_ORDER: '已关闭', 0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已关闭' };
+      const mapped = map[text.toUpperCase()] || map[status];
+      return mapped || (/^[A-Z0-9_-]+$/.test(text) ? '订单处理中' : status);
     },
   },
   computed: {
@@ -741,11 +755,11 @@ export default {
     },
     isOrderStatus() {
       const statusMap = {
-        CREATED: [0, '0', 'CREATED'],
-        PAID: [1, '1', 'PAID'],
-        SHIPPED: [2, '2', 'SHIPPED'],
-        COMPLETED: [3, '3', 'COMPLETED'],
-        CANCELLED: [4, '4', 'CANCELLED']
+        CREATED: [0, '0', 'CREATED', 'WAIT_PAY'],
+        PAID: [1, '1', 'PAID', 'WAIT_SHIP'],
+        SHIPPED: [2, '2', 'SHIPPED', 'WAIT_RECEIVE'],
+        COMPLETED: [3, '3', 'COMPLETED', 'SUCCESS', 'FINISHED'],
+        CANCELLED: [4, '4', 'CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE']
       };
       return (status) => statusMap[status].includes(this.orderDetail.order_status);
     },
@@ -770,7 +784,7 @@ export default {
         ['收货地址', this.orderDetail.delivery_address],
         ['物流公司', this.pickValue(this.orderDetail, ['express_name', 'expressName', 'shipping_name', 'shippingName'])],
         ['物流单号', this.pickValue(this.orderDetail, ['invoice_no', 'trackingNo', 'tracking_no', 'express_no', 'expressNo'])],
-        ['发货时间', this.orderDetail.shipping_time]
+        ['发货时间', this.formatDisplayTime(this.orderDetail.shipping_time)]
       ]);
     },
     selfFetchRows() {
@@ -790,7 +804,7 @@ export default {
       return this.buildRows([
         ['核销码', this.pickValue(verify, ['pickupCode', 'verifyCode', 'code']) || this.pickupQrValue],
         ['核销状态', this.orderDetail.verification_status ? '已核销' : '未核销'],
-        ['核销时间', this.pickValue(verify, ['verifyTime', 'verify_time', 'verificationTime'])],
+        ['核销时间', this.formatDisplayTime(this.pickValue(verify, ['verifyTime', 'verify_time', 'verificationTime']))],
         ['核销门店', this.pickValue(verify, ['shopName', 'shop_name', 'storeName'])],
         ['核销员', this.pickValue(verify, ['staffName', 'staff_name', 'operator'])]
       ]);
@@ -798,22 +812,29 @@ export default {
     refundRows() {
       const refund = this.orderDetail.refund_info || {};
       return this.buildRows([
-        ['售后状态', this.pickValue(refund, ['statusText', 'status_text', 'refundStatusText', 'refund_status_text', 'status'])],
+        ['售后状态', this.formatOrderStatusText(this.pickValue(refund, ['statusText', 'status_text', 'refundStatusText', 'refund_status_text', 'status']))],
         ['售后类型', this.pickValue(refund, ['typeText', 'type_text', 'refundTypeText', 'refund_type_text', 'type'])],
         ['退款金额', this.formatMoney(this.pickValue(refund, ['refundAmount', 'refund_amount', 'amount']))],
         ['申请原因', this.pickValue(refund, ['reason', 'refundReason', 'refund_reason'])],
-        ['申请时间', this.pickValue(refund, ['createTime', 'create_time', 'applyTime', 'apply_time'])],
-        ['处理时间', this.pickValue(refund, ['handleTime', 'handle_time', 'auditTime', 'audit_time'])]
+        ['申请时间', this.formatDisplayTime(this.pickValue(refund, ['createTime', 'create_time', 'applyTime', 'apply_time']))],
+        ['处理时间', this.formatDisplayTime(this.pickValue(refund, ['handleTime', 'handle_time', 'auditTime', 'audit_time']))]
       ]);
     },
     statusFlowRows() {
       const list = this.orderDetail.status_flow || this.orderDetail.statusFlow || [];
       if (!Array.isArray(list)) return [];
       return list.map((item) => ({
-        title: this.pickValue(item, ['title', 'name', 'statusText', 'status_text', 'status']) || '订单状态',
-        desc: this.pickValue(item, ['desc', 'description', 'content', 'remark']),
-        time: this.pickValue(item, ['time', 'createTime', 'create_time', 'createdAt'])
+        title: this.formatOrderStatusText(this.pickValue(item, ['title', 'name', 'statusText', 'status_text', 'status'])) || '订单状态',
+        desc: this.formatFlowDesc(this.pickValue(item, ['desc', 'description', 'content', 'remark'])),
+        time: this.formatDisplayTime(this.pickValue(item, ['time', 'createTime', 'create_time', 'createdAt']))
       })).filter((item) => item.title || item.desc || item.time);
+    },
+    formatFlowDesc() {
+      return (value) => {
+        const text = String(value || '')
+        if (/^submit-/i.test(text)) return '订单已提交，等待系统处理'
+        return value
+      }
     },
     extraOrderRows() {
       return this.buildRows([
@@ -1058,17 +1079,21 @@ export default {
 .flow-item {
   position: relative;
   display: flex;
-  padding: 12rpx 26rpx 18rpx;
+  margin: 8rpx 20rpx 14rpx;
+  padding: 18rpx 20rpx;
+  background: #f7faff;
+  border-radius: 18rpx;
 }
 
 .flow-dot {
   flex: none;
-  width: 14rpx;
-  height: 14rpx;
-  margin-top: 12rpx;
+  width: 18rpx;
+  height: 18rpx;
+  margin-top: 10rpx;
   margin-right: 18rpx;
   border-radius: 50%;
-  background: #ff2c3c;
+  background: linear-gradient(135deg, #1677ff 0%, #04befe 100%);
+  box-shadow: 0 0 0 8rpx rgba(22, 119, 255, .1);
 }
 
 .flow-content {
@@ -1077,8 +1102,9 @@ export default {
 }
 
 .flow-title {
-  color: #303133;
-  font-size: 27rpx;
+  color: #202124;
+  font-size: 28rpx;
+  font-weight: 700;
   line-height: 38rpx;
 }
 
@@ -1090,6 +1116,10 @@ export default {
   line-height: 34rpx;
 }
 
+.flow-desc {
+  color: #606a78;
+}
+
 .order-details .price > view {
   min-height: 64rpx;
   padding: 0 26rpx;
@@ -1098,11 +1128,37 @@ export default {
 }
 
 .order-details .price {
-  padding: 12rpx 0 6rpx;
+  padding: 14rpx 0 10rpx;
 }
 
 .order-details .price > view:last-child {
   min-height: 86rpx;
+}
+
+.order-details .price .price-pay-row {
+  min-height: 112rpx;
+  margin: 10rpx 18rpx 0;
+  padding: 0 22rpx;
+  color: #202124;
+  background: linear-gradient(135deg, #fff8f4 0%, #fff2f2 100%);
+  border-radius: 20rpx;
+  box-sizing: border-box;
+}
+
+.price-pay-label {
+  color: #6b7280;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.price-pay-amount {
+  color: #ff2c3c;
+  font-weight: 800;
+}
+
+.order-status-text {
+  color: #1677ff;
+  font-weight: 600;
 }
 
 .order-details .footer {

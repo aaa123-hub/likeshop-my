@@ -38,25 +38,25 @@
             <view class="contact-row" v-if="server.wechat">
                 <view class="contact-row__main">
                     <view class="contact-row__label">客服微信</view>
-                    <view class="contact-row__value">{{ server.wechat }}</view>
+                    <view class="contact-row__value">{{ server.wechat || '暂未配置' }}</view>
                 </view>
-                <view class="contact-row__btn" @tap="onCopy(server.wechat)">复制</view>
+                <view class="contact-row__btn" :class="{ 'contact-row__btn--disabled': !server.wechat }" @tap="onCopy(server.wechat)">复制</view>
             </view>
 
             <view class="contact-row" v-if="server.qq">
                 <view class="contact-row__main">
                     <view class="contact-row__label">客服QQ</view>
-                    <view class="contact-row__value">{{ server.qq }}</view>
+                    <view class="contact-row__value">{{ server.qq || '暂未配置' }}</view>
                 </view>
-                <view class="contact-row__btn" @tap="onCopy(server.qq)">复制</view>
+                <view class="contact-row__btn" :class="{ 'contact-row__btn--disabled': !server.qq }" @tap="onCopy(server.qq)">复制</view>
             </view>
 
             <view class="contact-row" v-if="server.phone">
                 <view class="contact-row__main">
                     <view class="contact-row__label">客服电话</view>
-                    <view class="contact-row__value">{{ server.phone }}</view>
+                    <view class="contact-row__value">{{ server.phone || '暂未配置' }}</view>
                 </view>
-                <view class="contact-row__btn" @tap="showTelTips">拨打</view>
+                <view class="contact-row__btn" :class="{ 'contact-row__btn--disabled': !server.phone }" @tap="showTelTips">拨打</view>
             </view>
 
             <view v-if="!hasServiceContact" class="contact-empty">客服联系方式暂未配置，请稍后再试</view>
@@ -97,6 +97,8 @@ import { copy } from '@/utils/tools'
 
 const CONTACT_LOGO_URL = 'https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png'
 const CONTACT_QRCODE_URL = 'https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png'
+const CONTACT_SERVICE_TIME = '咨询、投诉和售后反馈'
+const CONTACT_ONLINE_URL = ''
 
 export default {
     name: 'contactOffical',
@@ -112,8 +114,8 @@ export default {
                 wechat: '',
                 qq: '',
                 phone: '',
-                time: '',
-                onlineUrl: ''
+                time: CONTACT_SERVICE_TIME,
+                onlineUrl: CONTACT_ONLINE_URL
             },
             goodsName: '',
             goodsImage: '',
@@ -124,10 +126,10 @@ export default {
         }
     },
     onLoad(options = {}) {
-        this.goodsName = decodeURIComponent(options.goodsName || '')
-        this.goodsImage = decodeURIComponent(options.goodsImage || '')
-        this.shopName = decodeURIComponent(options.shopName || '')
-        this.price = decodeURIComponent(options.price || '')
+        this.goodsName = this.decodeOption(options.goodsName)
+        this.goodsImage = this.decodeOption(options.goodsImage)
+        this.shopName = this.decodeOption(options.shopName)
+        this.price = this.decodeOption(options.price)
         this.$getService()
     },
     computed: {
@@ -146,10 +148,21 @@ export default {
                         name: data.name || data.appName || data.title || this.server.name,
                         image: CONTACT_LOGO_URL,
                         qrcode: CONTACT_QRCODE_URL,
-                        onlineUrl: data.onlineUrl || data.online_url || ''
+                        wechat: data.wechat || data.wechatNo || data.wechatAccount || data.wechatId || data.wechat_id || '',
+                        qq: data.qq || data.qqNo || data.qqAccount || '',
+                        phone: data.phone || data.contactPhone || data.servicePhone || data.mobile || '',
+                        time: data.time || data.serviceTime || data.service_time || data.workTime || data.work_time || CONTACT_SERVICE_TIME,
+                        onlineUrl: data.onlineUrl || data.online_url || data.entryUrl || data.linkUrl || CONTACT_ONLINE_URL
                     }
                 }
             })
+        },
+        decodeOption(value = '') {
+            try {
+                return decodeURIComponent(value || '')
+            } catch (error) {
+                return value || ''
+            }
         },
         openOnlineService() {
             if (this.server.onlineUrl) {
@@ -418,6 +431,10 @@ export default {
     text-align: center;
     border-radius: 26rpx;
     background: #037dfa;
+}
+
+.contact-row__btn--disabled {
+    background: #c8d3df;
 }
 
 .contact-empty {

@@ -1962,3 +1962,17 @@ source: https://lanhu-oss-proxy.lanhuapp.com/e7a941da9a41662f3ee7019ebf17adc5
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png
 response: {"code":"0","message":"SUCCESS","traceId":"072b7fcd-878c-4612-b87b-664f11a6db02","data":{"objectName":"miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png","fileName":"e7a941da9a41662f3ee7019ebf17adc5.png","contentType":"image/png","size":1956},"timestamp":"2026-06-23T03:29:17.904009811Z"}
+
+[success] 客服中心LOGO - 钥岫商城LOGO 2.png
+key: contact_offical_logo
+local: /docs/钥岫商城LOGO 2.png
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png
+response: {"code":"0","message":"SUCCESS","traceId":"095a1d6d-d037-4ea0-9679-846c0b2945f0","data":{"contentType":"image/png","fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png","size":2377306,"url":"https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png","objectName":"miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png","bucket":"ai-shop","fileName":"____________LOGO_2.png","path":"/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png"},"timestamp":"2026-07-01T10:14:23.721534117Z"}
+
+[success] 客服中心二维码 - 二维码.png
+key: contact_offical_qrcode
+local: /docs/二维码.png
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png
+response: {"code":"0","message":"SUCCESS","traceId":"469dd910-c808-4cee-8b49-d0ad1d440ab3","data":{"contentType":"image/png","fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png","size":19256,"url":"https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png","objectName":"miniapp/5ace95d131b045d09668afcd4933e117/_________.png","bucket":"ai-shop","fileName":"_________.png","path":"/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png"},"timestamp":"2026-07-01T10:14:23.473423180Z"}

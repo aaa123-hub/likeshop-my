@@ -39,7 +39,7 @@
                         <view v-if="kycStatusText" class="user-kyc-page__audit-card">
                             <view class="user-kyc-page__audit-title">认证状态：{{ kycStatusText }}</view>
                             <view v-if="kycAuditMessage" class="user-kyc-page__audit-desc">{{ kycAuditMessage }}</view>
-                            <view v-if="kycStatusInfo.lastSubmitTime" class="user-kyc-page__audit-time">提交时间：{{ kycStatusInfo.lastSubmitTime }}</view>
+                            <view v-if="kycSubmitTimeText" class="user-kyc-page__audit-time">提交时间：{{ kycSubmitTimeText }}</view>
                         </view>
                         <view v-if="kycDisplayRows.length" class="user-kyc-page__info-grid">
                             <view v-for="item in kycDisplayRows" :key="item.label" class="user-kyc-page__info-item">
@@ -585,7 +585,10 @@
                                 <view class="merchant-list__price-row">
                                     <text class="merchant-list__price">{{ item.priceText }}</text>
                                     <text v-if="item.marketPriceText" class="merchant-list__market">{{ item.marketPriceText }}</text>
-                                    <text v-if="item.scoreText" class="merchant-list__score">{{ item.scoreText }}分</text>
+                                    <view v-if="item.scoreText" class="merchant-list__score">
+                                        <text class="merchant-list__score-star">★</text>
+                                        <text>{{ item.scoreText }}分</text>
+                                    </view>
                                 </view>
                                 <view class="merchant-list__time line1">{{ item.meta || item.shopName || '商街精选' }}</view>
                                 <view class="merchant-list__tags">
@@ -1090,6 +1093,7 @@
                 </scroll-view>
             </view>
         </u-popup>
+        <canvas canvas-id="storeShareCanvas" id="storeShareCanvas" class="store-share-canvas"></canvas>
         <u-popup v-model="showKycContractPopup" mode="bottom" border-radius="28" :mask-close-able="false">
             <view class="kyc-contract-popup">
                 <view class="kyc-contract-popup__header">
@@ -1500,13 +1504,20 @@ export default {
         kycAuditMessage() {
             return this.kycStatusInfo.rejectReasonMessage || this.kycStatusInfo.reject_reason_message || this.kycStatusInfo.auditMessage || this.kycStatusInfo.audit_message || ''
         },
+        kycSubmitTimeText() {
+            const data = this.kycStatusInfo || {}
+            return this.formatSceneTime(data.lastSubmitTime || data.last_submit_time || data.submitTime || data.submit_time || data.createdAt || data.createTime || data.created_at)
+        },
         kycDisplayRows() {
             const data = this.kycStatusInfo || {}
             return [
                 { label: '认证姓名', value: data.realName || data.real_name || this.kycForm.realName },
-                { label: '证件类型', value: data.certTypeName || data.cert_type_name || data.certType || data.cert_type || 'ID_CARD' },
+                { label: '证件类型', value: this.formatCertType(data.certTypeName || data.cert_type_name || data.certType || data.cert_type || 'ID_CARD') },
                 { label: '证件号码', value: data.certNo || data.cert_no || this.kycForm.certNo },
-                { label: '审核时间', value: data.auditTime || data.audit_time || data.updatedAt || data.updateTime },
+                { label: '提交时间', value: this.kycSubmitTimeText },
+                { label: '审核时间', value: this.formatSceneTime(data.auditTime || data.audit_time || data.updatedAt || data.updateTime || data.updated_at) },
+                { label: '认证类型', value: data.kycTypeName || data.kyc_type_name || data.kycType || data.kyc_type },
+                { label: '手机号', value: data.mobile || data.phone || data.contactMobile || data.contact_mobile },
                 { label: '申请编号', value: data.applyNo || data.apply_no || data.applicationNo || data.id }
             ].filter(item => item.value !== undefined && item.value !== null && item.value !== '')
         },
@@ -1769,6 +1780,25 @@ export default {
             if (!value) return ''
             if (/^https?:\/\//i.test(value)) return resolveImage(value, type)
             return `${baseURL}${value.startsWith('/') ? value : `/${value}`}`
+        },
+        formatSceneTime(value) {
+            if (!value) return ''
+            if (typeof value === 'string' && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) return value.replace(/-/g, '/').slice(0, 16)
+            const time = Number(value)
+            const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000)
+            if (Number.isNaN(date.getTime())) return String(value)
+            const pad = (num) => String(num).padStart(2, '0')
+            return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+        },
+        formatCertType(value) {
+            const map = {
+                ID_CARD: '身份证',
+                IDCARD: '身份证',
+                PASSPORT: '护照',
+                HK_MACAO: '港澳通行证',
+                TAIWAN: '台湾居民通行证'
+            }
+            return map[String(value || '').toUpperCase()] || value || ''
         },
         guardScene(scene) {
             const sceneRouteMap = {
@@ -2268,38 +2298,106 @@ export default {
                 scale: 16
             })
         },
-        toastStoreShareSave() {
-            const imageUrl = this.storeDetailHeroImage || this.storeDetailView.shopLogo
-            if (!imageUrl || this.isEmptyImage(imageUrl)) {
-                uni.showToast({ title: '暂无可保存图片', icon: 'none' })
-                return
+        async toastStoreShareSave() {
+            // #ifdef H5
+            uni.showToast({ title: '请长按图片保存', icon: 'none' })
+            // #endif
+            // #ifndef H5
+            try {
+                const filePath = await this.drawStoreSharePoster()
+                this.saveImageToAlbum(filePath)
+            } catch (error) {
+                uni.hideLoading()
+                uni.showToast({ title: '保存失败，请稍后重试', icon: 'none' })
             }
+            // #endif
+        },
+        saveImageToAlbum(filePath) {
+            uni.saveImageToPhotosAlbum({
+                filePath,
+                success: () => uni.showToast({ title: '已保存到相册', icon: 'success' }),
+                fail: () => uni.showToast({ title: '请授权相册权限后重试', icon: 'none' })
+            })
+        },
+        getShareImageInfo(src) {
+            return new Promise((resolve, reject) => {
+                if (!src || this.isEmptyImage(src)) return reject(new Error('empty image'))
+                uni.getImageInfo({ src, success: resolve, fail: reject })
+            })
+        },
+        drawCanvasRoundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath()
+            ctx.moveTo(x + radius, y)
+            ctx.lineTo(x + width - radius, y)
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+            ctx.lineTo(x + width, y + height - radius)
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+            ctx.lineTo(x + radius, y + height)
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+            ctx.lineTo(x, y + radius)
+            ctx.quadraticCurveTo(x, y, x + radius, y)
+            ctx.closePath()
+        },
+        drawCanvasTextLine(ctx, text, x, y, maxWidth) {
+            let line = ''
+            const value = String(text || '')
+            for (let i = 0; i < value.length; i++) {
+                const next = line + value[i]
+                if (ctx.measureText(next).width > maxWidth) break
+                line = next
+            }
+            ctx.fillText(line, x, y)
+        },
+        async drawStoreSharePoster() {
             uni.showLoading({ title: '保存中...', mask: true })
-            uni.downloadFile({
-                url: imageUrl,
-                success: (downloadRes) => {
-                    const filePath = downloadRes.tempFilePath
-                    if (!filePath) {
-                        uni.hideLoading()
-                        uni.showToast({ title: '图片下载失败', icon: 'none' })
-                        return
-                    }
-                    uni.saveImageToPhotosAlbum({
-                        filePath,
-                        success: () => {
+            const ctx = uni.createCanvasContext('storeShareCanvas', this)
+            const shopLogo = await this.getShareImageInfo(this.storeDetailView.shopLogo).catch(() => null)
+            const qrcode = this.storeShareQrcodeImage ? await this.getShareImageInfo(this.storeShareQrcodeImage).catch(() => null) : null
+            ctx.setFillStyle('#eefbfc')
+            ctx.fillRect(0, 0, 320, 420)
+            ctx.setFillStyle('#ffffff')
+            this.drawCanvasRoundRect(ctx, 18, 22, 284, 350, 18)
+            ctx.fill()
+            ctx.setFillStyle('#04b8c6')
+            this.drawCanvasRoundRect(ctx, 32, 38, 256, 90, 14)
+            ctx.fill()
+            if (shopLogo) ctx.drawImage(shopLogo.path, 48, 58, 50, 50)
+            ctx.setFillStyle('#ffffff')
+            ctx.setFontSize(17)
+            this.drawCanvasTextLine(ctx, this.storeDetailView.shopName || '店铺详情', 112, 75, 150)
+            ctx.setFontSize(12)
+            this.drawCanvasTextLine(ctx, this.storeDetailBusinessHoursText, 112, 100, 150)
+            ctx.setFillStyle('#f7fbfc')
+            this.drawCanvasRoundRect(ctx, 78, 154, 164, 164, 18)
+            ctx.fill()
+            if (qrcode) {
+                ctx.drawImage(qrcode.path, 92, 168, 136, 136)
+            } else {
+                ctx.setFillStyle('#04b8c6')
+                ctx.setFontSize(18)
+                ctx.fillText('店铺二维码', 116, 238)
+            }
+            ctx.setFillStyle('#607080')
+            ctx.setFontSize(13)
+            ctx.fillText('扫一扫，即可查看公域线下店信息', 58, 346)
+            return new Promise((resolve, reject) => {
+                ctx.draw(false, () => {
+                    uni.canvasToTempFilePath({
+                        canvasId: 'storeShareCanvas',
+                        width: 320,
+                        height: 420,
+                        destWidth: 640,
+                        destHeight: 840,
+                        success: (res) => {
                             uni.hideLoading()
-                            uni.showToast({ title: '已保存到相册', icon: 'success' })
+                            resolve(res.tempFilePath)
                         },
-                        fail: () => {
+                        fail: (err) => {
                             uni.hideLoading()
-                            uni.showToast({ title: '请授权相册权限后重试', icon: 'none' })
+                            reject(err)
                         }
-                    })
-                },
-                fail: () => {
-                    uni.hideLoading()
-                    uni.showToast({ title: '图片下载失败', icon: 'none' })
-                }
+                    }, this)
+                })
             })
         },
         async loadStreetIndex() {
@@ -2369,7 +2467,28 @@ export default {
             if (value === '' || value === null || value === undefined) return fallback
             const score = Number(value)
             if (Number.isNaN(score)) return String(value)
-            return score.toFixed(1)
+            const safeScore = Math.max(0, Math.min(score, 5))
+            return safeScore.toFixed(1)
+        },
+        formatStreetTimeText(value) {
+            if (!value) return ''
+            const text = String(value).trim()
+            if (/^\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}$/.test(text)) return `营业时间 ${text}`
+            if (/\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(text)) {
+                const normalized = text.replace('T', ' ').replace(/-/g, '/')
+                const [date = '', time = ''] = normalized.split(' ')
+                const [year, month, day] = date.split('/')
+                return `${year}年${month}月${day}日${time.slice(0, 5)}`.trim()
+            }
+            const time = Number(value)
+            if (!Number.isNaN(time) && time > 0) {
+                const date = new Date(time > 10000000000 ? time : time * 1000)
+                if (!Number.isNaN(date.getTime())) {
+                    const pad = (num) => String(num).padStart(2, '0')
+                    return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`
+                }
+            }
+            return text
         },
         getStreetOpenStatusLabel(status) {
             if (!status) return ''
@@ -2429,7 +2548,8 @@ export default {
             const score = item.score ?? item.shopScore ?? item.shop_score ?? item.commentScore ?? item.rating ?? ''
             const shopName = item.shop_name || item.shopName || item.storeName || item.shopInfo?.shopName || ''
             const distance = item.distance_desc || item.distanceDesc || item.distance || ''
-            const businessTime = item.business_time || item.businessTime || item.time_desc || item.businessHours || ''
+            const businessTime = this.formatStreetTimeText(item.business_time || item.businessTime || item.time_desc || item.businessHours || item.createTime || item.createdAt || '')
+            const statusLabel = this.getStreetOpenStatusLabel(item.openStatus || item.open_status || item.status)
             return {
                 ...item,
                 id: goodsId || shopId || index,
@@ -2444,7 +2564,7 @@ export default {
                 salesText: sales ? `${sales}人购买` : '',
                 stockText: stock !== '' && stock !== null && stock !== undefined ? `库存${stock}` : '',
                 distanceText: distance ? String(distance) : '',
-                meta: [shopName, businessTime].filter(Boolean).join(' · ') || '商街精选',
+                meta: [shopName, statusLabel, businessTime].filter(Boolean).join(' · ') || '商街精选',
                 shopName,
                 url: goodsId
                     ? `/bundle/pages/goods_details/goods_details?id=${goodsId}${shopId ? `&shopId=${shopId}` : ''}`
@@ -3803,6 +3923,7 @@ export default {
 
 .list-page {
     min-height: calc(100vh - 48rpx - 88rpx - var(--status-bar-height));
+    padding-bottom: 32rpx;
 }
 
 .search-shell {
@@ -3812,9 +3933,9 @@ export default {
     overflow: hidden;
     height: 65rpx;
     padding: 0 18rpx 0 34rpx;
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
     border-radius: 33rpx;
-    box-shadow: 0 8rpx 22rpx rgba(31, 122, 244, 0.08);
+    box-shadow: 0 12rpx 30rpx rgba(31, 122, 244, 0.12);
     box-sizing: border-box;
 }
 
@@ -4140,13 +4261,17 @@ export default {
 
 .merchant-list {
     margin-top: 20rpx;
-    overflow: hidden;
-    background: #ffffff;
-    border-radius: 24rpx;
+    background: transparent;
+    border-radius: 0;
 }
 
 .merchant-list__item {
     align-items: center;
+    margin-bottom: 18rpx;
+    background: #ffffff;
+    border: 1rpx solid rgba(31, 122, 244, 0.06);
+    border-radius: 24rpx;
+    box-shadow: 0 14rpx 36rpx rgba(24, 54, 104, 0.08);
 }
 
 .group-item + .group-item,
@@ -4165,10 +4290,10 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 180rpx;
-    height: 180rpx;
-    border-radius: 16rpx;
-    background: #eef1f5;
+    width: 188rpx;
+    height: 188rpx;
+    border-radius: 20rpx;
+    background: #eef4ff;
 }
 
 .image-placeholder {
@@ -4195,14 +4320,14 @@ export default {
 .pending-card__title,
 .merchant-list__title {
     font-size: 30rpx;
-    color: #222222;
-    font-weight: 600;
+    color: #172033;
+    font-weight: 700;
     line-height: 42rpx;
 }
 
 .merchant-list__desc {
     margin-top: 6rpx;
-    color: #666666;
+    color: #667085;
     font-size: 24rpx;
     line-height: 34rpx;
 }
@@ -4214,7 +4339,7 @@ export default {
 .info-block__desc {
     margin-top: 12rpx;
     font-size: 24rpx;
-    color: #999999;
+    color: #7b8494;
     line-height: 36rpx;
 }
 
@@ -4238,9 +4363,9 @@ export default {
 .pending-card__price,
 .record-row__amount,
 .merchant-list__price {
-    font-size: 28rpx;
-    color: #1f7af4;
-    font-weight: 600;
+    font-size: 34rpx;
+    color: #ff3b30;
+    font-weight: 800;
 }
 
 .merchant-list__price-row {
@@ -4257,10 +4382,20 @@ export default {
 }
 
 .merchant-list__score {
+    display: flex;
+    align-items: center;
     margin-left: auto;
-    color: #ff9b18;
+    padding: 5rpx 12rpx;
+    color: #f59b00;
     font-size: 22rpx;
-    font-weight: 600;
+    font-weight: 700;
+    background: rgba(255, 173, 31, 0.12);
+    border-radius: 999rpx;
+}
+
+.merchant-list__score-star {
+    margin-right: 4rpx;
+    color: #ffb11f;
 }
 
 .merchant-list__tags {
@@ -4272,11 +4407,11 @@ export default {
 .merchant-list__tag {
     margin: 0 8rpx 8rpx 0;
     padding: 3rpx 12rpx;
-    color: #667085;
+    color: #3570c7;
     font-size: 20rpx;
     line-height: 28rpx;
-    background: #f2f5f9;
-    border-radius: 8rpx;
+    background: #eef6ff;
+    border-radius: 999rpx;
 }
 
 .group-item__price-wrap {
@@ -4682,6 +4817,14 @@ export default {
     border-radius: 30rpx;
     box-sizing: border-box;
     overflow: hidden;
+}
+
+.store-share-canvas {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 320px;
+    height: 420px;
 }
 
 .store-share-popup__scroll {
@@ -5430,9 +5573,12 @@ export default {
     align-items: flex-start;
     justify-content: space-between;
     margin-top: 28rpx;
+    gap: 20rpx;
 }
 
 .user-kyc-page__copy {
+    flex: 1;
+    min-width: 0;
     padding-top: 44rpx;
 }
 
@@ -5441,6 +5587,7 @@ export default {
     font-size: 60rpx;
     line-height: 72rpx;
     font-weight: 800;
+    word-break: break-all;
 }
 
 .user-kyc-page__subtitle {
@@ -5481,6 +5628,7 @@ export default {
 }
 
 .user-kyc-page__illustration {
+    flex: none;
     position: relative;
     width: 270rpx;
     height: 228rpx;
@@ -5633,6 +5781,7 @@ export default {
     font-size: 26rpx;
     font-weight: 600;
     line-height: 36rpx;
+    word-break: break-all;
 }
 
 .user-kyc-page__audit-card {
@@ -5701,12 +5850,15 @@ export default {
 .user-kyc-page__photo-row {
     display: flex;
     justify-content: space-between;
+    gap: 20rpx;
     margin-top: 32rpx;
 }
 
 .user-kyc-page__photo-card {
     position: relative;
-    width: calc(50% - 14rpx);
+    flex: 1;
+    min-width: 0;
+    width: auto;
     height: 222rpx;
     overflow: hidden;
     border-radius: 18rpx;
@@ -5867,7 +6019,8 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 610rpx;
+    width: 100%;
+    max-width: 610rpx;
     height: 98rpx;
     margin: 30rpx auto 0;
     color: #ffffff;

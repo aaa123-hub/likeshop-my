@@ -28,19 +28,19 @@
                         <view class="goods-price row">
                             <view class="primary">
                                 <price-format
-                                    v-if="!item.is_member && order_type === 0"
+                                    v-if="!item.is_member && order_type === 0 && goodsPrice(item) !== ''"
                                     :weight="500"
                                     :subscript-size="24"
                                     :first-size="34"
                                     :second-size="24"
-                                    :price="item.original_price || item.goods_price"
+                                    :price="goodsPrice(item)"
                                 ></price-format>
                             </view>
-                            <view class="vip-price row" v-if="item.is_member && order_type === 0">
+                            <view class="vip-price row" v-if="item.is_member && order_type === 0 && goodsPrice(item) !== ''">
                                 <view class="price-name xxs">会员价</view>
                                 <view style="padding: 0 10rpx">
                                     <price-format
-                                        :price="item.goods_price"
+                                        :price="goodsPrice(item)"
                                         :first-size="22"
                                         :second-size="22"
                                         :subscript-size="22"
@@ -49,7 +49,7 @@
                                     ></price-format>
                                 </view>
                             </view>
-                            <view class="vip-price row" v-if="order_type === 1 || order_type === 2 || order_type === 3">
+                            <view class="vip-price row" v-if="(order_type === 1 || order_type === 2 || order_type === 3) && goodsPrice(item) !== ''">
                                 <view class="price-name xxs" style="background-color: #e74346">
                                     <text v-if="order_type === 1">秒杀价</text>
                                     <text v-if="order_type === 2">拼团价</text>
@@ -57,7 +57,7 @@
                                 </view>
                                 <view style="padding: 0 10rpx">
                                     <price-format
-                                        :price="item.goods_price"
+                                        :price="goodsPrice(item)"
                                         :first-size="22"
                                         :second-size="22"
                                         :subscript-size="22"
@@ -67,7 +67,7 @@
                                 </view>
                             </view>
                         </view>
-                        <view class="goods-num sm">x{{ item.goods_num }}</view>
+                        <view v-if="item.goods_num" class="goods-num sm">x{{ item.goods_num }}</view>
                     </view>
                 </view>
             </view>
@@ -135,6 +135,10 @@ export default {
         }
     },
     methods: {
+        goodsPrice(item) {
+            const value = [item.original_price, item.goods_price, item.price].find((price) => price !== undefined && price !== null && price !== '')
+            return value === undefined || value === null ? '' : value
+        },
         toGoods(id) {
             if (!this.link) return
             uni.navigateTo({

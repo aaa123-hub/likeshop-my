@@ -152,9 +152,9 @@ export default {
             showServiceModal: false,
 			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
             serviceContacts: [
-				{ type: '微信', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
-				{ type: 'QQ', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/f3a751f36ea442378ed3b18f916ce872/contact-message-icon.png' },
-				{ type: '手机号', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/ad78cb6626b94083b5b4690cd5d7bc91/contact-email-icon.png' }
+                { type: '微信', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
+                { type: 'QQ', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/f3a751f36ea442378ed3b18f916ce872/contact-message-icon.png' },
+                { type: '手机号', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/ad78cb6626b94083b5b4690cd5d7bc91/contact-email-icon.png' }
             ]
         }
     },
@@ -223,13 +223,17 @@ export default {
                 if (res.code != 1) return
                 const data = res.data || {}
                 this.serviceContacts = [
-                    { ...this.serviceContacts[0], value: data.wechat || this.serviceContacts[0].value },
-                    { ...this.serviceContacts[1], value: data.qq || this.serviceContacts[1].value },
-                    { ...this.serviceContacts[2], value: data.phone || this.serviceContacts[2].value }
+                    { ...this.serviceContacts[0], value: data.wechat || '' },
+                    { ...this.serviceContacts[1], value: data.qq || '' },
+                    { ...this.serviceContacts[2], value: data.phone || '' }
                 ]
             })
         },
         contactService(item) {
+            if (!item.value) {
+                uni.showToast({ title: '客服信息暂未配置', icon: 'none' })
+                return
+            }
             if (item.type === '手机号') {
                 uni.makePhoneCall({ phoneNumber: item.value.replace(/\s/g, '') })
                 return
@@ -517,6 +521,11 @@ export default {
     font-size: 28rpx;
     line-height: 32rpx;
     white-space: nowrap;
+}
+
+.service-contact__value:empty::after {
+    content: '暂未配置';
+    color: #999999;
 }
 
 .service-contact__btn {

@@ -75,11 +75,13 @@
 				</view>
 				<view class="merchant-card__body">
 					<view class="merchant-card__price-row row-between">
-						<view class="merchant-card__price">
-							<price-format :first-size="46" :second-size="32" :subscript-size="32"
-								:price="goodsType == 2 ? displayTeamPrice : displayMinPrice"
-								:weight="500"></price-format>
-							<text class="merchant-card__price-tag">{{ goodsType == 2 ? '拼团价' : '到手价' }}</text>
+						<view class="merchant-card__price-box">
+							<view class="merchant-card__price">
+								<price-format :first-size="46" :second-size="32" :subscript-size="32"
+									:price="goodsType == 2 ? displayTeamPrice : displayMinPrice"
+									:weight="500"></price-format>
+								<text class="merchant-card__price-tag">{{ goodsType == 2 ? '拼团价' : '售价' }}</text>
+							</view>
 						</view>
 						<view class="merchant-card__share" @tap.stop="showShareBtn = true">
 							<image class="merchant-card__share-icon" src="https://shengyuan.store/api/miniapp/files/miniapp/d8f8eba765024dd7ad1bf7ced9c0ea8c/c2187248f261c091ca3024ebe0b55c41.png" mode="aspectFit"></image>
@@ -102,9 +104,8 @@
 					</view>
 					<view class="merchant-card__title">{{ goodsDetail.name }}</view>
 					<view v-if="goodsDetail.subtitle || goodsDetail.remark" class="merchant-card__desc line2">{{ goodsDetail.subtitle || goodsDetail.remark }}</view>
-					<view class="merchant-card__sales">{{ groupFooterCount }}人已跟团买</view>
-					<view v-if="goodsTagList.length" class="merchant-card__tags">
-						<text v-for="tag in goodsTagList" :key="tag" class="merchant-card__tag line1">{{ tag }}</text>
+					<view v-if="goodsDisplayTags.length" class="merchant-card__tags">
+						<text v-for="tag in goodsDisplayTags" :key="tag" class="merchant-card__tag line1">{{ tag }}</text>
 					</view>
 				</view>
 			</view>
@@ -147,11 +148,50 @@
 					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png" mode="aspectFit"></image>
 					<text class="option-row__text">{{ freightText }}</text>
 				</view>
-				<view v-if="goodsServiceList.length" class="option-row option-row--tags">
-					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/5f50e710a7024d99a4ddef3544d73eaf/8b846285dc82397ecc5ec550e2c6a507.png" mode="aspectFit"></image>
-					<view class="option-row__tags">
-						<text v-for="tag in goodsServiceList" :key="tag" class="option-row__tag">{{ tag }}</text>
+			</view>
+			<view v-if="!goodsType" class="spec row bg-white mt20" @tap="showSpecFun(0)">
+				<view class="text lighter">已选</view>
+				<view class="line1 mr20" style="flex: 1;">{{ selectedSpecText }}</view>
+				<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
+			</view>
+			<view class="evaluation bg-white mt20">
+				<navigator hover-class="none" :url="'/bundle_order/pages/all_comments/all_comments?id=' + goodsDetail.id" class="title row-between">
+					<view><text class="balck md mr10">商品评价({{ comment.total || 0 }})</text></view>
+					<view class="row">
+						<text class="lighter">查看全部</text>
+						<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 					</view>
+				</navigator>
+				<view class="con" v-if="comment.comment">
+					<view class="user-info row">
+						<image class="avatar mr20" :src="comment.avatar"></image>
+						<view class="user-name md mr10">{{ comment.nickname }}</view>
+					</view>
+					<view class="muted xs mt10"><text class="mr20">{{ formatDisplayTime(comment.create_time) }}</text></view>
+					<view v-if="comment.comment" class="dec mt20">{{ comment.comment }}</view>
+				</view>
+				<view class="con empty-state" v-else>暂无评价</view>
+			</view>
+
+			<view class="group-record bg-white mt20" v-if="groupRecords.length">
+				<view class="group-record__title">跟团记录</view>
+				<view v-for="(item, index) in groupRecords" :key="index" class="group-record__item">
+					<image v-if="item.avatar" class="group-record__avatar-image" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
+					<view v-else class="group-record__avatar"></view>
+					<view class="group-record__content">
+						<view class="group-record__name">{{ item.name }}</view>
+						<view class="group-record__time">{{ item.time ? formatDisplayTime(item.time) : '刚刚跟团' }}</view>
+					</view>
+					<view class="group-record__plus">+{{ item.join || 1 }}</view>
+				</view>
+			</view>
+
+			<view class="group-record bg-white mt20" v-else>
+				<view class="group-record__title">跟团记录</view>
+				<view class="group-record__empty">
+					<view class="group-record__empty-icon"></view>
+					<view>暂无跟团记录</view>
+					<view class="group-record__empty-desc">成为第一个跟团的人吧</view>
 				</view>
 			</view>
 			<view class="goods-extra bg-white mt20" v-if="goodsInfoRows.length">
@@ -218,63 +258,6 @@
 					</view>
 				</swiper-item>
 			</swiper>
-			<view v-if="!goodsType" class="spec row bg-white mt20" @tap="showSpecFun(0)">
-				<view class="text lighter">已选</view>
-				<view class="line1 mr20" style="flex: 1;">{{ selectedSpecText }}</view>
-				<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
-			</view>
-			<view class="mt20 service-row" @tap="showUsageGuide">
-				<view class="row bg-white" style="padding: 24rpx 24rpx;">
-					<view class="text lighter flex1">{{ usageGuideTitle }}</view>
-					<view v-if="usageGuideSummary" class="service-row__summary line1">{{ usageGuideSummary }}</view>
-					<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
-				</view>
-			</view>
-			<view class="evaluation bg-white mt20">
-				<navigator hover-class="none" :url="'/bundle_order/pages/all_comments/all_comments?id=' + goodsDetail.id"
-					class="title row-between">
-					<view>
-						<text class="balck md mr10">商品评价({{ comment.total || 0 }})</text>
-					</view>
-					<view class="row">
-						<text class="lighter">查看全部</text>
-						<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
-					</view>
-				</navigator>
-				<view class="con" v-if="comment.comment">
-					<view class="user-info row">
-						<image class="avatar mr20" :src="comment.avatar"></image>
-						<view class="user-name md mr10">{{ comment.nickname }}</view>
-					</view>
-					<view class="muted xs mt10">
-						<text class="mr20">{{ comment.create_time }}</text>
-					</view>
-					<view v-if="comment.comment" class="dec mt20">{{ comment.comment }}</view>
-				</view>
-				<view class="con empty-state" v-else>暂无评价</view>
-			</view>
-
-			<view class="group-record bg-white mt20" v-if="groupRecords.length">
-				<view class="group-record__title">跟团记录</view>
-				<view v-for="(item, index) in groupRecords" :key="index" class="group-record__item">
-					<image v-if="item.avatar" class="group-record__avatar-image" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
-					<view v-else class="group-record__avatar"></view>
-					<view class="group-record__content">
-						<view class="group-record__name">{{ item.name }}</view>
-						<view class="group-record__time">{{ item.time || '刚刚跟团' }}</view>
-					</view>
-					<view class="group-record__plus">+{{ item.join || 1 }}</view>
-				</view>
-			</view>
-
-			<view class="group-record bg-white mt20" v-else>
-				<view class="group-record__title">跟团记录</view>
-				<view class="group-record__empty">
-					<view class="group-record__empty-icon"></view>
-					<view>暂无跟团记录</view>
-					<view class="group-record__empty-desc">成为第一个跟团的人吧</view>
-				</view>
-			</view>
 			<view class="goods-like mt20 bg-white" v-if="goodsLike.length">
 				<goods-like :list="goodsLike"></goods-like>
 			</view>
@@ -359,14 +342,15 @@
 							<view v-else class="goods-share-qrcode__loading">二维码</view>
 						</view>
 					</view>
-					<view class="goods-share-actions">
-						<view class="goods-share-action goods-share-action--save" @tap="toastShareSave">保存图片</view>
-						<button class="goods-share-action" open-type="share">分享商品</button>
-					</view>
+                    <view class="goods-share-actions">
+                        <view class="goods-share-action goods-share-action--save" @tap="saveShareImage">保存图片</view>
+                        <button class="goods-share-action" open-type="share">分享商品</button>
+                    </view>
 				</view>
 				<image class="goods-share-close" :src="shareCloseIcon" mode="aspectFit" @tap="showShareBtn = false"></image>
 			</view>
 		</u-popup>
+		<canvas canvas-id="goodsShareCanvas" id="goodsShareCanvas" class="share-canvas"></canvas>
 		<view class="share-money" :class="{ show: showCommission && enableCommission}">
 			<view class="row-end">
 				<view class="share-close row-center" @tap="showCommission=false">
@@ -588,21 +572,153 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const value = uni.getStorageSync(this.getShopSubscribeCacheKey(shopId))
 				return value === '' || value === undefined || value === null ? undefined : Boolean(value)
 			},
-			showUsageGuide() {
-				const content = this.usageGuideContent
-				if (!content) {
-					uni.navigateTo({ url: '/bundle_user/pages/server_explan/server_explan?type=2' })
-					return
+			async saveShareImage() {
+				await this.prepareGoodsShareQrcode();
+				// #ifdef H5
+				uni.showToast({ title: '请长按图片保存', icon: 'none' });
+				// #endif
+				// #ifndef H5
+				try {
+					const posterPath = await this.drawGoodsSharePoster();
+					this.saveImageToAlbum(posterPath);
+					return;
+				} catch (error) {
+					uni.hideLoading();
 				}
-				uni.showModal({
-					title: this.usageGuideTitle,
-					content,
-					showCancel: false,
-					confirmText: '知道了'
-				})
+				const candidates = [
+					this.shareQrcodeIsImage ? this.shareQrcode : '',
+					this.goodsDetail.poster,
+					this.goodsDetail.shareImage,
+					this.goodsDetail.share_image,
+					this.goodsDetail.image,
+					this.previewImages[0]
+				].filter(Boolean).map(item => this.resolveGoodsImage(item));
+				this.saveImageCandidates([...new Set(candidates)]);
+				// #endif
 			},
-			toastShareSave() {
-				uni.showToast({ title: '请长按二维码或图片保存', icon: 'none' })
+			saveImageToAlbum(filePath) {
+				uni.saveImageToPhotosAlbum({
+					filePath,
+					success: () => uni.showToast({ title: '已保存到相册', icon: 'success' }),
+					fail: () => uni.showToast({ title: '保存失败，请检查相册权限', icon: 'none' })
+				});
+			},
+			getImageInfo(src) {
+				return new Promise((resolve, reject) => {
+					if (!src) return reject(new Error('empty image'));
+					uni.getImageInfo({ src, success: resolve, fail: reject });
+				});
+			},
+			drawRoundRect(ctx, x, y, width, height, radius) {
+				ctx.beginPath();
+				ctx.moveTo(x + radius, y);
+				ctx.lineTo(x + width - radius, y);
+				ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+				ctx.lineTo(x + width, y + height - radius);
+				ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+				ctx.lineTo(x + radius, y + height);
+				ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+				ctx.lineTo(x, y + radius);
+				ctx.quadraticCurveTo(x, y, x + radius, y);
+				ctx.closePath();
+			},
+			drawTextLine(ctx, text, x, y, maxWidth) {
+				let line = '';
+				const value = String(text || '');
+				for (let i = 0; i < value.length; i++) {
+					const testLine = line + value[i];
+					if (ctx.measureText(testLine).width > maxWidth) break;
+					line = testLine;
+				}
+				ctx.fillText(line, x, y);
+			},
+			async drawGoodsSharePoster() {
+				uni.showLoading({ title: '保存中...', mask: true });
+				const ctx = uni.createCanvasContext('goodsShareCanvas', this);
+				const goodsImage = await this.getImageInfo(this.resolveGoodsImage(this.goodsDetail.poster || this.goodsDetail.image || this.previewImages[0]));
+				const shopLogo = await this.getImageInfo(this.shareShopLogo).catch(() => null);
+				const qrcode = this.shareQrcodeIsImage ? await this.getImageInfo(this.shareQrcode).catch(() => null) : null;
+				ctx.setFillStyle('#f3f8ff');
+				ctx.fillRect(0, 0, 320, 520);
+				ctx.setFillStyle('#037dfa');
+				this.drawRoundRect(ctx, 16, 18, 288, 76, 14);
+				ctx.fill();
+				if (shopLogo) ctx.drawImage(shopLogo.path, 30, 34, 40, 40);
+				ctx.setFillStyle('#ffffff');
+				ctx.setFontSize(15);
+				this.drawTextLine(ctx, this.shareShopName, 80, 49, 178);
+				ctx.setFontSize(11);
+				this.drawTextLine(ctx, `营业时间：${this.shareBusinessTime}`, 80, 70, 190);
+				ctx.setFillStyle('#ffffff');
+				this.drawRoundRect(ctx, 16, 82, 288, 404, 14);
+				ctx.fill();
+				ctx.drawImage(goodsImage.path, 30, 102, 260, 220);
+				ctx.setFillStyle('#202124');
+				ctx.setFontSize(16);
+				this.drawTextLine(ctx, this.goodsDetail.name || '商品详情', 30, 354, 260);
+				ctx.setFillStyle('#8b95a5');
+				ctx.setFontSize(12);
+				this.drawTextLine(ctx, `${this.shareShopName} · 已售${this.goodsDetail.sales_sum || 0}`, 30, 378, 168);
+				ctx.setFillStyle('#ff2e2e');
+				ctx.setFontSize(14);
+				ctx.fillText('¥', 30, 426);
+				ctx.setFontSize(30);
+				ctx.fillText(this.sharePriceMain, 46, 427);
+				ctx.setFontSize(14);
+				ctx.fillText(this.sharePriceDecimal, 46 + String(this.sharePriceMain).length * 18, 426);
+				ctx.setFillStyle('#8b95a5');
+				ctx.setFontSize(11);
+				ctx.fillText('扫码查看商品', 30, 454);
+				ctx.setFillStyle('#f7f9fc');
+				this.drawRoundRect(ctx, 206, 366, 78, 78, 8);
+				ctx.fill();
+				if (qrcode) {
+					ctx.drawImage(qrcode.path, 212, 372, 66, 66);
+				} else {
+					ctx.setFillStyle('#037dfa');
+					ctx.setFontSize(12);
+					ctx.fillText('二维码', 228, 410);
+				}
+				return new Promise((resolve, reject) => {
+					ctx.draw(false, () => {
+						uni.canvasToTempFilePath({
+							canvasId: 'goodsShareCanvas',
+							width: 320,
+							height: 520,
+							destWidth: 640,
+							destHeight: 1040,
+							success: (res) => {
+								uni.hideLoading();
+								resolve(res.tempFilePath);
+							},
+							fail: (err) => {
+								uni.hideLoading();
+								reject(err);
+							}
+						}, this);
+					});
+				});
+			},
+			saveImageCandidates(list) {
+				const [imageUrl, ...rest] = list;
+				if (!imageUrl) return uni.showToast({ title: '暂无可保存图片', icon: 'none' });
+				const saveFile = (filePath) => this.saveImageToAlbum(filePath);
+				if (/^(wxfile|file):\/\//i.test(imageUrl) || imageUrl.indexOf('/') === 0) {
+					saveFile(imageUrl);
+					return;
+				}
+				if (!/^https?:\/\//i.test(imageUrl)) {
+					this.saveImageCandidates(rest);
+					return;
+				}
+				uni.downloadFile({
+					url: imageUrl,
+					success: (res) => {
+						if (res.statusCode === 200 && res.tempFilePath) saveFile(res.tempFilePath);
+						else this.saveImageCandidates(rest);
+					},
+					fail: () => this.saveImageCandidates(rest)
+				});
 			},
 			selectPreviewImage(index) {
 				this.activePreviewIndex = index;
@@ -614,6 +730,11 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				this.activePreviewIndex = e.detail.current || 0;
 			},
 			formatPlainTags(value) {
+				if (value && typeof value === 'object' && !Array.isArray(value)) {
+					const list = value.list || value.items || value.tags || value.labels || value.services || value.serviceList || value.service_list
+					if (Array.isArray(list)) return this.formatPlainTags(list)
+					return [value.name || value.title || value.label || value.tagName || value.tag_name || value.serviceName || value.service_name || value.value || ''].filter(Boolean)
+				}
 				const tags = Array.isArray(value) ? value : String(value || '').split(',');
 				return tags.map(item => typeof item === 'string' ? item.trim() : (item.name || item.title || item.label || item.tagName || item.tag_name || item.serviceName || item.service_name || '')).filter(Boolean);
 			},
@@ -621,6 +742,16 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				if (Array.isArray(value)) return this.formatPlainTags(value).join('、')
 				if (value && typeof value === 'object') return value.name || value.title || value.label || value.tagName || value.tag_name || value.serviceName || value.service_name || value.value || ''
 				return value
+			},
+			formatDisplayTime(value) {
+				if (!value) return ''
+				if (typeof value === 'string' && /^\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}$/.test(value.trim())) return value.trim()
+				const time = Number(value)
+				const normalized = typeof value === 'string' ? value.replace(/(\.\d{3})\d+/, '$1') : value
+				const date = Number.isNaN(time) ? new Date(normalized) : new Date(time > 10000000000 ? time : time * 1000)
+				if (Number.isNaN(date.getTime())) return String(value)
+				const pad = (num) => String(num).padStart(2, '0')
+				return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 			},
 			isEnabledValue(value) {
 				return value === true || value === 1 || value === '1' || value === 'true' || value === 'TRUE' || value === 'Y' || value === 'YES'
@@ -671,9 +802,15 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				if (!skuId) return false;
 				return [item.item_id, item.sku_id, item.skuId, item.id, item.itemSkuId].some(value => String(value || '') === String(skuId));
 			},
+			findSkuDetail(item = {}) {
+				const goodsItem = this.goodsDetail.goods_item || this.goodsDetail.goodsItem || [];
+				const itemId = item.item_id || item.sku_id || item.skuId || item.id || item.itemSkuId;
+				return goodsItem.find(sku => this.isSameSku(sku, itemId)) || item;
+			},
 			normalizeCheckedSku(item = {}) {
+				const sku = this.findSkuDetail(item);
 				const specIds = item.spec_value_ids || item.specValueIds || item.spec_value_ids_str || '';
-				return Object.assign({}, item, {
+				return Object.assign({}, item, sku, {
 					spec_value_ids: specIds,
 					spec_value_ids_arr: Array.isArray(item.spec_value_ids_arr) ? item.spec_value_ids_arr : String(specIds || '').split(',')
 				});
@@ -1061,13 +1198,16 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				return this.team.joinedCount || this.team.joined_count || this.team.join_num || this.team.joinNum || this.team.salesCount || this.team.sales_count || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || this.goodsDetail.joinedCount || this.goodsDetail.joined_count || this.goodsDetail.sales_sum || this.goodsDetail.salesCount || 0
 			},
 			displayMinPrice() {
-				return this.normalizePrice(this.checkedGoods.price ?? this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.min_price ?? this.goodsDetail.minPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price)
+				return this.normalizePrice(this.checkedGoods.price ?? this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.price ?? this.goodsDetail.salePrice ?? this.goodsDetail.sale_price ?? this.goodsDetail.min_price ?? this.goodsDetail.minPrice)
 			},
 			displayMaxPrice() {
-				return this.normalizePrice(this.checkedGoods.price ?? this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.max_price ?? this.goodsDetail.maxPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.price, this.displayMinPrice)
+				return this.normalizePrice(this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.max_price ?? this.goodsDetail.maxPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.sale_price ?? this.checkedGoods.price ?? this.goodsDetail.price, this.displayMinPrice)
 			},
 			displayMarketPrice() {
 				return this.normalizePrice(this.checkedGoods.market_price ?? this.checkedGoods.marketPrice ?? this.checkedGoods.originPrice ?? this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice, this.displayMaxPrice)
+			},
+			marketDisplayText() {
+				return this.normalizePrice(this.checkedGoods.market_price ?? this.checkedGoods.marketPrice ?? this.checkedGoods.originPrice ?? this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice ?? this.goodsDetail.linePrice ?? this.displayMarketPrice)
 			},
 			displayTeamPrice() {
 				return this.normalizePrice(this.checkedGoods.team_price ?? this.checkedGoods.teamPrice ?? this.team.team_min_price ?? this.team.teamMinPrice ?? this.team.groupPrice ?? this.displayMinPrice, this.displayMinPrice)
@@ -1101,19 +1241,14 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				return Number.isNaN(value) ? String(score || '5.0') : value.toFixed(1)
 			},
 			shareBusinessTime() {
-				return this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '8:00-16:00'
-			},
-			usageGuideTitle() {
-				return this.goodsDetail.usage_title || this.goodsDetail.usageTitle || '使用攻略'
-			},
-			usageGuideContent() {
-				return this.formatInfoValue(this.goodsDetail.usage_guide || this.goodsDetail.usageGuide || this.goodsDetail.usage_hint || this.goodsDetail.usageHint || this.goodsDetail.highlight || '')
-			},
-			usageGuideSummary() {
-				return String(this.usageGuideContent || '').replace(/<[^>]+>/g, '').slice(0, 18)
+				return this.formatDisplayTime(this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '8:00-16:00')
 			},
 			goodsTagList() {
-				return this.formatPlainTags(this.goodsDetail.tags || this.goodsDetail.labels || this.goodsDetail.goods_tags || this.goodsDetail.goodsTags || this.goodsServiceList).slice(0, 4)
+				return this.formatPlainTags(this.goodsDetail.tags || this.goodsDetail.labels || this.goodsDetail.goods_tags || this.goodsDetail.goodsTags || this.goodsServiceList).filter(tag => !this.isImportSourceField('标签', tag)).slice(0, 4)
+			},
+			goodsDisplayTags() {
+				const tags = [this.freightText].concat(this.goodsServiceList, this.goodsTagList).filter(Boolean)
+				return [...new Set(tags)].filter(tag => !this.isImportSourceField('标签', tag)).slice(0, 8)
 			},
 			goodsServiceList() {
 				const detail = this.goodsDetail || {}
@@ -1127,7 +1262,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 					const value = this.pickFirstValue(detail, item.keys)
 					if ((this.isEnabledValue(value) || value === '是' || value === '支持') && !tags.includes(item.text)) tags.push(item.text)
 				})
-				return tags
+				return tags.filter(tag => !this.isImportSourceField('服务', tag))
 			},
 			goodsInfoRows() {
 				const detail = this.goodsDetail || {}
@@ -1138,13 +1273,21 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 					{ label: '跟团', value: this.groupFooterCount ? `${this.groupFooterCount}人已跟团` : '' },
 					{ label: '评价', value: this.comment.total || detail.comment_count || detail.commentCount },
 					{ label: '运费', value: this.freightText },
-					{ label: '服务', value: this.goodsServiceList },
+					{ label: '服务标签', value: this.goodsServiceList },
+					{ label: '商品标签', value: this.goodsTagList },
 					{ label: '积分', value: detail.order_give_integral || detail.giveIntegral || detail.integral },
 					{ label: '售后', value: detail.after_sale || detail.afterSale || detail.after_sale_desc || detail.afterSaleDesc },
 					{ label: '提示', value: detail.usage_hint || detail.usageHint || detail.highlight },
 					{ label: '发货', value: detail.delivery_desc || detail.deliveryDesc || detail.shipping_desc || detail.shippingDesc || detail.freight_desc || this.freightText },
 					{ label: '运费设置', value: template.name || template.title || detail.freight_template_name || detail.freightTemplateName || detail.delivery_template_name || detail.deliveryTemplateName },
-					{ label: '分类', value: detail.category_name || detail.categoryName }
+					{ label: '分类', value: detail.category_name || detail.categoryName },
+					{ label: '品牌', value: detail.brand_name || detail.brandName || detail.brand },
+					{ label: '单位', value: detail.unit || detail.unitName },
+					{ label: '重量', value: detail.weight || detail.goodsWeight || detail.netWeight },
+					{ label: '商品编码', value: detail.code || detail.goodsCode || detail.spuCode },
+					{ label: '上架时间', value: this.formatDisplayTime(detail.on_sale_time || detail.onSaleTime || detail.saleTime) },
+					{ label: '创建时间', value: this.formatDisplayTime(detail.create_time || detail.createTime || detail.createdAt) },
+					{ label: '更新时间', value: this.formatDisplayTime(detail.update_time || detail.updateTime || detail.updatedAt) }
 				]
 				return rows.map(row => ({
 					label: row.label,
@@ -1193,6 +1336,14 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			min-height: 240rpx;
 			color: #999999;
 			font-size: 26rpx;
+		}
+
+		.share-canvas {
+			position: fixed;
+			left: -9999px;
+			top: -9999px;
+			width: 320px;
+			height: 520px;
 		}
 
 		.hero-stage {
@@ -1318,10 +1469,29 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			color: #ff2e2e;
 		}
 
+		.merchant-card__price-box {
+			min-width: 0;
+		}
+
 		.merchant-card__price-tag {
 			margin-left: 12rpx;
 			font-size: 24rpx;
 			line-height: 1;
+		}
+
+		.merchant-card__market-line {
+			display: flex;
+			align-items: center;
+			margin-top: 6rpx;
+			color: #8b95a5;
+			font-size: 24rpx;
+			line-height: 34rpx;
+		}
+
+		.merchant-card__market-price {
+			margin-left: 10rpx;
+			color: #9aa2af;
+			text-decoration: line-through;
 		}
 
 		.merchant-card__share {
@@ -1469,13 +1639,6 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			font-size: 26rpx;
 			font-weight: 500;
 			line-height: 36rpx;
-		}
-
-		.service-row__summary {
-			max-width: 360rpx;
-			margin-right: 16rpx;
-			color: #999999;
-			font-size: 24rpx;
 		}
 
 		.option-panel__style-head,
@@ -2041,10 +2204,11 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 		}
 
-		.goods-share-scene {
-			width: 750rpx;
-			max-height: calc(100vh - 80rpx);
-			padding: 40rpx 0 28rpx;
+			.goods-share-scene {
+			width: 700rpx;
+			max-width: calc(100vw - 32rpx);
+			max-height: calc(100vh - 56rpx);
+			padding: 24rpx 0 22rpx;
 			box-sizing: border-box;
 			overflow-y: auto;
 		}
@@ -2053,9 +2217,9 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			display: flex;
 			width: 540rpx;
 			max-width: calc(100vw - 96rpx);
-			min-height: 190rpx;
+			min-height: 168rpx;
 			margin: 0 auto;
-			padding: 23rpx 29rpx;
+			padding: 20rpx 24rpx;
 			box-sizing: border-box;
 			border-radius: 28rpx;
 			background: linear-gradient(135deg, rgba(3, 125, 250, 0.96), rgba(3, 172, 250, 0.9));
@@ -2064,8 +2228,8 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 		.goods-share-shop__logo {
 			flex: none;
-			width: 132rpx;
-			height: 132rpx;
+			width: 120rpx;
+			height: 120rpx;
 			border-radius: 10rpx;
 			background: #ffffff;
 			border: 4rpx solid rgba(255, 255, 255, 0.82);
@@ -2142,8 +2306,8 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		.goods-share-panel {
 			width: 620rpx;
 			max-width: calc(100vw - 64rpx);
-			margin: 18rpx auto 0;
-			padding: 28rpx 24rpx 28rpx;
+			margin: 14rpx auto 0;
+			padding: 24rpx 22rpx 24rpx;
 			box-sizing: border-box;
 			border-radius: 30rpx;
 			background: #ffffff;
@@ -2152,15 +2316,15 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 
 		.goods-share-main {
 			width: 100%;
-			height: 40vh;
-			max-height: 460rpx;
-			min-height: 320rpx;
+			height: 34vh;
+			max-height: 400rpx;
+			min-height: 280rpx;
 			border-radius: 23rpx;
 			background: #d5d5d5;
 		}
 
 		.goods-share-title {
-			margin-top: 18rpx;
+			margin-top: 14rpx;
 			color: #222222;
 			font-size: 30rpx;
 			font-weight: 600;
@@ -2229,7 +2393,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			display: flex;
 			justify-content: space-between;
 			gap: 20rpx;
-			margin: 28rpx 16rpx 0;
+			margin: 22rpx 8rpx 0;
 		}
 
 		.goods-share-action {
@@ -2238,14 +2402,14 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			justify-content: center;
 			flex: 1;
 			min-width: 0;
-			height: 81rpx;
+			height: 76rpx;
 			padding: 0;
 			border-radius: 40rpx;
 			background: #037dfa;
 			color: #ffffff;
 			font-size: 28rpx;
 			font-weight: 500;
-			line-height: 81rpx;
+			line-height: 76rpx;
 		}
 
 		.goods-share-action--save {

@@ -176,6 +176,9 @@ const homeShortcutFallbackImages = {
     WALLET: 'https://shengyuan.store/api/miniapp/files/miniapp/33f3be5718014c6b957a62c7f0c91f14/home-shortcut-wallet.png'
 }
 
+const disabledHomeShortcutKeys = ['ACTIVITY', 'WALLET']
+const disabledHomeShortcutRoutes = ['/business/pages/business_pages/activity_center', '/bundle_finance/pages/user_wallet/user_wallet']
+
 const homeShortcutRoutes = {
     CATEGORY: { name: '分类', url: '/pages/sort/sort', type: 'switchTab' },
     ORDER: { name: '订单', url: '/bundle_order/pages/user_order/user_order' },
@@ -234,10 +237,7 @@ export default {
             return homeRecentVisits.length ? homeRecentVisits : this.recentVisitFallback
         },
         hotActivityList() {
-            return (this.homeData.hotActivities || []).filter((item) => {
-                const type = String(item.activityType || item.activity_type || item.type || '').toUpperCase()
-                return type !== 'BARGAIN' && (!item.url || isRouteEnabled(item.url))
-            })
+            return []
         },
         recommendedProductList() {
             return this.homeData.recommendedProducts || []
@@ -249,9 +249,7 @@ export default {
             return [
                 { ...homeShortcutRoutes.CATEGORY, image: homeShortcutFallbackImages.CATEGORY },
                 { ...homeShortcutRoutes.ORDER, image: homeShortcutFallbackImages.ORDER },
-                { ...homeShortcutRoutes.MESSAGE, image: homeShortcutFallbackImages.MESSAGE },
-                { ...homeShortcutRoutes.ACTIVITY, image: homeShortcutFallbackImages.ACTIVITY },
-                { ...homeShortcutRoutes.WALLET, image: homeShortcutFallbackImages.WALLET }
+                { ...homeShortcutRoutes.MESSAGE, image: homeShortcutFallbackImages.MESSAGE }
             ].filter((item) => isRouteEnabled(item.url))
         }
     },
@@ -351,18 +349,20 @@ export default {
             const code = String(item.code || '').toUpperCase()
             const title = item.title || item.name || ''
             const shortcutKey = homeShortcutRoutes[code] ? code : homeShortcutAliases[title]
+            const entryUrl = item.entryUrl || item.pagePath || item.url || item.linkUrl || ''
+            if (disabledHomeShortcutKeys.includes(shortcutKey || code) || disabledHomeShortcutRoutes.includes(entryUrl)) return null
             if (shortcutKey) {
                 return {
                     ...homeShortcutRoutes[shortcutKey],
                     name: title || homeShortcutRoutes[shortcutKey].name,
                     image: resolveImage(item.iconUrl || item.icon || item.image || homeShortcutFallbackImages[shortcutKey] || ''),
-                    url: item.entryUrl || item.pagePath || item.url || homeShortcutRoutes[shortcutKey].url
+                    url: entryUrl || homeShortcutRoutes[shortcutKey].url
                 }
             }
             return {
                 name: item.title || item.code || '入口',
                 image: resolveImage(item.iconUrl || item.icon || item.image || ''),
-                url: item.entryUrl || item.pagePath || item.url || item.linkUrl || ''
+                url: entryUrl
             }
         },
         goPage(url) {

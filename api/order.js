@@ -3,9 +3,13 @@ import { resolveImage } from "@/utils/image-placeholder";
 
 let latestSubmitToken = "";
 
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
 function normalizeOrderItem(item = {}) {
   const image = resolveImage(item.image || item.image_str || item.imageUrl || item.goodsImageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage || item.picUrl, "goods");
-  const price = item.goods_price || item.goodsPrice || item.salePrice || item.unitPrice || item.price || 0;
+  const price = item.goods_price || item.goodsPrice || item.salePrice || item.unitPrice || item.price;
   return {
     ...item,
     id: item.id || item.orderItemId || item.itemId || item.skuId,
@@ -19,7 +23,7 @@ function normalizeOrderItem(item = {}) {
     shop_logo: resolveImage(item.shop_logo || item.shopLogo || item.shopLogoUrl || item.storeLogo || "", "goods"),
     spec_value_str: item.spec_value_str || item.specValue || item.skuName || "",
     spec_value: item.spec_value || item.specValue || item.skuName || "",
-    goods_num: item.goods_num || item.quantity || item.num || 1,
+    goods_num: item.goods_num || item.quantity || item.num,
     goods_price: price,
     total_price: item.total_price || item.totalAmount || item.realAmount || price,
     original_price: item.original_price || item.originPrice || item.marketPrice || price,
@@ -35,10 +39,10 @@ function normalizeOrderListItem(item = {}) {
     ...detail,
     id: detail.id || detail.orderNo || detail.order_sn,
     order_status_desc: detail.order_status_desc || formatOrderStatus(status),
-    pay_btn: detail.pay_btn ?? status === "CREATED",
-    cancel_btn: detail.cancel_btn ?? status === "CREATED",
-    take_btn: detail.take_btn ?? status === "SHIPPED",
-    del_btn: detail.del_btn ?? ["CANCELLED", "COMPLETED"].includes(status),
+    pay_btn: detail.pay_btn,
+    cancel_btn: detail.cancel_btn,
+    take_btn: detail.take_btn,
+    del_btn: detail.del_btn,
     order_goods: detail.order_goods?.length ? detail.order_goods : (item.itemList || item.items || []).map(normalizeOrderItem),
     goods_lists: detail.goods_lists?.length ? detail.goods_lists : (item.itemList || item.items || []).map(normalizeOrderItem),
   };
@@ -51,6 +55,9 @@ function formatOrderStatus(status) {
     SHIPPED: "待收货",
     COMPLETED: "已完成",
     CANCELLED: "已关闭",
+    CLOSED: "已关闭",
+    CLOSE: "已关闭",
+    CANCELED: "已关闭",
   };
   return statusMap[status] || status || "";
 }
@@ -70,8 +77,12 @@ function normalizeOrderStatus(status) {
     shipped: "SHIPPED",
     finish: "COMPLETED",
     completed: "COMPLETED",
-    close: "CANCELLED",
+    done: "COMPLETED",
+    close: "CLOSED",
+    closed: "CLOSED",
     cancelled: "CANCELLED",
+    canceled: "CANCELLED",
+    CLOSED: "CANCELLED",
   };
   return statusMap[String(status || "")] ?? status;
 }
@@ -128,16 +139,17 @@ function normalizeOrderDetail(data = {}) {
     id: data.orderNo || baseInfo.orderNo || data.id,
     order_sn: data.orderNo || baseInfo.orderNo || baseInfo.orderSn || data.order_sn,
     order_status: data.orderStatus || baseInfo.orderStatus || data.order_status,
+    order_status_desc: formatOrderStatus(data.orderStatus || baseInfo.orderStatus || data.order_status) || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc,
     pay_status: data.payStatus || baseInfo.payStatus || data.pay_status,
-    order_amount: amountInfo.payAmount || baseInfo.orderAmount || data.order_amount || 0,
-    goods_price: amountInfo.goodsAmount || baseInfo.goodsAmount || data.goods_price || 0,
-    shipping_price: amountInfo.freightAmount || baseInfo.freightAmount || data.shipping_price || 0,
-    discount_amount: amountInfo.discountAmount || baseInfo.discountAmount || data.discount_amount || 0,
-    integral_amount: amountInfo.integralAmount || baseInfo.integralAmount || data.integral_amount || 0,
+    order_amount: firstDefined(amountInfo.payAmount, baseInfo.orderAmount, data.order_amount),
+    goods_price: firstDefined(amountInfo.goodsAmount, baseInfo.goodsAmount, data.goods_price),
+    shipping_price: firstDefined(amountInfo.freightAmount, baseInfo.freightAmount, data.shipping_price),
+    discount_amount: firstDefined(amountInfo.discountAmount, baseInfo.discountAmount, data.discount_amount),
+    integral_amount: firstDefined(amountInfo.integralAmount, baseInfo.integralAmount, data.integral_amount),
     order_goods: itemList,
     goods_lists: itemList,
     order_type_desc: data.orderTypeDesc || baseInfo.orderTypeDesc || data.order_type_desc,
-    pay_way_text: data.payMethod || baseInfo.payMethod || data.pay_way_text,
+    pay_way_text: data.payMethodText || data.payMethodName || data.payMethod || baseInfo.payMethodText || baseInfo.payMethodName || baseInfo.payMethod || data.pay_way_text,
     create_time: baseInfo.createdAt || baseInfo.createTime || data.createdAt || data.create_time,
     pay_time: baseInfo.paidAt || baseInfo.payTime || data.paidAt || data.pay_time,
     shipping_time: baseInfo.shippedAt || baseInfo.shippingTime || data.shippedAt || data.shipping_time,
@@ -156,11 +168,13 @@ function normalizeOrderDetail(data = {}) {
     refund_info: data.refundInfo || data.refund_info || {},
     verify_info: data.verifyInfo || data.verify_info || {},
     team: data.team || {},
-    cancel_btn: data.cancel_btn,
-    delivery_btn: data.delivery_btn,
-    take_btn: data.take_btn,
-    del_btn: data.del_btn,
-    pay_btn: data.pay_btn
+    cancel_btn: firstDefined(data.cancel_btn, data.cancelBtn, baseInfo.cancelBtn),
+    delivery_btn: firstDefined(data.delivery_btn, data.deliveryBtn, baseInfo.deliveryBtn),
+    take_btn: firstDefined(data.take_btn, data.takeBtn, baseInfo.takeBtn),
+    del_btn: firstDefined(data.del_btn, data.delBtn, baseInfo.delBtn),
+    pay_btn: firstDefined(data.pay_btn, data.payBtn, baseInfo.payBtn),
+    comment_btn: firstDefined(data.comment_btn, data.commentBtn, baseInfo.commentBtn),
+    pickup_btn: firstDefined(data.pickup_btn, data.pickupBtn, baseInfo.pickupBtn)
   }
 }
 

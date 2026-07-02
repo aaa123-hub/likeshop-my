@@ -10,6 +10,7 @@ let index = 0;
 let reloginPromise = null;
 
 const IMAGE_FIELD_PATTERN = /(^|_)(image|img|icon|avatar|cover|logo|thumb|thumbnail|pic|poster|photo)(s|url|urls|_url|_urls)?$/i;
+const ISO_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/;
 
 function isSkippableUrl(value = "") {
   return /^(https?:)?\/\//i.test(value)
@@ -44,6 +45,31 @@ function normalizeResponseImages(target, parentKey = "") {
       return;
     }
     if (value && typeof value === "object") normalizeResponseImages(value, key);
+  });
+  return target;
+}
+
+function formatIsoTime(value) {
+  const normalized = value.replace(/(\.\d{3})\d+/, "$1");
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (num) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function normalizeResponseTimes(target) {
+  if (!target || typeof target !== "object") return target;
+  if (Array.isArray(target)) {
+    target.forEach((item) => normalizeResponseTimes(item));
+    return target;
+  }
+  Object.keys(target).forEach((key) => {
+    const value = target[key];
+    if (typeof value === "string" && ISO_TIME_PATTERN.test(value)) {
+      target[key] = formatIsoTime(value);
+      return;
+    }
+    if (value && typeof value === "object") normalizeResponseTimes(value);
   });
   return target;
 }
@@ -298,7 +324,7 @@ service.interceptors.response.use(
       if (backendCode === "0") {
         data.rawCode = data.code;
         data.code = 1;
-        data.msg = data.msg || data.message || "SUCCESS";
+        data.msg = data.msg || data.message || "操作成功";
       } else if (backendCode !== undefined && backendCode !== 1 && backendCode !== 0) {
         data.rawCode = backendCode;
         data.code = 0;
@@ -306,6 +332,7 @@ service.interceptors.response.use(
       } else if (backendMessage && !data.msg) {
         data.msg = backendMessage;
       }
+      if (String(data.msg || '').toUpperCase() === 'SUCCESS') data.msg = '操作成功';
 
       const { code, show, msg, rawCode } = data;
       const { route, options } = currentPage();
@@ -323,6 +350,7 @@ service.interceptors.response.use(
 
       if (data.data) {
         normalizeResponseImages(data.data);
+        normalizeResponseTimes(data.data);
       }
     }
 

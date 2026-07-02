@@ -402,10 +402,16 @@ export function getService() {
   return request.get("miniapp/eco-applications").then((res) => {
     const payload = res.data || {};
     const list = extractList(payload);
-    const service = list.find((item) => {
+    const serviceApp = list.find((item) => {
       const text = `${item.appCode || ""}${item.appName || ""}${item.name || ""}${item.title || ""}`.toLowerCase();
       return text.includes("service") || text.includes("客服") || text.includes("contact");
-    }) || payload.service || payload.customerService || payload.contact || {};
+    }) || {};
+    const service = {
+      ...serviceApp,
+      ...(payload.service || {}),
+      ...(payload.customerService || {}),
+      ...(payload.contact || {}),
+    };
     const qrCode = service.qrCode || service.qrCodeUrl || service.qrcode || service.wechatQrCode || service.wechatQr || service.imageUrl || service.iconUrl || payload.qrCodeUrl || payload.serviceQrCode;
     const avatar = service.avatar || service.avatarUrl || service.logo || service.logoUrl || service.icon || service.iconUrl || service.imageUrl || qrCode;
     return {
@@ -418,7 +424,7 @@ export function getService() {
         wechat: service.wechat || service.wechatNo || service.wechatAccount || service.wechatId || service.wechat_id || payload.wechat || "",
         qq: service.qq || service.qqNo || service.qqAccount || payload.qq || "",
         phone: service.contactPhone || service.servicePhone || service.phone || service.mobile || payload.phone || "",
-        time: service.serviceTime || service.service_time || service.workTime || service.work_time || service.appDesc || service.desc || service.description || payload.time || "",
+        time: service.appDesc || service.desc || service.description || service.serviceTime || service.service_time || service.workTime || service.work_time || payload.time || "",
         onlineUrl: service.onlineUrl || service.online_url || service.entryUrl || service.linkUrl || service.url || "",
         list,
       },

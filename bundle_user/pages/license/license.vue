@@ -82,7 +82,8 @@ import Navbar from '@/components/navbar/navbar.vue'
                 return this.status.audit_remark || this.status.auditRemark || this.status.remark || ''
             },
             statusTime() {
-                return this.status.updated_at || this.status.updatedAt || this.status.updateTime || this.status.createTime || ''
+                const time = this.status.updated_at || this.status.updatedAt || this.status.updateTime || this.status.createTime || this.status.createdAt || ''
+                return this.formatDisplayTime(time)
             },
             statusText() {
                 const statusMap = {
@@ -119,6 +120,15 @@ import Navbar from '@/components/navbar/navbar.vue'
                     if (source[key] !== undefined && source[key] !== null && source[key] !== '') return source[key]
                 }
                 return ''
+            },
+            formatDisplayTime(value) {
+                if (!value) return ''
+                if (typeof value === 'string' && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) return value.replace(/-/g, '/').slice(0, 16)
+                const time = Number(value)
+                const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000)
+                if (Number.isNaN(date.getTime())) return String(value)
+                const pad = (num) => String(num).padStart(2, '0')
+                return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
             },
             getStatus() {
                 if (!this.userId) return

@@ -24,7 +24,7 @@
 					:price="amount" :weight="600" />
 				<view class="payment-count-down" v-if="timeout > 0">
 					<text>剩余支付时间</text>
-					<u-count-down :timestamp="timeout" :font-size="22" @end="handleTimeout" />
+					<text class="payment-count-down__time">{{ formattedTimeout }}</text>
 				</view>
 				<view class="payment-count-down payment-count-down--expired" v-else>
 					<text>订单支付时间已结束</text>
@@ -119,10 +119,30 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				hasPayResult: false,
 				payOrderNo: '',
 				isExpired: false,
+				countdownTimer: null,
 			}
 		},
 
 		methods: {
+			startCountdown(seconds) {
+				this.stopCountdown()
+				this.timeout = Math.max(Math.floor(Number(seconds) || 0), 0)
+				this.isExpired = !this.isFacePay && this.timeout <= 0
+				if (this.isExpired) return
+				this.countdownTimer = setInterval(() => {
+					if (this.timeout <= 1) {
+						this.handleTimeout()
+						return
+					}
+					this.timeout -= 1
+				}, 1000)
+			},
+			stopCountdown() {
+				if (this.countdownTimer) {
+					clearInterval(this.countdownTimer)
+					this.countdownTimer = null
+				}
+			},
 			// 更改支付方式
 			changePayway(value) {
 				if (this.isExpired || this.loadingPay || !value) return
@@ -175,8 +195,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					const rawEndTimestamp = data.cancel_time || data.cancelTime || data.expireTime || data.expire_time
 					const parsedEndTimestamp = typeof rawEndTimestamp === 'string' && rawEndTimestamp.includes('-') ? new Date(rawEndTimestamp).getTime() / 1000 : Number(rawEndTimestamp)
 					const endTimestamp = Number.isNaN(parsedEndTimestamp) || !parsedEndTimestamp ? startTimestamp + 30 * 60 : parsedEndTimestamp
-					this.timeout = Math.max(endTimestamp ? endTimestamp - startTimestamp : 0, 0)
-					this.isExpired = !this.isFacePay && this.timeout <= 0
+					this.startCountdown(Math.max(endTimestamp ? endTimestamp - startTimestamp : 0, 0))
 				}).catch(err => {
 					this.loadingSkeleton = false
 					this.$toast({ title: err.message || '支付信息加载失败' })
@@ -271,6 +290,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				uni.navigateBack()
 			},
 			handleTimeout() {
+				this.stopCountdown()
 				this.timeout = 0
 				this.isExpired = true
 			},
@@ -309,8 +329,17 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 
 		onUnload() {
 			this.hasPayResult = true
+			this.stopCountdown()
 		},
 		computed: {
+			formattedTimeout() {
+				const total = Math.max(Math.floor(Number(this.timeout) || 0), 0)
+				const hours = Math.floor(total / 3600)
+				const minutes = Math.floor((total % 3600) / 60)
+				const seconds = total % 60
+				const pad = value => String(value).padStart(2, '0')
+				return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`
+			},
 			normalizedPaywayList() {
 				return this.paywayList
 			},
@@ -536,6 +565,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 
 				text {
 					margin-right: 10rpx;
+				}
+
+				&__time {
+					margin-right: 0;
+					font-weight: 600;
+					color: #ff2c3c;
 				}
 
 				&--expired text {

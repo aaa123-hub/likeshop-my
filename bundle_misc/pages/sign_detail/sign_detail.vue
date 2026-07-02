@@ -104,10 +104,29 @@ export default {
       }
     },
     formatSourceText(item = {}) {
-      return item.type_desc || item.source_type || item.bizTypeName || item.bizType || item.title || item.desc || '积分变动'
+      const raw = item.type_desc || item.source_type || item.bizTypeName || item.bizType || item.title || item.desc || '积分变动'
+      const key = String(raw).toUpperCase()
+      const map = {
+        POINTS: '积分变动',
+        POINT: '积分变动',
+        SIGN: '签到奖励',
+        SIGN_IN: '签到奖励',
+        ORDER: '订单奖励',
+        ORDER_REWARD: '订单奖励',
+        CONSUME: '消费抵扣',
+        DEDUCT: '积分抵扣',
+        EXCHANGE: '积分兑换',
+        REFUND: '订单退款',
+        EXPIRE: '积分过期',
+        ADMIN: '平台调整',
+        MANUAL: '平台调整',
+        REGISTER: '注册奖励',
+        INVITE: '邀请奖励'
+      }
+      return map[key] || String(raw).replace(/_/g, ' ')
     },
     formatTime(item = {}) {
-      return item.create_time || item.change_time || item.createTime || item.txnTime || '--'
+      return this.formatDisplayTime(item.create_time || item.change_time || item.createTime || item.txnTime) || '--'
     },
     formatRemark(item = {}) {
       return item.remark || item.memo || item.content || ''
@@ -117,9 +136,13 @@ export default {
       const statusMap = {
         SUCCESS: '成功',
         PENDING: '处理中',
-        FAILED: '失败'
+        PROCESSING: '处理中',
+        FAILED: '失败',
+        FAIL: '失败',
+        CANCELED: '已取消',
+        CANCELLED: '已取消'
       }
-      return statusMap[status] || status
+      return statusMap[String(status).toUpperCase()] || status
     },
     formatChangeClass(item = {}) {
       const amount = Number(item.change_amount ?? item.changeAmount ?? item.amount ?? 0)
@@ -130,6 +153,15 @@ export default {
       const amount = Number(item.change_amount ?? item.changeAmount ?? item.amount ?? 0)
       const prefix = this.formatChangeClass(item) === 'is-plus' ? '+' : '-'
       return `${prefix}${Math.abs(amount || 0)}`
+    },
+    formatDisplayTime(value) {
+      if (!value) return ''
+      if (typeof value === 'string' && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) return value.replace(/-/g, '/').slice(0, 16)
+      const time = Number(value)
+      const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000)
+      if (Number.isNaN(date.getTime())) return String(value)
+      const pad = (num) => String(num).padStart(2, '0')
+      return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
     },
     getAccountLogFun() {
       let {
