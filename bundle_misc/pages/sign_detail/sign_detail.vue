@@ -21,6 +21,12 @@
         </view>
         <view v-if="item.remarkText" class="sign-remark line2">{{ item.remarkText }}</view>
         <view v-if="item.orderText" class="sign-order line1">单号：{{ item.orderText }}</view>
+        <view v-if="item.extraRows.length" class="sign-extra">
+          <view v-for="row in item.extraRows" :key="row.label" class="sign-extra__item">
+            <text class="sign-extra__label">{{ row.label }}</text>
+            <text class="sign-extra__value">{{ row.value }}</text>
+          </view>
+        </view>
       </view>
     </view>
   </view>
@@ -96,15 +102,16 @@ export default {
         timeText: this.formatTime(item),
         statusText: this.formatStatusText(item),
         remarkText: this.formatRemark(item),
-        orderText: item.bizNo || item.biz_no || item.orderNo || item.order_no || '',
+        orderText: item.bizNo || item.biz_no || item.orderNo || item.order_no || item.bizOrderNo || item.biz_order_no || '',
         changeIcon: changeClass === 'is-plus' ? '+' : '-',
         amountText: this.formatAmount(item),
+        extraRows: this.formatExtraRows(item),
         iconClass: `sign-item__icon ${changeClass}`,
         amountClass: `sign-amount ${changeClass}`
       }
     },
     formatSourceText(item = {}) {
-      const raw = item.type_desc || item.source_type || item.bizTypeName || item.bizType || item.title || item.desc || '积分变动'
+      const raw = item.type_desc || item.source_type || item.bizTypeName || item.biz_type_name || item.bizType || item.biz_type || item.title || item.desc || '积分变动'
       const key = String(raw).toUpperCase()
       const map = {
         POINTS: '积分变动',
@@ -126,10 +133,10 @@ export default {
       return map[key] || String(raw).replace(/_/g, ' ')
     },
     formatTime(item = {}) {
-      return this.formatDisplayTime(item.create_time || item.change_time || item.createTime || item.txnTime) || '--'
+      return this.formatDisplayTime(item.create_time || item.change_time || item.createTime || item.txnTime || item.txn_time) || '--'
     },
     formatRemark(item = {}) {
-      return item.remark || item.memo || item.content || ''
+      return item.remark || item.memo || item.content || item.description || item.reason || ''
     },
     formatStatusText(item = {}) {
       const status = item.statusText || item.status_text || item.auditStatus || item.status || ''
@@ -145,14 +152,24 @@ export default {
       return statusMap[String(status).toUpperCase()] || status
     },
     formatChangeClass(item = {}) {
-      const amount = Number(item.change_amount ?? item.changeAmount ?? item.amount ?? 0)
+      const amount = Number(item.change_amount ?? item.changeAmount ?? item.pointsChange ?? item.points_change ?? item.pointAmount ?? item.point_amount ?? item.integral ?? item.amount ?? 0)
       const type = Number(item.change_type ?? item.changeType)
       return type === 1 || amount > 0 ? 'is-plus' : 'is-minus'
     },
     formatAmount(item = {}) {
-      const amount = Number(item.change_amount ?? item.changeAmount ?? item.amount ?? 0)
+      const amount = Number(item.change_amount ?? item.changeAmount ?? item.pointsChange ?? item.points_change ?? item.pointAmount ?? item.point_amount ?? item.integral ?? item.amount ?? 0)
       const prefix = this.formatChangeClass(item) === 'is-plus' ? '+' : '-'
       return `${prefix}${Math.abs(amount || 0)}`
+    },
+    formatExtraRows(item = {}) {
+      const rows = []
+      const balance = item.left_amount ?? item.left_money ?? item.balanceAfter ?? item.balance_after ?? item.balance
+      const bizType = item.bizTypeName || item.biz_type_name || item.bizType || item.biz_type || item.source_type
+      const scene = item.sceneName || item.scene_name || item.scene || item.channelName || item.channel_name || item.channel
+      if (balance !== undefined && balance !== null && balance !== '') rows.push({ label: '剩余积分', value: balance })
+      if (bizType) rows.push({ label: '业务类型', value: this.formatSourceText({ type_desc: bizType }) })
+      if (scene) rows.push({ label: '来源渠道', value: scene })
+      return rows.filter((row, index, list) => list.findIndex(item => item.label === row.label && item.value === row.value) === index)
     },
     formatDisplayTime(value) {
       if (!value) return ''
@@ -293,6 +310,49 @@ export default {
   color: #666666;
   font-size: 24rpx;
   line-height: 34rpx;
+}
+
+.sign-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx 12rpx;
+  margin-top: 14rpx;
+}
+
+.sign-extra__item {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6rpx 14rpx;
+  background: #f6f8fb;
+  border-radius: 18rpx;
+  box-sizing: border-box;
+}
+
+.sign-extra__label {
+  flex: none;
+  margin-right: 8rpx;
+  color: #9aa1ad;
+  font-size: 22rpx;
+}
+
+.sign-extra__value {
+  min-width: 0;
+  color: #333333;
+  font-size: 22rpx;
+  word-break: break-all;
+}
+
+@media screen and (max-width: 360px) {
+  .sign-detail-container {
+    padding-left: 18rpx;
+    padding-right: 18rpx;
+  }
+
+  .sign-item {
+    padding-left: 18rpx;
+    padding-right: 18rpx;
+  }
 }
 
 .is-plus {

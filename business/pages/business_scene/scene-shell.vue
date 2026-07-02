@@ -168,9 +168,7 @@
                         <view class="face-pay-tips__icon">
                             <u-icon name="bell-fill" color="#ffb221" size="46"></u-icon>
                         </view>
-                        <view class="face-pay-tips__text">
-                            温馨提示：文案填充文案填充文案填充文案填充文案填充文案填充
-                        </view>
+                        <view class="face-pay-tips__text">请核对付款单号后完成付款</view>
                     </view>
                     <view class="face-pay-shell">
                         <view class="face-pay-shell__field">
@@ -550,6 +548,11 @@
                                     </view>
                                 </view>
                             </view>
+                            <view v-if="!streetMerchants.length" class="store-detail-media-empty">
+                                <image class="store-detail-media-empty__image" :src="storeDetailAlbumEmptyImage" mode="aspectFit"></image>
+                                <view class="store-detail-media-empty__title">暂无商家</view>
+                                <view class="store-detail-media-empty__desc">商家信息更新中</view>
+                            </view>
                         </view>
                     </view>
                 </view>
@@ -653,22 +656,25 @@
                     </view>
 
                     <view class="recent-visits-list">
-                        <view
-                            v-for="(item, index) in recentVisitItems"
-                            :key="index"
-                            class="recent-visits-item"
-                            @tap="openRecentVisitShop(item)"
-                        >
-                            <view v-if="isEmptyImage(item.image)" class="recent-visits-thumb image-placeholder">无</view>
-                            <image v-else class="recent-visits-thumb" :src="item.image" mode="aspectFill"></image>
-                            <view class="recent-visits-info">
-                                <view class="recent-visits-name">{{ item.name }}</view>
-                                <view class="recent-visits-time">{{ item.time }} 访问过的商家</view>
+                        <view v-if="!recentVisitItems.length" class="recent-visits-empty">暂无最近访问记录</view>
+                        <block v-else>
+                            <view
+                                v-for="(item, index) in recentVisitItems"
+                                :key="index"
+                                class="recent-visits-item"
+                                @tap="openRecentVisitShop(item)"
+                            >
+                                <view v-if="isEmptyImage(item.image)" class="recent-visits-thumb image-placeholder">无</view>
+                                <image v-else class="recent-visits-thumb" :src="item.image" mode="aspectFill"></image>
+                                <view class="recent-visits-info">
+                                    <view class="recent-visits-name">{{ item.name }}</view>
+                                    <view class="recent-visits-time">{{ item.time }} 访问过的商家</view>
+                                </view>
+                                <view :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']" @tap.stop="toggleRecentVisitSubscribe(item)">
+                                    {{ item.subscribed ? '已订阅' : '+订阅' }}
+                                </view>
                             </view>
-                            <view :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']" @tap.stop="toggleRecentVisitSubscribe(item)">
-                                {{ item.subscribed ? '已订阅' : '+订阅' }}
-                            </view>
-                        </view>
+                        </block>
                     </view>
                 </view>
             </template>
@@ -964,39 +970,27 @@
                         </view>
 
                         <view class="activity-center-list">
-                            <view
-                                v-for="(item, index) in activityCenterItems"
-                                :key="index"
-                                class="activity-center-card"
-                            >
-                                <image class="activity-center-card__image" :src="item.image" mode="aspectFit"></image>
-                                <view class="activity-center-card__body">
-                                    <view class="activity-center-card__title">{{ item.title }}</view>
-                                    <view class="activity-center-card__desc">{{ item.desc }}</view>
-                                    <view class="activity-center-card__bottom">
-                                        <text class="activity-center-card__date">{{ item.date }}</text>
-                                        <view class="activity-center-card__btn" @tap="openActivityExchange(item)">{{ item.buttonText }}</view>
+                            <view v-if="!activityCenterItems.length" class="activity-center-empty">活动暂未开放</view>
+                            <block v-else>
+                                <view
+                                    v-for="(item, index) in activityCenterItems"
+                                    :key="index"
+                                    class="activity-center-card"
+                                >
+                                    <image class="activity-center-card__image" :src="item.image" mode="aspectFit"></image>
+                                    <view class="activity-center-card__body">
+                                        <view class="activity-center-card__title">{{ item.title }}</view>
+                                        <view class="activity-center-card__desc">{{ item.desc }}</view>
+                                        <view class="activity-center-card__bottom">
+                                            <text class="activity-center-card__date">{{ item.date }}</text>
+                                            <view class="activity-center-card__btn" @tap="openActivityExchange(item)">{{ item.buttonText }}</view>
+                                        </view>
                                     </view>
                                 </view>
-                            </view>
+                            </block>
                         </view>
                     </view>
 
-                    <view v-if="showActivityExchangeModal" class="activity-exchange-modal">
-                        <view class="activity-exchange-modal__mask" @tap="closeActivityExchange"></view>
-                        <view class="activity-exchange-dialog">
-                            <view class="activity-exchange-dialog__title">积分兑换游戏卡</view>
-                            <view class="activity-exchange-dialog__points">500积分</view>
-                            <view class="activity-exchange-dialog__label">应付积分</view>
-                            <view class="activity-exchange-dialog__balance">
-                                <text>当前剩余积分</text>
-                                <text>200</text>
-                            </view>
-                            <view class="activity-exchange-dialog__email-label">收件邮箱</view>
-                            <view class="activity-exchange-dialog__email">yokosurizzz@gmail.com</view>
-                            <view class="activity-exchange-dialog__button">积分不足</view>
-                        </view>
-                    </view>
                 </view>
             </template>
 
@@ -1044,22 +1038,25 @@
             <template v-else-if="scene === 'pending-payment'">
                 <view class="card">
                     <view class="section-title">待付款订单</view>
-                    <view class="pending-card" v-for="(item, index) in demoGoods" :key="index">
-                        <view v-if="isEmptyImage(item.image)" class="pending-card__image image-placeholder">无</view>
-                        <image v-else class="pending-card__image" :src="item.image"></image>
-                        <view class="pending-card__body">
-                            <view class="pending-card__title line2">{{ item.name }}</view>
-                            <view class="pending-card__meta">订单编号：2026051000{{ index + 1 }}</view>
-                            <view class="pending-card__foot">
-                                <view class="pending-card__price">¥{{ item.price }}</view>
-                                <view class="mini-btn" @tap="goPage('/bundle/pages/payment/payment?from=order&order_id=1')">立即付款</view>
+                    <view v-if="!pendingPaymentItems.length" class="empty-text">暂无待付款订单</view>
+                    <block v-else>
+                        <view class="pending-card" v-for="(item, index) in pendingPaymentItems" :key="index">
+                            <view v-if="isEmptyImage(item.image)" class="pending-card__image image-placeholder">无</view>
+                            <image v-else class="pending-card__image" :src="item.image"></image>
+                            <view class="pending-card__body">
+                                <view class="pending-card__title line2">{{ item.name }}</view>
+                                <view class="pending-card__meta">订单编号：{{ item.orderNo || item.orderSn || item.order_id || item.id }}</view>
+                                <view class="pending-card__foot">
+                                    <view class="pending-card__price">¥{{ item.price }}</view>
+                                    <view class="mini-btn" @tap="goPage('/bundle/pages/payment/payment?from=order&order_id=' + (item.id || item.order_id || ''))">立即付款</view>
+                                </view>
                             </view>
                         </view>
-                    </view>
+                    </block>
                 </view>
             </template>
         </scroll-view>
-        <u-popup v-model="showStoreSharePopup" mode="center" border-radius="0" :mask-close-able="true" :custom-style="{ background: 'transparent' }">
+        <u-popup v-model="showStoreSharePopup" mode="center" border-radius="0" :mask-close-able="true" :custom-style="{ background: 'transparent' }" @open="prepareStoreShareQrcode">
             <view class="store-share-popup">
                 <scroll-view scroll-y class="store-share-popup__scroll">
                     <view class="store-share-shop-card">
@@ -1076,13 +1073,13 @@
                                 <text :class="['store-share-shop-card__time-text', storeShareTimeTextClass]">{{ storeDetailBusinessHoursText }}</text>
                             </view>
                         </view>
+                    </view>
+                    <view class="store-share-panel">
+                        <view class="store-share-qrcode">
+                            <image v-if="storeShareQrcodeImage" class="store-share-qrcode__image" :src="storeShareQrcodeImage" mode="aspectFit"></image>
+                            <tki-qrcode v-else-if="qrStoreValue" cid="store-share-qrcode" :val="qrStoreValue" :size="275" :onval="true" :load-make="true" :show-loading="false" @result="onStoreShareQrcodeResult"></tki-qrcode>
+                            <view v-else class="store-share-qrcode__empty">二维码</view>
                         </view>
-                        <view class="store-share-panel">
-                            <view class="store-share-qrcode">
-                                <image v-if="storeShareQrcodeImage" class="store-share-qrcode__image" :src="storeShareQrcodeImage" mode="aspectFit"></image>
-                                <tki-qrcode v-else-if="qrStoreValue" cid="store-share-qrcode" :val="qrStoreValue" :size="275" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
-                                <view v-else class="store-share-qrcode__empty">二维码</view>
-                            </view>
                         <view class="store-share-tip">扫一扫，即可查看公域线下店信息</view>
                         <view class="store-share-actions">
                             <view class="store-share-action store-share-action--cyan" @tap="toastStoreShareSave">保存图片</view>
@@ -1117,12 +1114,12 @@
 <script>
 import TkiQrcode from '@/business/components/tki-qrcode/tki-qrcode.vue'
 import { getShopDetail, getStreetGoods, getStreetIndex } from '@/api/store'
-import { getRecentVisitShops, subscribeShop } from '@/api/app'
+import { getRecentVisitShops, getShareMnQrcode, subscribeShop } from '@/api/app'
 import { version, baseURL } from '@/config/app'
 import { getAccountLog, getInviteInfo, getKycStatus, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
-import { getDesignAsset, designAssetList, designAssets } from '@/utils/design-assets'
+import { getDesignAsset, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
-import { copy, tabbarList, uploadFile } from '@/utils/tools'
+import { copy, uploadFile } from '@/utils/tools'
 import { guardRoute, showFeatureDisabledToast } from '@/utils/feature-flags'
 import Navbar from '@/components/navbar/navbar.vue'
 import UPopup from '@/business/components/uview-ui/components/u-popup/u-popup.vue'
@@ -1151,12 +1148,13 @@ export default {
     },
     data() {
         return {
-            designAssets,
             selectedTag: '其他',
             feedbackContent: '',
             feedbackContact: '',
 			feedbackImages: [],
 			showStoreSharePopup: false,
+			storeShareQrcodeImage: '',
+			storeShareQrcodeLoading: false,
 			shareCloseIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
 			shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
 			shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png',
@@ -1165,10 +1163,8 @@ export default {
 			feedbackUploadIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/e5d8d8724ebd49afbb6a747ff66f8d09/feedback-upload-icon.png',
 			paymentRecordFilterIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png',
 			aboutArrowIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/6dcc63c37e6943bdbcf59e36cbe1ec28/d35bb9407ef16b8d704effe295ad7e27.png',
-			activityCenterBackIcon: '',
 			introCardCopyIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/62f0790376274645b017cc64e7cae6b8/intro-card-copy-icon.png',
 			introCardCopyIconAlt: 'https://shengyuan.store/api/miniapp/files/miniapp/0d49e91085034160aa0280bd63f498cb/intro-card-copy-alt-icon.png',
-			introCardQrImage: 'https://shengyuan.store/api/miniapp/files/miniapp/343da0ec1adc42ff87a010eea8adfcbd/intro-card-qr-placeholder.png',
 			introCardInfo: {
                 nickname: '用户',
                 userNo: '--',
@@ -1203,47 +1199,13 @@ export default {
                 { title: '联系我们', action: 'contact' },
                 { title: '版本信息', action: 'version' }
             ],
-            showActivityExchangeModal: false,
-            activityCenterItems: [
-                {
-                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/7e05f3335e194023930025e1595b407e/activity-center-card.png'),
-                    title: '积分兑换游戏',
-                    desc: '辅助标题辅助标题辅助标题',
-                    date: '2026-01-01',
-                    buttonText: '积分兑卡密'
-                },
-                {
-                    image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/7e05f3335e194023930025e1595b407e/activity-center-card.png'),
-                    title: '积分兑换游戏',
-                    desc: '辅助标题辅助标题辅助标题',
-                    date: '2026-01-01',
-                    buttonText: '积分兑卡密'
-                }
-            ],
-            recentVisitItems: [
-                { name: '数码投影仪专卖店', time: '18:00', subscribed: false },
-                { name: '数码投影仪专卖店', time: '18:00', subscribed: true },
-                { name: '数码投影仪专卖店', time: '18:00', subscribed: false },
-                { name: '数码投影仪专卖店', time: '18:00', subscribed: true }
-            ],
-            demoGoods: [
-                {
-                    name: '黑白灰色运动鞋',
-                    price: '2300',
-                    image: ''
-                },
-                {
-                    name: '轻便舒适跑步鞋',
-                    price: '1899',
-                    image: ''
-                }
-            ],
-            groupList: [],
+            activityCenterItems: [],
+            recentVisitItems: [],
+            pendingPaymentItems: [],
             albumImages: [
                 ...designAssetList.sceneAlbum
             ],
             merchantList: [],
-            storeDetailCapsuleImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_2.png'),
             storeDetailAddressIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/78a66305c5c34a91bc0c6b60f8198b6f/store-address-icon.png'),
             storeDetailStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
             storeDetailTimeIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'),
@@ -1251,6 +1213,7 @@ export default {
             storeDetailLoadedShopId: '',
             storeDetailApiLoaded: false,
             storeDetailLoading: false,
+            storeShareQrcodeTempImage: '',
             storeDetailActiveTab: 'detail',
             storeDetailData: {
                 shopBase: {
@@ -1271,7 +1234,6 @@ export default {
                 comments: [],
                 qrcodeInfo: {}
             },
-            streetCapsuleImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_2.png'),
             streetSearchIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_menu_capsule.png'),
             streetStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
             streetTimeIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'),
@@ -1282,36 +1244,7 @@ export default {
             streetGoodsLoading: false,
             streetLoaded: false,
             navigating: false,
-            streetMerchants: [
-                {
-                    name: '广州市越秀区斌记面家',
-                    score: '5.0',
-                    meta: '营业中 · 越秀区北京路 120 号',
-                    image: '',
-                    url: '/business/pages/business_pages/store_detail'
-                },
-                {
-                    name: '广州市越秀区斌记面家',
-                    score: '5.0',
-                    meta: '营业中 · 越秀区北京路 120 号',
-                    image: '',
-                    url: '/business/pages/business_pages/store_detail'
-                },
-                {
-                    name: '广州市越秀区斌记面家',
-                    score: '5.0',
-                    meta: '营业中 · 越秀区北京路 120 号',
-                    image: '',
-                    url: '/business/pages/business_pages/store_detail'
-                },
-                {
-                    name: '广州市越秀区斌记面家',
-                    score: '5.0',
-                    meta: '营业中 · 越秀区北京路 120 号',
-                    image: '',
-                    url: '/business/pages/business_pages/store_detail'
-                }
-            ],
+            streetMerchants: [],
             streetCategories: [
                 { name: '美食餐饮', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4.png'), url: '/business/pages/business_pages/street_goods' },
                 { name: '休闲娱乐', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_2.png'), url: '/business/pages/business_pages/street_goods' },
@@ -1330,7 +1263,6 @@ export default {
                 digitalAmount: '¥0.00'
             },
             paymentRecordList: [],
-            paymentRecordEmptyImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/designs/28-address-empty.png'),
             showPaymentFilter: false,
             paymentMethodOptions: [
                 { label: '全部', active: true },
@@ -1596,23 +1528,6 @@ export default {
             const qrcodeInfo = this.storeDetailData.qrcodeInfo || {}
             return qrcodeInfo.url || qrcodeInfo.path || qrcodeInfo.pagePath || (shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : '/pages/street/street')
         },
-        storeShareQrcodeImage() {
-            const rawInfo = this.storeDetailData.qrcodeInfo || {}
-            const qrcodeInfo = typeof rawInfo === 'string' ? { image: rawInfo } : rawInfo
-            const image = qrcodeInfo.image || qrcodeInfo.urlImage || qrcodeInfo.qrCode || qrcodeInfo.qr_code || qrcodeInfo.qrcode || qrcodeInfo.qrcodeUrl || qrcodeInfo.qrcode_url || qrcodeInfo.qrCodeUrl || qrcodeInfo.qr_code_url || this.storeDetailData.qrCode || this.storeDetailData.qr_code || this.storeDetailData.qrcode || this.storeDetailData.qrcodeUrl || this.storeDetailData.qrcode_url || ''
-            return image ? this.resolveServerImage(image, 'goods') : ''
-        },
-        storeSharePriceText() {
-            const firstGroup = this.storeDetailGroupProducts[0] || {}
-            return this.stripStoreDetailPriceSymbol(this.formatStoreDetailPriceText(this.getStoreDetailGroupPriceValue(firstGroup)))
-        },
-        storeSharePriceMain() {
-            return String(this.storeSharePriceText || '0').split('.')[0] || '0'
-        },
-        storeSharePriceDecimal() {
-            const decimal = String(this.storeSharePriceText || '0').split('.')[1]
-            return `.${decimal || '00'}`
-        },
         qrGoodsValue() {
             const goodsId = this.qrGoodsInfo.id
             return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : '/pages/index/index'
@@ -1627,9 +1542,6 @@ export default {
         storeDetailContentImage() {
             const image = this.storeDetailData.detailImage || this.storeDetailData.detail_image || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || this.storeDetailData.albums?.[0]?.cover || this.storeDetailData.albums?.[0]?.url || ''
             return image ? resolveImage(image, 'shop') : this.storeDetailView.shopLogo
-        },
-        storeDetailHasIntro() {
-            return Boolean((this.storeDetailData.albums || []).length || this.storeDetailData.detailImage || this.storeDetailData.cover || this.storeDetailData.image)
         },
         storeDetailAlbumImages() {
             return (this.storeDetailData.albums || [])
@@ -2019,7 +1931,7 @@ export default {
         async loadRecentVisitShops() {
             const res = await getRecentVisitShops({ pageNo: 1, pageSize: 20 })
             if (res.code == 1 && Array.isArray(res.data)) {
-                this.recentVisitItems = res.data.length ? res.data : this.recentVisitItems
+                this.recentVisitItems = res.data
             }
         },
         openRecentVisitShop(item = {}) {
@@ -2056,11 +1968,6 @@ export default {
         },
         openActivityExchange() {
             showFeatureDisabledToast('activityExchange')
-            return
-            this.showActivityExchangeModal = true
-        },
-        closeActivityExchange() {
-            this.showActivityExchangeModal = false
         },
         selectPaymentFilterOption(options, selected) {
             options.forEach(item => {
@@ -2313,6 +2220,8 @@ export default {
             })
         },
         async toastStoreShareSave() {
+            await this.prepareStoreShareQrcode()
+            await this.waitForStoreShareQrcodeImage()
             // #ifdef H5
             uni.showToast({ title: '请长按图片保存', icon: 'none' })
             // #endif
@@ -2349,6 +2258,42 @@ export default {
                 })
             })
         },
+        async prepareStoreShareQrcode() {
+            if (this.storeShareQrcodeImage || this.storeShareQrcodeLoading) return
+            this.storeShareQrcodeLoading = true
+            try {
+                const options = this.getCurrentPageOptions()
+                const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
+                const res = await getShareMnQrcode({
+                    shopId,
+                    path: this.qrStoreValue,
+                    url: this.qrStoreValue,
+                    type: 'store'
+                })
+                const data = res && res.data ? res.data : {}
+                const qrcode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage
+                this.storeShareQrcodeImage = qrcode ? this.resolveServerImage(String(qrcode).replace(/\r\n/g, ''), 'goods') : ''
+            } catch (error) {
+                this.storeShareQrcodeImage = ''
+            }
+            this.storeShareQrcodeLoading = false
+        },
+        onStoreShareQrcodeResult(result) {
+            this.storeShareQrcodeTempImage = typeof result === 'string' ? result : ''
+        },
+        waitForStoreShareQrcodeImage() {
+            if (this.storeShareQrcodeImage || this.storeShareQrcodeTempImage) return Promise.resolve()
+            return new Promise((resolve) => {
+                let count = 0
+                const timer = setInterval(() => {
+                    count += 1
+                    if (this.storeShareQrcodeTempImage || count >= 8) {
+                        clearInterval(timer)
+                        resolve()
+                    }
+                }, 100)
+            })
+        },
         isDrawableImage(image) {
             return image && image.path && Number(image.width || 0) > 0 && Number(image.height || 0) > 0
         },
@@ -2379,7 +2324,8 @@ export default {
             uni.showLoading({ title: '保存中...', mask: true })
             const ctx = uni.createCanvasContext('storeShareCanvas', this)
             const shopLogo = await this.getShareImageInfo(this.storeDetailView.shopLogo).catch(() => null)
-            const qrcode = this.storeShareQrcodeImage ? await this.getShareImageInfo(this.storeShareQrcodeImage).catch(() => null) : null
+            const qrcodeSource = this.storeShareQrcodeImage || this.storeShareQrcodeTempImage
+            const qrcode = qrcodeSource ? await this.getShareImageInfo(qrcodeSource).catch(() => null) : null
             ctx.setFillStyle('#eefbfc')
             ctx.fillRect(0, 0, 320, 420)
             ctx.setFillStyle('#ffffff')
@@ -2664,7 +2610,7 @@ export default {
     width: 100%;
     max-width: 750rpx;
     min-height: 1626rpx;
-    margin: 0 auto;
+    margin: -10rpx auto 0;
     overflow: hidden;
     background-repeat: no-repeat;
     background-position: center top;
@@ -3119,6 +3065,13 @@ export default {
     box-sizing: border-box;
 }
 
+.activity-center-empty {
+    margin-top: 240rpx;
+    color: #ffffff;
+    font-size: 28rpx;
+    text-align: center;
+}
+
 .activity-center-card__image {
     flex: none;
     width: 170rpx;
@@ -3553,6 +3506,13 @@ export default {
 
 .recent-visits-list {
     margin: 36rpx 24rpx 0 23rpx;
+}
+
+.recent-visits-empty {
+    padding-top: 180rpx;
+    color: #9ca3af;
+    font-size: 28rpx;
+    text-align: center;
 }
 
 .recent-visits-item {
@@ -4277,6 +4237,13 @@ export default {
     margin-top: 34rpx;
     font-size: 26rpx;
     color: #666666;
+}
+
+.empty-text {
+    padding: 32rpx 24rpx;
+    color: #9ca3af;
+    font-size: 26rpx;
+    text-align: center;
 }
 
 .group-item,
@@ -5017,11 +4984,12 @@ export default {
     width: 540rpx;
     max-width: calc(100% - 64rpx);
     min-height: 518rpx;
-    margin: -2rpx auto 0;
+    margin: 0 auto;
     padding: 58rpx 21rpx 17rpx;
     background: url('https://shengyuan.store/api/miniapp/files/miniapp/b804285c02584e1f81deaae98321c28c/2f63b8336e9bcbd0397b8bc4f7b1eba0.png') no-repeat center;
     background-size: 100% 100%;
     box-sizing: border-box;
+    margin-top: -10px;
 }
 
 .store-share-qrcode {

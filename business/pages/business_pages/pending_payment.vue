@@ -11,11 +11,11 @@
                     src="https://shengyuan.store/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png"
                     mode="scaleToFill"
                 ></image>
-                <text class="tips-text">温馨提示：文案填充文案填充文案填充文案填充文案填充文案填充</text>
+                <text class="tips-text">请核对订单信息后完成付款</text>
             </view>
         </view>
 
-        <scroll-view class="page-scroll" scroll-y>
+        <scroll-view v-if="order" class="page-scroll" scroll-y>
             <view class="order-card product-card">
                 <view class="address-row">
                     <image
@@ -33,18 +33,18 @@
                 <view class="divider"></view>
                 <view class="shop-row">
                     <view class="shop-logo"></view>
-                    <text class="shop-name">店铺名称</text>
+                    <text class="shop-name">{{ order.shopName || order.shop_name || '店铺信息' }}</text>
                 </view>
                 <view class="divider"></view>
                 <view class="goods-row">
                     <view class="goods-image"></view>
                     <view class="goods-info">
-                        <text class="goods-name">超清智慧投影居家使用高清高分辨率</text>
-                        <text class="goods-spec">IMAX版</text>
+                        <text class="goods-name">{{ order.goodsName || order.goods_name || '商品信息' }}</text>
+                        <text class="goods-spec">{{ order.spec || order.spec_value_str || '' }}</text>
                         <view class="goods-price">
                             <text class="price-symbol">¥</text>
-                            <text class="price-main">299</text>
-                            <text class="price-decimal">.00</text>
+                            <text class="price-main">{{ order.priceMain || '0' }}</text>
+                            <text class="price-decimal">{{ order.priceDecimal || '.00' }}</text>
                         </view>
                     </view>
                     <text class="goods-num">X1</text>
@@ -64,7 +64,7 @@
             <view class="order-card price-card">
                 <view class="summary-row">
                     <text>商品总价</text>
-                    <text>¥299.00</text>
+                    <text>{{ order.goodsAmount || '¥0.00' }}</text>
                 </view>
                 <view class="divider"></view>
                 <view class="summary-row">
@@ -86,7 +86,7 @@
                 <view class="divider"></view>
                 <view class="summary-row">
                     <text>总积分</text>
-                    <text class="point-text">200</text>
+                    <text class="point-text">{{ order.points || 0 }}</text>
                 </view>
             </view>
 
@@ -109,12 +109,14 @@
             </view>
         </scroll-view>
 
-        <view class="bottom-bar">
+        <view v-else class="pending-empty">暂无待付款订单</view>
+
+        <view v-if="order" class="bottom-bar">
             <text class="total-label">合计：</text>
             <view class="total-price">
                 <text class="total-symbol">¥</text>
-                <text class="total-main">299</text>
-                <text class="total-decimal">.00</text>
+                <text class="total-main">{{ order.totalMain || '0' }}</text>
+                <text class="total-decimal">{{ order.totalDecimal || '.00' }}</text>
             </view>
             <view class="pay-button">立即支付</view>
         </view>
@@ -123,6 +125,11 @@
 
 <script>
 export default {
+    data() {
+        return {
+            order: null
+        }
+    },
     methods: {
         goBack() {
             const pages = getCurrentPages()
@@ -146,6 +153,13 @@ page {
     min-height: 100vh;
     background: #f5f5f5;
     color: #222222;
+}
+
+.pending-empty {
+    padding-top: 260rpx;
+    color: #9ca3af;
+    font-size: 28rpx;
+    text-align: center;
 }
 
 .nav-row {

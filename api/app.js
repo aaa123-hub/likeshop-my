@@ -524,16 +524,45 @@ export function getPayway(params = {}) {
   return Promise.resolve({ code: 0, msg: "缺少支付业务单号", data: null });
 }
 
+function normalizeShareQrcodeResponse(res, fallbackPath = "") {
+  const data = res && res.data ? res.data : {};
+  const qrcodeInfo = data.qrcodeInfo || data.qrCodeInfo || data.qrcode_info || data.qr_code_info || {};
+  const qrCode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage
+    || qrcodeInfo.qr_code || qrcodeInfo.qrCode || qrcodeInfo.qrcode || qrcodeInfo.image || qrcodeInfo.urlImage;
+  return {
+    ...(res || {}),
+    code: qrCode || res?.code == 1 ? 1 : 0,
+    data: {
+      ...data,
+      qr_code: qrCode || "",
+      path: data.path || data.pagePath || fallbackPath,
+    },
+  };
+}
+
+function buildShareQrcodePayload(params = {}) {
+  const path = params.path || params.pagePath || params.url || "";
+  return {
+    ...params,
+    path: path.replace(/^\//, ""),
+    pagePath: path.replace(/^\//, ""),
+    url: path.replace(/^\//, ""),
+  };
+}
+
 // 获取微信小程序码-生成海报需使用
-export function getShareMnQrcode(params) {
-  const shopId = params.shopId || params.shop_id || '';
-  if (!shopId) {
-    return Promise.resolve({
-      code: 1,
-      data: {
-        path: params.url || params.path || '',
-      },
-    });
-  }
-  return request.get("miniapp/shop/" + shopId, { params });
+export function getShareMnQrcode(params = {}) {
+  const payload = buildShareQrcodePayload(params);
+  const fallbackPath = payload.path ? `/${payload.path}` : "";
+  const shopId = payload.shopId || payload.shop_id || "";
+  const fallback = () => shopId
+    ? request.get("miniapp/shop/" + shopId, { params: payload }).then((res) => normalizeShareQrcodeResponse(res, fallbackPath))
+    : Promise.resolve({ code: 1, data: { qr_code: "", path: fallbackPath } });
+
+  return request.post("miniapp/share/qrcode", payload)
+    .then((res) => {
+      const normalized = normalizeShareQrcodeResponse(res, fallbackPath);
+      return normalized.data.qr_code ? normalized : fallback();
+    })
+    .catch(fallback);
 }

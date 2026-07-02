@@ -82,11 +82,12 @@ export default {
             try {
                 const res = await getAutoReceivePoints()
                 if (res.code != 1) return
-                const data = res.data || {}
-                const autoReceiveFlag = this.parseSwitchValue(data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value, true)
-                this.onlinePay = this.parseSwitchValue(data.onlinePay ?? data.online_pay, autoReceiveFlag)
-                this.onlineReceive = this.parseSwitchValue(data.onlineReceive ?? data.online_receive, false)
-                this.offlinePay = this.parseSwitchValue(data.offlinePay ?? data.offline_pay, autoReceiveFlag)
+                const raw = res.data || {}
+                const data = raw.settings || raw.config || raw.autoReceive || raw.auto_receive || raw
+                const autoReceiveFlag = this.parseSwitchValue(data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? data.enabled, true)
+                this.onlinePay = this.parseSwitchValue(data.onlinePay ?? data.online_pay ?? data.onlineAfterPay ?? data.online_after_pay, autoReceiveFlag)
+                this.onlineReceive = this.parseSwitchValue(data.onlineReceive ?? data.online_receive ?? data.onlineAfterReceive ?? data.online_after_receive, false)
+                this.offlinePay = this.parseSwitchValue(data.offlinePay ?? data.offline_pay ?? data.offlineAfterPay ?? data.offline_after_pay, autoReceiveFlag)
             } catch (error) {
                 console.warn('load auto receive points failed', error)
             }
@@ -97,8 +98,11 @@ export default {
             try {
                 const res = await setAutoReceivePoints({
                     onlinePay: this.onlinePay,
+                    online_pay: this.onlinePay,
                     onlineReceive: this.onlineReceive,
+                    online_receive: this.onlineReceive,
                     offlinePay: this.offlinePay,
+                    offline_pay: this.offlinePay,
                     autoReceiveFlag: this.onlinePay || this.onlineReceive || this.offlinePay
                 })
                 if (res.code == 1) {

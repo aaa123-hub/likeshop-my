@@ -47,13 +47,13 @@ export default {
   },
   computed: {
     detailTitle() {
-      return this.detail.title || "标题标题标题标题标题标题标题标题";
+      return this.detail.title || "公告详情";
     },
     detailTime() {
-      return this.detail.time || "2026-01-01";
+      return this.detail.time || "";
     },
     detailContent() {
-      return this.detail.content || "详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充情内容填充详情内容填充详情\n\n内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填\n\n充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填";
+      return this.detail.content || "暂无公告内容";
     },
   },
   methods: {

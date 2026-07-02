@@ -338,6 +338,7 @@
 								:onval="true"
 								:load-make="true"
 								:show-loading="false"
+								@result="onGoodsShareQrcodeResult"
 							></tki-qrcode>
 							<view v-else class="goods-share-qrcode__loading">二维码</view>
 						</view>
@@ -440,6 +441,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				showShareBtn: false,
 				shareQrcode: '',
 				shareQrcodeIsImage: false,
+				shareQrcodeTempImage: '',
 				showCommission: true,
 				shopSubscribed: false,
 				popupType: '',
@@ -516,24 +518,46 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const inviteCode = this.userInfo.distribution_code || this.$store.getters.inviteCode || '';
 				return `/bundle/pages/goods_details/goods_details?id=${this.id}&invite_code=${inviteCode}`;
 			},
+			goodsSharePagePath() {
+				return this.goodsShareLink().replace(/^\//, '');
+			},
 			async prepareGoodsShareQrcode() {
 				if (this.shareQrcode) return;
 				try {
 					const res = await getShareMnQrcode({
 						id: this.id,
-						url: 'bundle/pages/goods_details/goods_details',
+						path: this.goodsSharePagePath(),
+						url: this.goodsSharePagePath(),
 						type: 1
 					});
 					const data = res && res.data ? res.data : {};
-					const qrcode = data.qr_code || data.qrCode || data.qrcode || data.image || data.url;
+					const qrcode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage;
 					if (qrcode) {
 						this.shareQrcode = String(qrcode).replace(/\r\n/g, '');
 						this.shareQrcodeIsImage = true;
+						this.shareQrcodeTempImage = '';
 						return;
 					}
 				} catch (e) {}
 				this.shareQrcode = this.goodsShareLink();
 				this.shareQrcodeIsImage = false;
+				this.shareQrcodeTempImage = '';
+			},
+			onGoodsShareQrcodeResult(result) {
+				this.shareQrcodeTempImage = typeof result === 'string' ? result : '';
+			},
+			waitForGoodsShareQrcodeImage() {
+				if (this.shareQrcodeIsImage || this.shareQrcodeTempImage) return Promise.resolve();
+				return new Promise((resolve) => {
+					let count = 0;
+					const timer = setInterval(() => {
+						count += 1;
+						if (this.shareQrcodeTempImage || count >= 8) {
+							clearInterval(timer);
+							resolve();
+						}
+					}, 100);
+				});
 			},
 			resolveAvatar(avatar) {
 				return resolveImage(avatar, 'avatar')
@@ -574,6 +598,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			},
 			async saveShareImage() {
 				await this.prepareGoodsShareQrcode();
+				await this.waitForGoodsShareQrcodeImage();
 				// #ifdef H5
 				uni.showToast({ title: '请长按图片保存', icon: 'none' });
 				// #endif
@@ -650,7 +675,8 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const ctx = uni.createCanvasContext('goodsShareCanvas', this);
 				const goodsImage = await this.getImageInfo(this.resolveGoodsImage(this.goodsDetail.poster || this.goodsDetail.image || this.previewImages[0]));
 				const shopLogo = await this.getImageInfo(this.shareShopLogo).catch(() => null);
-				const qrcode = this.shareQrcodeIsImage ? await this.getImageInfo(this.shareQrcode).catch(() => null) : null;
+				const qrcodeSource = this.shareQrcodeIsImage ? this.shareQrcode : this.shareQrcodeTempImage;
+				const qrcode = qrcodeSource ? await this.getImageInfo(qrcodeSource).catch(() => null) : null;
 				ctx.setFillStyle('#f3f8ff');
 				ctx.fillRect(0, 0, 320, 520);
 				ctx.setFillStyle('#037dfa');
@@ -871,38 +897,17 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				});
 			},
 			applyDefaultGoodsDetail() {
-				const image = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/designs/24-goods-detail.png';
-				this.isNull = false;
-				this.goodsType = 2;
+				this.isNull = true;
+				this.goodsType = 0;
 				this.countTime = 0;
-				this.team = { people_num: 155, team_min_price: '299.00', team_id: '' };
+				this.team = {};
 				this.teamFound = [];
 				this.groupRecords = [];
 				this.comment = {};
 				this.activePreviewIndex = 0;
-				this.goodsLike = [
-					{ id: 1, name: '轻便舒适跑步鞋', image, min_price: '1899.00' },
-					{ id: 2, name: '黑白灰色运动鞋', image, min_price: '2300.00' }
-				];
-				this.swiperList = [image];
-				this.goodsDetail = {
-					id: this.id || '1',
-					name: '超清智慧投影居家使用高清高分辨率',
-					shop_name: '叮咚生活家',
-					image,
-					poster: image,
-					video: '',
-					remark: '默认商品展示数据',
-					min_price: '299.00',
-					max_price: '299.00',
-					market_price: '399.00',
-					sales_sum: 213,
-					stock: 999,
-					is_collect: 0,
-					order_give_integral: 200,
-					group_people_num: 155,
-					content: '<p>商品详情默认展示内容，适用于接口暂无数据时的静态预览。</p>'
-				};
+				this.goodsLike = [];
+				this.swiperList = [];
+				this.goodsDetail = {};
 				this.$nextTick(() => {
 					this.isFirstLoading = false;
 				});
@@ -2319,7 +2324,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		.goods-share-panel {
 			width: 620rpx;
 			max-width: calc(100vw - 64rpx);
-			margin: 14rpx auto 0;
+			margin: 0 auto;
 			padding: 24rpx 22rpx 24rpx;
 			box-sizing: border-box;
 			border-radius: 30rpx;

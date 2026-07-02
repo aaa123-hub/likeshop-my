@@ -261,43 +261,12 @@ export default {
 
     specList(value) {
       if (this.checkedGoods.stock == 0) return;
-
-      const goodsItem = (this.goods && this.goods.goods_item) || [];
-      if (!goodsItem.length) return;
-      const res = goodsItem.filter((item) => {
-        return this.checkedGoods.spec_value_ids === item.spec_value_ids;
-      });
-
-      // 库存为0的规格
-      const idsArr = this.checkedGoods.spec_value_ids_arr;
-      const outOfStock = this.outOfStock;
-      // 找出规格相同和规格不相同的余数
-      const getArrGather = this.getArrResult(idsArr, outOfStock);
-      // 计算出缺货的规格项
-      this.disable = this.getOutOfStockArr(getArrGather, idsArr);
-
-      if (res.length != 0) {
-        console.log(res, "-----");
-
-        let result = JSON.parse(JSON.stringify(res[0]));
-        result.spec_value_ids_arr = result.spec_value_ids.split(",");
-        if (this.goodsNum > result.stock) {
-          this.goodsNum = result.stock;
-        }
-        this.checkedGoods = result;
-        // 同步到父组件
-        this.$emit("change", {
-          detail: this.checkedGoods,
-        });
-      }
+      this.refreshDisableOptions(this.checkedGoods.spec_value_ids_arr || []);
     },
 
     show(val) {
       this.showPop = val;
     },
-  },
-  created() {
-    console.log("spec");
   },
   methods: {
     initGoods(value = {}) {
@@ -308,13 +277,11 @@ export default {
       const resultArr = goodsItem.filter((item) => item.stock != 0);
       const target = goodsItem.find((item) => [item.item_id, item.sku_id, item.skuId, item.id, item.itemSkuId].some((value) => String(value || '') === String(this.selectedSkuId || '')));
       if (target || resultArr.length != 0) {
-        const nextGoods = target || resultArr[0];
-        nextGoods.spec_value_ids_arr = String(nextGoods.spec_value_ids || '').split(",");
-        this.checkedGoods = nextGoods;
+        this.updateCheckedGoods(target || resultArr[0], false);
       } else {
         goodsItem[0].spec_value_ids_arr = [];
         this.disable = goodsItem.map((item) => String(item.spec_value_ids || '').split(","));
-        this.checkedGoods = goodsItem[0];
+        this.updateCheckedGoods(goodsItem[0], false);
       }
     },
     isDisable(e) {
@@ -331,16 +298,22 @@ export default {
       return idsArr.length === nextIdsArr.length && idsArr.every((id, index) => String(id) === String(nextIdsArr[index]));
     },
 
-    updateCheckedGoods(goodsItem) {
+    updateCheckedGoods(goodsItem, shouldEmit = true) {
       let result = JSON.parse(JSON.stringify(goodsItem));
       result.spec_value_ids_arr = this.splitSpecIds(result.spec_value_ids);
       if (this.goodsNum > result.stock) {
         this.goodsNum = result.stock;
       }
       this.checkedGoods = result;
+      if (!shouldEmit) return;
       this.$emit("change", {
         detail: this.checkedGoods,
       });
+    },
+
+    refreshDisableOptions(idsArr) {
+      const getArrGather = this.getArrResult(idsArr, this.outOfStock);
+      this.disable = this.getOutOfStockArr(getArrGather, idsArr, []);
     },
 
     resolveSkuBySelectedIds(idsArr, selectedId) {

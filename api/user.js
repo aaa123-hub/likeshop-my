@@ -56,6 +56,7 @@ function fakeUserInfo() {
         wait_delivery: 0,
         wait_take: 0,
         wait_comment: 0,
+        wait_points: 0,
         after_sale: 0,
         distribution_code: '',
         next_level_tips: ''
@@ -83,6 +84,7 @@ function normalizeUserProfile(data = {}) {
         wait_delivery: data.wait_delivery ?? data.waitDelivery ?? 0,
         wait_take: data.wait_take ?? data.waitTake ?? data.waitReceive ?? 0,
         wait_comment: data.wait_comment ?? data.waitComment ?? 0,
+        wait_points: data.wait_points ?? data.waitPoints ?? data.pending_points ?? data.pendingPoints ?? data.wait_receive_points ?? data.waitReceivePoints ?? 0,
         after_sale: data.after_sale ?? data.afterSale ?? 0,
         distribution_code: data.distribution_code || data.distributionCode || data.inviteCode || fakeUserInfo().distribution_code,
         next_level_tips: data.next_level_tips || data.nextLevelTips || '立即开通'
@@ -240,19 +242,22 @@ function normalizeWithdrawAccountType(type) {
 }
 
 function normalizeLedgerItem(item = {}) {
-    const amount = item.changeAmount ?? item.change_amount ?? item.amount ?? item.money ?? 0
-    const balance = item.balanceAfter ?? item.balance ?? item.left_amount ?? item.left_money ?? 0
+    const amount = item.changeAmount ?? item.change_amount ?? item.pointsChange ?? item.points_change ?? item.pointAmount ?? item.point_amount ?? item.integral ?? item.amount ?? item.money ?? 0
+    const balance = item.balanceAfter ?? item.balance_after ?? item.pointsAfter ?? item.points_after ?? item.availablePoints ?? item.available_points ?? item.balance ?? item.left_amount ?? item.left_money ?? 0
     return {
         ...item,
         id: item.id || item.ledgerId || item.flowId,
         source_type: item.source_type || item.bizType || item.biz_type || item.type,
-        type_desc: item.type_desc || item.bizTypeName || item.bizType || item.title || item.desc,
+        type_desc: item.type_desc || item.bizTypeName || item.bizType || item.biz_type || item.title || item.desc,
         change_amount: amount,
         change_type: item.change_type || (Number(amount) >= 0 ? 1 : 2),
         left_amount: balance,
         left_money: balance,
-        create_time: item.create_time || item.createTime || item.txnTime || item.time,
-        change_time: item.change_time || item.createTime || item.txnTime || item.time
+        create_time: item.create_time || item.createTime || item.txnTime || item.txn_time || item.time,
+        change_time: item.change_time || item.createTime || item.txnTime || item.txn_time || item.time,
+        order_no: item.order_no || item.orderNo || item.bizNo || item.biz_no || item.bizOrderNo || item.biz_order_no,
+        status_text: item.status_text || item.statusText || item.statusName || item.status_name || item.status,
+        remark: item.remark || item.memo || item.content || item.description || item.reason || ''
     }
 }
 

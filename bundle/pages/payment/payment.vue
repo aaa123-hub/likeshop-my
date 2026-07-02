@@ -5,7 +5,7 @@
 			<template v-if="isFacePay">
 				<view class="payment-tips">
 					<u-icon name="bell-fill" color="#ffb221" size="52"></u-icon>
-					<text>温馨提示：文案填充文案填充文案填充文案填充文案填充文案填充</text>
+					<text>请核对付款单号后完成付款</text>
 				</view>
 				<view class="face-pay-card">
 					<view class="face-pay-card__field">
