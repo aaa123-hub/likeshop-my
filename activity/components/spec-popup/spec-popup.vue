@@ -218,7 +218,9 @@ export default {
       type: Number,
     },
   },
-  mounted() {},
+  mounted() {
+    this.initGoods(this.goods || {});
+  },
 
   computed: {
     // 选择的规格参数等
@@ -240,23 +242,7 @@ export default {
 
   watch: {
     goods(value) {
-      this.specList = value.goods_spec || [];
-      let goodsItem = value.goods_item || [];
-      if (!goodsItem.length) return;
-      this.outOfStock = goodsItem.filter((item) => item.stock == 0);
-      // 找出库存不为0的
-      const resultArr = goodsItem.filter((item) => item.stock != 0);
-      if (resultArr.length != 0) {
-        resultArr[0].spec_value_ids_arr =
-          resultArr[0].spec_value_ids.split(",");
-        this.checkedGoods = resultArr[0];
-      } else {
-        // 无法选择
-        goodsItem[0].spec_value_ids_arr = [];
-
-        this.disable = goodsItem.map((item) => item.spec_value_ids.split(","));
-        this.checkedGoods = goodsItem[0];
-      }
+      this.initGoods(value || {});
     },
 
     specList(value) {
@@ -300,10 +286,62 @@ export default {
     console.log("spec");
   },
   methods: {
+    initGoods(value = {}) {
+      this.specList = value.goods_spec || [];
+      let goodsItem = value.goods_item || [];
+      if (!goodsItem.length) return;
+      this.outOfStock = goodsItem.filter((item) => item.stock == 0);
+      const resultArr = goodsItem.filter((item) => item.stock != 0);
+      if (resultArr.length != 0) {
+        resultArr[0].spec_value_ids_arr = String(resultArr[0].spec_value_ids || '').split(",");
+        this.checkedGoods = resultArr[0];
+      } else {
+        goodsItem[0].spec_value_ids_arr = [];
+        this.disable = goodsItem.map((item) => String(item.spec_value_ids || '').split(","));
+        this.checkedGoods = goodsItem[0];
+      }
+    },
+
     isDisable(e) {
       const res = this.disable.filter((item) => item == e);
       if (res.length != 0) return true;
       else return false;
+    },
+
+    splitSpecIds(value) {
+      return String(value || '').split(',');
+    },
+
+    sameSpecIds(idsArr, nextIdsArr) {
+      return idsArr.length === nextIdsArr.length && idsArr.every((id, index) => String(id) === String(nextIdsArr[index]));
+    },
+
+    updateCheckedGoods(goodsItem) {
+      let result = JSON.parse(JSON.stringify(goodsItem));
+      result.spec_value_ids_arr = this.splitSpecIds(result.spec_value_ids);
+      if (this.goodsNum > result.stock) {
+        this.goodsNum = result.stock;
+      }
+      this.checkedGoods = result;
+      this.$emit("change", {
+        detail: this.checkedGoods,
+      });
+    },
+
+    resolveSkuBySelectedIds(idsArr, selectedId) {
+      const goodsItem = (this.goods && this.goods.goods_item) || [];
+      const exact = goodsItem.find((item) => this.sameSpecIds(this.splitSpecIds(item.spec_value_ids), idsArr));
+      if (exact) return exact;
+
+      const candidates = goodsItem.filter((item) => this.splitSpecIds(item.spec_value_ids).some((id) => String(id) === String(selectedId)));
+      return candidates.sort((item, nextItem) => {
+        const itemStock = Number(item.stock || 0) > 0 ? 1 : 0;
+        const nextItemStock = Number(nextItem.stock || 0) > 0 ? 1 : 0;
+        if (itemStock !== nextItemStock) return nextItemStock - itemStock;
+        const itemMatch = this.splitSpecIds(item.spec_value_ids).filter((id, index) => String(id) === String(idsArr[index])).length;
+        const nextItemMatch = this.splitSpecIds(nextItem.spec_value_ids).filter((id, index) => String(id) === String(idsArr[index])).length;
+        return nextItemMatch - itemMatch;
+      })[0];
     },
 
     onClose() {
@@ -329,15 +367,19 @@ export default {
     // 选择规格
     choseSpecItem(index, index2) {
       const id = this.specList[index]?.spec_value?.[index2]?.id;
-      if (!id) return;
+      if (id === undefined || id === null || id === '') return;
 
       // 无法选择
       const disable = this.disable.filter((item) => item == id);
       if (disable.length != 0) return;
 
-      let idsArr = this.checkedGoods.spec_value_ids_arr;
-      if (id == idsArr[index]) idsArr[index] = "";
-      else idsArr[index] = id;
+      let idsArr = [...(this.checkedGoods.spec_value_ids_arr || [])];
+      idsArr[index] = id;
+      const nextGoods = this.resolveSkuBySelectedIds(idsArr, id);
+      if (nextGoods) {
+        this.updateCheckedGoods(nextGoods);
+        idsArr = this.checkedGoods.spec_value_ids_arr;
+      }
       //保存已选规格
       this.checkedGoods.spec_value_ids_arr = idsArr;
       this.checkedGoods.spec_value_ids = idsArr.join(",");
@@ -368,8 +410,8 @@ export default {
       return {
         num, //n个相同的
         different: this.getArrDifference(
-          [...new Set(arr)].map(Number),
-          arr2.map(Number)
+          [...new Set(arr)].map(String),
+          arr2.map(String)
         ),
         identical: [...new Set(arr)],
       };

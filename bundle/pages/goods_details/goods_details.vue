@@ -606,8 +606,21 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			getImageInfo(src) {
 				return new Promise((resolve, reject) => {
 					if (!src) return reject(new Error('empty image'));
-					uni.getImageInfo({ src, success: resolve, fail: reject });
+					uni.getImageInfo({
+						src,
+						success: (res) => {
+							if (!res || Number(res.width || 0) <= 0 || Number(res.height || 0) <= 0 || !res.path) {
+								reject(new Error('invalid image size'));
+								return;
+							}
+							resolve(res);
+						},
+						fail: reject
+					});
 				});
+			},
+			isDrawableImage(image) {
+				return image && image.path && Number(image.width || 0) > 0 && Number(image.height || 0) > 0;
 			},
 			drawRoundRect(ctx, x, y, width, height, radius) {
 				ctx.beginPath();
@@ -643,7 +656,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				ctx.setFillStyle('#037dfa');
 				this.drawRoundRect(ctx, 16, 18, 288, 76, 14);
 				ctx.fill();
-				if (shopLogo) ctx.drawImage(shopLogo.path, 30, 34, 40, 40);
+				if (this.isDrawableImage(shopLogo)) ctx.drawImage(shopLogo.path, 30, 34, 40, 40);
 				ctx.setFillStyle('#ffffff');
 				ctx.setFontSize(15);
 				this.drawTextLine(ctx, this.shareShopName, 80, 49, 178);
@@ -672,7 +685,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				ctx.setFillStyle('#f7f9fc');
 				this.drawRoundRect(ctx, 206, 366, 78, 78, 8);
 				ctx.fill();
-				if (qrcode) {
+				if (this.isDrawableImage(qrcode)) {
 					ctx.drawImage(qrcode.path, 212, 372, 66, 66);
 				} else {
 					ctx.setFillStyle('#037dfa');

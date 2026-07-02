@@ -419,7 +419,7 @@ export default {
                 uni.$on('selectaddress', (params) => {
                     this.addressId = params.id
                     if (params.address) this.address = params.address
-                    this.handleOrderMethods('info')
+                    this.$nextTick(() => this.handleOrderMethods('info'))
                 })
 
                 uni.$on('payment', (params) => {
@@ -439,7 +439,8 @@ export default {
                 })
 
                 uni.$on('store', (params) => {
-                    this.storeInfo = params
+                    this.storeInfo = this.normalizeStoreInfo(params)
+                    this.$nextTick(() => this.handleOrderMethods('info'))
                 })
             })
             .catch(() => {})
@@ -483,6 +484,17 @@ export default {
                 shopLogo,
                 shop_name: item.shop_name || item.shopName || original.shop_name || original.shopName || this.orderInfo.shop_name || '',
                 shopName: item.shopName || item.shop_name || original.shopName || original.shop_name || this.orderInfo.shopName || ''
+            }
+        },
+
+        normalizeStoreInfo(info = {}) {
+            const id = info.id || info.shop_id || info.shopId || info.selffetch_shop_id || info.selffetchShopId || ''
+            return {
+                ...info,
+                id,
+                name: info.name || info.shop_name || info.shopName || info.storeName || '自提门店',
+                shop_address: info.shop_address || info.address || info.detailAddress || info.detail_address || '',
+                mobile: info.mobile || info.phone || info.telephone || '',
             }
         },
 
@@ -639,7 +651,8 @@ export default {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
 
                 if (code == 1) {
-                    this.address = data.address || this.address || {}
+                    const responseAddress = data.address || {}
+                    this.address = responseAddress.id ? responseAddress : (this.address && this.address.id ? this.address : {})
                     if (this.address.id) this.addressId = this.address.id
                     if (!this.address.id && this.currentDelivery.sign === 'express') {
                         await this.loadDefaultAddress()
@@ -648,9 +661,10 @@ export default {
                     this.goodsLists = (data.goods_lists || []).map(this.normalizePreviewGoods)
                     const selffetchInfo = data.selffetch_info || data.selffetchInfo || data.pickupInfo || {}
                     if (Object.keys(selffetchInfo).length) {
-                        this.storeInfo = selffetchInfo.selffetch_shop || selffetchInfo.selffetchShop || selffetchInfo.shop || {}
-                        this.userConsignee = selffetchInfo.contact || selffetchInfo.consignee || selffetchInfo.receiverName || ''
-                        this.userMobile = selffetchInfo.mobile || selffetchInfo.receiverMobile || ''
+                        const responseStore = this.normalizeStoreInfo(selffetchInfo.selffetch_shop || selffetchInfo.selffetchShop || selffetchInfo.shop || {})
+                        this.storeInfo = responseStore.id ? responseStore : (this.storeInfo && this.storeInfo.id ? this.storeInfo : {})
+                        this.userConsignee = selffetchInfo.contact || selffetchInfo.consignee || selffetchInfo.receiverName || this.userConsignee
+                        this.userMobile = selffetchInfo.mobile || selffetchInfo.receiverMobile || this.userMobile
                     }
                     this.$nextTick(() => {
                         this.isFirstLoading = false
@@ -716,6 +730,7 @@ export default {
                 delivery_type: this.delivery,
                 use_integral: this.useIntegral,
                 address_id: this.addressId,
+                address: this.address && this.address.id ? this.address : undefined,
                 coupon_id: this.couponId,
                 bargain_launch_id: this.bargainLaunchId == -1 ? '' : this.bargainLaunchId
             }
@@ -723,6 +738,7 @@ export default {
             // 门店自提
             if (this.currentDelivery.sign === 'store') {
                 orderFrom.selffetch_shop_id = this.storeInfo.id
+                orderFrom.store_id = this.storeInfo.id
                 orderFrom.consignee = this.userConsignee
                 orderFrom.mobile = this.userMobile
             }

@@ -41,20 +41,24 @@
         </view>
         <image class="auto-points-divider auto-points-divider--standalone" src="https://shengyuan.store/api/miniapp/files/miniapp/b8dfe9dcba7644ef89bbf62c4230aba3/auto-points-divider.png" mode="scaleToFill"></image>
 
-        <view class="auto-points-save" @tap="saveSettings">保存</view>
+        <view :class="['auto-points-save', saving ? 'is-disabled' : '']" @tap="saveSettings">{{ saving ? '保存中...' : '保存' }}</view>
     </view>
 </template>
 
 <script>
-import { setAutoReceivePoints } from '@/api/user'
+import { getAutoReceivePoints, setAutoReceivePoints } from '@/api/user'
 
 export default {
     data() {
         return {
             onlinePay: true,
             onlineReceive: false,
-            offlinePay: true
+            offlinePay: true,
+            saving: false
         }
+    },
+    onLoad() {
+        this.loadSettings()
     },
     methods: {
         goBack() {
@@ -65,15 +69,47 @@ export default {
             }
             uni.switchTab({ url: '/pages/user/user' })
         },
+        parseSwitchValue(value, fallback) {
+            if (value === undefined || value === null || value === '') return fallback
+            if (value === true || value === 1 || value === '1') return true
+            if (value === false || value === 0 || value === '0') return false
+            const text = String(value).toLowerCase()
+            if (text === 'true' || text === 'yes' || text === 'on') return true
+            if (text === 'false' || text === 'no' || text === 'off') return false
+            return fallback
+        },
+        async loadSettings() {
+            try {
+                const res = await getAutoReceivePoints()
+                if (res.code != 1) return
+                const data = res.data || {}
+                const autoReceiveFlag = this.parseSwitchValue(data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value, true)
+                this.onlinePay = this.parseSwitchValue(data.onlinePay ?? data.online_pay, autoReceiveFlag)
+                this.onlineReceive = this.parseSwitchValue(data.onlineReceive ?? data.online_receive, false)
+                this.offlinePay = this.parseSwitchValue(data.offlinePay ?? data.offline_pay, autoReceiveFlag)
+            } catch (error) {
+                console.warn('load auto receive points failed', error)
+            }
+        },
         async saveSettings() {
-            const res = await setAutoReceivePoints({
-                onlinePay: this.onlinePay,
-                onlineReceive: this.onlineReceive,
-                offlinePay: this.offlinePay,
-                autoReceiveFlag: this.onlinePay || this.onlineReceive || this.offlinePay
-            })
-            if (res.code == 1) {
-                uni.showToast({ title: '保存成功', icon: 'success' })
+            if (this.saving) return
+            this.saving = true
+            try {
+                const res = await setAutoReceivePoints({
+                    onlinePay: this.onlinePay,
+                    onlineReceive: this.onlineReceive,
+                    offlinePay: this.offlinePay,
+                    autoReceiveFlag: this.onlinePay || this.onlineReceive || this.offlinePay
+                })
+                if (res.code == 1) {
+                    uni.showToast({ title: '保存成功', icon: 'success' })
+                    return
+                }
+                uni.showToast({ title: res.msg || '保存失败，请重试', icon: 'none' })
+            } catch (error) {
+                uni.showToast({ title: '保存失败，请重试', icon: 'none' })
+            } finally {
+                this.saving = false
             }
         }
     }
@@ -235,5 +271,9 @@ export default {
     font-weight: 500;
     background: #037dfa;
     border-radius: 40rpx;
+}
+
+.auto-points-save.is-disabled {
+    opacity: 0.65;
 }
 </style>

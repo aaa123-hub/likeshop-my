@@ -105,7 +105,13 @@ export default {
       ])
     },
     applyArticleContent(content) {
-      this.article_content = content || this.fallbackContent()
+      const value = String(content || '').trim()
+      const placeholderMap = {
+        0: '<p>服务协议内容待平台完善。</p>',
+        1: '<p>隐私政策内容待平台完善。</p>',
+        2: '<p>售后保障内容待平台完善。</p>'
+      }
+      this.article_content = !value || value === placeholderMap[this.type] ? this.fallbackContent() : value
     },
     // 服务协议
     getServerProtoFun() {

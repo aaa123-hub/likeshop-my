@@ -937,8 +937,15 @@ export function getPointsAccount() {
 
 export function setAutoReceivePoints(data) {
     return request.post('miniapp/points/settings/auto-receive', {
-        autoReceiveFlag: data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true
+        autoReceiveFlag: data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true,
+        onlinePay: data.onlinePay ?? data.online_pay,
+        onlineReceive: data.onlineReceive ?? data.online_receive,
+        offlinePay: data.offlinePay ?? data.offline_pay
     })
+}
+
+export function getAutoReceivePoints() {
+    return request.get('miniapp/points/settings/auto-receive')
 }
 
 export function submitKyc(data) {

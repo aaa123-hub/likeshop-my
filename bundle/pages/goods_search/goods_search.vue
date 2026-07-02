@@ -66,7 +66,7 @@
 				</view>
 			</view>
 		</view>
-		<view v-show="!showHistory" class="result-panel">
+		<scroll-view v-show="!showHistory" class="result-panel" scroll-y @scrolltolower="getGoodsSearchFun">
 			<view v-if="categoryName" class="category-source">
 				<view class="category-source__label">当前分类</view>
 				<view class="category-source__name line1">{{ categoryName }}</view>
@@ -108,7 +108,7 @@
 				</view>
 				<view v-else class="search-footer__text">我可是有底线的～</view>
 			</view>
-		</view>
+		</scroll-view>
 		<view v-if="showFilter" class="filter-mask" @tap="showFilter = false">
 			<view class="filter-panel" @tap.stop>
 				<view class="filter-panel__title">更多筛选</view>
@@ -429,10 +429,19 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 </script>
 <style lang="scss">
 	.goods-search {
+		height: 100vh;
+		padding-top: calc(var(--status-bar-height) + 278rpx);
+		box-sizing: border-box;
+		overflow: hidden;
 		min-height: 100vh;
 		background: #f4f6fb;
 
 		.search-top {
+			position: fixed;
+			left: 0;
+			right: 0;
+			top: 0;
+			z-index: 30;
 			background: #bcd1f3;
 			padding-bottom: 20rpx;
 		}
@@ -531,6 +540,11 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.filter-bar {
+			position: fixed;
+			left: 0;
+			right: 0;
+			top: calc(var(--status-bar-height) + 190rpx);
+			z-index: 29;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
@@ -556,7 +570,10 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.history-panel {
+			height: calc(100vh - var(--status-bar-height) - 190rpx);
 			padding: 24rpx;
+			box-sizing: border-box;
+			overflow-y: auto;
 		}
 
 		.word-block {
@@ -592,7 +609,9 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.result-panel {
+			height: calc(100vh - var(--status-bar-height) - 278rpx);
 			padding: 18rpx 24rpx 40rpx;
+			box-sizing: border-box;
 		}
 
 		.category-source {

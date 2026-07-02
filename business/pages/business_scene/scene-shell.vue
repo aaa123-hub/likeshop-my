@@ -30,7 +30,7 @@
                             </view>
 
                             <view class="user-kyc-page__illustration">
-                                <image style="width: 100%;height: 100%;" :src="user_kyc"></image>
+                                <image class="user-kyc-page__illustration-image" :src="user_kyc" mode="aspectFit"></image>
                             </view>
                         </view>
                     </view>
@@ -64,12 +64,12 @@
                         <view class="user-kyc-page__section-title">证件照片</view>
                         <view class="user-kyc-page__photo-row">
                             <view class="user-kyc-page__photo-card user-kyc-page__photo-card--front" @tap="chooseKycImage('front')">
-                                <image style="width: 100%;height: 100%;" :src="kycForm.certFrontPreview || left_icon" mode="aspectFill"></image>
-                                <image v-if="!kycForm.certFrontPreview" style="width: 69rpx;height: 69rpx;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
+                                <image class="user-kyc-page__photo-image" :src="kycForm.certFrontPreview || left_icon" mode="aspectFill"></image>
+                                <image v-if="!kycForm.certFrontPreview" class="user-kyc-page__photo-add" :src="icon_conter" mode="aspectFit"></image>
                             </view>
                             <view class="user-kyc-page__photo-card user-kyc-page__photo-card--back" @tap="chooseKycImage('back')">
-                                <image style="width: 100%;height: 100%;" :src="kycForm.certBackPreview || right_icon" mode="aspectFill"></image>
-                                <image v-if="!kycForm.certBackPreview" style="width: 69rpx;height: 69rpx;z-index: 2;position: absolute;top: 50%;left: 50%;transform: translate(-50%,-50%);" :src="icon_conter"></image>
+                                <image class="user-kyc-page__photo-image" :src="kycForm.certBackPreview || right_icon" mode="aspectFill"></image>
+                                <image v-if="!kycForm.certBackPreview" class="user-kyc-page__photo-add" :src="icon_conter" mode="aspectFit"></image>
                             </view>
                         </view>
 
@@ -580,8 +580,8 @@
                             <view v-if="isEmptyImage(item.image || item.shopLogo)" class="merchant-list__image image-placeholder">无</view>
                             <image v-else class="merchant-list__image" :src="item.image || item.shopLogo" mode="aspectFill"></image>
                             <view class="merchant-list__body">
-                                <view class="merchant-list__title line1">{{ item.name }}</view>
-                                <view v-if="item.subtitle" class="merchant-list__desc line1">{{ item.subtitle }}</view>
+                                <view class="merchant-list__title line2">{{ item.name }}</view>
+                                <view v-if="item.subtitle" class="merchant-list__desc line2">{{ item.subtitle }}</view>
                                 <view class="merchant-list__price-row">
                                     <text class="merchant-list__price">{{ item.priceText }}</text>
                                     <text v-if="item.marketPriceText" class="merchant-list__market">{{ item.marketPriceText }}</text>
@@ -1480,19 +1480,7 @@ export default {
             return (this.sceneConfig.title || '关于我们').slice(0, 4)
         },
         kycStatusText() {
-            const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
-            const statusMap = {
-                NOT_SUBMITTED: '未提交',
-                PENDING: '审核中',
-                SUBMITTED: '审核中',
-                AUDITING: '审核中',
-                APPROVED: '已通过',
-                SUCCESS: '已通过',
-                PASS: '已通过',
-                REJECTED: '未通过',
-                FAILED: '未通过'
-            }
-            return statusMap[status] || ''
+            return this.formatKycStatusText(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status)
         },
         kycStatusClass() {
             const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
@@ -1502,7 +1490,8 @@ export default {
             return ''
         },
         kycAuditMessage() {
-            return this.kycStatusInfo.rejectReasonMessage || this.kycStatusInfo.reject_reason_message || this.kycStatusInfo.auditMessage || this.kycStatusInfo.audit_message || ''
+            const message = this.kycStatusInfo.rejectReasonMessage || this.kycStatusInfo.reject_reason_message || this.kycStatusInfo.auditMessage || this.kycStatusInfo.audit_message || ''
+            return this.formatKycStatusText(message) || message
         },
         kycSubmitTimeText() {
             const data = this.kycStatusInfo || {}
@@ -1800,6 +1789,21 @@ export default {
             }
             return map[String(value || '').toUpperCase()] || value || ''
         },
+        formatKycStatusText(value) {
+            const status = String(value || '').toUpperCase()
+            const statusMap = {
+                NOT_SUBMITTED: '未提交',
+                PENDING: '审核中',
+                SUBMITTED: '审核中',
+                AUDITING: '审核中',
+                APPROVED: '已通过',
+                SUCCESS: '已通过',
+                PASS: '已通过',
+                REJECTED: '未通过',
+                FAILED: '未通过'
+            }
+            return statusMap[status] || ''
+        },
         guardScene(scene) {
             const sceneRouteMap = {
                 'activity-center': '/business/pages/business_pages/activity_center',
@@ -1850,7 +1854,17 @@ export default {
         },
         async chooseKycImage(type) {
             if (!this.canEditKyc) return
-            const result = await this.chooseUploadedImage()
+            let result = null
+            try {
+                result = await this.chooseUploadedImage()
+            } catch (error) {
+                uni.showToast({ title: '图片选择或上传失败', icon: 'none' })
+                return
+            }
+            if (!result || !result.fileUrl) {
+                uni.showToast({ title: '图片上传失败，请重试', icon: 'none' })
+                return
+            }
             if (type === 'front') {
                 this.kycForm.certFrontUrl = result.fileUrl
                 this.kycForm.certFrontPreview = result.localPath
@@ -2322,8 +2336,21 @@ export default {
         getShareImageInfo(src) {
             return new Promise((resolve, reject) => {
                 if (!src || this.isEmptyImage(src)) return reject(new Error('empty image'))
-                uni.getImageInfo({ src, success: resolve, fail: reject })
+                uni.getImageInfo({
+                    src,
+                    success: (res) => {
+                        if (!res || Number(res.width || 0) <= 0 || Number(res.height || 0) <= 0 || !res.path) {
+                            reject(new Error('invalid image size'))
+                            return
+                        }
+                        resolve(res)
+                    },
+                    fail: reject
+                })
             })
+        },
+        isDrawableImage(image) {
+            return image && image.path && Number(image.width || 0) > 0 && Number(image.height || 0) > 0
         },
         drawCanvasRoundRect(ctx, x, y, width, height, radius) {
             ctx.beginPath()
@@ -2361,7 +2388,7 @@ export default {
             ctx.setFillStyle('#04b8c6')
             this.drawCanvasRoundRect(ctx, 32, 38, 256, 90, 14)
             ctx.fill()
-            if (shopLogo) ctx.drawImage(shopLogo.path, 48, 58, 50, 50)
+            if (this.isDrawableImage(shopLogo)) ctx.drawImage(shopLogo.path, 48, 58, 50, 50)
             ctx.setFillStyle('#ffffff')
             ctx.setFontSize(17)
             this.drawCanvasTextLine(ctx, this.storeDetailView.shopName || '店铺详情', 112, 75, 150)
@@ -2370,7 +2397,7 @@ export default {
             ctx.setFillStyle('#f7fbfc')
             this.drawCanvasRoundRect(ctx, 78, 154, 164, 164, 18)
             ctx.fill()
-            if (qrcode) {
+            if (this.isDrawableImage(qrcode)) {
                 ctx.drawImage(qrcode.path, 92, 168, 136, 136)
             } else {
                 ctx.setFillStyle('#04b8c6')
@@ -3923,7 +3950,7 @@ export default {
 
 .list-page {
     min-height: calc(100vh - 48rpx - 88rpx - var(--status-bar-height));
-    padding-bottom: 32rpx;
+    padding-bottom: calc(36rpx + env(safe-area-inset-bottom));
 }
 
 .search-shell {
@@ -4266,8 +4293,9 @@ export default {
 }
 
 .merchant-list__item {
-    align-items: center;
+    align-items: stretch;
     margin-bottom: 18rpx;
+    min-height: 220rpx;
     background: #ffffff;
     border: 1rpx solid rgba(31, 122, 244, 0.06);
     border-radius: 24rpx;
@@ -4311,6 +4339,8 @@ export default {
 }
 
 .merchant-list__body {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-width: 0;
     padding-left: 22rpx;
@@ -4322,7 +4352,8 @@ export default {
     font-size: 30rpx;
     color: #172033;
     font-weight: 700;
-    line-height: 42rpx;
+    line-height: 40rpx;
+    word-break: break-all;
 }
 
 .merchant-list__desc {
@@ -4330,6 +4361,7 @@ export default {
     color: #667085;
     font-size: 24rpx;
     line-height: 34rpx;
+    word-break: break-all;
 }
 
 .group-item__meta,
@@ -4371,11 +4403,13 @@ export default {
 .merchant-list__price-row {
     display: flex;
     align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6rpx 12rpx;
     margin-top: 10rpx;
 }
 
 .merchant-list__market {
-    margin-left: 12rpx;
+    margin-left: 0;
     color: #b7b7b7;
     font-size: 22rpx;
     text-decoration: line-through;
@@ -4384,7 +4418,7 @@ export default {
 .merchant-list__score {
     display: flex;
     align-items: center;
-    margin-left: auto;
+    margin-left: 0;
     padding: 5rpx 12rpx;
     color: #f59b00;
     font-size: 22rpx;
@@ -4401,17 +4435,54 @@ export default {
 .merchant-list__tags {
     display: flex;
     flex-wrap: wrap;
+    gap: 8rpx;
     margin-top: 10rpx;
 }
 
 .merchant-list__tag {
-    margin: 0 8rpx 8rpx 0;
+    max-width: 100%;
+    margin: 0;
     padding: 3rpx 12rpx;
     color: #3570c7;
     font-size: 20rpx;
     line-height: 28rpx;
     background: #eef6ff;
     border-radius: 999rpx;
+}
+
+@media screen and (max-width: 360px) {
+    .card,
+    .merchant-panel,
+    .qr-card,
+    .wallet-mode,
+    .list-page {
+        margin-left: 16rpx;
+        margin-right: 16rpx;
+    }
+
+    .merchant-list__item {
+        padding: 18rpx;
+        border-radius: 20rpx;
+    }
+
+    .merchant-list__image {
+        width: 156rpx;
+        height: 156rpx;
+        border-radius: 18rpx;
+    }
+
+    .merchant-list__body {
+        padding-left: 16rpx;
+    }
+
+    .merchant-list__title {
+        font-size: 27rpx;
+        line-height: 36rpx;
+    }
+
+    .merchant-list__price {
+        font-size: 30rpx;
+    }
 }
 
 .group-item__price-wrap {
@@ -5532,13 +5603,14 @@ export default {
 
 .user-kyc-page {
     min-height: 100vh;
-    background: linear-gradient(180deg, #cbdaf0 0%, #e3ebf7 23%, #ffffff 43%, #ffffff 100%);
+    background: linear-gradient(180deg, #ddecff 0%, #f3f7ff 34%, #f7f9fc 100%);
 }
 
 .user-kyc-page__hero {
     position: relative;
-    min-height: 360rpx;
-    padding: var(--status-bar-height) 24rpx 0;
+    min-height: 336rpx;
+    padding: var(--status-bar-height) 24rpx 22rpx;
+    box-sizing: border-box;
 }
 
 .user-kyc-page__status {
@@ -5583,18 +5655,18 @@ export default {
 }
 
 .user-kyc-page__title {
-    color: #202020;
-    font-size: 60rpx;
-    line-height: 72rpx;
+    color: #172033;
+    font-size: 50rpx;
+    line-height: 64rpx;
     font-weight: 800;
     word-break: break-all;
 }
 
 .user-kyc-page__subtitle {
     margin-top: 18rpx;
-    color: #2f2f2f;
-    font-size: 28rpx;
-    line-height: 40rpx;
+    color: #5f6b7a;
+    font-size: 26rpx;
+    line-height: 38rpx;
 }
 
 .user-kyc-page__status-pill {
@@ -5630,9 +5702,14 @@ export default {
 .user-kyc-page__illustration {
     flex: none;
     position: relative;
-    width: 270rpx;
-    height: 228rpx;
+    width: 252rpx;
+    height: 210rpx;
     margin-right: -4rpx;
+}
+
+.user-kyc-page__illustration-image {
+    width: 100%;
+    height: 100%;
 }
 
 .user-kyc-page__illustration-back,
@@ -5745,11 +5822,11 @@ export default {
 }
 
 .user-kyc-page__sheet {
-    margin-top: 6rpx;
-    padding: 24rpx 28rpx 72rpx;
+    margin: 0 20rpx;
+    padding: 24rpx 24rpx calc(72rpx + env(safe-area-inset-bottom));
     background: #ffffff;
-    border-radius: 34rpx 34rpx 0 0;
-    box-shadow: 0 -8rpx 30rpx rgba(131, 145, 176, 0.08);
+    border-radius: 30rpx;
+    box-shadow: 0 18rpx 48rpx rgba(70, 104, 156, 0.12);
 }
 
 .user-kyc-page__info-grid {
@@ -5811,15 +5888,17 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 104rpx;
-    border-bottom: 1rpx solid #eef0f4;
+    min-height: 96rpx;
+    padding: 0 4rpx;
+    border-bottom: 1rpx solid #eef2f7;
+    box-sizing: border-box;
 }
 
 .user-kyc-page__label,
 .user-kyc-page__value {
-    color: #202020;
-    font-size: 34rpx;
-    line-height: 48rpx;
+    color: #172033;
+    font-size: 30rpx;
+    line-height: 44rpx;
     font-weight: 700;
 }
 
@@ -5829,9 +5908,10 @@ export default {
 
 .user-kyc-page__input {
     flex: 1;
-    margin-left: 32rpx;
+    min-width: 0;
+    margin-left: 24rpx;
     color: #202020;
-    font-size: 30rpx;
+    font-size: 28rpx;
     text-align: right;
 }
 
@@ -5841,17 +5921,17 @@ export default {
 
 .user-kyc-page__section-title {
     margin-top: 34rpx;
-    color: #202020;
-    font-size: 34rpx;
-    line-height: 48rpx;
+    color: #172033;
+    font-size: 30rpx;
+    line-height: 44rpx;
     font-weight: 700;
 }
 
 .user-kyc-page__photo-row {
     display: flex;
     justify-content: space-between;
-    gap: 20rpx;
-    margin-top: 32rpx;
+    gap: 18rpx;
+    margin-top: 22rpx;
 }
 
 .user-kyc-page__photo-card {
@@ -5859,10 +5939,25 @@ export default {
     flex: 1;
     min-width: 0;
     width: auto;
-    height: 222rpx;
+    height: 214rpx;
     overflow: hidden;
     border-radius: 18rpx;
     background: linear-gradient(135deg, #eff4fb 0%, #f8f9fd 52%, #eef4ff 100%);
+}
+
+.user-kyc-page__photo-image {
+    width: 100%;
+    height: 100%;
+}
+
+.user-kyc-page__photo-add {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 2;
+    width: 66rpx;
+    height: 66rpx;
+    transform: translate(-50%, -50%);
 }
 
 .user-kyc-page__photo-card--back {
@@ -5974,8 +6069,8 @@ export default {
     align-items: center;
     justify-content: space-between;
     margin-top: 34rpx;
-    padding: 24rpx;
-    background: #f5f8ff;
+    padding: 22rpx;
+    background: linear-gradient(135deg, #f5f9ff 0%, #eef6ff 100%);
     border: 1rpx solid #e3edff;
     border-radius: 20rpx;
 }
@@ -6021,14 +6116,50 @@ export default {
     justify-content: center;
     width: 100%;
     max-width: 610rpx;
-    height: 98rpx;
-    margin: 30rpx auto 0;
+    height: 92rpx;
+    margin: 32rpx auto 0;
     color: #ffffff;
     font-size: 34rpx;
     font-weight: 700;
     background: linear-gradient(180deg, #1986ff 0%, #0d79f5 100%);
     border-radius: 49rpx;
     box-shadow: 0 14rpx 30rpx rgba(17, 120, 239, 0.2);
+}
+
+@media screen and (max-width: 360px) {
+    .user-kyc-page__hero-body {
+        align-items: center;
+    }
+
+    .user-kyc-page__title {
+        font-size: 44rpx;
+        line-height: 56rpx;
+    }
+
+    .user-kyc-page__subtitle {
+        font-size: 24rpx;
+        line-height: 34rpx;
+    }
+
+    .user-kyc-page__illustration {
+        width: 210rpx;
+        height: 176rpx;
+    }
+
+    .user-kyc-page__sheet {
+        margin-left: 16rpx;
+        margin-right: 16rpx;
+        padding-left: 20rpx;
+        padding-right: 20rpx;
+    }
+
+    .user-kyc-page__photo-row {
+        flex-direction: column;
+    }
+
+    .user-kyc-page__photo-card {
+        height: 236rpx;
+    }
 }
 
 .user-kyc-page__submit.is-disabled {

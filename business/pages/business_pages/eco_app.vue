@@ -39,6 +39,13 @@ import { getEcoApplications } from '@/api/app'
 import { resolveImage } from '@/utils/image-placeholder'
 import { baseURL } from '@/config/app'
 
+const fallbackEcoApps = [
+    { title: '商家入驻', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/4392f8a4a0d14d49ad384109e9862452/home-ecology-icon.png', entryText: '申请开通店铺', entryUrl: '/business/pages/business_pages/user_kyc' },
+    { title: '面对面付款', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png', entryText: '线下扫码支付', entryUrl: '/business/pages/business_pages/face_pay' },
+    { title: '商街服务', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/b08d89d504054cc1a3dc29a229796c9f/user-ecology.png', entryText: '查看附近商家', entryUrl: '/pages/street/street' },
+    { title: '客服反馈', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/a90fd6a6345f48dd9d6a0771c5ff6127/home-shortcut-message.png', entryText: '提交问题建议', entryUrl: '/business/pages/business_pages/feedback' }
+]
+
 export default {
     data() {
         return {
@@ -55,18 +62,23 @@ export default {
             getEcoApplications().then(res => {
                 if (res.code != 1) return
                 const data = res.data || {}
-                const list = Array.isArray(data) ? data : (data.list || [])
-                this.loopData0 = list.map(item => ({
+                const list = this.extractEcoList(data)
+                this.loopData0 = (list.length ? list : fallbackEcoApps).map(item => ({
                     ...item,
                     title: item.title || item.appName || item.app_name || item.name || '生态应用',
-                    icon: this.resolveEcoImage(item.icon || item.iconUrl || item.icon_url || item.image || item.cover || item.imageUrl),
+                    icon: this.resolveEcoImage(item.icon || item.iconUrl || item.icon_url || item.logoUrl || item.logo_url || item.image || item.cover || item.imageUrl || item.image_url),
                     entryText: this.getEntryText(item),
-                    entryUrl: item.entryUrl || item.entry_url || item.linkUrl || item.link_url || item.url || item.appUrl || item.jumpUrl || '',
-                    pagePath: item.pagePath || item.page_path || item.path || ''
+                    entryUrl: item.entryUrl || item.entry_url || item.linkUrl || item.link_url || item.url || item.appUrl || item.app_url || item.jumpUrl || item.jump_url || '',
+                    pagePath: item.pagePath || item.page_path || item.path || '',
+                    appId: item.appId || item.app_id || item.appid || item.targetAppId || item.target_app_id || ''
                 }))
             }).finally(() => {
                 this.loading = false
             })
+        },
+        extractEcoList(data = {}) {
+            if (Array.isArray(data)) return data
+            return data.list || data.records || data.items || data.rows || data.content || []
         },
         getEntryText(item = {}) {
             const text = item.urlText || item.entryName || item.entry_name || item.linkUrl || item.link_url || item.entryUrl || item.entry_url || item.url || item.appCode || item.app_code || ''
@@ -76,7 +88,7 @@ export default {
             if (!src) return ''
             const value = String(src).trim()
             if (/^https?:\/\//i.test(value)) return resolveImage(value, 'goods')
-            if (value.startsWith('/static/')) return `${baseURL}${value}`
+            if (value.startsWith('/')) return `${baseURL}${value}`
             return resolveImage(value, 'goods')
         },
         goBack() {
@@ -89,6 +101,14 @@ export default {
         },
         openApp(item) {
             const targetUrl = item.entryUrl || item.pagePath || item.linkUrl || item.url || ''
+            if (item.appId) {
+                uni.navigateToMiniProgram({
+                    appId: item.appId,
+                    path: item.pagePath || targetUrl || '',
+                    fail: () => uni.showToast({ title: '暂无法打开该应用', icon: 'none' })
+                })
+                return
+            }
             if (targetUrl && /^\//.test(targetUrl)) {
                 uni.navigateTo({ url: targetUrl })
                 return

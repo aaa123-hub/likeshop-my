@@ -1121,7 +1121,9 @@ let QRCode = {};
                 var x = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
                 var y = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
                 drawRoundedRect(ctx, x, y, ratioImgSize, ratioImgSize, 2, 6, true, true)
-                ctx.drawImage(options.image, x, y, ratioImgSize, ratioImgSize);
+                try {
+                    ctx.drawImage(options.image, x, y, ratioImgSize, ratioImgSize);
+                } catch (error) {}
                 // 画圆角矩形
                 function drawRoundedRect(ctxi, x, y, width, height, r, lineWidth, fill, stroke) {
                     ctxi.setLineWidth(lineWidth);

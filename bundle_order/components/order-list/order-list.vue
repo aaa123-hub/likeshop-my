@@ -588,26 +588,26 @@ export default {
 <style lang="scss">
 .order-list {
   // min-height: calc(100vh - 80rpx);
-  padding: 8rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));
+  padding: 10rpx 22rpx calc(32rpx + env(safe-area-inset-bottom));
   overflow: hidden;
 
   .order-item {
     display: block;
-    margin-top: 22rpx;
+    margin-top: 24rpx;
     background: #ffffff;
-    border: 1rpx solid rgba(31, 122, 244, .06);
-    border-radius: 28rpx;
+    border: 1rpx solid rgba(31, 122, 244, .08);
+    border-radius: 30rpx;
     overflow: hidden;
-    box-shadow: 0 14rpx 36rpx rgba(24, 54, 104, .08);
+    box-shadow: 0 16rpx 42rpx rgba(24, 54, 104, .1);
 
     .order-header {
       display: flex;
       align-items: center;
-      gap: 12rpx;
+      gap: 12rpx 16rpx;
       flex-wrap: wrap;
-      min-height: 88rpx;
-      padding: 18rpx 26rpx;
-      background: linear-gradient(90deg, #f8fbff 0%, #ffffff 72%);
+      min-height: 96rpx;
+      padding: 20rpx 24rpx;
+      background: linear-gradient(135deg, #f4f9ff 0%, #ffffff 76%);
       border-bottom: 1rpx solid #edf2f7;
       box-sizing: border-box;
     }
@@ -615,19 +615,22 @@ export default {
     .order-sn {
       flex: 1;
       min-width: 0;
-      margin-right: 18rpx;
+      margin-right: 10rpx;
       color: #343b48;
       font-size: 25rpx;
+      line-height: 36rpx;
     }
 
     .order-status {
       flex: none;
-      max-width: 220rpx;
+      max-width: 240rpx;
       padding: 8rpx 16rpx;
       font-size: 24rpx;
       font-weight: 600;
       text-align: right;
       border-radius: 999rpx;
+      line-height: 32rpx;
+      white-space: nowrap;
     }
 
     .order-status.is-active-status {
@@ -653,8 +656,8 @@ export default {
     .order-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 12rpx 14rpx;
-      padding: 18rpx 26rpx 2rpx;
+      gap: 10rpx 12rpx;
+      padding: 18rpx 24rpx 4rpx;
       color: #7d8795;
       font-size: 23rpx;
       line-height: 32rpx;
@@ -663,7 +666,9 @@ export default {
     .order-meta__item {
       display: flex;
       max-width: 100%;
-      padding: 6rpx 12rpx;
+      min-width: 0;
+      max-width: 100%;
+      padding: 7rpx 13rpx;
       background: #f6f8fb;
       border-radius: 999rpx;
     }
@@ -680,22 +685,24 @@ export default {
 
     .all-price {
       text-align: right;
-      padding: 8rpx 26rpx 24rpx;
+      padding: 12rpx 24rpx 24rpx;
       flex-wrap: wrap;
       gap: 4rpx;
     }
 
     .order-footer {
-      min-height: 108rpx;
+      min-height: 104rpx;
       border-top: 1rpx solid #edf2f7;
-      padding: 16rpx 26rpx;
+      padding: 16rpx 24rpx;
       box-sizing: border-box;
       flex-wrap: wrap;
-      gap: 12rpx 0;
+      gap: 14rpx;
+      justify-content: flex-end;
 
       button {
-        min-width: 142rpx;
+        min-width: 140rpx;
         height: 60rpx;
+        padding: 0 22rpx;
         line-height: 60rpx;
         font-size: 24rpx;
       }
@@ -707,6 +714,36 @@ export default {
         &.red {
           border-color: $color-primary;
         }
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 360px) {
+  .order-list {
+    padding-left: 16rpx;
+    padding-right: 16rpx;
+
+    .order-item {
+      border-radius: 24rpx;
+
+      .order-header,
+      .order-meta,
+      .all-price,
+      .order-footer {
+        padding-left: 18rpx;
+        padding-right: 18rpx;
+      }
+
+      .order-status {
+        max-width: 200rpx;
+        font-size: 22rpx;
+      }
+
+      .order-footer button {
+        min-width: 128rpx;
+        padding: 0 18rpx;
+        font-size: 22rpx;
       }
     }
   }
