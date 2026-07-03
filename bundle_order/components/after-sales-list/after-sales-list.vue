@@ -5,7 +5,7 @@
         <view
           v-for="(items, index) in lists"
           :key="index"
-          class="sale-item bg-white mt20"
+          class="sale-item bg-white"
         >
           <!--  <view class="sale-header row">
                     <view class="store-name nr ml10 normal">成交时间: {{items.time}}</view>
@@ -68,7 +68,7 @@
         <view
           v-for="(items, index) in lists"
           :key="index"
-          class="sale-item bg-white mt20"
+          class="sale-item bg-white"
         >
           <view class="sale-header row-between">
             <view class="row">
@@ -156,7 +156,7 @@
           v-for="(items, index) in lists"
           :key="index"
           hover-class="none"
-          class="sale-item bg-white mt20"
+          class="sale-item bg-white"
           :url="
             '/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=' +
             items.after_sale.after_sale_id
@@ -363,50 +363,65 @@ export default {
 </script>
 <style lang="scss">
 .sale-list {
-  /* padding: 20rpx 0; */
+  padding: 24rpx;
+
   .sale-item {
+    margin-bottom: 24rpx;
+    border-radius: 22rpx;
+    overflow: hidden;
+    box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
     .sale-goods-show {
-      padding: 20rpx 24rpx;
+      padding: 24rpx;
 
       .goods-img {
         height: 160rpx;
         width: 160rpx;
+        flex: none;
       }
 
       .goods-desc {
         margin-left: 24rpx;
         flex: 1;
+        min-width: 0;
       }
 
       .sale-status {
-        padding: 20rpx 40rpx;
-        background-color: #f6f6f6;
-        border-radius: 6rpx;
+        padding: 18rpx 24rpx;
+        background-color: #f8f8f8;
+        border-radius: 14rpx;
+        color: #333;
       }
     }
 
     .sale-header {
-      padding: 20rpx 24rpx;
+      padding: 24rpx 24rpx 10rpx;
 
       .store-name {
         font-family: PingFang SC;
         line-height: 40rpx;
+        color: #666;
       }
     }
 
     .sale-footer {
-      padding: 0 24rpx 22rpx;
+      padding: 0 24rpx 24rpx;
 
       .btn {
-        padding: 9rpx 34rpx;
+        height: 58rpx;
+        padding: 0 34rpx;
         font-family: PingFang SC;
         border: 1px solid $color-primary;
+        background: #fff7f8;
       }
 
       .grey-btn {
-        border: 1px solid #cccccc;
-        padding: 9rpx 34rpx;
+        height: 58rpx;
+        border: 1px solid #dddddd;
+        padding: 0 34rpx;
         font-family: PingFang SC;
+        color: #555;
+        background: #fff;
       }
     }
   }
@@ -417,7 +432,7 @@ export default {
 }
 
 .data-null {
-  padding-top: 150rpx;
+  padding-top: 180rpx;
 }
 
 .tips-dialog {

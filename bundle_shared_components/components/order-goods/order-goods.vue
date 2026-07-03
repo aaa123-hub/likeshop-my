@@ -118,6 +118,7 @@
 
 <script>
 import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
 
 export default {
     data() {
@@ -125,7 +126,8 @@ export default {
     },
 
     components: {
-			PriceFormat,},
+			PriceFormat,
+			CustomImage,},
     props: {
         list: {
             type: Array,

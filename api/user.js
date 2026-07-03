@@ -715,7 +715,8 @@ export function applyAfterSale(data) {
             const message = String(res.message || res.msg || '')
             if (res.code === 'A0004' && /refund already applied/i.test(message)) {
                 return getAfterSaleList({ orderNo, order_no: orderNo, pageNo: 1, pageSize: 1 }).then((listRes) => {
-                    const existing = (listRes.data || [])[0]
+                    const source = listRes.data || {}
+                    const existing = (Array.isArray(source) ? source : source.list || [])[0]
                     return existing
                         ? { code: 1, msg: '已申请售后', data: existing }
                         : { ...res, msg: '已申请售后' }

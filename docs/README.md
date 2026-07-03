@@ -1,33 +1,45 @@
-# 今日整改记录
+# 今日整改简报
 
 更新时间：2026-07-03
 
-本文只记录今天已改内容和当前还差的事项。旧版接口清单、整改跟踪和字段说明文档已清理，后续统一维护本文件。
+## 完成统计
 
-## 今天已修改
+- 已处理 8 类前端事项：二维码、商品详情、店铺详情、订单、用户、图片/绘制、商家推广、入口管控。
+- 已确认 4 个关键页面路由已注册：商品详情、店铺详情、商品二维码、店铺二维码。
+- 已前端兜底 4 个未闭环入口：活动中心、活动兑换、砍价、找回密码。
+- 已完成项目校验：`npm run verify` 通过。
 
-- 微信公众平台后台配置已同步记录：二维码规则为 `https://shengyuan.store`，商品详情功能页面为 `bundle/pages/goods_details/goods_details`，店铺详情功能页面为 `business/pages/business_pages/store_detail`。
-- 商品详情相关逻辑有改动，涉及 `bundle/pages/goods_details/goods_details.vue`、`api/store.js`、`utils/tools.js`，重点是商品数据、规格、价格和图片等兼容处理。
-- 订单相关逻辑有改动，涉及 `api/order.js`、`bundle/pages/order_details/order_details.vue`、`bundle_order/components/order-dialog/order-dialog.vue`、`bundle_order/components/order-list/order-list.vue`、`bundle_order/pages/apply_refund/apply_refund.vue`，重点是订单状态、订单详情、弹窗操作和售后申请展示。
-- 用户相关逻辑有改动，涉及 `api/user.js`、`bundle_user/pages/user_profile/user_profile.vue`、`bundle_user/pages/user_set/user_set.vue`、`bundle_user/pages/user_coupon/user_coupon.vue`，重点是用户资料、设置页和优惠券数据兼容。
-- 二维码与图片处理有改动，涉及 `bundle/components/tki-qrcode/*`、`business/components/tki-qrcode/qrcode.js`、`activity/components/lime-painter/components/l-painter/utils.js`、`bundle_poster/components/lime-painter/components/l-painter/utils.js`，重点是二维码生成和图片绘制兼容。
-- 新增商家推广申请页 `business/pages/business_pages/promoter_apply.vue`，并在 `pages.json`、`manifest.json`、`project.config.json` 中同步相关配置。
-- 新增 `utils/message.js`，并调整 `main.js`、`utils/uview-lite.js`，用于统一轻量消息能力。
-- 首页和场景页有改动，涉及 `pages/index/index.vue`、`business/pages/business_scene/scene-shell.vue`，重点是页面入口、跳转和展示结构。
+## 已完成
 
-## 目前还差什么
+- 二维码内容已改为可直接打开的完整地址：`${baseURL}/bundle/pages/goods_details/goods_details?...`、`${baseURL}/business/pages/business_pages/store_detail?shopId=...`。
+- 商品详情分享二维码已同步使用实际商品详情页路径，参数按页面实际接收方式传 `id`、`skuId`、`invite_code`。
+- 店铺二维码已补齐内容打印，并接入保存二维码能力；二维码生成结果可用于保存海报。
+- 商品二维码页已避免把商品 `id` 误当作店铺 `shopId` 加载。
+- 商品详情、订单、用户资料、优惠券、图片绘制、二维码生成等兼容逻辑已做前端处理。
+- 商家推广申请页已新增并同步页面配置。
+- 活动中心、活动兑换、砍价、找回密码等后端未闭环功能已做前端禁用提示，避免误进入不可用流程。
+- 首页、商街、店铺详情和相关跳转入口已按现有前端能力整理。
 
-- 需要真机验证微信小程序二维码规则能正确识别 `https://shengyuan.store`，并能跳转到商品详情和店铺详情功能页面。
-- 需要确认 `bundle/pages/goods_details/goods_details` 接收后台二维码参数后，能稳定拿到商品 ID 并加载真实商品详情。
-- 需要确认 `business/pages/business_pages/store_detail` 接收后台二维码参数后，能稳定拿到店铺 ID 并加载真实店铺详情。
-- 需要后端确认商品详情接口字段稳定，包括商品基础信息、轮播图、SKU、规格组、库存、价格、优惠券、评价摘要和店铺信息。
-- 需要后端确认订单接口字段稳定，包括订单列表、订单详情、订单状态流、按钮权限、物流、自提核销、退款和售后状态。
-- 需要后端确认用户接口字段稳定，包括用户资料、绑定手机号、用户设置、优惠券列表和优惠券状态。
-- 需要后端确认图片上传接口稳定，返回可公网访问的完整 URL，并能覆盖头像、售后凭证、评论图片、商家资质和提现收款码。
-- 需要真机验证微信支付创建、支付取消、支付成功、支付失败和支付状态查询。
-- 需要完整跑通购物车、确认订单、创建订单、支付、订单详情、售后申请的交易主链路。
-- 需要完整跑通钱包余额、提现配置、提现申请、钱包流水、支付密码和转账相关流程。
-- 需要完整跑通 KYC、商家资质、反馈图片上传和消息已读/未读相关流程。
-- 活动中心、活动兑换、拼团、砍价、签到提交、充值套餐、独立抽奖记录等未闭环功能，如果后端暂未支持，需要继续隐藏入口或展示明确不可用提示。
-- 客服配置仍需要确认是否使用独立接口，建议后端提供电话、微信、二维码、服务时间和在线客服链接。
-- 所有当前前端调用的 `/api/miniapp/*` 接口都不能再返回 `A0108 No static resource`，失败时必须返回明确业务错误和可展示文案。
+## 还未完成
+
+- 需要真机验证微信二维码规则 `https://shengyuan.store` 能识别并打开对应小程序页面。
+- 需要真机验证完整链路：商品二维码、店铺二维码、商品详情分享、保存二维码、分享店铺。
+- 需要后端确认商品详情接口字段稳定：商品信息、轮播图、SKU、规格、库存、价格、优惠券、评价、店铺信息。
+- 需要后端确认订单接口字段稳定：订单列表、详情、状态流、按钮权限、物流、自提核销、退款、售后状态。
+- 需要后端确认用户接口字段稳定：用户资料、手机号绑定、设置项、优惠券列表、优惠券状态。
+- 需要后端确认图片上传返回公网完整 URL，覆盖头像、售后凭证、评论图片、商家资质、提现收款码。
+- 需要完整跑通交易链路：购物车、确认订单、创建订单、微信支付、支付结果、订单详情、售后申请。
+- 需要完整跑通钱包和实名链路：余额、提现、流水、支付密码、转账、KYC、商家资质。
+
+## 当前问题
+
+- 二维码规则依赖微信公众平台后台配置，前端只能保证内容格式正确，不能替代真机识别验证。
+- 部分接口仍可能返回 `A0108 No static resource`，需要后端改为明确业务错误和可展示文案。
+- 客服资料来源还不明确，建议后端提供电话、微信、二维码、服务时间、在线客服链接的稳定接口。
+- 活动兑换、砍价、签到提交、充值套餐、抽奖记录等营销功能还缺少后端闭环，当前只能隐藏入口或提示暂未开放。
+- 若后端二维码参数不是页面实际参数，需要统一转换为商品 `id`、商品 `skuId`、店铺 `shopId`。
+
+## 前端处理边界
+
+- 前端已处理页面路径、参数拼接、入口保护、展示兜底和保存二维码能力。
+- 后端接口字段、微信后台二维码规则、支付回调、图片公网访问、真实业务状态仍需要联调确认。

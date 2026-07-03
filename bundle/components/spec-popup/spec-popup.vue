@@ -149,6 +149,7 @@
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 import UNumberBox from '@/bundle/components/uview-ui/components/u-number-box/u-number-box.vue'
 import PriceFormat from '@/bundle/components/price-format/price-format.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
 import { resolveImage } from '@/utils/image-placeholder'
 export default {
   data() {
@@ -166,6 +167,7 @@ export default {
 
   components: {
 			PriceFormat,
+			CustomImage,
 			UPopup,
 			UNumberBox
 		},

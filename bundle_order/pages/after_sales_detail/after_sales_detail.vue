@@ -246,12 +246,15 @@ trottle,
 	/* pages/after_sales_detail/after_sales_detail.wxss */
 
 	.after-sales-detail {
+		min-height: 100vh;
+		background: #f7f8fa;
 		padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 
 		.after-sales-header {
 			.after-sales-status {
-				padding: 48rpx 30rpx;
-				background-color: #555555;
+				padding: 54rpx 30rpx 64rpx;
+				background: linear-gradient(135deg, #ff5864 0%, #ff8a55 100%);
+				font-weight: 600;
 			}
 
 			.after-sales-explain {
@@ -269,29 +272,53 @@ trottle,
 		}
 
 		.return-goods-container {
-			padding: 20rpx 24rpx 55rpx;
+			margin: 20rpx 24rpx 0;
+			padding: 26rpx 24rpx 34rpx;
+			border-radius: 22rpx;
+			box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
 
 			.return-goods-row {
 				line-height: 40rpx;
 				font-weight: 400;
+
+				.return-title {
+					width: 150rpx;
+					color: #888;
+					flex: none;
+				}
+
+				.return-explain {
+					flex: 1;
+					color: #333;
+					word-break: break-all;
+				}
 			}
 		}
 
 		.btn-group {
-			padding: 0rpx 24rpx;
+			padding: 0rpx 24rpx env(safe-area-inset-bottom);
 			position: fixed;
 			left: 0;
 			right: 0;
 			bottom: 0;
-			height: 100rpx;
+			height: calc(104rpx + env(safe-area-inset-bottom));
+			box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.04);
 
 			.btn {
-				padding: 10rpx 34rpx;
-				border: 1px solid #999999;
+				height: 58rpx;
+				padding: 0 34rpx;
+				border: 1px solid #dddddd;
+				color: #444;
+				background: #fff;
 			}
 		}
 
 		.goods-container {
+			margin: -24rpx 24rpx 0;
+			border-radius: 22rpx;
+			overflow: hidden;
+			box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
 			.goods-header {
 				padding: 20rpx 24rpx;
 
@@ -325,7 +352,10 @@ trottle,
 	}
 
 	.return-address-contain {
-		padding: 20rpx 24rpx 28rpx 30rpx;
+		margin: 20rpx 24rpx 0;
+		padding: 24rpx;
+		border-radius: 22rpx;
+		box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
 
 		.address {
 			flex: 1;
@@ -340,12 +370,12 @@ trottle,
 
 		.copy-btn {
 			flex: 0 0 13%;
-			background-color: #F4F4F4;
-			color: #555555;
+			background-color: #fff3f4;
+			color: #ff2c3c;
 			align-self: flex-start;
-			padding: 3rpx 16rpx;
+			padding: 6rpx 16rpx;
 			margin-left: 12rpx;
-			border-radius: 4rpx;
+			border-radius: 999rpx;
 		}
 	}
 

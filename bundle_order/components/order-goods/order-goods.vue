@@ -76,24 +76,23 @@
                 <view class="delivery" v-if="delivery === 2 && !item.is_selffetch">该商品不支持门店自提</view>
             </template>
 
-            <view class="goods-footer row" v-if="link">
-                <view style="flex: 1"></view>
+            <view class="goods-footer row-end" v-if="showGoodsFooter(item)">
                 <navigator
                     class="mr20"
                     hover-class="none"
                     :url="'/bundle_order/pages/goods_reviews/goods_reviews?id=' + item.id"
                     v-if="item.comment_btn"
                 >
-                    <button size="xs" class="plain br60" hover-class="none">评价晒图</button>
+                    <button size="xs" class="plain goods-action br60" hover-class="none">评价晒图</button>
                 </navigator>
                 <navigator
                     v-if="item.refund_btn"
                     hover-class="none"
                     :url="'/bundle_order/pages/apply_refund/apply_refund?order_id=' + item.order_id + '&item_id=' + item.item_id"
                 >
-                    <button size="xs" class="plain br60" hover-class="none">申请退款</button>
+                    <button size="xs" class="plain goods-action goods-action--primary br60" hover-class="none">申请退款</button>
                 </navigator>
-                <view v-if="item.after_status_desc" style="color: orange">
+                <view v-if="item.after_status_desc" class="after-status">
                     {{ item.after_status_desc }}
                 </view>
             </view>
@@ -103,10 +102,12 @@
 
 <script>
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
 
 export default {
     components: {
-        PriceFormat
+        PriceFormat,
+        CustomImage
     },
     props: {
         list: {
@@ -138,6 +139,9 @@ export default {
         goodsPrice(item) {
             const value = [item.original_price, item.goods_price, item.price].find((price) => price !== undefined && price !== null && price !== '')
             return value === undefined || value === null ? '' : value
+        },
+        showGoodsFooter(item) {
+            return this.link && Boolean(item.comment_btn || item.refund_btn || item.after_status_desc)
         },
         toGoods(id) {
             if (!this.link) return
@@ -181,14 +185,28 @@ export default {
         }
     }
     .goods-footer {
-        height: 70rpx;
-        align-items: flex-start;
-        padding: 0 24rpx;
-        .plain {
-            border: 1px solid #999;
+        align-items: center;
+        justify-content: flex-end;
+        min-height: 70rpx;
+        padding: 0 24rpx 18rpx;
+        .goods-action {
+            border: 1px solid #d6dbe3;
+            color: #536173;
             height: 52rpx;
             line-height: 52rpx;
             font-size: 26rpx;
+        }
+
+        .goods-action--primary {
+            border-color: $color-primary;
+            color: $color-primary;
+            background: #fff7f8;
+        }
+
+        .after-status {
+            color: #ff8a00;
+            font-size: 24rpx;
+            line-height: 34rpx;
         }
     }
 

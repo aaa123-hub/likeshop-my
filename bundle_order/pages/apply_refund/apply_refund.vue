@@ -335,34 +335,50 @@ export default {
 <style lang="scss">
 /* pages/apply_refund/apply_refund.wxss */
 .apply-refund {
-  padding-bottom: 50rpx;
+  min-height: 100vh;
+  padding: 24rpx 24rpx 50rpx;
+  background: #f7f8fa;
+
   .goods {
-    padding: 20rpx 0;
     background-color: white;
-    padding: 20rpx 24rpx;
+    padding: 24rpx;
+    border-radius: 22rpx;
+    box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
     .goods-info {
       margin-left: 24rpx;
       flex: 1;
+      min-width: 0;
     }
   }
 }
 
 .opt-box {
+  border-radius: 22rpx;
+  overflow: hidden;
+  box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
   .opt-item {
-    padding: 20rpx 20rpx 20rpx 30rpx;
+    padding: 28rpx 24rpx;
     background-color: white;
   }
 }
 
 .border-line {
-  border: 1px solid #f2f2f2;
+  border-bottom: 1px solid #f2f2f2;
 }
 
 .apply-refund {
   .refund-info {
     background-color: #fff;
-    padding: 24rpx 20rpx;
+    padding: 26rpx 24rpx;
     border-bottom: var(--border);
+
+    &:first-child {
+      margin-top: 20rpx;
+      border-radius: 22rpx 22rpx 0 0;
+    }
+
     .label {
       align-self: start;
       width: 140rpx;
@@ -372,22 +388,27 @@ export default {
     textarea {
       flex: 1;
       height: 172rpx;
-      border-radius: 10rpx;
+      border-radius: 16rpx;
       padding: 20rpx;
       box-sizing: border-box;
+      background: #f7f8fa;
     }
   }
   .upload {
-    padding: 0 20rpx 20rpx;
+    padding: 0 24rpx 24rpx;
+    border-radius: 0 0 22rpx 22rpx;
+    box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
     .title {
       padding: 24rpx 0;
     }
   }
   .btn {
-    width: 680rpx;
-    margin-top: 30rpx;
-    margin-left: 26rpx;
-    margin-right: 26rpx;
+    width: 100%;
+    margin-top: 32rpx;
+    margin-left: 0;
+    margin-right: 0;
+    box-shadow: 0 12rpx 24rpx rgba(255, 44, 60, 0.18);
   }
 }
 

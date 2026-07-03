@@ -77,9 +77,6 @@ author: likeshop.cn.team //
         <view
           class="order-footer row"
           v-if="
-            item.refund_btn ||
-            item.canRefund ||
-            item.refundable ||
             item.pickup_btn ||
             item.cancel_btn ||
             item.delivery_btn ||
@@ -145,16 +142,6 @@ author: likeshop.cn.team //
               @tap.stop="payNow(item.id)"
             >
               立即付款
-            </button>
-          </view>
-          <view v-if="canRefundOrder(item)" class="ml20">
-            <button
-              size="sm"
-              class="btn plain br60 primary red"
-              hover-class="none"
-              @tap.stop="applyRefund(item)"
-            >
-              申请退款
             </button>
           </view>
           <view v-if="item.comment_btn" class="ml20">
@@ -508,15 +495,6 @@ export default {
     },
     canCancelOrder(item) {
       return Boolean(item.cancel_btn || item.cancelBtn || item.cancel_button || (this.isPendingPayOrder(item) && !this.isClosedOrder(item)));
-    },
-    canRefundOrder(item) {
-      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
-      return Boolean(item.refund_btn || item.canRefund || item.refundable || ['PAID', 'SHIPPED', 'WAIT_SHIP', 'WAIT_RECEIVE'].includes(status));
-    },
-    applyRefund(item) {
-      uni.navigateTo({
-        url: '/bundle_order/pages/apply_refund/apply_refund?order_id=' + (item.id || item.order_sn)
-      });
     },
     formatOrderStatusText(item) {
       const rawText = item.order_status_desc || item.orderStatusDesc || item.statusText || '';
