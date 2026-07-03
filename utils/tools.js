@@ -1,5 +1,6 @@
 import { loadingType } from "./type";
 import { baseURL } from "@/config/app.js";
+import { translateBackendMessage } from "@/utils/message";
 
 import store from "@/store";
 
@@ -158,7 +159,8 @@ export function getRect(selector, all, context) {
 
 // 轻提示
 export function toast(info = {}, navigateOpt) {
-  let title = info.title || "";
+  if (typeof info === "string") info = { title: info };
+  let title = translateBackendMessage(info.title, info.title || "");
   let icon = info.icon || "none";
   let endtime = info.endtime || 2000;
   if (title)

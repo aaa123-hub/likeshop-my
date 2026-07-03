@@ -778,7 +778,7 @@
 		if (height === void 0) height = boundHeight;
 
 		self.updateCanvas = function(done) {
-			if (self.croperTarget) {
+			if (self.croperTarget && self.scaleWidth > 0 && self.scaleHeight > 0) {
 				//  画布绘制图片
 				self.ctx.drawImage(
 					self.croperTarget,
@@ -877,6 +877,9 @@
 			) {
 				// original mode
 				task = function() {
+					if (!self.croperTarget || self.scaleWidth <= 0 || self.scaleHeight <= 0) {
+						return Promise.resolve();
+					}
 					self.targetCtx.drawImage(
 						self.croperTarget,
 						self.imgLeft * pixelRatio,

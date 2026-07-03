@@ -5,6 +5,8 @@ import {toast, copy} from './utils/tools'
 import Cache from './utils/cache'
 import minxinsApp from '@/mixins/app'
 import uViewLite from '@/utils/uview-lite'
+import { installToastTranslator } from '@/utils/message'
+installToastTranslator()
 Vue.prototype.$toast = toast
 Vue.prototype.$copy = copy
 Vue.prototype.$Cache = Cache

@@ -638,6 +638,13 @@
 					}
 				},
 				{
+					"path": "pages/business_pages/promoter_apply",
+					"style": {
+						"navigationBarTitleText": "成为推广者",
+						"navigationStyle": "custom"
+					}
+				},
+				{
 					"path": "pages/page_index/page_index",
 					"style": {
 						"navigationBarTitleText": "页面总览",

@@ -156,6 +156,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		loadingType
 	} from '@/utils/type';
 	import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder';
+	import { getDesignAsset } from '@/utils/design-assets';
 
 	export default {
 		data() {
@@ -176,7 +177,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				sortType: '',
 				categoryName: '',
 				fromCategory: false,
-				timeIcon: '/static/lanhu/slices/street/searchlist_time.png'
+				timeIcon: getDesignAsset('/static/lanhu/slices/street/searchlist_time.png')
 			};
 		},
 

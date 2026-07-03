@@ -32,6 +32,103 @@ function normalizeOrderItem(item = {}) {
   };
 }
 
+function formatOrderStatus(status) {
+  const normalized = String(status || '').toUpperCase();
+  const statusMap = {
+    CREATED: "待付款",
+    WAIT_PAY: "待付款",
+    PENDING_PAY: "待付款",
+    UNPAID: "待付款",
+    PAID: "待发货",
+    WAIT_SHIP: "待发货",
+    WAIT_DELIVERY: "待发货",
+    SHIPPED: "待收货",
+    WAIT_RECEIVE: "待收货",
+    DELIVERED: "待收货",
+    COMPLETED: "已完成",
+    SUCCESS: "已完成",
+    FINISHED: "已完成",
+    CANCELLED: "已关闭",
+    CANCELED: "已关闭",
+    CLOSED: "已关闭",
+    CLOSE: "已关闭",
+    REFUNDING: "售后处理中",
+    REFUNDED: "已退款"
+  };
+  return statusMap[normalized] || status || "";
+}
+function normalizeOrderDetail(data = {}) {
+  const baseInfo = data.baseInfo || data;
+  const amountInfo = data.amountInfo || {};
+  const deliveryInfo = data.deliveryInfo || data.delivery_info || data.logisticsInfo || data.logistics_info || {};
+  const receiverInfo = data.receiverInfo || data.receiver_info || data.addressInfo || data.address_info || {};
+  const shopInfo = data.shopInfo || data.shop_info || data.storeInfo || data.store_info || {};
+  const status = firstDefined(data.orderStatus, baseInfo.orderStatus, data.order_status, data.status);
+  const normalizedStatus = String(status || '').toUpperCase();
+  const isWaitPay = ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID', '0'].includes(normalizedStatus) || status === 0;
+  const isWaitReceive = ['SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', '2'].includes(normalizedStatus) || status === 2;
+  const isFinished = ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(normalizedStatus) || status === 3;
+  const isClosed = ['CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER', '4'].includes(normalizedStatus) || status === 4;
+  const canRefund = Boolean(data.canRefund ?? data.refundable ?? data.can_refund ?? baseInfo.canRefund ?? baseInfo.refundable);
+  const itemList = (data.itemList || data.order_goods || data.goods_lists || []).map((item) => ({
+    ...normalizeOrderItem(item),
+    order_id: data.orderNo || baseInfo.orderNo || data.id,
+    refund_btn: canRefund || item.refund_btn || item.canRefund || item.refundable
+  }));
+  return {
+    ...data,
+    id: data.orderNo || baseInfo.orderNo || data.id,
+    order_sn: data.orderNo || baseInfo.orderNo || baseInfo.orderSn || data.order_sn,
+    order_status: status,
+    order_status_desc: data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc || formatOrderStatus(data.orderStatus || baseInfo.orderStatus || data.order_status),
+    pay_status: data.payStatus || baseInfo.payStatus || data.pay_status || data.paymentStatus || baseInfo.paymentStatus,
+    order_amount: firstDefined(amountInfo.payAmount, data.payAmount, baseInfo.orderAmount, data.order_amount),
+    goods_price: firstDefined(amountInfo.goodsAmount, data.goodsAmount, baseInfo.goodsAmount, data.goods_price),
+    shipping_price: firstDefined(amountInfo.freightAmount, data.freightAmount, baseInfo.freightAmount, data.shipping_price),
+    discount_amount: firstDefined(amountInfo.discountAmount, data.discountAmount, baseInfo.discountAmount, data.discount_amount),
+    integral_amount: firstDefined(amountInfo.integralAmount, baseInfo.integralAmount, data.integral_amount),
+    order_goods: itemList,
+    goods_lists: itemList,
+    order_type_desc: data.orderTypeDesc || baseInfo.orderTypeDesc || data.order_type_desc,
+    pay_way_text: data.payMethodText || data.payMethodName || data.payMethod || baseInfo.payMethodText || baseInfo.payMethodName || baseInfo.payMethod || data.pay_way_text,
+    pay_way: data.payMethod || baseInfo.payMethod || data.pay_way || data.payWay,
+    shop_name: data.shopName || data.shop_name || shopInfo.shopName || shopInfo.name || baseInfo.shopName,
+    shop_logo: resolveImage(data.shopLogo || data.shop_logo || shopInfo.logo || shopInfo.shopLogo || '', 'goods'),
+    goods_num: firstDefined(data.goodsNum, data.goods_num, data.totalNum, data.total_num, itemList.reduce((sum, item) => sum + Number(item.goods_num || 0), 0)),
+    create_time: baseInfo.createdAt || baseInfo.createTime || data.createdAt || data.create_time,
+    pay_time: baseInfo.paidAt || baseInfo.payTime || data.paidAt || data.pay_time,
+    shipping_time: baseInfo.shippedAt || baseInfo.shippingTime || data.shippedAt || data.shipping_time,
+    confirm_take_time: baseInfo.confirmTime || data.confirm_take_time,
+    cancel_time: baseInfo.cancelTime || data.cancel_time,
+    order_cancel_time: baseInfo.expireTime || data.expireTime || data.order_cancel_time,
+    delivery_type: baseInfo.deliveryType || data.delivery_type || data.deliveryType,
+    order_type: baseInfo.orderType || data.order_type || 0,
+    consignee: baseInfo.consignee || baseInfo.receiverName || receiverInfo.consignee || receiverInfo.receiverName || data.consignee,
+    mobile: baseInfo.mobile || baseInfo.receiverMobile || receiverInfo.mobile || receiverInfo.receiverMobile || data.mobile,
+    delivery_address: baseInfo.addressText || baseInfo.deliveryAddress || baseInfo.detailAddress || receiverInfo.addressText || receiverInfo.detailAddress || data.delivery_address,
+    user_remark: data.userRemark || data.user_remark || baseInfo.userRemark || baseInfo.remark,
+    express_name: deliveryInfo.expressName || deliveryInfo.company || deliveryInfo.shippingName || data.express_name || data.expressName,
+    express_no: deliveryInfo.expressNo || deliveryInfo.trackingNo || deliveryInfo.invoiceNo || data.express_no || data.trackingNo || data.invoice_no,
+    selffetch_shop: baseInfo.selffetchShop || data.selffetch_shop || {},
+    pickup_code: baseInfo.pickupCode || data.verifyInfo?.pickupCode || data.pickup_code,
+    verification_status: baseInfo.verificationStatus || data.verifyInfo?.verificationStatus || data.verification_status,
+    status_flow: data.statusFlow || data.status_flow || [],
+    refund_info: data.refundInfo || data.refund_info || {},
+    verify_info: data.verifyInfo || data.verify_info || {},
+    team: data.team || {},
+    cancel_btn: firstDefined(data.cancel_btn, data.cancelBtn, baseInfo.cancelBtn, isWaitPay),
+    delivery_btn: firstDefined(data.delivery_btn, data.deliveryBtn, baseInfo.deliveryBtn, isWaitReceive || isFinished),
+    take_btn: firstDefined(data.take_btn, data.takeBtn, baseInfo.takeBtn, isWaitReceive),
+    del_btn: firstDefined(data.del_btn, data.delBtn, baseInfo.delBtn, isClosed || isFinished),
+    pay_btn: firstDefined(data.pay_btn, data.payBtn, baseInfo.payBtn, isWaitPay),
+    comment_btn: firstDefined(data.comment_btn, data.commentBtn, baseInfo.commentBtn, isFinished),
+    pickup_btn: firstDefined(data.pickup_btn, data.pickupBtn, baseInfo.pickupBtn),
+    canRefund,
+    refundable: canRefund,
+    refund_btn: canRefund
+  };
+}
+
 function normalizeOrderListItem(item = {}) {
   const detail = normalizeOrderDetail(item);
   const status = detail.order_status;
@@ -41,25 +138,17 @@ function normalizeOrderListItem(item = {}) {
     order_status_desc: detail.order_status_desc || formatOrderStatus(status),
     pay_btn: detail.pay_btn,
     cancel_btn: detail.cancel_btn,
+    delivery_btn: detail.delivery_btn,
     take_btn: detail.take_btn,
     del_btn: detail.del_btn,
-    order_goods: detail.order_goods?.length ? detail.order_goods : (item.itemList || item.items || []).map(normalizeOrderItem),
-    goods_lists: detail.goods_lists?.length ? detail.goods_lists : (item.itemList || item.items || []).map(normalizeOrderItem),
+    comment_btn: detail.comment_btn,
+    pickup_btn: detail.pickup_btn,
+    refund_btn: detail.canRefund,
+    canRefund: detail.canRefund,
+    refundable: detail.refundable,
+    order_goods: detail.order_goods,
+    goods_lists: detail.goods_lists,
   };
-}
-
-function formatOrderStatus(status) {
-  const statusMap = {
-    CREATED: "待付款",
-    PAID: "待发货",
-    SHIPPED: "待收货",
-    COMPLETED: "已完成",
-    CANCELLED: "已关闭",
-    CLOSED: "已关闭",
-    CLOSE: "已关闭",
-    CANCELED: "已关闭",
-  };
-  return statusMap[status] || status || "";
 }
 
 function normalizeOrderStatus(status) {
@@ -82,7 +171,7 @@ function normalizeOrderStatus(status) {
     closed: "CLOSED",
     cancelled: "CANCELLED",
     canceled: "CANCELLED",
-    CLOSED: "CANCELLED",
+    CLOSED: "CLOSED",
   };
   return statusMap[String(status || "")] ?? status;
 }
@@ -99,7 +188,6 @@ function normalizeOrderPage(data = {}) {
     total: data.total || list.length
   };
 }
-
 function flattenShopOrders(shopOrders = []) {
   return shopOrders.reduce((list, shop) => {
     const items = shop.itemList || shop.items || shop.goodsList || shop.goods_lists || [];
@@ -128,54 +216,6 @@ function normalizeOrderPreview(data = {}) {
     usable: data.availableCoupons || data.usable || [],
     unusable: data.unusable || [],
   };
-}
-
-function normalizeOrderDetail(data = {}) {
-  const baseInfo = data.baseInfo || data
-  const amountInfo = data.amountInfo || {}
-  const itemList = (data.itemList || data.order_goods || data.goods_lists || []).map(normalizeOrderItem)
-  return {
-    ...data,
-    id: data.orderNo || baseInfo.orderNo || data.id,
-    order_sn: data.orderNo || baseInfo.orderNo || baseInfo.orderSn || data.order_sn,
-    order_status: data.orderStatus || baseInfo.orderStatus || data.order_status,
-    order_status_desc: formatOrderStatus(data.orderStatus || baseInfo.orderStatus || data.order_status) || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc,
-    pay_status: data.payStatus || baseInfo.payStatus || data.pay_status,
-    order_amount: firstDefined(amountInfo.payAmount, baseInfo.orderAmount, data.order_amount),
-    goods_price: firstDefined(amountInfo.goodsAmount, baseInfo.goodsAmount, data.goods_price),
-    shipping_price: firstDefined(amountInfo.freightAmount, baseInfo.freightAmount, data.shipping_price),
-    discount_amount: firstDefined(amountInfo.discountAmount, baseInfo.discountAmount, data.discount_amount),
-    integral_amount: firstDefined(amountInfo.integralAmount, baseInfo.integralAmount, data.integral_amount),
-    order_goods: itemList,
-    goods_lists: itemList,
-    order_type_desc: data.orderTypeDesc || baseInfo.orderTypeDesc || data.order_type_desc,
-    pay_way_text: data.payMethodText || data.payMethodName || data.payMethod || baseInfo.payMethodText || baseInfo.payMethodName || baseInfo.payMethod || data.pay_way_text,
-    create_time: baseInfo.createdAt || baseInfo.createTime || data.createdAt || data.create_time,
-    pay_time: baseInfo.paidAt || baseInfo.payTime || data.paidAt || data.pay_time,
-    shipping_time: baseInfo.shippedAt || baseInfo.shippingTime || data.shippedAt || data.shipping_time,
-    confirm_take_time: baseInfo.confirmTime || data.confirm_take_time,
-    cancel_time: baseInfo.cancelTime || data.cancel_time,
-    order_cancel_time: baseInfo.expireTime || data.order_cancel_time,
-    delivery_type: baseInfo.deliveryType || data.delivery_type,
-    order_type: baseInfo.orderType || data.order_type || 0,
-    consignee: baseInfo.consignee || baseInfo.receiverName || data.consignee,
-    mobile: baseInfo.mobile || baseInfo.receiverMobile || data.mobile,
-    delivery_address: baseInfo.addressText || baseInfo.deliveryAddress || baseInfo.detailAddress || data.delivery_address,
-    selffetch_shop: baseInfo.selffetchShop || data.selffetch_shop || {},
-    pickup_code: baseInfo.pickupCode || data.verifyInfo?.pickupCode || data.pickup_code,
-    verification_status: baseInfo.verificationStatus || data.verifyInfo?.verificationStatus || data.verification_status,
-    status_flow: data.statusFlow || data.status_flow || [],
-    refund_info: data.refundInfo || data.refund_info || {},
-    verify_info: data.verifyInfo || data.verify_info || {},
-    team: data.team || {},
-    cancel_btn: firstDefined(data.cancel_btn, data.cancelBtn, baseInfo.cancelBtn),
-    delivery_btn: firstDefined(data.delivery_btn, data.deliveryBtn, baseInfo.deliveryBtn),
-    take_btn: firstDefined(data.take_btn, data.takeBtn, baseInfo.takeBtn),
-    del_btn: firstDefined(data.del_btn, data.delBtn, baseInfo.delBtn),
-    pay_btn: firstDefined(data.pay_btn, data.payBtn, baseInfo.payBtn),
-    comment_btn: firstDefined(data.comment_btn, data.commentBtn, baseInfo.commentBtn),
-    pickup_btn: firstDefined(data.pickup_btn, data.pickupBtn, baseInfo.pickupBtn)
-  }
 }
 
 function normalizePayResult(data = {}) {
@@ -236,7 +276,7 @@ export async function orderBuy(data) {
 }
 //删除订单
 export function delOrder(id) {
-  return cancelOrder(id);
+  return request.delete(`miniapp/orders/${id}`);
 }
 
 // 获取配送方式

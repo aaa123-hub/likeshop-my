@@ -40,18 +40,41 @@ function parseImageList(value) {
     return []
 }
 
+function decodeHtmlEntities(value) {
+    if (!value || typeof value !== 'string') return value || ''
+    return value
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+}
+
+function normalizeRichHtml(value) {
+    var html = decodeHtmlEntities(value || '').trim()
+    if (!html) return ''
+    html = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    html = html.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+    html = html.replace(/<img([^>]*?)src=["']?([^"'\s>]+)["']?([^>]*)>/gi, function(match, before, src, after) {
+        var imageUrl = resolveImage(src, 'goods')
+        return '<img' + before + ' src="' + imageUrl + '"' + after + ' style="max-width:100%;height:auto;display:block;" />'
+    })
+    return html
+}
+
 function parseDetailContent(value) {
     if (!value) return ''
     if (typeof value === 'string') {
         try {
             var parsed = JSON.parse(value)
-            if (Array.isArray(parsed)) return parsed.map(function(item) { return item.text || item.content || item.value || '' }).filter(Boolean).join('<br/>')
-            if (parsed && typeof parsed === 'object') return parsed.html || parsed.content || parsed.text || value
+            if (Array.isArray(parsed)) return normalizeRichHtml(parsed.map(function(item) { return item.html || item.text || item.content || item.value || '' }).filter(Boolean).join('<br/>'))
+            if (parsed && typeof parsed === 'object') return normalizeRichHtml(parsed.html || parsed.content || parsed.text || value)
         } catch (e) {}
-        return value
+        return normalizeRichHtml(value)
     }
-    if (Array.isArray(value)) return value.map(function(item) { return item.text || item.content || item.value || '' }).filter(Boolean).join('<br/>')
-    if (typeof value === 'object') return value.html || value.content || value.text || ''
+    if (Array.isArray(value)) return normalizeRichHtml(value.map(function(item) { return item.html || item.text || item.content || item.value || '' }).filter(Boolean).join('<br/>'))
+    if (typeof value === 'object') return normalizeRichHtml(value.html || value.content || value.text || '')
     return ''
 }
 
@@ -591,7 +614,7 @@ export function getShopDetail(data = {}) {
     if (!shopId) {
         return Promise.resolve({
             code: 0,
-            msg: 'shopId is required',
+            msg: '缺少必要参数：店铺',
             data: null
         })
     }
@@ -620,6 +643,31 @@ export function getShopDetail(data = {}) {
         })
     }
     return requestDetail(0)
+}
+
+export function getShopGroupBuy(data = {}) {
+    var shopId = data.shopId || data.shop_id || ''
+    if (!shopId) {
+        return Promise.resolve({ code: 0, msg: '缺少必要参数：店铺', data: { list: [] } })
+    }
+    return request.get('miniapp/shop/' + shopId + '/group-buy', {
+        params: {
+            pageNo: data.pageNo || data.page_no || data.page || 1,
+            pageSize: data.pageSize || data.page_size || 10
+        }
+    }).then(function(res) {
+        if (res.code != 1) return res
+        var payload = res.data || {}
+        var list = payload.list || payload.items || payload.records || []
+        return Object.assign({}, res, {
+            data: Object.assign({}, payload, {
+                list: list.map(normalizeShopGroupItem),
+                hasNext: payload.hasNext ?? payload.more ?? false,
+                pageNo: payload.pageNo || payload.page_no || 1,
+                pageSize: payload.pageSize || payload.page_size || 10
+            })
+        })
+    })
 }
 
 // 菜单
@@ -706,7 +754,7 @@ export function getCatrgory() {
 export function getGoodsDetail(data) {
     var spuId = data.id || data.spuId
     if (!spuId) {
-        return Promise.resolve({ code: 0, msg: 'spuId is required', data: null })
+        return Promise.resolve({ code: 0, msg: '缺少必要参数：商品', data: null })
     }
     return request.get('miniapp/product/' + spuId).then(function(res) {
         if (res.code == 1 && res.data) {

@@ -3,15 +3,6 @@
         <navbar title="个人设置"></navbar>
         <view class="user-profile">
             <view class="user-avatar-box row-start" @tap="handleUser">
-                <!-- <button
-                    class="column column-center"
-                    hover-class="none"
-                    open-type="chooseAvatar"
-                    @chooseavatar="onChooseAvatar"
-                    @click="onChooseAvatar"
-                >
-
-                </button> -->
                 <image
                     class="user-avatar"
                     :src="

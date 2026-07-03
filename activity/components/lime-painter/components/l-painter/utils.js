@@ -248,6 +248,10 @@ export function pathToBase64(path) {
 			let image = new Image();
 			image.setAttribute("crossOrigin",'Anonymous');
 			image.onload = function() {
+				if (!this.naturalWidth || !this.naturalHeight) {
+					reject(new Error('urlToBase64 invalid image size'));
+					return;
+				}
 				let canvas = document.createElement('canvas');
 				// 获取图片原始宽高
 				canvas.width = this.naturalWidth;

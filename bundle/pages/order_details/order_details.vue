@@ -505,9 +505,10 @@ export default {
       if ([0, 2].includes(type)) {
         this.getOrderDetailFun();
       } else if (type == 1) {
+        uni.$emit("refreshorder");
         setTimeout(() => {
           uni.navigateBack();
-        }, 2000);
+        }, 500);
       }
     },
     orderDialog() {
@@ -558,7 +559,7 @@ export default {
         });
       });
     },
-    //查询是否收货成功
+    // 查询是否收货成功
     querycomfirmReceive(id) {
       return new Promise((resolve, reject) => {
         getwechatSyncCheck({ id })
@@ -702,7 +703,7 @@ export default {
         const normalized = value.replace('T', ' ').replace(/-/g, '/');
         const [date = '', time = ''] = normalized.split(' ');
         const [year, month, day] = date.split('/');
-        return `${year}年${month}月${day}日${time.slice(0, 5)}`.trim();
+        return `${year}年${month}月${day}日 ${time.slice(0, 5)}`.trim();
       }
       const time = Number(value);
       const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000);

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <view
         :class="[
             'business-scene',
@@ -11,7 +11,7 @@
         ]"
     >
         <navbar v-if="!isFullScene" :title="sceneConfig.title"></navbar>
-        <scroll-view scroll-y :class="['business-scene__scroll', isFullScene ? 'business-scene__scroll--full' : '']">
+        <scroll-view scroll-y :class="['business-scene__scroll', isFullScene ? 'business-scene__scroll--full' : '']" @scrolltolower="onSceneScrollLower">
             <template v-if="scene === 'user-kyc'">
                 <view class="user-kyc-page">
                     <view class="user-kyc-page__hero">
@@ -404,12 +404,7 @@
 
                     <view v-if="scene === 'store-qr'" class="qr-store-panel">
                         <view class="qr-code-box qr-code-box--store">
-                            <tki-qrcode cid="store-page-qrcode" :val="qrStoreValue" :size="275" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
-                        </view>
-                        <view class="qr-store-panel__desc">扫一扫，即可查看公域线下店信息</view>
-                        <view class="qr-action-row qr-action-row--store">
-                            <view class="qr-action qr-action--cyan">保存二维码</view>
-                            <view class="qr-action">分享店铺</view>
+                            <tki-qrcode cid="store-page-qrcode" :val="qrStoreValue" :size="275" :onval="true" :load-make="true" :show-loading="false" @result="onStoreShareQrcodeResult"></tki-qrcode>
                         </view>
                     </view>
 
@@ -1076,11 +1071,19 @@
                     </view>
                     <view class="store-share-panel">
                         <view class="store-share-qrcode">
-                            <image v-if="storeShareQrcodeImage" class="store-share-qrcode__image" :src="storeShareQrcodeImage" mode="aspectFit"></image>
-                            <tki-qrcode v-else-if="qrStoreValue" cid="store-share-qrcode" :val="qrStoreValue" :size="275" :onval="true" :load-make="true" :show-loading="false" @result="onStoreShareQrcodeResult"></tki-qrcode>
+                            <image v-if="storeShareQrcodeIsImage" class="store-share-qrcode__image" :src="storeShareQrcode" mode="aspectFit"></image>
+                            <tki-qrcode
+                                v-else-if="storeShareQrcode"
+                                cid="store-share-qrcode"
+                                :val="storeShareQrcode"
+                                :size="275"
+                                :onval="true"
+                                :load-make="true"
+                                :show-loading="false"
+                                @result="onStoreShareQrcodeResult"
+                            ></tki-qrcode>
                             <view v-else class="store-share-qrcode__empty">二维码</view>
                         </view>
-                        <view class="store-share-tip">扫一扫，即可查看公域线下店信息</view>
                         <view class="store-share-actions">
                             <view class="store-share-action store-share-action--cyan" @tap="toastStoreShareSave">保存图片</view>
                             <button class="store-share-action" open-type="share">分享店铺</button>
@@ -1113,10 +1116,10 @@
 
 <script>
 import TkiQrcode from '@/business/components/tki-qrcode/tki-qrcode.vue'
-import { getShopDetail, getStreetGoods, getStreetIndex } from '@/api/store'
-import { getRecentVisitShops, getShareMnQrcode, subscribeShop } from '@/api/app'
-import { version, baseURL } from '@/config/app'
-import { getAccountLog, getInviteInfo, getKycStatus, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
+import { getShopDetail, getShopGroupBuy, getStreetGoods, getStreetIndex } from '@/api/store'
+import { getRecentVisitShops, subscribeShop } from '@/api/app'
+import { version, baseURL, basePath } from '@/config/app'
+import { getAccountLog, getInviteInfo, getKycStatus, getPaymentRecords, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
 import { getDesignAsset, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, uploadFile } from '@/utils/tools'
@@ -1124,6 +1127,9 @@ import { guardRoute, showFeatureDisabledToast } from '@/utils/feature-flags'
 import Navbar from '@/components/navbar/navbar.vue'
 import UPopup from '@/business/components/uview-ui/components/u-popup/u-popup.vue'
 import UIcon from '@/business/components/uview-ui/components/u-icon/u-icon.vue'
+
+const STORE_SHARE_CARD_BG = 'https://shengyuan.store/api/miniapp/files/miniapp/bc28ff3e89a640a2b7b9c94fe99be721/264731ffd33531cb16f5c72f042fe14b.png'
+const STORE_SHARE_PANEL_BG = 'https://shengyuan.store/api/miniapp/files/miniapp/b804285c02584e1f81deaae98321c28c/2f63b8336e9bcbd0397b8bc4f7b1eba0.png'
 
 export default {
 	components: {
@@ -1153,7 +1159,8 @@ export default {
             feedbackContact: '',
 			feedbackImages: [],
 			showStoreSharePopup: false,
-			storeShareQrcodeImage: '',
+			storeShareQrcode: '',
+			storeShareQrcodeIsImage: false,
 			storeShareQrcodeLoading: false,
 			shareCloseIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
 			shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
@@ -1213,6 +1220,10 @@ export default {
             storeDetailLoadedShopId: '',
             storeDetailApiLoaded: false,
             storeDetailLoading: false,
+            storeDetailGroupPageNo: 1,
+            storeDetailGroupPageSize: 10,
+            storeDetailGroupHasNext: true,
+            storeDetailGroupLoading: false,
             storeShareQrcodeTempImage: '',
             storeDetailActiveTab: 'detail',
             storeDetailData: {
@@ -1523,14 +1534,10 @@ export default {
             }
         },
         qrStoreValue() {
-            const options = this.getCurrentPageOptions()
-            const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
-            const qrcodeInfo = this.storeDetailData.qrcodeInfo || {}
-            return qrcodeInfo.url || qrcodeInfo.path || qrcodeInfo.pagePath || (shopId ? `/business/pages/business_pages/store_detail?shopId=${shopId}` : '/pages/street/street')
+            return this.storeShareUrl()
         },
         qrGoodsValue() {
-            const goodsId = this.qrGoodsInfo.id
-            return goodsId ? `/bundle/pages/goods_details/goods_details?id=${goodsId}` : '/pages/index/index'
+            return `${baseURL}${this.goodsQrLink()}`
         },
         storeDetailHeroImage() {
             const image = this.storeDetailData.albums?.[0]?.url || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || ''
@@ -1990,9 +1997,19 @@ export default {
             try {
                 const method = this.paymentMethodOptions.find(item => item.active)?.label || '全部'
                 const status = this.paymentStatusOptions.find(item => item.active)?.label || '全部'
-                const res = await getAccountLog({
-                    source: method === '法币' ? 'FIAT' : '',
-                    status: status === '全部' ? '' : status,
+                const payMethodMap = {
+                    '微信支付': 'WECHAT',
+                    '余额支付': 'BALANCE',
+                    '法币': 'FIAT'
+                }
+                const payStatusMap = {
+                    '待支付': 'CREATED',
+                    '已支付': 'SUCCESS',
+                    '支付失败': 'FAILED'
+                }
+                const res = await getPaymentRecords({
+                    payMethod: method === '全部' ? '' : (payMethodMap[method] || ''),
+                    payStatus: status === '全部' ? '' : (payStatusMap[status] || ''),
                     pageNo: 1,
                     pageSize: 20
                 })
@@ -2012,8 +2029,7 @@ export default {
             } catch (error) {
                 console.error('[payment-record] load failed:', error)
             }
-        },
-        formatPaymentRecordAmount(value) {
+        },        formatPaymentRecordAmount(value) {
             const amount = Number(value || 0)
             if (Number.isNaN(amount)) return value || '0.00'
             return Math.abs(amount).toFixed(2)
@@ -2036,6 +2052,9 @@ export default {
             this.storeDetailActiveTab = validTabs.includes(tab) ? tab : 'detail'
         },
         resetStoreDetailData(shopId = '') {
+            this.storeDetailGroupPageNo = 1
+            this.storeDetailGroupHasNext = true
+            this.storeDetailGroupLoading = false
             this.storeDetailData = {
                 shopBase: {
                     shopId,
@@ -2058,7 +2077,7 @@ export default {
         },
         async loadStoreDetail() {
             const options = this.getCurrentPageOptions()
-            const shopId = options.shopId || options.shop_id || options.merchantShopId || options.merchant_shop_id || options.id || ''
+            const shopId = options.shopId || options.shop_id || options.merchantShopId || options.merchant_shop_id || (this.scene === 'goods-qr' ? '' : options.id) || ''
             this.syncStoreDetailActiveTab()
             if (!shopId) {
                 if (!Object.keys(options).length) return
@@ -2085,13 +2104,49 @@ export default {
                     ...this.storeDetailData,
                     ...res.data
                 }
+                this.storeDetailGroupPageNo = 2
+                this.storeDetailGroupHasNext = true
                 this.storeDetailApiLoaded = true
                 this.storeDetailLoadedShopId = String(shopId)
+                if (this.storeDetailActiveTab === 'group') {
+                    await this.loadStoreDetailGroupProducts(true)
+                }
             } catch (error) {
                 this.storeDetailApiLoaded = true
                 console.error('[store-detail] load failed:', error)
             } finally {
                 this.storeDetailLoading = false
+            }
+        },
+        async loadStoreDetailGroupProducts(reset = false) {
+            const shopId = this.storeDetailView.shopId || this.storeDetailLoadedShopId
+            if (!shopId || this.storeDetailGroupLoading) return
+            if (!reset && !this.storeDetailGroupHasNext) return
+            this.storeDetailGroupLoading = true
+            const pageNo = reset ? 1 : this.storeDetailGroupPageNo
+            try {
+                const res = await getShopGroupBuy({
+                    shopId,
+                    pageNo,
+                    pageSize: this.storeDetailGroupPageSize
+                })
+                if (res.code != 1 || !res.data) return
+                const list = res.data.list || []
+                this.storeDetailData = {
+                    ...this.storeDetailData,
+                    groupBuyProducts: reset ? list : [...(this.storeDetailData.groupBuyProducts || []), ...list]
+                }
+                this.storeDetailGroupPageNo = pageNo + 1
+                this.storeDetailGroupHasNext = Boolean(res.data.hasNext)
+            } catch (error) {
+                console.error('[store-detail] group buy load failed:', error)
+            } finally {
+                this.storeDetailGroupLoading = false
+            }
+        },
+        onSceneScrollLower() {
+            if ((this.scene === 'store-detail' || this.scene === 'store-group') && this.storeDetailActiveTab === 'group') {
+                this.loadStoreDetailGroupProducts(false)
             }
         },
         getStoreDetailGroupMeta(item = {}) {
@@ -2201,6 +2256,9 @@ export default {
             if (!tab || tab.active) return
             if (tab.key === 'detail' || tab.key === 'group' || tab.key === 'album' || tab.key === 'video' || tab.key === 'comment') {
                 this.storeDetailActiveTab = tab.key
+                if (tab.key === 'group') {
+                    this.loadStoreDetailGroupProducts(this.storeDetailGroupPageNo <= 1)
+                }
                 return
             }
         },
@@ -2259,30 +2317,20 @@ export default {
             })
         },
         async prepareStoreShareQrcode() {
-            if (this.storeShareQrcodeImage || this.storeShareQrcodeLoading) return
+            if (this.storeShareQrcode || this.storeShareQrcodeLoading) return
             this.storeShareQrcodeLoading = true
-            try {
-                const options = this.getCurrentPageOptions()
-                const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
-                const res = await getShareMnQrcode({
-                    shopId,
-                    path: this.qrStoreValue,
-                    url: this.qrStoreValue,
-                    type: 'store'
-                })
-                const data = res && res.data ? res.data : {}
-                const qrcode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage
-                this.storeShareQrcodeImage = qrcode ? this.resolveServerImage(String(qrcode).replace(/\r\n/g, ''), 'goods') : ''
-            } catch (error) {
-                this.storeShareQrcodeImage = ''
-            }
+            const qrcodeValue = this.storeShareUrl()
+            console.log('店铺二维码内容', qrcodeValue)
+            this.storeShareQrcodeTempImage = ''
+            this.storeShareQrcode = qrcodeValue
+            this.storeShareQrcodeIsImage = false
             this.storeShareQrcodeLoading = false
         },
         onStoreShareQrcodeResult(result) {
             this.storeShareQrcodeTempImage = typeof result === 'string' ? result : ''
         },
         waitForStoreShareQrcodeImage() {
-            if (this.storeShareQrcodeImage || this.storeShareQrcodeTempImage) return Promise.resolve()
+            if (this.storeShareQrcodeIsImage || this.storeShareQrcodeTempImage) return Promise.resolve()
             return new Promise((resolve) => {
                 let count = 0
                 const timer = setInterval(() => {
@@ -2320,47 +2368,89 @@ export default {
             }
             ctx.fillText(line, x, y)
         },
+        storeShareLink() {
+            const options = this.getCurrentPageOptions()
+            const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
+            return shopId ? `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(shopId)}` : '/business/pages/business_pages/street'
+        },
+        goodsQrLink() {
+            const options = this.getCurrentPageOptions()
+            const goodsId = options.id || options.goodsId || options.goods_id || this.qrGoodsInfo.id || ''
+            const params = []
+            if (goodsId) params.push(`id=${encodeURIComponent(goodsId)}`)
+            const skuId = options.skuId || options.itemId || options.item_id || ''
+            if (skuId) params.push(`skuId=${encodeURIComponent(skuId)}`)
+            return params.length ? `/bundle/pages/goods_details/goods_details?${params.join('&')}` : '/pages/index/index'
+        },
+        storeShareUrl() {
+            return `${baseURL}${this.storeShareLink()}`
+        },
         async drawStoreSharePoster() {
             uni.showLoading({ title: '保存中...', mask: true })
             const ctx = uni.createCanvasContext('storeShareCanvas', this)
             const shopLogo = await this.getShareImageInfo(this.storeDetailView.shopLogo).catch(() => null)
-            const qrcodeSource = this.storeShareQrcodeImage || this.storeShareQrcodeTempImage
+            const cardBg = await this.getShareImageInfo(STORE_SHARE_CARD_BG).catch(() => null)
+            const panelBg = await this.getShareImageInfo(STORE_SHARE_PANEL_BG).catch(() => null)
+            const starIcon = await this.getShareImageInfo(this.shareStarIcon).catch(() => null)
+            const timeIcon = await this.getShareImageInfo(this.shareTimeIcon).catch(() => null)
+            const qrcodeSource = this.storeShareQrcodeIsImage ? this.storeShareQrcode : this.storeShareQrcodeTempImage
             const qrcode = qrcodeSource ? await this.getShareImageInfo(qrcodeSource).catch(() => null) : null
-            ctx.setFillStyle('#eefbfc')
-            ctx.fillRect(0, 0, 320, 420)
+            ctx.setFillStyle('#f4fbff')
+            ctx.fillRect(0, 0, 320, 385)
+
+            if (this.isDrawableImage(cardBg)) {
+                ctx.drawImage(cardBg.path, 25, 29, 270, 94)
+            } else {
+                ctx.setFillStyle('#037dfa')
+                this.drawCanvasRoundRect(ctx, 25, 29, 270, 94, 12)
+                ctx.fill()
+            }
+
             ctx.setFillStyle('#ffffff')
-            this.drawCanvasRoundRect(ctx, 18, 22, 284, 350, 18)
+            this.drawCanvasRoundRect(ctx, 40, 40, 74, 74, 5)
             ctx.fill()
-            ctx.setFillStyle('#04b8c6')
-            this.drawCanvasRoundRect(ctx, 32, 38, 256, 90, 14)
-            ctx.fill()
-            if (this.isDrawableImage(shopLogo)) ctx.drawImage(shopLogo.path, 48, 58, 50, 50)
+            if (this.isDrawableImage(shopLogo)) ctx.drawImage(shopLogo.path, 40, 40, 74, 74)
             ctx.setFillStyle('#ffffff')
-            ctx.setFontSize(17)
-            this.drawCanvasTextLine(ctx, this.storeDetailView.shopName || '店铺详情', 112, 75, 150)
+            ctx.setFontSize(14)
+            this.drawCanvasTextLine(ctx, this.storeDetailView.shopName || '店铺详情', 128, 58, 138)
+            for (let index = 0; index < 5; index += 1) {
+                if (this.isDrawableImage(starIcon)) ctx.drawImage(starIcon.path, 128 + index * 13, 71, 12, 12)
+            }
             ctx.setFontSize(12)
-            this.drawCanvasTextLine(ctx, this.storeDetailBusinessHoursText, 112, 100, 150)
-            ctx.setFillStyle('#f7fbfc')
-            this.drawCanvasRoundRect(ctx, 78, 154, 164, 164, 18)
+            ctx.fillText(this.storeDetailView.shopScore || '', 198, 82)
+            if (this.isDrawableImage(timeIcon)) ctx.drawImage(timeIcon.path, 128, 96, 13, 13)
+            ctx.setFontSize(String(this.storeDetailBusinessHoursText || '').length > 16 ? 11 : 13)
+            this.drawCanvasTextLine(ctx, this.storeDetailBusinessHoursText, 144, 108, 126)
+
+            if (this.isDrawableImage(panelBg)) {
+                ctx.drawImage(panelBg.path, 25, 116, 270, 259)
+            } else {
+                ctx.setFillStyle('#ffffff')
+                this.drawCanvasRoundRect(ctx, 25, 116, 270, 259, 16)
+                ctx.fill()
+            }
+
+            ctx.setFillStyle('#d5d5d5')
+            this.drawCanvasRoundRect(ctx, 91, 145, 138, 138, 12)
             ctx.fill()
             if (this.isDrawableImage(qrcode)) {
-                ctx.drawImage(qrcode.path, 92, 168, 136, 136)
+                ctx.drawImage(qrcode.path, 91, 145, 138, 138)
             } else {
-                ctx.setFillStyle('#04b8c6')
-                ctx.setFontSize(18)
-                ctx.fillText('店铺二维码', 116, 238)
+                ctx.setFillStyle('#666666')
+                ctx.setFontSize(14)
+                ctx.fillText('二维码', 140, 218)
             }
-            ctx.setFillStyle('#607080')
+            ctx.setFillStyle('#222222')
             ctx.setFontSize(13)
-            ctx.fillText('扫一扫，即可查看公域线下店信息', 58, 346)
+            ctx.fillText('扫码查看店铺', 121, 320)
             return new Promise((resolve, reject) => {
                 ctx.draw(false, () => {
                     uni.canvasToTempFilePath({
                         canvasId: 'storeShareCanvas',
                         width: 320,
-                        height: 420,
+                        height: 385,
                         destWidth: 640,
-                        destHeight: 840,
+                        destHeight: 770,
                         success: (res) => {
                             uni.hideLoading()
                             resolve(res.tempFilePath)
@@ -2772,24 +2862,10 @@ export default {
     border-radius: 23rpx;
 }
 
-.qr-store-panel__desc {
-    margin-top: 36rpx;
-    color: #222222;
-    font-size: 26rpx;
-    line-height: 26rpx;
-    text-align: center;
-    white-space: nowrap;
-}
-
 .qr-action-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-}
-
-.qr-action-row--store {
-    width: 498rpx;
-    margin: 24rpx 0 0 13rpx;
 }
 
 .qr-action {
@@ -2806,6 +2882,13 @@ export default {
     background: #037dfa;
     border-radius: 40rpx;
     white-space: nowrap;
+    padding: 0;
+    border: 0;
+    box-sizing: border-box;
+}
+
+.qr-action::after {
+    border: 0;
 }
 
 .qr-action--cyan {
@@ -4862,7 +4945,7 @@ export default {
     left: -9999px;
     top: -9999px;
     width: 320px;
-    height: 420px;
+    height: 385px;
 }
 
 .store-share-popup__scroll {
@@ -5039,21 +5122,13 @@ export default {
     line-height: 51rpx;
 }
 
-.store-share-tip {
-    margin-top: 36rpx;
-    color: #222222;
-    font-size: 26rpx;
-    line-height: 30rpx;
-    text-align: center;
-}
-
 .store-share-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
     height: 81rpx;
-    margin: 24rpx 0 0;
+    margin: 60rpx 0 0;
 }
 
 .store-share-action {

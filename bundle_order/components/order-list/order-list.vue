@@ -59,6 +59,7 @@ author: likeshop.cn.team //
           <order-goods
             :list="item.order_goods"
             :order_type="item.order_type"
+            :link="true"
           ></order-goods>
           <view v-if="goodsCountText(item) || hasOrderAmount(item)" class="all-price row-end">
             <text v-if="goodsCountText(item)" class="muted xs">{{ goodsCountText(item) }}</text>
@@ -76,6 +77,9 @@ author: likeshop.cn.team //
         <view
           class="order-footer row"
           v-if="
+            item.refund_btn ||
+            item.canRefund ||
+            item.refundable ||
             item.pickup_btn ||
             item.cancel_btn ||
             item.delivery_btn ||
@@ -143,6 +147,16 @@ author: likeshop.cn.team //
               立即付款
             </button>
           </view>
+          <view v-if="canRefundOrder(item)" class="ml20">
+            <button
+              size="sm"
+              class="btn plain br60 primary red"
+              hover-class="none"
+              @tap.stop="applyRefund(item)"
+            >
+              申请退款
+            </button>
+          </view>
           <view v-if="item.comment_btn" class="ml20">
             <button
               size="sm"
@@ -176,7 +190,7 @@ author: likeshop.cn.team //
       <view v-if="showPlaceholder" class="order-placeholder column-center">
         <text class="lighter">{{ placeholderText }}</text>
       </view>
-      <loading-footer v-else :status="status" :slot-empty="true" @refresh="reload">
+      <loading-footer v-else :status="footerStatus" :slot-empty="true" @refresh="reload">
         <view slot="empty" class="column-center order-placeholder">
           <text class="lighter">暂无订单</text>
         </view>
@@ -186,7 +200,7 @@ author: likeshop.cn.team //
       ref="orderDialog"
       :order-id="orderId"
       :type="type"
-      @refresh="reflesh"
+      @refresh="handleOrderDialogRefresh"
     ></order-dialog>
     <loading-view
       v-if="showLoading"
@@ -225,9 +239,11 @@ export default {
       page: 1,
       orderList: [],
       status: loadingType.LOADING,
+      isFetching: false,
       showCancel: false,
       type: 0,
       orderId: "",
+      deletedOrderIds: [],
       showLoading: false,
       pay_way: "",
     };
@@ -272,6 +288,15 @@ export default {
       this.status = loadingType.LOADING;
       this.type = 0;
       return this.getOrderListFun();
+    },
+
+    handleOrderDialogRefresh(payload = {}) {
+      if (payload.type === 1) {
+        const deletedId = String(payload.orderId || '');
+        if (deletedId && !this.deletedOrderIds.includes(deletedId)) this.deletedOrderIds.push(deletedId);
+        this.orderList = this.orderList.filter((item) => String(item.id || item.order_sn || item.orderNo) !== deletedId);
+      }
+      return this.reflesh();
     },
 
     reload() {
@@ -412,23 +437,30 @@ export default {
     },
 
     async getOrderListFun() {
+      if (this.isFetching) return;
       let { page, orderType, orderList, status } = this;
+      const showInitialLoading = page === 1 && !orderList.length;
+      this.isFetching = true;
+      if (showInitialLoading) this.showLoading = true;
       try {
         const data = await loadingFun(getOrderList, page, orderList, status, {
           type: orderType,
         });
         if (!data) {
           if (!this.orderList.length && this.status === loadingType.LOADING) {
-            this.status = loadingType.EMPTY;
+            this.status = loadingType.FINISHED;
           }
           return;
         }
         this.page = data.page;
-        this.orderList = data.dataList;
+        this.orderList = data.dataList.filter((item) => !this.deletedOrderIds.includes(String(item.id || item.order_sn || item.orderNo)));
         this.status = data.status;
       } catch (error) {
         console.error('[order-list] getOrderListFun failed:', error);
         this.status = this.orderList.length ? loadingType.FINISHED : loadingType.ERROR;
+      } finally {
+        this.isFetching = false;
+        this.showLoading = false;
       }
     },
     goPage(url) {
@@ -476,6 +508,15 @@ export default {
     },
     canCancelOrder(item) {
       return Boolean(item.cancel_btn || item.cancelBtn || item.cancel_button || (this.isPendingPayOrder(item) && !this.isClosedOrder(item)));
+    },
+    canRefundOrder(item) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      return Boolean(item.refund_btn || item.canRefund || item.refundable || ['PAID', 'SHIPPED', 'WAIT_SHIP', 'WAIT_RECEIVE'].includes(status));
+    },
+    applyRefund(item) {
+      uni.navigateTo({
+        url: '/bundle_order/pages/apply_refund/apply_refund?order_id=' + (item.id || item.order_sn)
+      });
     },
     formatOrderStatusText(item) {
       const rawText = item.order_status_desc || item.orderStatusDesc || item.statusText || '';
@@ -581,6 +622,11 @@ export default {
     },
     placeholderText() {
       return this.status === loadingType.ERROR ? '加载失败，请稍后重试' : '暂无订单';
+    },
+    footerStatus() {
+      if (this.isFetching) return loadingType.LOADING;
+      if (this.orderList.length && this.status === loadingType.LOADING) return loadingType.FINISHED;
+      return this.status;
     },
   },
 };

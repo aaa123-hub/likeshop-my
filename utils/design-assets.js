@@ -227,6 +227,15 @@ const cloudDesignAssets = {
 }
 
 export const designAssetUrls = {
+    '/static/lanhu/slices/street/image_4.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4.png',
+    '/static/lanhu/slices/street/image_4_2.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_2.png',
+    '/static/lanhu/slices/street/image_4_3.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_3.png',
+    '/static/lanhu/slices/street/image_4_4.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_4.png',
+    '/static/lanhu/slices/street/image_4_5.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_5.png',
+    '/static/lanhu/slices/street/image_4_7.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_7.png',
+    '/static/lanhu/slices/street/searchlist_menu_capsule.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_menu_capsule.png',
+    '/static/lanhu/slices/street/searchlist_star.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png',
+    '/static/lanhu/slices/street/searchlist_time.png': 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png',
     'https://shengyuan.store/api/miniapp/files/miniapp/5c89804113254815b6b2f95d570b60b0/home-balance-bill.png': 'https://shengyuan.store/api/miniapp/files/miniapp/5c89804113254815b6b2f95d570b60b0/home-balance-bill.png',
     'https://shengyuan.store/api/miniapp/files/miniapp/7629728e6e9841cb8ea1c55d8d191cb0/home-bg.png': 'https://shengyuan.store/api/miniapp/files/miniapp/7629728e6e9841cb8ea1c55d8d191cb0/home-bg.png',
     'https://shengyuan.store/api/miniapp/files/miniapp/e10c805327314a5a8a7e5b16adff6643/home-buyer-illustration.png': 'https://shengyuan.store/api/miniapp/files/miniapp/e10c805327314a5a8a7e5b16adff6643/home-buyer-illustration.png',

@@ -61,6 +61,22 @@ export default {
                 1: [],
                 2: []
             },
+            couponPages: {
+                0: 1,
+                1: 1,
+                2: 1
+            },
+            couponHasNext: {
+                0: true,
+                1: true,
+                2: true
+            },
+            couponLoading: {
+                0: false,
+                1: false,
+                2: false
+            },
+            pageSize: 20,
             coupons: [
                 { title: '可使用', num: 0, type: 0 },
                 { title: '已使用', num: 0, type: 1 },
@@ -84,33 +100,45 @@ export default {
     onShow() {
         this.loadAllCouponCounts()
     },
+    onReachBottom() {
+        this.loadCouponByType(this.currentType, true, false)
+    },
     methods: {
         changeTab(index) {
             if (this.active === index) return
             this.active = index
-            this.loadCouponList()
+            if (!this.currentList.length) this.loadCouponList()
         },
         async loadCouponList() {
-            return this.loadCouponByType(this.currentType)
+            return this.loadCouponByType(this.currentType, true, true)
         },
         async loadAllCouponCounts() {
             this.loading = true
-            await Promise.all(this.coupons.map(item => this.loadCouponByType(item.type, false)))
+            await Promise.all(this.coupons.map(item => this.loadCouponByType(item.type, false, true)))
             this.loading = false
         },
-        async loadCouponByType(type, manageLoading = true) {
+        async loadCouponByType(type, manageLoading = true, reset = false) {
+            if (this.couponLoading[type]) return
+            if (!reset && !this.couponHasNext[type]) return
             if (manageLoading) this.loading = true
+            this.$set(this.couponLoading, type, true)
             try {
-                const res = await getMyCoupon({ type, status: type })
-                const list = res.code == 1 ? (Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.lists || [])) : []
-                this.$set(this.couponLists, type, list)
+                const pageNo = reset ? 1 : this.couponPages[type]
+                const res = await getMyCoupon({ type, status: type, pageNo, pageSize: this.pageSize })
+                const data = res.data || {}
+                const list = res.code == 1 ? (Array.isArray(data) ? data : (data.list || data.lists || [])) : []
+                const nextList = reset ? list : (this.couponLists[type] || []).concat(list)
+                this.$set(this.couponLists, type, nextList)
+                this.$set(this.couponPages, type, pageNo + 1)
+                this.$set(this.couponHasNext, type, Boolean(data.hasNext ?? data.more))
                 const index = this.coupons.findIndex(item => item.type === type)
-                if (index !== -1) this.$set(this.coupons[index], 'num', list.length)
+                if (index !== -1) this.$set(this.coupons[index], 'num', data.total ?? nextList.length)
             } catch (error) {
-                this.$set(this.couponLists, type, [])
+                if (reset) this.$set(this.couponLists, type, [])
                 const index = this.coupons.findIndex(item => item.type === type)
-                if (index !== -1) this.$set(this.coupons[index], 'num', 0)
+                if (index !== -1 && reset) this.$set(this.coupons[index], 'num', 0)
             } finally {
+                this.$set(this.couponLoading, type, false)
                 if (manageLoading) this.loading = false
             }
         },

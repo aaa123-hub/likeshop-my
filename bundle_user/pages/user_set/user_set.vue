@@ -65,9 +65,9 @@
                     <view style="width: 112rpx; border-right: 1rpx solid #e5e5e5">+86</view>
                     <view style="margin-left: 30rpx">{{ userInfo.mobile }}</view>
                 </view>
-                <view class="modify-row row" v-else>
-                    <view style="width: 142rpx">手机号</view>
-                    <input v-model="new_mobile" placeholder="请输入绑定手机号" />
+                <view class="modify-row row">
+                    <view style="width: 142rpx">新手机号</view>
+                    <input v-model="new_mobile" placeholder="请输入新的手机号" type="number" maxlength="11" />
                 </view>
                 <view class="modify-row row">
                     <view style="width: 142rpx">验证码</view>
@@ -84,18 +84,10 @@
                             unique-key="page-b"
                         >
                         </view>
-                        <view class="xs">{{ tips }}</view>
+                        <view class="xs">{{ tips || '发送验证码' }}</view>
                     </view>
                 </view>
-                <view class="modify-row row" v-if="userInfo.mobile">
-                    <view style="width: 142rpx">新手机号</view>
-                    <input v-model="new_mobile" placeholder="请输入新的手机号码" />
-                </view>
-                <view class="primary mt10"
-                    >{{
-                        userInfo.mobile ? '更改' : '绑定'
-                    }}手机号码成功后，您的账号将会变更为该设置号码</view
-                >
+                <view class="primary mt10">手机号更换成功后，将用于账号登录和通知。</view>
                 <view class="btn bg-primary white row-center" @tap="$changeUserMobile">确定</view>
             </view>
         </u-popup>
@@ -309,16 +301,18 @@ export default {
                 url: '/bundle_finance/pages/set_pay_pwd/set_pay_pwd'
             })
         },
-        // 发送短信
-        $sendSms(type) {
+        $sendSms() {
             if (!this.canSendSms) return
+            const mobile = this.showMobile ? this.new_mobile : this.userInfo.mobile
+            if (!/^1\d{10}$/.test(String(mobile || ''))) return this.$toast({ title: '请输入正确的手机号' })
             sendSms({
-                mobile: this.userInfo.mobile || this.new_mobile,
-                key: this.smsType
+                mobile,
+                key: this.smsType,
+                scene: this.smsType
             }).then((res) => {
                 if (res.code == 1) {
                     this.$toast({
-                        title: res.msg
+                        title: res.msg || '验证码已发送'
                     })
                     if (this.$refs.uCode && this.$refs.uCode.start) this.$refs.uCode.start()
                 }
@@ -339,18 +333,8 @@ export default {
             this.smsType = this.userInfo.mobile ? SMSType.CHANGE_MOBILE : SMSType.BIND
         },
         $changeUserMobile() {
-            if (!this.smsCode) {
-                this.$toast({
-                    title: '请输入验证码'
-                })
-                return
-            }
-            if (!this.new_mobile) {
-                this.$toast({
-                    title: '请输入新的手机号码'
-                })
-                return
-            }
+            if (!/^1\d{10}$/.test(String(this.new_mobile || ''))) return this.$toast({ title: '请输入正确的新手机号' })
+            if (!this.smsCode) return this.$toast({ title: '请输入验证码' })
             changeUserMobile({
                 mobile: this.userInfo.mobile,
                 oldMobile: this.userInfo.mobile,
@@ -361,7 +345,7 @@ export default {
                 smsCode: this.smsCode,
                 verifyCode: this.smsCode,
                 scene: this.smsType,
-                action: this.userInfo.mobile ? 'change' : ''
+                action: this.userInfo.mobile ? 'change' : 'bind'
             }).then((res) => {
                 if (res.code == 1) {
                     this.showMobile = false
@@ -370,7 +354,7 @@ export default {
                     })
                     this.$getUserInfo()
                 } else {
-                    this.$toast({ title: res.msg || '手机号绑定失败，请检查验证码' })
+                    this.$toast({ title: res.msg || '手机号更换失败，请检查验证码' })
                 }
             })
         },

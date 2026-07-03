@@ -1,3 +1,5 @@
+import { translateBackendMessage } from '@/utils/message'
+
 const zIndex = {
     toast: 10090,
     noNetwork: 10080,
@@ -76,7 +78,7 @@ const liteUView = {
     $parent: parent,
     sys,
     getRect,
-    toast: (title) => uni.showToast({ title: String(title), icon: 'none' }),
+    toast: (title) => uni.showToast({ title: translateBackendMessage(title, String(title)), icon: 'none' }),
     trim: (value) => String(value).trim(),
     randomArray: (array = []) => array.slice().sort(() => Math.random() - 0.5),
     throttle(fn, delay = 500) {

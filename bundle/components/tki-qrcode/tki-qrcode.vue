@@ -1,5 +1,5 @@
 <template xlang="wxml" minapp="mpvue">
-	<view class="tki-qrcode" :style="{width:cpSize+'px',height:cpSize+'px'}">
+	<view v-if="canRender" class="tki-qrcode" :style="{width:cpSize+'px',height:cpSize+'px'}">
 		<!-- #ifndef MP-ALIPAY -->
 		<canvas class="tki-qrcode-canvas" :canvas-id="cid" :id="cid" :width="cpSize" :height="cpSize" :style="{width:cpSize+'px',height:cpSize+'px'}" />
 		<!-- #endif -->
@@ -88,9 +88,9 @@ export default {
 	methods: {
 		makeCode() {
 			if (!this.loadMake && !this.onval) return
-			if (this._empty(this.val) || !this.cpSize) return
+			if (!this.canRender) return
 			setTimeout(() => {
-				this._makeCode()
+				if (this.canRender) this._makeCode()
 			}, 100)
 		},
 		_makeCode() {
@@ -185,6 +185,9 @@ export default {
 		cpSize() {
 			const size = this.unit == "upx" ? uni.upx2px(this.size) : this.size
 			return Math.max(1, Math.round(Number(size) || 0))
+		},
+		canRender() {
+			return !this._empty(this.val) && this.cpSize > 1
 		}
 	},
 	mounted: function () {

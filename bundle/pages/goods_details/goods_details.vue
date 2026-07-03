@@ -326,7 +326,7 @@
 					<view class="goods-share-info">
 						<view class="goods-share-price">
 							<text class="goods-share-price__symbol">¥</text><text class="goods-share-price__main">{{ sharePriceMain }}</text><text class="goods-share-price__decimal">{{ sharePriceDecimal }}</text>
-							<view class="goods-share-tip">长按保存二维码</view>
+							<view class="goods-share-tip">扫码查看商品</view>
 						</view>
 						<view class="goods-share-qrcode">
 							<image v-if="shareQrcodeIsImage" class="goods-share-qrcode__image" :src="shareQrcode" mode="aspectFit"></image>
@@ -334,7 +334,7 @@
 								v-else-if="shareQrcode"
 								cid="goods-share-qrcode"
 								:val="shareQrcode"
-								:size="206"
+								:size="180"
 								:onval="true"
 								:load-make="true"
 								:show-loading="false"
@@ -385,7 +385,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 	import {
 		getGoodsDetail,
 		addCart,
-		getPoster,
 		getCartNum as fetchCartNum
 	} from '@/api/store';
 	import {
@@ -395,8 +394,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		teamCheck
 	} from '@/api/activity';
 	import {
-		getShareMnQrcode
-		, subscribeShop
+		subscribeShop
 	} from '@/api/app';
 	import {
 		mapActions,
@@ -418,7 +416,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		strToParams
 	} from '@/utils/tools'
 	import { resolveImage } from '@/utils/image-placeholder'
-import PriceFormat from '@/bundle/components/price-format/price-format.vue'
+	import { baseURL } from '@/config/app'
+	import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 	export default {
 		components: {
 			GoodsLike,
@@ -473,6 +472,9 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 		},
 			onLoad(options) {
 			this.onPageScroll = trottle(this.onPageScroll, 500, this)
+			if (options && options.q) {
+				options = Object.assign({}, options, this.parseGoodsShareQrcodeOptions(decodeURIComponent(options.q)));
+			}
 			if (options && options.scene) {
 				let scene = strToParams(decodeURIComponent(options.scene));
 				options.id = scene.id;
@@ -516,32 +518,30 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			},
 			goodsShareLink() {
 				const inviteCode = this.userInfo.distribution_code || this.$store.getters.inviteCode || '';
-				return `/bundle/pages/goods_details/goods_details?id=${this.id}&invite_code=${inviteCode}`;
+				const params = [`id=${encodeURIComponent(this.id || '')}`];
+				if (inviteCode) params.push(`invite_code=${encodeURIComponent(inviteCode)}`);
+				if (this.targetSkuId) params.push(`skuId=${encodeURIComponent(this.targetSkuId)}`);
+				return `/bundle/pages/goods_details/goods_details?${params.join('&')}`;
 			},
-			goodsSharePagePath() {
-				return this.goodsShareLink().replace(/^\//, '');
+			goodsShareUrl() {
+				return `${baseURL}${this.goodsShareLink()}`;
+			},
+			parseGoodsShareQrcodeOptions(url) {
+				const query = String(url || '').split('?')[1];
+				if (!query) return {};
+				return query.split('#')[0].split('&').reduce((params, item) => {
+					const [key, value = ''] = item.split('=');
+					if (key) params[key] = decodeURIComponent(value.replace(/\+/g, ' '));
+					return params;
+				}, {});
 			},
 			async prepareGoodsShareQrcode() {
+				const qrcodeValue = this.shareQrcode || this.goodsShareUrl();
+				console.log('商品二维码内容', qrcodeValue);
 				if (this.shareQrcode) return;
-				try {
-					const res = await getShareMnQrcode({
-						id: this.id,
-						path: this.goodsSharePagePath(),
-						url: this.goodsSharePagePath(),
-						type: 1
-					});
-					const data = res && res.data ? res.data : {};
-					const qrcode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage;
-					if (qrcode) {
-						this.shareQrcode = String(qrcode).replace(/\r\n/g, '');
-						this.shareQrcodeIsImage = true;
-						this.shareQrcodeTempImage = '';
-						return;
-					}
-				} catch (e) {}
-				this.shareQrcode = this.goodsShareLink();
-				this.shareQrcodeIsImage = false;
 				this.shareQrcodeTempImage = '';
+				this.shareQrcode = qrcodeValue;
+				this.shareQrcodeIsImage = false;
 			},
 			onGoodsShareQrcodeResult(result) {
 				this.shareQrcodeTempImage = typeof result === 'string' ? result : '';
@@ -670,6 +670,28 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				}
 				ctx.fillText(line, x, y);
 			},
+			drawTextLines(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+				let line = '';
+				let lineCount = 0;
+				const value = String(text || '');
+				for (let i = 0; i < value.length; i++) {
+					const char = value[i];
+					const testLine = line + char;
+					if (ctx.measureText(testLine).width > maxWidth && line) {
+						ctx.fillText(line, x, y + lineCount * lineHeight);
+						lineCount += 1;
+						if (lineCount >= maxLines) return lineCount;
+						line = char;
+					} else {
+						line = testLine;
+					}
+				}
+				if (line && lineCount < maxLines) {
+					ctx.fillText(line, x, y + lineCount * lineHeight);
+					lineCount += 1;
+				}
+				return lineCount;
+			},
 			async drawGoodsSharePoster() {
 				uni.showLoading({ title: '保存中...', mask: true });
 				const ctx = uni.createCanvasContext('goodsShareCanvas', this);
@@ -678,7 +700,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				const qrcodeSource = this.shareQrcodeIsImage ? this.shareQrcode : this.shareQrcodeTempImage;
 				const qrcode = qrcodeSource ? await this.getImageInfo(qrcodeSource).catch(() => null) : null;
 				ctx.setFillStyle('#f3f8ff');
-				ctx.fillRect(0, 0, 320, 520);
+				ctx.fillRect(0, 0, 320, 570);
 				ctx.setFillStyle('#037dfa');
 				this.drawRoundRect(ctx, 16, 18, 288, 76, 14);
 				ctx.fill();
@@ -689,43 +711,44 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 				ctx.setFontSize(11);
 				this.drawTextLine(ctx, `营业时间：${this.shareBusinessTime}`, 80, 70, 190);
 				ctx.setFillStyle('#ffffff');
-				this.drawRoundRect(ctx, 16, 82, 288, 404, 14);
+				this.drawRoundRect(ctx, 16, 82, 288, 454, 14);
 				ctx.fill();
 				ctx.drawImage(goodsImage.path, 30, 102, 260, 220);
 				ctx.setFillStyle('#202124');
 				ctx.setFontSize(16);
-				this.drawTextLine(ctx, this.goodsDetail.name || '商品详情', 30, 354, 260);
+				const titleLines = this.drawTextLines(ctx, this.goodsDetail.name || '商品详情', 30, 350, 260, 22, 3);
+				const infoTop = 350 + titleLines * 22 + 12;
 				ctx.setFillStyle('#8b95a5');
 				ctx.setFontSize(12);
-				this.drawTextLine(ctx, `${this.shareShopName} · 已售${this.goodsDetail.sales_sum || 0}`, 30, 378, 168);
+				this.drawTextLine(ctx, `${this.shareShopName} · 已售${this.goodsDetail.sales_sum || 0}`, 30, infoTop, 260);
 				ctx.setFillStyle('#ff2e2e');
 				ctx.setFontSize(14);
-				ctx.fillText('¥', 30, 426);
+				ctx.fillText('¥', 30, 494);
 				ctx.setFontSize(30);
-				ctx.fillText(this.sharePriceMain, 46, 427);
+				ctx.fillText(this.sharePriceMain, 46, 495);
 				ctx.setFontSize(14);
-				ctx.fillText(this.sharePriceDecimal, 46 + String(this.sharePriceMain).length * 18, 426);
+				ctx.fillText(this.sharePriceDecimal, 46 + String(this.sharePriceMain).length * 18, 494);
 				ctx.setFillStyle('#8b95a5');
 				ctx.setFontSize(11);
-				ctx.fillText('扫码查看商品', 30, 454);
+				ctx.fillText('扫码查看商品', 30, 518);
 				ctx.setFillStyle('#f7f9fc');
-				this.drawRoundRect(ctx, 206, 366, 78, 78, 8);
+				this.drawRoundRect(ctx, 174, 404, 116, 116, 8);
 				ctx.fill();
 				if (this.isDrawableImage(qrcode)) {
-					ctx.drawImage(qrcode.path, 212, 372, 66, 66);
+					ctx.drawImage(qrcode.path, 181, 411, 102, 102);
 				} else {
 					ctx.setFillStyle('#037dfa');
 					ctx.setFontSize(12);
-					ctx.fillText('二维码', 228, 410);
+					ctx.fillText('二维码', 218, 468);
 				}
 				return new Promise((resolve, reject) => {
 					ctx.draw(false, () => {
 						uni.canvasToTempFilePath({
 							canvasId: 'goodsShareCanvas',
 							width: 320,
-							height: 520,
+							height: 570,
 							destWidth: 640,
-							destHeight: 1040,
+							destHeight: 1140,
 							success: (res) => {
 								uni.hideLoading();
 								resolve(res.tempFilePath);
@@ -1166,7 +1189,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			return {
 				title: team.share_title || goodsDetail.name,
 				imageUrl: goodsDetail.image,
-				path: '/bundle/pages/goods_details/goods_details?id=' + this.id + "&invite_code=" + userInfo.distribution_code
+				path: this.goodsShareLink()
 			};
 		},
 		computed: {
@@ -1361,7 +1384,7 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			left: -9999px;
 			top: -9999px;
 			width: 320px;
-			height: 520px;
+			height: 570px;
 		}
 
 		.hero-stage {
@@ -2390,16 +2413,18 @@ import PriceFormat from '@/bundle/components/price-format/price-format.vue'
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 124rpx;
-			height: 124rpx;
-			border-radius: 6rpx;
+			flex: none;
+			width: 105px;
+			height: 105px;
+			padding: 0px;
+			border-radius: 18rpx;
 			background: #f3f3f3;
-			overflow: hidden;
+			box-sizing: border-box;
 		}
 
 		.goods-share-qrcode__image {
-			width: 124rpx;
-			height: 124rpx;
+			width: 180px;
+			height: 180px;
 		}
 
 		.goods-share-qrcode__loading {

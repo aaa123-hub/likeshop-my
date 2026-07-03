@@ -1117,7 +1117,7 @@ let QRCode = {};
                     ctx.fillRect(Math.round(col * tileW), Math.round(row * tileH), w, h);
                 }
             }
-            if (typeof options.image === 'string' && options.image && ratioImgSize > 0) {
+            if (typeof options.image === 'string' && options.image && ratioImgSize > 0 && ratioImgSize <= ratioSize) {
                 var x = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
                 var y = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
                 drawRoundedRect(ctx, x, y, ratioImgSize, ratioImgSize, 2, 6, true, true)

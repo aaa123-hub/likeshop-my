@@ -41,6 +41,86 @@ function normalizePageResponse(res = {}, itemNormalizer) {
     }
 }
 
+function refundStatusText(status) {
+    const map = {
+        APPLIED: '待商家处理',
+        PROCESSING: '处理中',
+        APPROVED: '商家已同意',
+        RETURNING: '待买家退货',
+        REJECTED: '商家已拒绝',
+        CANCELLED: '已撤销',
+        REFUNDED: '退款成功',
+        FAILED: '退款失败'
+    }
+    return map[String(status || '').toUpperCase()] || status || '处理中'
+}
+
+function refundStatusCode(status) {
+    const map = {
+        APPLIED: 0,
+        PROCESSING: 1,
+        APPROVED: 2,
+        RETURNING: 2,
+        REJECTED: 4,
+        CANCELLED: 6,
+        REFUNDED: 5,
+        FAILED: 4
+    }
+    return map[String(status || '').toUpperCase()] ?? 0
+}
+
+function normalizeAfterSaleGoods(goods = {}) {
+    return {
+        ...goods,
+        item_id: goods.item_id || goods.orderItemId || goods.itemId || goods.id || goods.skuId,
+        goods_id: goods.goods_id || goods.spuId || goods.goodsId,
+        goods_name: goods.goods_name || goods.spuName || goods.productName || goods.goodsName || goods.skuName || '',
+        image: resolveImage(goods.image || goods.imageUrl || goods.goodsImageUrl || goods.mainImageUrl || goods.cover, 'goods'),
+        goods_price: goods.goods_price || goods.salePrice || goods.unitPrice || goods.price || 0,
+        goods_num: goods.goods_num || goods.quantity || goods.num || 1
+    }
+}
+
+function normalizeAfterSaleItem(item = {}) {
+    const refundNo = item.refundNo || item.afterSaleId || item.after_sale_id || item.id
+    const status = item.refundStatus || item.afterSaleStatus || item.status
+    const images = item.evidenceImages || item.images || item.refund_image || []
+    const goods = item.orderGoods || item.goodsList || item.goods_lists || item.order_goods || item.goods || item.goodsInfo || {}
+    const normalizedGoods = Array.isArray(goods) ? goods.map(normalizeAfterSaleGoods) : [normalizeAfterSaleGoods(goods)]
+    return {
+        ...item,
+        id: refundNo,
+        sn: refundNo,
+        order_id: item.orderNo || item.order_id,
+        order_sn: item.orderNo || item.order_sn,
+        sub_order_no: item.subOrderNo || item.sub_order_no,
+        time: item.applyTime || item.create_time || item.createdAt || '',
+        create_time: item.applyTime || item.create_time || item.createdAt || '',
+        status: refundStatusCode(status),
+        status_text: refundStatusText(status),
+        refund_type: String(item.refundType || item.refund_type || '').includes('RETURN') ? 1 : 0,
+        refund_reason: item.refundReasonMessage || item.refundReason || item.reason || '',
+        refund_remark: item.applyDescription || item.description || item.refundRemark || item.remark || '',
+        refund_price: item.refundAmount ?? item.refund_price ?? 0,
+        refund_image: Array.isArray(images) ? images[0] || '' : images || '',
+        order_goods: normalizedGoods,
+        goods_lists: normalizedGoods,
+        after_sale: {
+            after_sale_id: refundNo,
+            type_text: String(item.refundType || '').includes('RETURN') ? '退款退货' : '仅退款',
+            refund_price: item.refundAmount ?? item.refund_price ?? 0,
+            status: refundStatusCode(status),
+            desc: refundStatusText(status),
+            able_apply: 0
+        },
+        shop: item.shop || {
+            address: item.returnAddress || '',
+            contact: item.returnContact || '',
+            mobile: item.returnMobile || ''
+        }
+    }
+}
+
 function fakeUserInfo() {
     return {
         avatar: '',
@@ -280,7 +360,7 @@ function normalizeLotteryRecord(item = {}) {
         ...item,
         id: item.id || item.recordId || item.prizeId,
         title: item.title || item.prizeName || item.prize_name || item.name || '中奖记录',
-        prize_name: item.prize_name || item.prizeName || item.name || item.title || '中奖记录',
+                    prize_name: item.prize_name || item.prizeName || item.name || '奖品',
         prize_image: resolveImage(item.prize_image || item.prizeImage || item.image || item.cover, 'goods'),
         image: resolveImage(item.image || item.prizeImage || item.prize_image || item.cover, 'goods'),
         create_time: item.create_time || item.createTime || item.time || item.sendTime || '',
@@ -472,17 +552,12 @@ export function getMyCoupon(data = {}) {
             receiveStatus: data?.receiveStatus || statuses[1],
             useStatus: statuses[2],
             pageNo: data?.pageNo || data?.page_no || 1,
-            pageSize: data?.pageSize || data?.page_size || 50
+            pageSize: data?.pageSize || data?.page_size || 20
         }
     }).then((res) => {
         if (res.code != 1) return res
-        const payload = res.data || {}
-        const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || [])
-        return {
-            ...res,
-            data: list.map(normalizeCoupon)
-        }
-    }).catch(() => ({ code: 1, data: [] }))
+        return normalizePageResponse(res, normalizeCoupon)
+    }).catch(() => normalizePageResponse({ code: 1, data: { list: [], pageNo: 1, pageSize: data?.pageSize || data?.page_size || 20, total: 0, hasNext: false } }, normalizeCoupon))
 }
 
 export function getCollectGoods(data) {
@@ -549,8 +624,82 @@ export function rechargeTemplate() {
 }
 
 export function getAfterSaleList(params) {
-    return request.get('miniapp/after-sales', { params }).then((res) => normalizePageResponse(res))
+    return request.get('miniapp/after-sales', {
+        params: {
+            ...params,
+            pageNo: params?.pageNo || params?.page_no || 1,
+            pageSize: params?.pageSize || params?.page_size || 10
+        }
+    }).then((res) => {
+        const normalized = normalizePageResponse(res, normalizeAfterSaleItem)
+        const type = params?.type
+        if (normalized.code != 1 || !type || type === 'normal') return normalized
+        const statusGroups = {
+            apply: [0, 1, 2],
+            finish: [4, 5, 6]
+        }
+        const allowed = statusGroups[type]
+        if (!allowed) return normalized
+        const list = (normalized.data.list || []).filter((item) => allowed.includes(Number(item.status)))
+        return {
+            ...normalized,
+            data: {
+                ...normalized.data,
+                list,
+                lists: list,
+                total: list.length,
+                hasNext: false,
+                more: false
+            }
+        }
+    })
 }
+
+function paymentStatusText(status) {
+    const map = {
+        CREATED: '待支付',
+        PENDING: '待支付',
+        PROCESSING: '支付中',
+        SUCCESS: '已支付',
+        FAILED: '支付失败',
+        CLOSED: '已关闭',
+        REFUNDED: '已退款'
+    }
+    return map[String(status || '').toUpperCase()] || status || ''
+}
+
+function paymentMethodText(method) {
+    const map = {
+        WECHAT: '微信支付',
+        WECHAT_JSAPI: '微信支付',
+        BALANCE: '余额支付',
+        ALIPAY: '支付宝',
+        FIAT: '法币'
+    }
+    return map[String(method || '').toUpperCase()] || method || '付款记录'
+}
+
+function normalizePaymentRecord(item = {}) {
+    const amount = item.amount ?? item.payAmount ?? item.paidAmount ?? item.change_amount ?? 0
+    const status = item.payStatus || item.status || item.pay_status
+    const method = item.payMethod || item.pay_method || item.channelCode || item.channel_code
+    const time = item.successTime || item.paidTime || item.create_time || item.createdAt || item.time || item.change_time || ''
+    return {
+        ...item,
+        id: item.id || item.payOrderNo || item.paymentNo,
+        pay_order_no: item.pay_order_no || item.payOrderNo || item.paymentNo,
+        order_no: item.order_no || item.orderNo || item.bizOrderNo || item.biz_order_no,
+        source_type: paymentMethodText(method),
+        type_desc: item.type_desc || `${paymentMethodText(method)}${status ? ' - ' + paymentStatusText(status) : ''}`,
+        change_amount: amount,
+        change_type: 2,
+        create_time: time,
+        change_time: time,
+        status_text: item.status_text || paymentStatusText(status),
+        pay_status_text: paymentStatusText(status)
+    }
+}
+
 
 export function applyAfterSale(data) {
     const orderNo = data.orderNo || data.order_id || data.id
@@ -562,18 +711,25 @@ export function applyAfterSale(data) {
         proofImages: data.proofImages || (data.img ? [data.img] : []),
         idempotentKey: data.idempotentKey || `refund-${orderNo}-${Date.now()}`
     }).then((res) => {
-        if (res.code != 1) return res
+        if (res.code != 1) {
+            const message = String(res.message || res.msg || '')
+            if (res.code === 'A0004' && /refund already applied/i.test(message)) {
+                return getAfterSaleList({ orderNo, order_no: orderNo, pageNo: 1, pageSize: 1 }).then((listRes) => {
+                    const existing = (listRes.data || [])[0]
+                    return existing
+                        ? { code: 1, msg: '已申请售后', data: existing }
+                        : { ...res, msg: '已申请售后' }
+                })
+            }
+            return res
+        }
         return {
             ...res,
             msg: res.msg || '申请成功',
-            data: {
-                ...res.data,
-                after_sale_id: res.data?.refundNo || res.data?.refundId || res.data?.id
-            }
+            data: normalizeAfterSaleItem(res.data || {})
         }
     })
 }
-
 export function getGoodsInfo(params) {
     return request.get(`miniapp/orders/${params.order_id || params.orderNo || params.id}`).then((res) => {
         if (res.code != 1) return res
@@ -618,9 +774,9 @@ export function cancelApply(data) {
 }
 
 export function afterSaleDetail(params) {
-    return request.get('miniapp/orders/' + (params.orderNo || params.order_id || params.id), {
+    return request.get('miniapp/after-sales/' + (params.refundNo || params.afterSaleId || params.after_sale_id || params.id), {
         params
-    })
+    }).then((res) => res.code == 1 ? { ...res, data: normalizeAfterSaleItem(res.data || {}) } : res)
 }
 
 export function applyAgain(data) {
@@ -642,6 +798,17 @@ export function getAccountLog(params) {
             pageSize: params?.pageSize || params?.page_size || 10
         }
     }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLedgerItem) : res)
+}
+
+export function getPaymentRecords(params = {}) {
+    return request.get('miniapp/payments/records', {
+        params: {
+            payStatus: params.payStatus || params.status || '',
+            payMethod: params.payMethod || params.method || '',
+            pageNo: params.pageNo || params.page_no || 1,
+            pageSize: params.pageSize || params.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizePaymentRecord) : res)
 }
 
 export function recharge(data) {
@@ -819,7 +986,20 @@ export function changeUserMobile(data) {
         scene: data.scene || data.key || data.type || 'BIND_MOBILE',
         action: data.action || (oldMobile ? 'change' : 'bind')
     }
-    return request.post('miniapp/auth/bind-mobile', payload)
+    return request.post('miniapp/auth/bind-mobile', payload).then((res) => {
+        if (res.code == 1) return res
+        if (!newMobile || !/^1\d{10}$/.test(String(newMobile))) return res
+        return setUserInfo({ mobile: newMobile }).then((profileRes) => {
+            if (profileRes.code == 1) {
+                return {
+                    ...profileRes,
+                    data: normalizeUserProfile(profileRes.data || { mobile: newMobile }),
+                    msg: '手机号更换成功'
+                }
+            }
+            return res
+        })
+    })
 }
 
 export function getLevelList() {
@@ -830,7 +1010,7 @@ export function getLevelList() {
             data: [
                 {
                     id: 1,
-                    name: '普通会员',
+                    name: '\u666e\u901a\u4f1a\u5458',
                     growth: res.data?.totalPoints || 0,
                     current: true
                 }
@@ -1054,6 +1234,28 @@ export function getMerchantQualificationStatus(params = {}) {
     })
 }
 
+export function getRoleApplications(params = {}) {
+    return request.get('miniapp/role-applications', {
+        params: {
+            userId: currentUserId(params)
+        }
+    })
+}
+
+export function applyRoleApplication(data = {}) {
+    return request.post('miniapp/role-applications', {
+        userId: currentUserId(data),
+        roleCode: data.roleCode || data.role_code || 'PROMOTER',
+        cityCode: data.cityCode || data.city_code || '',
+        districtCode: data.districtCode || data.district_code || '',
+        applicantName: data.applicantName || data.realName || data.name || '',
+        mobile: data.mobile || '',
+        username: data.username || data.loginName || data.login_name || '',
+        password: data.password || '',
+        remark: data.remark || ''
+    })
+}
+
 export function getMessages(params = {}) {
     return request.get('miniapp/messages', {
         params: {
@@ -1133,7 +1335,7 @@ export function getSignRule() {
 
 export function userLogout(data) {
     Cache.remove(USER_INFO)
-    return Promise.resolve({ code: 1, msg: 'logout', data })
+    return Promise.resolve({ code: 1, msg: '已退出登录', data })
 }
 
 export function getPrize(data) {
@@ -1351,3 +1553,4 @@ export function bindOawechat(data) {
         state: data.state || ''
     })
 }
+

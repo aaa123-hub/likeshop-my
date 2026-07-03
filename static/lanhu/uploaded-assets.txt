@@ -1,4 +1,4 @@
-﻿# Lanhu asset upload backup
+# Lanhu asset upload backup
 # Generated at: 2026-05-18T14:53:27.552Z
 # Server: https://shengyuan.store/api/miniapp/files/upload
 # Public URL base: https://shengyuan.store
@@ -190,7 +190,7 @@ request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/9566a7c565dd427b822bc943e931f327/home2_balance_bill_2x.png
 response: {"cached":true,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/9566a7c565dd427b822bc943e931f327/home2_balance_bill_2x.png","localPath":"/static/lanhu/assets/home/home2_balance_bill@2x.png"}
 
-[cached] 棣栭〉2 - 椤甸潰鑳屾櫙鍥?key: assets_home_home2_bg_2x
+[cached] lanhu asset key:assets_home_home2_bg_2x
 local: /static/lanhu/assets/home/home2_bg@2x.png
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/c6e3f8ccd2fa479d9002153f9923d380/home2_bg_2x.png
@@ -203,7 +203,7 @@ request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/9d4e1073bfdd48fdae8b730d95f2898a/home2_buyer_illustration_2x.png
 response: {"cached":true,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/9d4e1073bfdd48fdae8b730d95f2898a/home2_buyer_illustration_2x.png","localPath":"/static/lanhu/assets/home/home2_buyer_illustration@2x.png"}
 
-[cached] 棣栭〉2 - 鐢熸€佸簲鐢ㄥ浘鏍?key: assets_home_home2_ecology_icon_2x
+[cached] lanhu asset key:assets_home_home2_ecology_icon_2x
 local: /static/lanhu/assets/home/home2_ecology_icon@2x.png
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/e67a23615f1b4008b80fea223293cc90/home2_ecology_icon_2x.png
