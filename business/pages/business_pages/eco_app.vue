@@ -148,7 +148,7 @@ export default {
     position: relative;
     z-index: 1;
     min-height: 100vh;
-    padding: calc(var(--status-bar-height) + 45rpx) 24rpx 80rpx;
+    padding: calc(var(--app-safe-top) + 45rpx) 24rpx 80rpx;
     box-sizing: border-box;
 }
 

@@ -1,7 +1,7 @@
 <template>
 <view class="user-wallet">
     <navbar
-        title="法币余额"
+        title="余额"
         :background="{ background: '#f7f8fa' }"
         :border-bottom="false"
     ></navbar>
@@ -9,7 +9,7 @@
         <view class="wallet-card">
             <view class="wallet-card__head">
                 <view>
-                    <view class="wallet-card__label">我的余额(HK$）</view>
+                    <view class="wallet-card__label">我的余额（元）</view>
                     <view class="wallet-card__amount">
                         <text>¥</text>{{ formatMoney(wallet.user_money) }}
                     </view>

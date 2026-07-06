@@ -19,7 +19,7 @@
 			<!-- <view class="negotiation-record row-between bg-white mt20">
 		<view class="nr">协商记录</view>
 		<view class="arrow">
-			<image src="/images/arrow_right.png" />
+			<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" />
 		</view>
 	</view> -->
 			<view class="return-address-contain row bg-white mt20" v-show="!(lists.refund_type == 0)">
@@ -31,7 +31,7 @@
 			<view class="goods-container bg-white mt20">
 				<!-- <view class="goods-header row">
 			<view class="store-img mr10">
-				<image src="/images/icon_shop.png" />
+				<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_shop.png" />
 			</view>
 			<view class="store-name nr bold">
 				{{lists.shop.name}}

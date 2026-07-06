@@ -699,12 +699,12 @@
                         <view class="payment-summary-card__line"></view>
 
                         <view class="payment-summary-card__row">
-                            <text>法币合计（HK$）:</text>
+                            <text>人民币合计（元）:</text>
                             <text>{{ paymentRecordSummary.fiatAmount }}</text>
                         </view>
                         <view class="payment-summary-card__line"></view>
                         <view class="payment-summary-card__row">
-                            <text>数字币（HK$）:</text>
+                            <text>数字币（元）:</text>
                             <text>{{ paymentRecordSummary.digitalAmount }}</text>
                         </view>
                     </view>
@@ -825,7 +825,7 @@
                     <view class="payment-filter-page__backdrop">
                         <view class="wallet-mode wallet-mode--ghost">
                             <view class="wallet-card wallet-card--solid">
-                                <view class="wallet-card__label">法币账户(HK$)</view>
+                                <view class="wallet-card__label">人民币账户（元）</view>
                                 <view class="wallet-card__amount">¥123.34</view>
                                 <view class="wallet-card__line"></view>
                                 <view class="wallet-card__row">
@@ -930,7 +930,7 @@
             >
                 <view class="wallet-mode">
                     <view class="wallet-card wallet-card--solid">
-                        <view class="wallet-card__label">法币账户(HK$)</view>
+                        <view class="wallet-card__label">人民币账户（元）</view>
                         <view class="wallet-card__amount">¥123.34</view>
                         <view class="wallet-card__line"></view>
                         <view class="wallet-card__row">
@@ -1277,7 +1277,7 @@ export default {
             showPaymentFilter: false,
             paymentMethodOptions: [
                 { label: '全部', active: true },
-                { label: '法币', active: false }
+                { label: '人民币', active: false }
             ],
             paymentStatusOptions: [
                 { label: '全部', active: false },
@@ -1318,7 +1318,7 @@ export default {
                     title: '店铺详情'
                 },
                 'fiat-balance2': {
-                    title: '法币余额2'
+                    title: '人民币余额2'
                 },
                 street: {
                     title: '商街'
@@ -1339,7 +1339,7 @@ export default {
                     title: '店铺详情-相册'
                 },
                 'fiat-balance3': {
-                    title: '法币余额3'
+                    title: '人民币余额3'
                 },
                 'payment-filter': {
                     title: '付款记录-筛选'
@@ -2000,7 +2000,7 @@ export default {
                 const payMethodMap = {
                     '微信支付': 'WECHAT',
                     '余额支付': 'BALANCE',
-                    '法币': 'FIAT'
+                    '人民币': 'FIAT'
                 }
                 const payStatusMap = {
                     '待支付': 'CREATED',
@@ -2688,7 +2688,7 @@ export default {
 }
 
 .business-scene__scroll {
-    height: calc(100vh - 88rpx - var(--status-bar-height));
+    height: calc(100vh - 88rpx - var(--app-safe-top));
 }
 
 .business-scene__scroll--full {
@@ -2978,7 +2978,7 @@ export default {
 .about-us-hero {
     position: relative;
     height: 750rpx;
-    padding-top: calc(var(--status-bar-height) + 24rpx);
+    padding-top: calc(var(--app-safe-top) + 24rpx);
     background: linear-gradient(180deg, #1688ff 0%, #037dfa 54%, #f7f8fb 100%);
     box-sizing: border-box;
 }
@@ -3100,7 +3100,7 @@ export default {
     position: relative;
     z-index: 1;
     min-height: 100vh;
-    padding-top: calc(var(--status-bar-height) + 24rpx);
+    padding-top: calc(var(--app-safe-top) + 24rpx);
     background: transparent;
     box-sizing: border-box;
 }
@@ -3336,7 +3336,7 @@ export default {
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
-    padding-top: calc(var(--status-bar-height) + 24rpx);
+    padding-top: calc(var(--app-safe-top) + 24rpx);
     background: #0d83ff url('https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
@@ -3541,7 +3541,7 @@ export default {
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
-    padding-top: calc(var(--status-bar-height) + 24rpx);
+    padding-top: calc(var(--app-safe-top) + 24rpx);
     background: #ffffff url('https://shengyuan.store/api/miniapp/files/miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
@@ -3685,7 +3685,7 @@ export default {
 
 .feedback-hero {
     min-height: 300rpx;
-    padding: calc(var(--status-bar-height) + 20rpx) 26rpx 20rpx;
+    padding: calc(var(--app-safe-top) + 20rpx) 26rpx 20rpx;
     background: #ffffff;
     box-sizing: border-box;
 }
@@ -3992,7 +3992,7 @@ export default {
 }
 
 .list-page {
-    min-height: calc(100vh - 48rpx - 88rpx - var(--status-bar-height));
+    min-height: calc(100vh - 48rpx - 88rpx - var(--app-safe-top));
     padding-bottom: calc(36rpx + env(safe-area-inset-bottom));
 }
 
@@ -4552,7 +4552,7 @@ export default {
 }
 
 .street-header {
-    padding: calc(var(--status-bar-height) + 24rpx) 24rpx 20rpx;
+    padding: calc(var(--app-safe-top) + 24rpx) 24rpx 20rpx;
 }
 
 .street-header__top {
@@ -4801,7 +4801,7 @@ export default {
 
 .store-detail-hero__top {
     position: absolute;
-    top: calc(var(--status-bar-height) + 36rpx);
+    top: calc(var(--app-safe-top) + 36rpx);
     left: 24rpx;
     right: 24rpx;
     display: flex;
@@ -4932,7 +4932,7 @@ export default {
     position: relative;
     width: 680rpx;
     max-width: 92vw;
-    max-height: calc(100vh - var(--status-bar-height, 0px) - 80rpx);
+    max-height: calc(100vh - var(--app-safe-top) - 80rpx);
     padding: 0;
     background-size: 100% 100%;
     border-radius: 30rpx;
@@ -4949,7 +4949,7 @@ export default {
 }
 
 .store-share-popup__scroll {
-    max-height: calc(100vh - var(--status-bar-height, 0px) - 80rpx);
+    max-height: calc(100vh - var(--app-safe-top) - 80rpx);
     padding: 58rpx 0 34rpx;
     box-sizing: border-box;
 }
@@ -5652,7 +5652,7 @@ export default {
 .user-kyc-page__hero {
     position: relative;
     min-height: 336rpx;
-    padding: var(--status-bar-height) 24rpx 22rpx;
+    padding: var(--app-safe-top) 24rpx 22rpx;
     box-sizing: border-box;
 }
 

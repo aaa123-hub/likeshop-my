@@ -164,7 +164,7 @@
         >
           <view class="sale-header row-between">
             <view class="row">
-              <!-- <image style="width: 40rpx;height: 40rpx" src="/images/icon_shop.png"></image> -->
+              <!-- <image style="width: 40rpx;height: 40rpx" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_shop.png"></image> -->
               <view class="store-name nr ml10 mr10"
                 >申请时间: {{ items.time }}</view
               >

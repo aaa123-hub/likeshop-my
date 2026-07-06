@@ -492,7 +492,7 @@
 				{
 					"path": "pages/business_pages/fiat_balance_2",
 					"style": {
-						"navigationBarTitleText": "法币余额2",
+						"navigationBarTitleText": "人民币余额2",
 						"navigationStyle": "custom"
 					}
 				},
@@ -541,7 +541,7 @@
 				{
 					"path": "pages/business_pages/fiat_balance_3",
 					"style": {
-						"navigationBarTitleText": "法币余额3",
+						"navigationBarTitleText": "人民币余额3",
 						"navigationStyle": "custom"
 					}
 				},

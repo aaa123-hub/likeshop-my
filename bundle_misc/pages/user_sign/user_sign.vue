@@ -26,9 +26,9 @@
             <view class="title">已连续签到 {{signDays}}天</view>
             <view class="day-list row wrap">
                 <view v-for="(item, index) in signList" :key="index" class="item column-center">
-                    <view :class="'circle row-center ' + (item.status == 1 ? 'active-circle' : '')">
-                        <view class="num xs lighter" v-if="item.status != 1">+{{item.integral}}</view>
-                        <view class="num sign-check" v-if="item.status == 1"></view>
+                    <view :class="['circle row-center', item.signed ? 'active-circle' : '', item.prevSigned ? 'active-line' : '']">
+                        <view class="num xs lighter" v-if="!item.signed">+{{item.integral}}</view>
+                        <view class="num sign-check" v-if="item.signed"></view>
                     </view>
                     <view class="day mt10 lighter sm">{{item.days}}天</view>
                 </view>
@@ -148,6 +148,16 @@ export default {
       return '邀'
     },
 
+    normalizeSignList(list, signDays) {
+      const signedDays = Math.max(Number(signDays || 0), 0)
+      const normalizedList = list.map((item, index) => Object.assign({}, item, {
+        signed: item.status == 1 || index < signedDays
+      }))
+      return normalizedList.map((item, index) => Object.assign({}, item, {
+        prevSigned: item.signed && index > 0 && normalizedList[index - 1].signed
+      }))
+    },
+
     getSignListFun() {
       getSignList().then(res => {
         if (res.code == 1) {
@@ -156,11 +166,11 @@ export default {
           let {
             sign_list
           } = data;
-          this.signList = Array.isArray(sign_list) ? sign_list : [];
           this.integral = user.user_integral || 0;
 		  this.avatar = user.avatar || ''
           this.canSign = user.today_sign || 0;
           this.signDays = user.days || 0;
+          this.signList = this.normalizeSignList(Array.isArray(sign_list) ? sign_list : [], this.signDays);
           this.makeInegral = Array.isArray(data.make_inegral) ? data.make_inegral : []
         }
       });
@@ -186,10 +196,7 @@ export default {
           this.canSign = 1
           this.integral = Number(this.integral || 0) + Number(integral || 0)
           this.getUser()
-          this.signList = this.signList.map((item, index) => {
-            if (index < Number(days || 1)) return Object.assign({}, item, { status: 1 })
-            return item
-          })
+          this.signList = this.normalizeSignList(this.signList, days)
 
           if (!res.data || !res.data.fallback) {
             this.getSignListFun();
@@ -285,7 +292,7 @@ export default {
     background-color: rgba(0, 0, 0, 0);
 }
 
-.user-sgin .main .day-list .item .active-circle::before {
+.user-sgin .main .day-list .item .active-line::before {
     content: "";
     width: 34rpx;
     height: 4rpx;

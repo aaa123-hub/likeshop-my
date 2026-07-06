@@ -27,10 +27,4 @@ export function isPlaceholderImage(src) {
     if (!src) return true
     const value = String(src)
     return Object.keys(imagePlaceholders).some(type => value === imagePlaceholders[type])
-        || value.includes('/static/images/goods_null.png')
-        || value.includes('/static/images/address_null.png')
-        || value.includes('/static/images/cart_null.png')
-        || value.includes('/static/images/order_null.png')
-        || value.includes('/static/images/news_null.png')
-        || value.includes('/static/images/coupon_null.png')
 }

@@ -1,17 +1,3 @@
-<!--
-// +---------------------------------------------------------------------- // | likeshop开源商城系统
-// +---------------------------------------------------------------------- // |
-欢迎阅读学习系统程序代码，建议反馈是我们前进的动力 // | gitee下载：https://gitee.com/likeshop_gitee
-// | github下载：https://github.com/likeshop-github // | 访问官网：https://www.likeshop.cn // |
-访问社区：https://home.likeshop.cn // | 访问手册：http://doc.likeshop.cn // |
-微信公众号：likeshop技术社区 // |
-likeshop系列产品在gitee、github等公开渠道开源版本可免费商用，未经许可不能去除前后端官方版权标识 // |
-likeshop系列产品收费版本务必购买商业授权，购买去版权授权后，方可去除前后端官方版权标识 // |
-禁止对系统程序代码以任何目的，任何形式的再发布 // | likeshop团队版权所有并拥有最终解释权 //
-+---------------------------------------------------------------------- // | author:
-likeshop.cn.team // +----------------------------------------------------------------------
-
--->
 <template>
     <view class="confirm-order-page">
         <view class="confirm-order">
@@ -172,10 +158,10 @@ likeshop.cn.team // +-----------------------------------------------------------
                         <text class="muted-value">{{ freightText }}</text>
                     </view>
                     <view class="divider" v-if="orderInfo.order_type == 0"></view>
-                    <view class="summary-row" v-if="orderInfo.order_type == 0" @tap="showCoupon = true">
+                    <view class="summary-row summary-row--coupon" v-if="orderInfo.order_type == 0" @tap="showCoupon = true">
                         <text>优惠券</text>
                         <view class="row-value">
-                            <text :class="orderInfo.discount_amount ? 'red-value' : 'muted-value'">{{ couponText }}</text>
+                            <text :class="discountAmount > 0 ? 'red-value' : 'muted-value'">{{ couponText }}</text>
                             <image class="small-arrow" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" mode="scaleToFill"></image>
                         </view>
                     </view>
@@ -184,12 +170,12 @@ likeshop.cn.team // +-----------------------------------------------------------
                         <view class="summary-row" @tap="changeIntegral">
                             <text>总积分</text>
                             <view class="row-value">
-                                <text class="orange-value">{{ orderInfo.user_integral || 0 }}</text>
+                                <text class="orange-value">{{ integralText }}</text>
                                 <checkbox
                                     class="integral-check"
                                     :disabled="
-                                        orderInfo.user_integral < orderInfo.integral_limit ||
-                                        orderInfo.integral_config == 0
+                                        Number(orderInfo.user_integral || 0) < Number(orderInfo.integral_limit || 0) ||
+                                        Number(orderInfo.integral_config) === 0
                                     "
                                     :checked="Boolean(useIntegral)"
                                 ></checkbox>
@@ -198,11 +184,15 @@ likeshop.cn.team // +-----------------------------------------------------------
                     </template>
                 </view>
 
-                <view class="pay-section">
-                    <view class="section-title-row">
-                        <view class="title-mark"></view>
-                        <text>选择付款方式</text>
+                <view class="points-settle-tip">
+                    <view class="points-settle-tip__icon">i</view>
+                    <view class="points-settle-tip__text">
+                        <text>线上订单确认收货后积分到账。</text>
+                        <text>退款时将按原订单抵扣和赠送记录同步退回。</text>
                     </view>
+                </view>
+
+                <view class="pay-section">
                     <view class="pay-card">
                         <view class="pay-item" :class="{ active: payWay === 'WECHAT_JSAPI' }" @tap="selectPayWay('WECHAT_JSAPI')">
                             <image
@@ -211,7 +201,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                                 mode="scaleToFill"
                             ></image>
                             <text>微信支付</text>
-                            <view class="pay-radio"></view>
+                            <view class="pay-badge">当前支付方式</view>
                         </view>
                     </view>
                 </view>
@@ -274,7 +264,7 @@ likeshop.cn.team // +-----------------------------------------------------------
                         </view>
                     </view>
                     <view v-if="!currentCouponList.length" class="coupon-empty column-center">
-                        <text class="muted">暂无优惠券～</text>
+                        <text class="muted">暂无优惠券</text>
                     </view>
                 </scroll-view>
                 <view class="column-center">
@@ -302,45 +292,31 @@ export default {
 		},
     data() {
         return {
-            isFirstLoading: true, // 首次页面加载loading
-            showLoading: false, // Loading: 显示 | 隐藏
-            address: {}, // 收货地址信息
-            orderInfo: {}, // 订单信息
-            goodsLists: [], // 商品列表
-            addressId: '', // 收货地址ID
-            useIntegral: 0, // 使用积分
-            userRemark: '', // 用户留言
-            userConsignee: '', // 取货人
-            userMobile: '', // 联系电话
-
-            storeInfo: {}, // 门店信息
-
-            couponId: '', // 优惠券ID
-            showCoupon: false, // 显示优惠券Popup
-            couponTabsIndex: 0, // 优惠券Tabs索引
-            usableCoupon: [], // 优惠券--可使用
-            unusableCoupon: [], // 优惠券--不可用
+            isFirstLoading: true,
+            showLoading: false,
+            address: {},
+            orderInfo: {},
+            goodsLists: [],
+            addressId: '',
+            useIntegral: 0,
+            userRemark: '',
+            userConsignee: '',
+            userMobile: '',
+            storeInfo: {},
+            couponId: '',
+            showCoupon: false,
+            couponTabsIndex: 0,
+            usableCoupon: [],
+            unusableCoupon: [],
             payWay: 'WECHAT_JSAPI',
-
             bargainLaunchId: -1,
-
-            addressTabsIndex: 0, // 地址Tabs索引
-            // 地址Tabs列表
+            addressTabsIndex: 0,
             addressTabsList: [
-                {
-                    id: 1,
-                    sign: 'express',
-                    name: '快递配送'
-                },
-                {
-                    id: 2,
-                    sign: 'store',
-                    name: '门店自提'
-                }
+                { id: 1, sign: 'express', name: '快递配送' },
+                { id: 2, sign: 'store', name: '门店自提' }
             ]
         }
     },
-
     computed: {
         delivery() {
             return this.currentDelivery.id
@@ -358,20 +334,39 @@ export default {
         },
         freightText() {
             if (!this.address.id && this.currentDelivery.sign === 'express') {
-                return '填写地址后自动算运费'
+                return '填写地址后自动计算运费'
             }
             return `¥${this.orderInfo.shipping_price || '0.00'}`
         },
+        discountAmount() {
+            return Number(this.orderInfo.discount_amount || this.orderInfo.discountAmount || 0)
+        },
         couponText() {
-            if (this.orderInfo.discount_amount) return `-¥${this.orderInfo.discount_amount}`
+            if (this.discountAmount > 0) return `-¥${this.discountAmount.toFixed(2)}`
+            if (this.selectedCoupon) return this.selectedCoupon.name || this.selectedCoupon.couponName || '已选择优惠券'
             if (this.usableCoupon.length) return `${this.usableCoupon.length}张可用`
             return '没有可用的优惠券'
+        },
+        selectedCoupon() {
+            if (!this.couponId) return null
+            return this.usableCoupon.find(item => String(item.id || item.coupon_id || item.couponId) === String(this.couponId)) || null
+        },
+        integralText() {
+            const userIntegral = Number(this.orderInfo.user_integral || 0)
+            if (this.useIntegral && this.pointsDeductAmount > 0) return `${this.pointsAmount || userIntegral}积分抵¥${this.pointsDeductAmount.toFixed(2)}`
+            if (this.pointsDeductAmount > 0) return `${userIntegral}积分，可抵¥${this.pointsDeductAmount.toFixed(2)}`
+            return `${userIntegral}积分`
+        },
+        pointsAmount() {
+            return this.pickNumber(this.orderInfo, ['pointsAmount', 'points_amount', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points'])
+        },
+        pointsDeductAmount() {
+            return this.pickNumber(this.orderInfo, ['pointsDeductAmount', 'points_deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount'])
         },
         currentCouponList() {
             return this.couponTabsIndex === 0 ? this.usableCoupon : this.unusableCoupon
         }
     },
-
     onLoad(options) {
         const data = JSON.parse(decodeURIComponent(options.data))
 
@@ -383,12 +378,11 @@ export default {
 
         // 配送方式
         getDelivery()
-            // 请求结果判断
             .then(({ code, data, msg }) => {
                 if (code != 1) throw new Error(msg)
                 return data
             })
-            // 配送方式Tabs处理
+        // 配送方式
             .then((data) => {
                 // 快递
                 if (!data.is_express) {
@@ -409,7 +403,6 @@ export default {
                     this.addressTabsIndex = 0
                 }
             })
-            // 页面数据初始化
             .then(() => {
                 this.handleOrderMethods('info')
                 this.initCouponData()
@@ -462,15 +455,19 @@ export default {
             }
             uni.switchTab({ url: '/pages/shop_cart/shop_cart' })
         },
-
         resolveOrderImage(image, type = 'goods') {
             return image ? resolveImage(image, type) : ''
         },
-
         goodsImage(item = {}) {
             return this.resolveOrderImage(item.image_str || item.image || item.imageUrl || item.goodsImageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage || item.picUrl, 'goods')
         },
-
+        pickNumber(source = {}, keys = []) {
+            for (const key of keys) {
+                const value = Number(source[key])
+                if (!Number.isNaN(value) && value > 0) return value
+            }
+            return 0
+        },
         normalizePreviewGoods(item = {}, index = 0) {
             const original = this.goods[index] || this.goods.find(goods => String(goods.item_id || goods.skuId || goods.id || '') === String(item.item_id || item.skuId || item.sku_id || item.id || '')) || {}
             const image = this.goodsImage(item) || this.goodsImage(original)
@@ -486,7 +483,6 @@ export default {
                 shopName: item.shopName || item.shop_name || original.shopName || original.shop_name || this.orderInfo.shopName || ''
             }
         },
-
         normalizeStoreInfo(info = {}) {
             const id = info.id || info.shop_id || info.shopId || info.selffetch_shop_id || info.selffetchShopId || ''
             return {
@@ -494,102 +490,64 @@ export default {
                 id,
                 name: info.name || info.shop_name || info.shopName || info.storeName || '自提门店',
                 shop_address: info.shop_address || info.address || info.detailAddress || info.detail_address || '',
-                mobile: info.mobile || info.phone || info.telephone || '',
+                mobile: info.mobile || info.phone || info.telephone || ''
             }
         },
-
-        // 更改配送方式
         changeDelivery(index) {
             this.addressTabsIndex = index
             this.handleOrderMethods('info')
         },
-
-        // 点击选择收货地址
         onAddressExpress() {
-            uni.navigateTo({
-                url: `/bundle/pages/user_address/user_address?type=${1}`
-            })
+            uni.navigateTo({ url: `/bundle/pages/user_address/user_address?type=${1}` })
         },
-
-        // 点击门店自提
         onAddressStore() {
-            uni.navigateTo({
-                url: `/bundle_misc/pages/store_list/store_list`
-            })
+            uni.navigateTo({ url: `/bundle_misc/pages/store_list/store_list` })
         },
-
-        // 更改积分使用
         changeIntegral() {
-            const useIntegral = this.useIntegral
-
-            const orderInfo = this.orderInfo
-            const integral_limit = orderInfo.integral_limit
-            const user_integral = orderInfo.user_integral
-
-            if (integral_limit > user_integral) return this.$toast({ title: '未满足使用条件' })
-
-            this.useIntegral = useIntegral ? 0 : 1
+            if (Number(this.orderInfo.integral_config) === 0) {
+                return this.$toast({ title: '当前订单暂不支持积分抵扣' })
+            }
+            if (Number(this.orderInfo.integral_limit || 0) > Number(this.orderInfo.user_integral || 0)) {
+                return this.$toast({ title: '未满足积分使用条件' })
+            }
+            this.useIntegral = this.useIntegral ? 0 : 1
             this.$nextTick(() => this.handleOrderMethods('info'))
         },
-
-        // 积分使用说明Dialog
         dialogIntegralDesc() {
-            const desc = this.orderInfo.integral_desc
-
             uni.showModal({
                 title: '积分使用说明',
-                content: desc,
+                content: this.orderInfo.integral_desc,
                 confirmColor: '#FF2C3C',
                 showCancel: false
             })
         },
-
-        // 选择优惠券
         onSelectCoupon(value) {
             this.couponId = value
             this.showCoupon = false
             this.handleOrderMethods('info')
         },
-
         toggleCoupon(id) {
             if (this.couponTabsIndex !== 0) return
             this.couponId = this.couponId == id ? '' : id
         },
-
         confirmCouponPopup() {
             this.showCoupon = false
             this.handleOrderMethods('info')
         },
-
-        // 获取微信授权
         authWechatMessage() {
             return new Promise((resolve, reject) => {
-                getMnpNotice({
-                    scene: 1
-                })
+                getMnpNotice({ scene: 1 })
                     .then(({ code, data, msg }) => {
                         if (code != 1) throw new Error(msg)
                         return data
                     })
                     .then((data) => {
                         if (!data.length) return reject()
-                        uni.requestSubscribeMessage({
-                            tmplIds: data,
-                            success(res) {
-                                resolve(res)
-                            },
-                            fail(err) {
-                                reject(err)
-                            }
-                        })
+                        uni.requestSubscribeMessage({ tmplIds: data, success: resolve, fail: reject })
                     })
-                    .catch((err) => {
-                        reject(err)
-                    })
+                    .catch(reject)
             })
         },
-
-        // 点击订单提交
         onSubmitOrder() {
             if (this.currentDelivery.sign === 'express' && !this.address.id) {
                 return this.$toast({ title: '请先选择收货地址' })
@@ -602,76 +560,61 @@ export default {
             }
             uni.showModal({
                 title: '温馨提示',
-                content: '是否确认下单?',
+                content: '是否确认下单？',
                 confirmColor: '#FF2C3C',
                 success: ({ confirm }) => {
                     if (!confirm) return
-
                     // #ifdef MP-WEIXIN
-                    this.authWechatMessage()
-                        .catch(() => {})
-                        .finally(() => {
-                            this.handleOrderMethods('submit')
-                        })
+                    this.authWechatMessage().catch(() => {}).finally(() => this.handleOrderMethods('submit'))
                     // #endif
-
                     // #ifndef MP-WEIXIN
                     this.handleOrderMethods('submit')
                     // #endif
                 }
             })
         },
-
         selectPayWay(value) {
             this.payWay = 'WECHAT_JSAPI'
         },
-
-        // 初始化优惠券数据
         initCouponData() {
             if (!this.goods.length) return
-            getOrderCoupon({
-                goods: this.goods
-            })
+            getOrderCoupon({ goods: this.goods })
                 .then(({ code, data, msg }) => {
                     if (code != 1) throw new Error(msg)
                     return data
                 })
                 .then((data) => {
-                    this.usableCoupon = data.usable
-                    this.unusableCoupon = data.unusable
+                    this.usableCoupon = data.usable || []
+                    this.unusableCoupon = data.unusable || []
                 })
                 .catch(() => {})
         },
-
-        // 初始化页面数据
         async initPageData(from) {
             this.showLoading = true
-
             try {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
-
-                if (code == 1) {
-                    const responseAddress = data.address || {}
-                    this.address = responseAddress.id ? responseAddress : (this.address && this.address.id ? this.address : {})
-                    if (this.address.id) this.addressId = this.address.id
-                    if (!this.address.id && this.currentDelivery.sign === 'express') {
-                        await this.loadDefaultAddress()
-                    }
-                    this.orderInfo = data
-                    this.goodsLists = (data.goods_lists || []).map(this.normalizePreviewGoods)
-                    const selffetchInfo = data.selffetch_info || data.selffetchInfo || data.pickupInfo || {}
-                    if (Object.keys(selffetchInfo).length) {
-                        const responseStore = this.normalizeStoreInfo(selffetchInfo.selffetch_shop || selffetchInfo.selffetchShop || selffetchInfo.shop || {})
-                        this.storeInfo = responseStore.id ? responseStore : (this.storeInfo && this.storeInfo.id ? this.storeInfo : {})
-                        this.userConsignee = selffetchInfo.contact || selffetchInfo.consignee || selffetchInfo.receiverName || this.userConsignee
-                        this.userMobile = selffetchInfo.mobile || selffetchInfo.receiverMobile || this.userMobile
-                    }
-                    this.$nextTick(() => {
-                        this.isFirstLoading = false
-                    })
-                } else {
-                    throw new Error(msg)
+                if (code != 1) throw new Error(msg)
+                const responseAddress = data.address || {}
+                this.address = responseAddress.id ? responseAddress : (this.address && this.address.id ? this.address : {})
+                if (this.address.id) this.addressId = this.address.id
+                if (!this.address.id && this.currentDelivery.sign === 'express') {
+                    await this.loadDefaultAddress()
                 }
+                this.orderInfo = data
+                this.goodsLists = (data.goods_lists || []).map(this.normalizePreviewGoods)
+                this.syncDiscountData(data)
+                if (this.ensureDefaultCoupon()) {
+                    this.$nextTick(() => this.handleOrderMethods('info'))
+                    return
+                }
+                const selffetchInfo = data.selffetch_info || data.selffetchInfo || data.pickupInfo || {}
+                if (Object.keys(selffetchInfo).length) {
+                    const responseStore = this.normalizeStoreInfo(selffetchInfo.selffetch_shop || selffetchInfo.selffetchShop || selffetchInfo.shop || {})
+                    this.storeInfo = responseStore.id ? responseStore : (this.storeInfo && this.storeInfo.id ? this.storeInfo : {})
+                    this.userConsignee = selffetchInfo.contact || selffetchInfo.consignee || selffetchInfo.receiverName || this.userConsignee
+                    this.userMobile = selffetchInfo.mobile || selffetchInfo.receiverMobile || this.userMobile
+                }
+                this.$nextTick(() => { this.isFirstLoading = false })
             } catch (err) {
                 this.isFirstLoading = false
                 this.$toast({ title: '网络异常，请重新进入页面' })
@@ -679,7 +622,6 @@ export default {
                 this.showLoading = false
             }
         },
-
         async loadDefaultAddress() {
             try {
                 const res = await getDefaultAddress()
@@ -689,84 +631,77 @@ export default {
                 }
             } catch (error) {}
         },
-
-        // 订单提交
         async handleOrderSubmit(from) {
             this.showLoading = true
-
             from.remark = this.userRemark
             from.type = this.type
             from.payWay = 'WECHAT_JSAPI'
             from.payMethod = 'WECHAT_JSAPI'
-
             try {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
-
-                if (code == 1) {
-                    uni.redirectTo({
-                        url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}&pay_way=WECHAT_JSAPI&payWay=WECHAT_JSAPI`
-                    })
-                } else {
-                    throw new Error(msg)
-                }
+                if (code != 1) throw new Error(msg)
+                uni.redirectTo({ url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}&pay_way=WECHAT_JSAPI&payWay=WECHAT_JSAPI` })
             } catch (err) {
                 this.$toast({ title: '下单异常，请重新操作' })
             } finally {
                 this.showLoading = false
             }
         },
-
-        // 订单处理
+        syncDiscountData(data = {}) {
+            const usableCoupon = data.usable || data.usableCoupon || data.usable_coupon || []
+            const unusableCoupon = data.unusable || data.unusableCoupon || data.unusable_coupon || []
+            if (Array.isArray(usableCoupon)) this.usableCoupon = usableCoupon
+            if (Array.isArray(unusableCoupon)) this.unusableCoupon = unusableCoupon
+            if (data.coupon_id || data.couponId) this.couponId = data.coupon_id || data.couponId
+            if (this.couponId && !this.usableCoupon.some(item => String(item.id || item.coupon_id || item.couponId) === String(this.couponId))) this.couponId = ''
+        },
+        ensureDefaultCoupon() {
+            if (Number(this.orderInfo.order_type || 0) !== 0) return false
+            if (this.couponId || !this.usableCoupon.length) return false
+            const firstCoupon = this.usableCoupon[0]
+            const id = firstCoupon.id || firstCoupon.coupon_id || firstCoupon.couponId
+            if (!id) return false
+            this.couponId = id
+            return true
+        },
         handleOrderMethods(action) {
             if (!this.goods.length) {
                 this.isFirstLoading = false
                 this.showLoading = false
                 return this.$toast({ title: '商品参数异常，请重新选择商品' })
             }
-            // 订单提交数据
             const orderFrom = {
                 action,
                 goods: this.goods,
                 delivery_type: this.delivery,
                 use_integral: this.useIntegral,
+                orderInfo: this.orderInfo,
+                pointsDeductAmount: this.useIntegral ? this.pointsDeductAmount : 0,
+                pointsAmount: this.useIntegral ? this.pointsAmount : 0,
                 address_id: this.addressId,
                 address: this.address && this.address.id ? this.address : undefined,
                 coupon_id: this.couponId,
                 bargain_launch_id: this.bargainLaunchId == -1 ? '' : this.bargainLaunchId
             }
-
-            // 门店自提
             if (this.currentDelivery.sign === 'store') {
                 orderFrom.selffetch_shop_id = this.storeInfo.id
                 orderFrom.store_id = this.storeInfo.id
                 orderFrom.consignee = this.userConsignee
                 orderFrom.mobile = this.userMobile
             }
-
-            // 拼团
             if (this.teamId) {
                 const goods = this.goods[0]
-
                 delete orderFrom.goods
-
                 orderFrom.item_id = goods.item_id
                 orderFrom.goods_num = goods.num
                 orderFrom.team_id = this.teamId
                 orderFrom.found_id = this.foundId
             }
-
-            switch (action) {
-                case 'info':
-                    this.initPageData(orderFrom)
-                    break
-                case 'submit':
-                    this.handleOrderSubmit(orderFrom)
-                    break
-            }
+            if (action === 'info') this.initPageData(orderFrom)
+            if (action === 'submit') this.handleOrderSubmit(orderFrom)
         }
     }
-}
-</script>
+}</script>
 <style lang="scss">
 page {
     min-height: 100%;
@@ -775,8 +710,14 @@ page {
 
 .confirm-order-page,
 .confirm-order {
-    min-height: 100vh;
+    height: 100vh;
     background: #f5f5f5;
+    overflow: hidden;
+}
+
+.confirm-order {
+    display: flex;
+    flex-direction: column;
 }
 
 .page-head {
@@ -836,6 +777,12 @@ page {
     box-sizing: border-box;
 }
 
+/* #ifdef MP-WEIXIN */
+.tips-row {
+    padding-right: 220rpx;
+}
+/* #endif */
+
 .tips-icon {
     flex: none;
     width: 68rpx;
@@ -850,9 +797,10 @@ page {
 }
 
 .confirm-con {
-    height: calc(100vh - var(--status-bar-height) - 160rpx - 154rpx - env(safe-area-inset-bottom));
-    height: calc(100dvh - var(--status-bar-height) - 160rpx - 154rpx - env(safe-area-inset-bottom));
-    padding: 0 24rpx 32rpx;
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    padding: 0 24rpx 220rpx;
     box-sizing: border-box;
 }
 
@@ -1035,6 +983,10 @@ page {
     box-sizing: border-box;
 }
 
+.summary-row--coupon {
+    background: linear-gradient(90deg, rgba(255, 246, 241, 0.9) 0%, #ffffff 52%);
+}
+
 .muted-value {
     font-size: 24rpx;
     font-weight: 400;
@@ -1074,6 +1026,7 @@ page {
 
 .price-card {
     margin-top: 19rpx;
+    overflow: hidden;
 }
 
 .row-value {
@@ -1090,30 +1043,50 @@ page {
     transform: scale(0.72);
 }
 
-.pay-section {
-    padding: 41rpx 0 0;
-}
-
-.section-title-row {
+.points-settle-tip {
     display: flex;
-    align-items: center;
-    height: 32rpx;
-    font-size: 32rpx;
-    font-weight: 500;
-    line-height: 32rpx;
-    color: #222222;
+    align-items: flex-start;
+    margin: 19rpx 0 0;
+    padding: 22rpx 24rpx;
+    border: 1rpx solid #d9eaff;
+    border-radius: 15rpx;
+    background: linear-gradient(135deg, #f2f8ff 0%, #ffffff 100%);
+    box-shadow: 0 10rpx 24rpx rgba(3, 125, 250, 0.08);
+    box-sizing: border-box;
 }
 
-.title-mark {
-    width: 11rpx;
-    height: 29rpx;
-    margin-right: 13rpx;
+.points-settle-tip__icon {
+    flex: none;
+    width: 30rpx;
+    height: 30rpx;
+    margin-top: 2rpx;
+    border-radius: 50%;
     background: #037dfa;
+    font-size: 22rpx;
+    font-weight: 600;
+    line-height: 30rpx;
+    text-align: center;
+    color: #ffffff;
+}
+
+.points-settle-tip__text {
+    flex: 1;
+    margin-left: 12rpx;
+    font-size: 23rpx;
+    line-height: 34rpx;
+    color: #4d6580;
+}
+
+.points-settle-tip__text text {
+    display: block;
+}
+
+.pay-section {
+    padding: 22rpx 0 0;
 }
 
 .pay-card {
-    margin-top: 32rpx;
-    margin-bottom: 41rpx;
+    margin-bottom: 28rpx;
     padding: 0 0 1rpx;
 }
 
@@ -1141,18 +1114,17 @@ page {
     margin-right: 30rpx;
 }
 
-.pay-radio {
-    width: 37rpx;
-    height: 37rpx;
+.pay-badge {
+    height: 44rpx;
+    padding: 0 18rpx;
     margin-left: auto;
-    border: 3rpx solid #d6d6d6;
-    border-radius: 50%;
-    background: #ffffff;
+    border-radius: 22rpx;
+    background: #e9f3ff;
+    font-size: 22rpx;
+    font-weight: 400;
+    line-height: 44rpx;
+    color: #037dfa;
     box-sizing: border-box;
-}
-
-.pay-item.active .pay-radio {
-    border: 10rpx solid #037dfa;
 }
 
 .footer {
@@ -1163,7 +1135,7 @@ page {
     z-index: 9;
     display: flex;
     align-items: center;
-    height: 112rpx;
+    min-height: 112rpx;
     padding: 0 24rpx;
     padding-bottom: env(safe-area-inset-bottom);
     box-sizing: content-box;

@@ -78,7 +78,7 @@ export default {
 <style lang="scss">
 .mall-guide-page {
     min-height: 100vh;
-    padding: var(--status-bar-height) 28rpx 56rpx;
+    padding: var(--app-safe-top) 28rpx 56rpx;
     background: linear-gradient(180deg, #eaf4ff 0%, #f7f8fb 42%, #f7f8fb 100%);
     box-sizing: border-box;
 }

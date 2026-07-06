@@ -124,7 +124,7 @@ export default {
 .auto-points-page {
     position: relative;
     min-height: 100vh;
-    padding-top: calc(var(--status-bar-height) + 24rpx);
+    padding-top: calc(var(--app-safe-top) + 24rpx);
     overflow: hidden;
     background: #f6f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/d436eea929e84f17a7bbc5f609cc7188/auto-points-bg.png') no-repeat center top;
     background-size: 100% 100%;

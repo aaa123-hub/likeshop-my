@@ -166,8 +166,8 @@ page {
     position: relative;
     display: flex;
     align-items: center;
-    height: calc(var(--status-bar-height) + 64rpx);
-    padding: var(--status-bar-height) 24rpx 0;
+    height: calc(var(--app-safe-top) + 64rpx);
+    padding: var(--app-safe-top) 24rpx 0;
     box-sizing: border-box;
 }
 
@@ -228,7 +228,7 @@ page {
 }
 
 .page-scroll {
-    height: calc(100vh - var(--status-bar-height) - 160rpx - 154rpx - env(safe-area-inset-bottom));
+    height: calc(100vh - var(--app-safe-top) - 160rpx - 154rpx - env(safe-area-inset-bottom));
     padding: 0 24rpx 32rpx;
     box-sizing: border-box;
 }

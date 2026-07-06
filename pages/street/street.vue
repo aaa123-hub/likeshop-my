@@ -76,7 +76,8 @@ import { getStreetIndex } from '@/api/store'
 import { setTabbar, tabbarList } from '@/utils/tools'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 
-const streetAsset = (name) => `/static/lanhu/slices/street/${name}`
+const STREET_ASSET_BASE = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/'
+const streetAsset = (name) => `${STREET_ASSET_BASE}${name}`
 const merchantThumb = ''
 const emptyServiceNames = ['服装', '本地生活', '粮油饮品']
 

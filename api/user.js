@@ -674,7 +674,7 @@ function paymentMethodText(method) {
         WECHAT_JSAPI: '微信支付',
         BALANCE: '余额支付',
         ALIPAY: '支付宝',
-        FIAT: '法币'
+        FIAT: '人民币'
     }
     return map[String(method || '').toUpperCase()] || method || '付款记录'
 }

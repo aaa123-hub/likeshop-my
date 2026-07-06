@@ -2,7 +2,7 @@
 <!--components/recommend/recommend.wxml-->
 <view class="recommend" v-if="goodsList.length">
     <!-- <view class="header row-center">
-        <image class="title" src="/images/recommend_title.png" />
+        <image class="title" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/recommend_title.png" />
     </view> -->
     <view class="goods-title row-center">
         <text class="line"></text>

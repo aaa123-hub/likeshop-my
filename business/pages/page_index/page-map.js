@@ -7,7 +7,7 @@ export const pageDesignMap = [
     { id: 6, name: '待付款', route: '/business/pages/business_pages/pending_payment', file: 'business/pages/business_pages/pending_payment.vue', type: 'scene' },
     { id: 7, name: '店铺详情-二维码', route: '/business/pages/business_pages/store_qr', file: 'business/pages/business_pages/store_qr.vue', type: 'scene' },
     { id: 8, name: '店铺详情-商品二维码', route: '/business/pages/business_pages/goods_qr', file: 'business/pages/business_pages/goods_qr.vue', type: 'scene' },
-    { id: 9, name: '法币余额', route: '/bundle_finance/pages/user_wallet/user_wallet', file: 'bundle_finance/pages/user_wallet/user_wallet.vue', type: 'business' },
+    { id: 9, name: '人民币余额', route: '/bundle_finance/pages/user_wallet/user_wallet', file: 'bundle_finance/pages/user_wallet/user_wallet.vue', type: 'business' },
     { id: 10, name: '分类', route: '/pages/sort/sort', file: 'pages/sort/sort.vue', type: 'business', openType: 'switchTab' },
     { id: 11, name: '付款记录', route: '/business/pages/business_pages/payment_record', file: 'business/pages/business_pages/payment_record.vue', type: 'scene' },
     { id: 12, name: '购物车', route: '/pages/shop_cart/shop_cart', file: 'pages/shop_cart/shop_cart.vue', type: 'business', openType: 'switchTab' },

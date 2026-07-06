@@ -86,15 +86,33 @@ function imagesToDetailContent(images = []) {
 
 function normalizeCouponItem(item = {}) {
     var threshold = item.thresholdAmount || item.minAmount || item.useThreshold
-    var amount = item.amount || item.discountAmount || item.couponAmount || item.value
+    var amount = item.money || item.amount || item.discountAmount || item.couponAmount || item.value
+    var ownerType = item.ownerType || item.owner_type || (item.subsidyEligible || item.subsidy_eligible ? 'PLATFORM' : (item.merchantId || item.merchant_id ? 'MERCHANT' : ''))
+    var subsidyEligible = Boolean(item.subsidyEligible || item.subsidy_eligible || ownerType === 'PLATFORM')
     return Object.assign({}, item, {
-        id: item.id || item.couponId,
-        name: item.name || item.couponName || item.title || '优惠券',
+        id: item.id || item.couponId || item.userCouponId,
+        coupon_id: item.coupon_id || item.couponId || item.id || item.userCouponId,
+        name: item.name || item.couponName || item.coupon_name || item.title || '优惠券',
         use_condition: item.use_condition || item.useCondition || item.conditionText || (threshold ? '满' + threshold + '可用' : (amount ? amount + '元优惠券' : '优惠券')),
-        money: amount || item.money || 0
+        money: amount || item.money || 0,
+        coupon_type: item.coupon_type || item.couponType || item.typeText || '优惠券',
+        use_time_tips: item.use_time_tips || item.useTimeTips || item.validTimeText || item.valid_time_text || '',
+        ownerType: ownerType,
+        owner_type: ownerType,
+        subsidyEligible: subsidyEligible,
+        subsidy_eligible: subsidyEligible
     })
 }
 
+function normalizeArrayPayload(value) {
+    if (!value) return []
+    if (Array.isArray(value)) return value
+    if (Array.isArray(value.list)) return value.list
+    if (Array.isArray(value.items)) return value.items
+    if (Array.isArray(value.records)) return value.records
+    if (Array.isArray(value.rows)) return value.rows
+    return []
+}
 function buildSpecValueId(spec, groupName, valueName, fallback) {
     return spec.id || spec.valueId || spec.value_id || groupName + '-' + (valueName || fallback)
 }
@@ -196,7 +214,9 @@ function normalizeSpecList(skuList = []) {
     return groups
 }
 
-function normalizeGoodsDetail(detail = {}, spuId) {
+function normalizeGoodsDetail(payload = {}, spuId) {
+    var detail = payload.detail || payload.product || payload.productInfo || payload.product_info || payload.goods || payload.goodsInfo || payload.goods_info || payload.spu || payload.info || payload
+    detail = Object.assign({}, payload, detail)
     var images = parseImageList(detail.images || detail.imageUrls || detail.image_urls || detail.albumUrls || detail.album_urls || detail.goods_image || detail.mainImages || detail.main_images)
     if (!images.length && (detail.mainImageUrl || detail.cover || detail.image)) {
         images.push(detail.mainImageUrl || detail.cover || detail.image)
@@ -220,7 +240,35 @@ function normalizeGoodsDetail(detail = {}, spuId) {
     }
     var shopInfo = detail.shopInfo || detail.shop || detail.shop_info || {}
     var commentSummary = normalizeCommentSummary(detail.commentSummary || detail.comment || {})
-    var coupons = (detail.couponList || detail.coupon_list || detail.coupons || []).map(normalizeCouponItem)
+    var coupons = normalizeArrayPayload(detail.couponList || detail.coupon_list || detail.coupons || detail.availableCoupons || detail.available_coupons || detail.couponInfo || detail.coupon_info || detail.coupon).map(normalizeCouponItem)
+    var pointsInfo = detail.pointsInfo || detail.points_info || detail.integralInfo || detail.integral_info || {}
+    var rawMarketingConfig = Object.assign({}, detail.marketingConfig || detail.marketing_config || detail.pointsMarketing || detail.pointsConfig || {}, pointsInfo)
+    var pointsDeductAmount = valueOr(rawMarketingConfig.pointsDeductAmount, rawMarketingConfig.points_deduct_amount)
+    pointsDeductAmount = valueOr(pointsDeductAmount, valueOr(detail.pointsDeductAmount, valueOr(detail.points_deduct_amount, valueOr(detail.integralDeductAmount, detail.integral_deduct_amount))))
+    var pointsAmount = valueOr(rawMarketingConfig.pointsAmount, rawMarketingConfig.points_amount)
+    pointsAmount = valueOr(pointsAmount, valueOr(detail.pointsAmount, valueOr(detail.points_amount, valueOr(detail.integralNum, detail.integral_num))))
+    var giveIntegral = valueOr(detail.order_give_integral, valueOr(detail.giveIntegral, valueOr(detail.give_integral, valueOr(detail.rewardPoints, detail.reward_points))))
+    var pointsEnabled = valueOr(rawMarketingConfig.pointsEnabled, valueOr(rawMarketingConfig.points_enabled, valueOr(detail.pointsEnabled, valueOr(detail.points_enabled, valueOr(detail.integralSwitch, detail.integral_switch)))))
+    var marketingConfig = Object.assign({}, rawMarketingConfig, {
+        pointsEnabled: valueOr(pointsEnabled, Number(pointsDeductAmount || 0) > 0 || Number(pointsAmount || 0) > 0),
+        points_enabled: valueOr(pointsEnabled, Number(pointsDeductAmount || 0) > 0 || Number(pointsAmount || 0) > 0),
+        pointsDeductAmount: valueOr(pointsDeductAmount, 0),
+        points_deduct_amount: valueOr(pointsDeductAmount, 0),
+        pointsAmount: valueOr(pointsAmount, 0),
+        points_amount: valueOr(pointsAmount, 0),
+        giveIntegral: valueOr(giveIntegral, 0),
+        give_integral: valueOr(giveIntegral, 0)
+    })
+    var activities = (detail.activityList || detail.activity_list || detail.activities || []).map(function(item) {
+        var ownerType = item.ownerType || item.owner_type || (item.subsidyEligible || item.subsidy_eligible ? 'PLATFORM' : (item.merchantId || item.merchant_id ? 'MERCHANT' : ''))
+        var subsidyEligible = Boolean(item.subsidyEligible || item.subsidy_eligible || ownerType === 'PLATFORM')
+        return Object.assign({}, item, {
+            ownerType: ownerType,
+            owner_type: ownerType,
+            subsidyEligible: subsidyEligible,
+            subsidy_eligible: subsidyEligible
+        })
+    })
     var detailImages = parseImageList(detail.detailImages || detail.detail_images || detail.descImages || detail.desc_images || detail.descriptionImages || detail.description_images)
     var content = parseDetailContent(detail.content || detail.goods_detail || detail.detail || detail.detailJson || detail.detail_json || detail.richText || detail.rich_text || detail.description) || imagesToDetailContent(detailImages)
     var freightTemplate = detail.freight_template || detail.freightTemplate || detail.shippingTemplate || detail.shipping_template || {}
@@ -258,6 +306,17 @@ function normalizeGoodsDetail(detail = {}, spuId) {
         goods_image: images.length ? images.map(function(image) { return resolveImage(image, 'goods') }) : [resolveImage('', 'goods')],
         coupon_list: coupons,
         couponList: coupons,
+        marketingConfig: marketingConfig,
+        marketing_config: marketingConfig,
+        pointsMarketing: marketingConfig,
+        pointsConfig: marketingConfig,
+        activityList: activities,
+        activity_list: activities,
+        order_give_integral: valueOr(giveIntegral, detail.order_give_integral || 0),
+        giveIntegral: valueOr(giveIntegral, detail.giveIntegral || 0),
+        give_integral: valueOr(giveIntegral, detail.give_integral || 0),
+        marketingSourceText: detail.marketingSourceText || detail.marketing_source_text || '',
+        marketing_source_text: detail.marketingSourceText || detail.marketing_source_text || '',
         comment: commentSummary,
         commentSummary,
         shop: shopInfo,
@@ -404,7 +463,7 @@ function normalizeStreetIndex(data = {}) {
     return Object.assign({}, data, {
         searchBox: {
             keyword: (data.searchBox && data.searchBox.keyword) || '',
-            placeholder: (data.searchBox && data.searchBox.placeholder) || '输入关键词'
+            placeholder: (data.searchBox && data.searchBox.placeholder) || '搜索商品'
         },
         recommendedCategories: (data.recommendedCategories || []).map(normalizeStreetCategory),
         recommendedShops: (data.recommendedShops || []).map(normalizeStreetShop)
@@ -427,7 +486,7 @@ function normalizeShopCommentItem(item = {}) {
         id: item.id || item.commentId || item.reviewId || '',
         name: item.name || item.nickname || item.userName || item.memberName || user.nickname || user.name || user.userName || '匿名用户',
         date: item.date || item.create_time || item.createdAt || item.createTime || item.commentTime || item.evaluateTime || '',
-        content: item.content || item.comment || item.reviewContent || item.remark || item.evaluateContent || item.commentContent || '暂无评价内容',
+        content: item.content || item.comment || item.reviewContent || item.remark || item.evaluateContent || item.commentContent || '用户评价',
         avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl || user.avatar || user.avatarUrl || user.headimgurl, 'avatar'),
         score: item.score || item.star || item.rating || item.shopScore || item.serviceScore || 5
     })
@@ -520,7 +579,6 @@ function normalizeGoodsList(data = {}) {
     })
 }
 
-// 首页聚合
 export function getHome(data = {}) {
     var lat = valueOr(data.lat, data.latitude)
     var lng = valueOr(data.lng, data.longitude)
@@ -531,9 +589,7 @@ export function getHome(data = {}) {
         })
     }).then(function(res) {
         if (res.code == 1) {
-            return Object.assign({}, res, {
-                data: normalizeHomeData(res.data || {})
-            })
+            return Object.assign({}, res, { data: normalizeHomeData(res.data || {}) })
         }
         return res
     }).catch(function() {
@@ -541,25 +597,12 @@ export function getHome(data = {}) {
     })
 }
 
-// 商街首页聚合
 export function getStreetIndex(data = {}) {
-    return request.get('miniapp/street/index', {
-        params: {
-            keyword: data.keyword || ''
-        }
-    }).then(function(res) {
-        if (res.code == 1) {
-            return Object.assign({}, res, {
-                data: normalizeStreetIndex(res.data || {})
-            })
-        }
-        return res
-    }).catch(function() {
-        return { code: 1, data: normalizeStreetIndex({}) }
-    })
+    return request.get('miniapp/street/index', { params: { keyword: data.keyword || '' } })
+        .then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeStreetIndex(res.data || {}) }) : res })
+        .catch(function() { return { code: 1, data: normalizeStreetIndex({}) } })
 }
 
-// 商街商品/门店列表
 export function getStreetGoods(data = {}) {
     var params = {
         keyword: data.keyword || '',
@@ -570,9 +613,7 @@ export function getStreetGoods(data = {}) {
         pageNo: data.pageNo || data.page_no || 1,
         pageSize: data.pageSize || data.page_size || 20
     }
-    return request.get('miniapp/search/products', {
-        params: params
-    }).then(function(res) {
+    var normalizePayload = function(res) {
         if (res.code != 1) return res
         var payload = res.data || {}
         var list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || payload.products || payload.shops || [])
@@ -587,54 +628,22 @@ export function getStreetGoods(data = {}) {
                 })
             })
         })
-    }).catch(function() {
-        return request.get('miniapp/street/products', { params: params }).then(function(res) {
-            if (res.code != 1) return res
-            var payload = res.data || {}
-            var list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || payload.products || payload.shops || [])
-            return Object.assign({}, res, {
-                data: Object.assign({}, !Array.isArray(payload) ? payload : {}, {
-                    list: list.map(function(item) {
-                        var hasGoodsId = item.goods_id || item.goodsId || item.spuId || item.productId
-                        return !hasGoodsId && (item.storeName || item.shopId || item.shop_id) && !item.price && !item.salePrice && !item.minPrice
-                            ? normalizeStreetShop(item)
-                            : normalizeGoodsListItem(item)
-                    })
-                })
-            })
-        }).catch(function() {
+    }
+    return request.get('miniapp/search/products', { params: params }).then(normalizePayload).catch(function() {
+        return request.get('miniapp/street/products', { params: params }).then(normalizePayload).catch(function() {
             return { code: 1, data: { list: [], total: 0, pageNo: params.pageNo, pageSize: params.pageSize, hasNext: false } }
         })
     })
 }
 
-// 店铺详情
 export function getShopDetail(data = {}) {
     var shopId = data.shopId || data.shop_id || ''
-    if (!shopId) {
-        return Promise.resolve({
-            code: 0,
-            msg: '缺少必要参数：店铺',
-            data: null
-        })
-    }
-    var params = Object.assign({}, data, {
-        shopId: shopId,
-        shop_id: shopId
-    })
-    var endpoints = [
-        'miniapp/shop/' + shopId,
-        'miniapp/shop/detail',
-        'miniapp/street/shop/detail',
-        'miniapp/merchant-shop/detail'
-    ]
+    if (!shopId) return Promise.resolve({ code: 0, msg: '缺少必要参数：店铺', data: null })
+    var params = Object.assign({}, data, { shopId: shopId, shop_id: shopId })
+    var endpoints = ['miniapp/shop/' + shopId, 'miniapp/shop/detail', 'miniapp/street/shop/detail', 'miniapp/merchant-shop/detail']
     var requestDetail = function(index) {
         return request.get(endpoints[index], { params: params }).then(function(res) {
-            if (res.code == 1) {
-                return Object.assign({}, res, {
-                    data: normalizeShopDetail(res.data || {})
-                })
-            }
+            if (res.code == 1) return Object.assign({}, res, { data: normalizeShopDetail(res.data || {}) })
             if (index < endpoints.length - 1) return requestDetail(index + 1)
             return res
         }).catch(function(error) {
@@ -647,263 +656,139 @@ export function getShopDetail(data = {}) {
 
 export function getShopGroupBuy(data = {}) {
     var shopId = data.shopId || data.shop_id || ''
-    if (!shopId) {
-        return Promise.resolve({ code: 0, msg: '缺少必要参数：店铺', data: { list: [] } })
-    }
+    if (!shopId) return Promise.resolve({ code: 0, msg: '缺少必要参数：店铺', data: { list: [] } })
     return request.get('miniapp/shop/' + shopId + '/group-buy', {
-        params: {
-            pageNo: data.pageNo || data.page_no || data.page || 1,
-            pageSize: data.pageSize || data.page_size || 10
-        }
+        params: { pageNo: data.pageNo || data.page_no || data.page || 1, pageSize: data.pageSize || data.page_size || 10 }
     }).then(function(res) {
         if (res.code != 1) return res
         var payload = res.data || {}
         var list = payload.list || payload.items || payload.records || []
-        return Object.assign({}, res, {
-            data: Object.assign({}, payload, {
-                list: list.map(normalizeShopGroupItem),
-                hasNext: payload.hasNext ?? payload.more ?? false,
-                pageNo: payload.pageNo || payload.page_no || 1,
-                pageSize: payload.pageSize || payload.page_size || 10
-            })
-        })
+        return Object.assign({}, res, { data: Object.assign({}, payload, { list: list.map(normalizeShopGroupItem), hasNext: payload.hasNext ?? payload.more ?? false, pageNo: payload.pageNo || payload.page_no || 1, pageSize: payload.pageSize || payload.page_size || 10 }) })
     })
 }
 
-// 菜单
 export function getMenu(data) {
     return getHome().then(function(res) {
         if (res.code != 1) return res
         var list = res.data.navigation_menu || res.data.quickEntries || []
-        var filtered = list.filter(function(item) {
-            if (data && data.type === 1) return true
-            if (data && data.type === 2) return true
-            return true
-        })
-        return Object.assign({}, res, {
-            data: filtered
-        })
+        return Object.assign({}, res, { data: list.filter(function() { return true }) })
     })
 }
 
-// 广告位
 export function getAdList(data) {
-    return getHome().then(function(res) {
+    return getHome(data).then(function(res) {
         if (res.code != 1) return res
-        return Object.assign({}, res, {
-            data: res.data.banners || []
-        })
+        return Object.assign({}, res, { data: res.data.banners || [] })
     })
 }
 
-// 购物车列表
 export function getCartList() {
     return request.get('miniapp/cart/items').then(function(res) {
         if (res.code == 1) {
             var payload = res.data || {}
             var list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || [])
             var lists = list.map(normalizeCartItem)
-            return Object.assign({}, res, {
-                data: Object.assign({}, !Array.isArray(payload) ? payload : {}, {
-                    list: lists,
-                    lists,
-                    total_amount: valueOr(payload.total_amount, valueOr(payload.totalAmount, valueOr(payload.payAmount, lists.reduce(function(sum, item) { return sum + Number(item.price || 0) * Number(item.goods_num || 0) }, 0)))),
-                    cartCount: valueOr(payload.cartCount, valueOr(payload.count, lists.reduce(function(sum, item) { return sum + Number(item.goods_num || 0) }, 0)))
-                })
-            })
+            return Object.assign({}, res, { data: Object.assign({}, !Array.isArray(payload) ? payload : {}, { list: lists, lists, total_amount: valueOr(payload.total_amount, valueOr(payload.totalAmount, valueOr(payload.payAmount, lists.reduce(function(sum, item) { return sum + Number(item.price || 0) * Number(item.goods_num || 0) }, 0)))), cartCount: valueOr(payload.cartCount, valueOr(payload.count, lists.reduce(function(sum, item) { return sum + Number(item.goods_num || 0) }, 0))) }) })
         }
         return res
-    }).catch(function() {
-        return {
-            code: 1,
-            data: {
-                list: [],
-                lists: [],
-                total_amount: 0,
-                cartCount: 0
-            }
-        }
-    })
+    }).catch(function() { return { code: 1, data: { list: [], lists: [], total_amount: 0, cartCount: 0 } } })
 }
 
-// 推荐商品
 export function getBestList(data) {
-    return getHome().then(function(res) {
-        if (res.code != 1) return res
-        return Object.assign({}, res, {
-            data: res.data.recommendedProducts || []
-        })
-    })
+    return getHome(data).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: res.data.recommendedProducts || [] }) : res })
 }
 
-// 商品分类
 export function getCatrgory() {
-    return request.get('miniapp/category/tree').then(function(res) {
-        if (res.code == 1) {
-            return Object.assign({}, res, {
-                data: (Array.isArray(res.data) ? res.data : ((res.data && res.data.list) || [])).map(normalizeCategory)
-            })
-        }
-        return res
-    }).catch(function() {
-        return { code: 1, data: [] }
-    })
+    return request.get('miniapp/category/tree').then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: (Array.isArray(res.data) ? res.data : ((res.data && res.data.list) || [])).map(normalizeCategory) }) : res })
+        .catch(function() { return { code: 1, data: [] } })
 }
 
-// 商品详情
 export function getGoodsDetail(data) {
     var spuId = data.id || data.spuId
-    if (!spuId) {
-        return Promise.resolve({ code: 0, msg: '缺少必要参数：商品', data: null })
-    }
-    return request.get('miniapp/product/' + spuId).then(function(res) {
-        if (res.code == 1 && res.data) {
-            return Object.assign({}, res, {
-                data: normalizeGoodsDetail(res.data, spuId)
-            })
-        }
-        return res
-    }).catch(function() {
-        return { code: 0, msg: '商品详情接口暂不可用', data: null }
-    })
+    if (!spuId) return Promise.resolve({ code: 0, msg: '缺少必要参数：商品', data: null })
+    return request.get('miniapp/product/' + spuId).then(function(res) { return res.code == 1 && res.data ? Object.assign({}, res, { data: normalizeGoodsDetail(res.data, spuId) }) : res })
+        .catch(function() { return { code: 0, msg: '商品详情加载失败', data: null } })
 }
 
-// 商品搜索
 export function getGoodsSearch(data = {}) {
     return request.get('miniapp/search/products', {
-        params: {
-            keyword: data.keyword,
-            categoryId: data.category_id || data.categoryId,
-            shopId: data.shop_id || data.shopId,
-            sortType: data.sortType || data.price || data.sales_sum,
-            minPrice: data.minPrice || data.min_price,
-            maxPrice: data.maxPrice || data.max_price,
-            pageNo: data.page_no || data.pageNo,
-            pageSize: data.page_size || data.pageSize
-        }
+        params: { keyword: data.keyword, categoryId: data.category_id || data.categoryId, shopId: data.shop_id || data.shopId, sortType: data.sortType || data.price || data.sales_sum, minPrice: data.minPrice || data.min_price, maxPrice: data.maxPrice || data.max_price, pageNo: data.page_no || data.pageNo, pageSize: data.page_size || data.pageSize }
     }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeGoodsList(res.data || {}) }) : res })
         .catch(function() { return { code: 1, data: normalizeGoodsList({ list: [], total: 0, hasNext: false }) } })
 }
 
-// 搜索页,热门搜索列表,和历史搜索列表
 export function getSearchpage(data) {
     return getGoodsSearch(data)
 }
 
-// 清空历史搜索
 export function clearSearch() {
     return Promise.resolve({ code: 1, data: [] })
 }
 
-// 评价列表
 export function getCommentList(data) {
     var spuId = data.goods_id || data.spuId || data.productId
-    return request.get('miniapp/product/' + spuId + '/comments', {
-        params: {
-            commentType: data.id || data.commentType || data.type,
-            pageNo: data.pageNo || data.page_no || data.page || 1,
-            pageSize: data.pageSize || data.page_size || 10
-        }
-    }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeCommentPage(res.data || {}) }) : res })
-        .catch(function() {
-            return { code: 1, data: normalizeCommentPage({ list: [], total: 0 }) }
-        })
+    return request.get('miniapp/product/' + spuId + '/comments', { params: { commentType: data.id || data.commentType || data.type, pageNo: data.pageNo || data.page_no || data.page || 1, pageSize: data.pageSize || data.page_size || 10 } })
+        .then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeCommentPage(res.data || {}) }) : res })
+        .catch(function() { return { code: 1, data: normalizeCommentPage({ list: [], total: 0 }) } })
 }
 
-// 获取评价列表
 export function getOrderCommentList(data) {
     return request.get('miniapp/orders', { params: data })
 }
 
-// 购物车数量更改
 export function changeGoodsCount(data) {
     var cartItemId = data.cartItemId || data.cart_id
-    if (cartItemId) {
-        return request.put('miniapp/cart/items/' + cartItemId, {
-            quantity: data.goods_num || data.quantity || data.value,
-            checked: data.checked
-        })
-    }
-    return request.post('miniapp/cart/items', {
-        skuId: data.skuId || data.item_id || data.sku_id,
-        quantity: data.goods_num || data.quantity || data.value
-    })
+    if (cartItemId) return request.put('miniapp/cart/items/' + cartItemId, { quantity: data.goods_num || data.quantity || data.value, checked: data.checked })
+    return request.post('miniapp/cart/items', { skuId: data.skuId || data.item_id || data.sku_id, quantity: data.goods_num || data.quantity || data.value })
 }
 
-// 单选/全选/店铺选择
 export function selectedOpt(data) {
     var cartItemId = data.cartItemId || data.cart_id || data.id
     if (cartItemId) {
         if (Array.isArray(cartItemId)) {
-            return Promise.all(cartItemId.map(function(id) { return selectedOpt(Object.assign({}, data, {
-                cart_id: id,
-                cartItemId: id
-            })) })).then(function(results) {
+            return Promise.all(cartItemId.map(function(id) { return selectedOpt(Object.assign({}, data, { cart_id: id, cartItemId: id })) })).then(function(results) {
                 var failed = results.find(function(item) { return item.code != 1 })
                 return failed || { code: 1, data: results }
             })
         }
-        return request.put('miniapp/cart/items/' + cartItemId, {
-            quantity: data.goods_num || data.quantity,
-            checked: valueOr(data.checked, data.selected)
-        })
+        return request.put('miniapp/cart/items/' + cartItemId, { quantity: data.goods_num || data.quantity, checked: valueOr(data.checked, data.selected) })
     }
     return request.post('miniapp/cart/items', data)
 }
 
-// 删除商品
 export function deleteGoods(data) {
     var cartItemId = data.cartItemId || data.cart_id || data.id
     return request.delete('miniapp/cart/items/' + cartItemId)
 }
 
-// 购物车选中状态
 export function changeCartSelect(data) {
     return selectedOpt(data)
 }
 
-// 评价分类
 export function getCommentCategory(id) {
-    return request.get('miniapp/product/' + id + '/comments', {
-        params: {
-            pageNo: 1,
-            pageSize: 1
-        }
-    }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeCommentPage(res.data || {}) }) : res })
+    return request.get('miniapp/product/' + id + '/comments', { params: { pageNo: 1, pageSize: 1 } })
+        .then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeCommentPage(res.data || {}) }) : res })
 }
 
-// 加入购物车
 export function addCart(data) {
-    return request.post('miniapp/cart/items', {
-        skuId: data.skuId || data.item_id || data.id,
-        quantity: data.quantity || data.goods_num || data.num || 1,
-        checked: data.checked !== undefined ? data.checked : true
-    })
+    return request.post('miniapp/cart/items', { skuId: data.skuId || data.item_id || data.id, quantity: data.quantity || data.goods_num || data.num || 1, checked: data.checked !== undefined ? data.checked : true })
 }
 
-// 购物车数量
 export function getCartNum(params) {
     return request.get('miniapp/cart/items', { params })
 }
 
-// 获取商品热搜榜单
 export function getHotGoods(data) {
     return getGoodsSearch(data)
 }
 
-// 获取秒杀时间段
 export function getSeckillTime() {
     return request.get('miniapp/activity/list')
 }
 
-// 获取秒杀商品
 export function getSeckillGoods(params) {
-    return request.get('miniapp/activity/list', {
-        params
-    })
+    return request.get('miniapp/activity/list', { params })
 }
-
-// 消息中心首页
 export function getMessageLists() {
     return getMessages({ pageNo: 1, pageSize: 3 }).then(function(res) {
         if (res.code != 1) return res
@@ -914,26 +799,22 @@ export function getMessageLists() {
     })
 }
 
-// 消息通知
 export function getNoticeLists(params) {
     return getMessages(params)
 }
 
-// 商品海报
 export function getPoster(data) {
     return request.get('miniapp/product/' + (data.id || data.spuId), {
         params: data
     })
 }
 
-// 门店自提列表
 export function getStoreList(data) {
     return request.get('miniapp/shop/' + (data.shop_id || data.shopId || ''), {
         params: data
     })
 }
 
-// 直播列表
 export function getLiveRoom(data) {
     return getHome().then(function(res) {
         if (res.code != 1) return res

@@ -94,7 +94,7 @@ export default {
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
-    padding-top: calc(var(--status-bar-height) + 24rpx);
+    padding-top: calc(var(--app-safe-top) + 24rpx);
     background: #ffffff url('https://shengyuan.store/api/miniapp/files/miniapp/2faee69a62c34ddab3bc464bc7b57d22/d8467d9a62a60ccdbb6908777aebe692.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;

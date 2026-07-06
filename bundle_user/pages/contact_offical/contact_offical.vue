@@ -196,7 +196,6 @@ export default {
                 this.server.qq ? `客服QQ：${this.server.qq}` : '',
                 this.server.phone ? `客服电话：${this.server.phone}` : '',
                 this.server.time ? `服务时间：${this.server.time}` : '',
-                this.server.onlineUrl ? `在线客服：${this.server.onlineUrl}` : '',
                 this.goodsName ? `咨询商品：${this.goodsName}` : '',
                 this.shopName ? `店铺：${this.shopName}` : ''
             ].filter(Boolean)

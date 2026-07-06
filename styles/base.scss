@@ -2,7 +2,7 @@
 
 page {
     --app-max-width: 750rpx;
-    --app-safe-top: var(--status-bar-height, 0px);
+    --app-safe-top: var(--status-bar-height, 44rpx);
     --app-safe-bottom: constant(safe-area-inset-bottom);
     --app-safe-bottom: env(safe-area-inset-bottom);
     --app-window-bottom: var(--window-bottom, 0px);
