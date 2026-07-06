@@ -6,6 +6,10 @@ import store from "@/store";
 import Cache from "@/utils/cache";
 import { USER_INFO } from "@/config/cachekey";
 
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
 function normalizeMiniappLoginResult(res) {
   const payload = res && res.data ? res.data : res;
   const accessToken = payload && (payload.accessToken || payload.token);
@@ -232,7 +236,7 @@ function normalizePaywayResponse(res, params = {}) {
   const now = Math.floor(Date.now() / 1000);
   const amountInfo = data.amountInfo || {};
   const baseInfo = data.baseInfo || {};
-  const amount = amountInfo.payAmount || data.paidAmount || data.payAmount || data.orderAmount || baseInfo.orderAmount || params.order_amount || params.amount || 0;
+  const amount = firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount, data.paidAmount, data.orderAmount, baseInfo.orderAmount, params.order_amount, params.amount, 0);
   return {
     ...(res || {}),
     code: res && res.code == 0 ? 0 : 1,
@@ -296,7 +300,7 @@ export async function prepay(data = {}) {
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
     bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
-    amount: data.amount || data.payAmount || data.order_amount,
+    amount: firstDefined(data.amount, data.payAmount, data.order_amount),
     payScene: data.payScene || "MINIAPP",
     payMethod: "WECHAT_JSAPI",
     clientIp: data.clientIp || "127.0.0.1",

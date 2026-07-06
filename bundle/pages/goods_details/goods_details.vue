@@ -148,7 +148,7 @@
 					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png" mode="aspectFit"></image>
 					<text class="option-row__text">{{ freightText }}</text>
 				</view>
-				<view v-if="goodsCoupons.length" class="option-panel__line option-panel__line--thin"></view>
+				<view v-if="optionBenefits.length" class="option-panel__line option-panel__line--thin"></view>
 				<view v-if="goodsCoupons.length" class="option-row option-row--coupon" @tap="showGoodsCoupon = true">
 					<view class="option-row__coupon-icon">券</view>
 					<view class="option-row__coupon-content">
@@ -157,10 +157,18 @@
 					</view>
 					<view class="option-row__coupon-action">领取</view>
 				</view>
+				<view v-if="goodsCoupons.length && optionPointsBenefit" class="option-panel__line option-panel__line--thin"></view>
+				<view v-if="optionPointsBenefit" class="option-row option-row--benefit">
+					<view class="option-row__benefit-icon">积</view>
+					<view class="option-row__coupon-content">
+						<view class="option-row__coupon-title">积分</view>
+						<view class="option-row__benefit-text line1">{{ optionPointsBenefit.text }}</view>
+					</view>
+				</view>
 			</view>
-			<view v-if="marketingBenefits.length" class="marketing-panel bg-white mt20">
+			<view v-if="otherMarketingBenefits.length" class="marketing-panel bg-white mt20">
 				<view class="marketing-panel__title">营销优惠</view>
-				<view v-for="item in marketingBenefits" :key="item.key" class="marketing-panel__row">
+				<view v-for="item in otherMarketingBenefits" :key="item.key" class="marketing-panel__row">
 					<text class="marketing-panel__tag">{{ item.tag }}</text>
 					<text class="marketing-panel__text line1">{{ item.text }}</text>
 				</view>
@@ -578,7 +586,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			},
 			async prepareGoodsShareQrcode() {
 				const qrcodeValue = this.shareQrcode || this.goodsShareUrl();
-				console.log('商品二维码内容', qrcodeValue);
 				if (this.shareQrcode) return;
 				this.shareQrcodeTempImage = '';
 				this.shareQrcode = qrcodeValue;
@@ -1430,6 +1437,15 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
                 }
                 return list
             },
+			optionBenefits() {
+				return [this.goodsCoupons.length ? { key: 'coupon' } : null, this.optionPointsBenefit].filter(Boolean)
+			},
+			optionPointsBenefit() {
+				return this.marketingBenefits.find(item => item.key === 'points') || null
+			},
+			otherMarketingBenefits() {
+				return this.marketingBenefits.filter(item => item.key !== 'coupon' && item.key !== 'points')
+			},
 			goodsServiceList() {
 				const detail = this.goodsDetail || {}
 				const tags = this.formatPlainTags(detail.service_tags || detail.serviceTags || detail.services || detail.serviceList || detail.service_list)
@@ -1971,6 +1987,19 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			color: #ffffff;
 		}
 
+		.option-row__benefit-icon {
+			flex: none;
+			width: 38rpx;
+			height: 38rpx;
+			border-radius: 8rpx;
+			background: linear-gradient(135deg, #ff8a00 0%, #ffc24b 100%);
+			font-size: 22rpx;
+			font-weight: 600;
+			line-height: 38rpx;
+			text-align: center;
+			color: #ffffff;
+		}
+
 		.option-row__coupon-content {
 			flex: 1;
 			min-width: 0;
@@ -1989,6 +2018,13 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			font-size: 23rpx;
 			line-height: 30rpx;
 			color: #ff4d2e;
+		}
+
+		.option-row__benefit-text {
+			margin-top: 8rpx;
+			font-size: 23rpx;
+			line-height: 30rpx;
+			color: #ff7417;
 		}
 
 		.option-row__coupon-action {
@@ -2285,7 +2321,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.spec {
+			margin: 24rpx 26rpx 0;
 			padding: 24rpx;
+			border-radius: 24rpx;
+			box-sizing: border-box;
 
 			.text {
 				width: 100rpx;

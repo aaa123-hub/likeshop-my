@@ -1,17 +1,21 @@
 <template>
-    <view class="pending-page">
+    <view class="pending-page" :class="{ 'pending-page--notch': isNotchScreen }">
         <view class="page-head">
             <view class="nav-row">
                 <view class="back-icon" @tap="goBack"></view>
                 <text class="nav-title">待付款</text>
             </view>
             <view class="tips-row">
-                <image
-                    class="tips-icon"
-                    src="https://shengyuan.store/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png"
-                    mode="scaleToFill"
-                ></image>
-                <text class="tips-text">请核对订单信息后完成付款</text>
+                <view class="tips-icon-wrap">
+                    <image
+                        class="tips-icon"
+                        src="https://shengyuan.store/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png"
+                        mode="scaleToFill"
+                    ></image>
+                </view>
+                <view class="tips-copy">
+                    <text class="tips-text">温馨提示：请确认订单信息、收货地址和支付方式后再完成付款，线上订单确认收货后积分到账，退款时将按原订单抵扣和赠送记录同步退回。</text>
+                </view>
             </view>
         </view>
 
@@ -84,9 +88,12 @@
                     </view>
                 </view>
                 <view class="divider"></view>
-                <view class="summary-row">
+                <view class="summary-row points-row">
                     <text>总积分</text>
-                    <text class="point-text">{{ order.points || 0 }}</text>
+                    <view class="points-value">
+                        <text class="points-num">{{ order.points || 0 }}</text>
+                        <text class="points-unit">积分</text>
+                    </view>
                 </view>
             </view>
 
@@ -127,10 +134,23 @@
 export default {
     data() {
         return {
-            order: null
+            order: null,
+            isNotchScreen: false
         }
     },
+    onLoad() {
+        this.setScreenSafeState()
+    },
     methods: {
+        setScreenSafeState() {
+            try {
+                const systemInfo = uni.getSystemInfoSync()
+                const safeTop = systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top
+                this.isNotchScreen = Number(safeTop || systemInfo.statusBarHeight || 0) > 24
+            } catch (e) {
+                this.isNotchScreen = false
+            }
+        },
         goBack() {
             const pages = getCurrentPages()
             if (pages.length > 1) {
@@ -171,6 +191,11 @@ page {
     box-sizing: border-box;
 }
 
+.pending-page--notch .nav-row {
+    height: calc(var(--app-safe-top) + 112rpx);
+    padding-top: calc(var(--app-safe-top) + 48rpx);
+}
+
 /* #ifdef MP-WEIXIN */
 .nav-row {
     padding-right: 220rpx;
@@ -208,29 +233,56 @@ page {
 .tips-row {
     display: flex;
     align-items: center;
-    height: 96rpx;
-    padding: 14rpx 24rpx;
-    background: #ffebd8;
+    min-height: 84rpx;
+    margin: 14rpx 24rpx 0;
+    padding: 16rpx 24rpx;
+    border: 1rpx solid rgba(255, 158, 54, 0.16);
+    border-radius: 24rpx;
+    background: linear-gradient(135deg, #fff8ef 0%, #fffdf8 100%);
+    box-shadow: 0 6rpx 18rpx rgba(222, 125, 20, 0.06);
+    box-sizing: border-box;
+}
+
+.tips-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 48rpx;
+    height: 48rpx;
+    border-radius: 16rpx;
+    background: rgba(255, 226, 190, 0.58);
     box-sizing: border-box;
 }
 
 .tips-icon {
-    flex: none;
-    width: 68rpx;
-    height: 68rpx;
+    width: 32rpx;
+    height: 32rpx;
+}
+
+.tips-copy {
+    flex: 1;
+    min-width: 0;
+    margin-left: 14rpx;
 }
 
 .tips-text {
-    margin-left: 14rpx;
-    font-size: 24rpx;
-    line-height: 28rpx;
-    color: #f1790e;
+    display: block;
+    font-size: 23rpx;
+    font-weight: 500;
+    line-height: 34rpx;
+    color: #bf6618;
+    white-space: normal;
 }
 
 .page-scroll {
-    height: calc(100vh - var(--app-safe-top) - 160rpx - 154rpx - env(safe-area-inset-bottom));
+    height: calc(100vh - var(--app-safe-top) - 166rpx - 154rpx - env(safe-area-inset-bottom));
     padding: 0 24rpx 32rpx;
     box-sizing: border-box;
+}
+
+.pending-page--notch .page-scroll {
+    height: calc(100vh - var(--app-safe-top) - 214rpx - 154rpx - env(safe-area-inset-bottom));
 }
 
 .order-card,
@@ -406,10 +458,37 @@ page {
     margin-left: 17rpx;
 }
 
-.point-text {
-    font-size: 24rpx;
-    font-weight: 500;
+.points-row {
+    min-height: 108rpx;
+    border-radius: 0 0 15rpx 15rpx;
+    background: linear-gradient(90deg, #ffffff 0%, #fff8f1 100%);
+}
+
+.points-value {
+    display: flex;
+    align-items: center;
+    min-width: 116rpx;
+    height: 48rpx;
+    padding: 0 18rpx;
+    border: 1rpx solid rgba(255, 116, 23, 0.22);
+    border-radius: 24rpx;
+    background: #fff3e8;
+    box-sizing: border-box;
+}
+
+.points-num {
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 28rpx;
     color: #ff7417;
+}
+
+.points-unit {
+    margin-left: 6rpx;
+    font-size: 22rpx;
+    font-weight: 400;
+    line-height: 22rpx;
+    color: #c97730;
 }
 
 .pay-section {

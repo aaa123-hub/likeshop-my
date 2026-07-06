@@ -225,7 +225,7 @@ export default {
             return homeRecentVisits.length ? homeRecentVisits : this.recentVisitFallback
         },
         hotActivityList() {
-            return []
+            return this.homeData.hotActivities || this.homeData.activities || this.homeData.activityList || []
         },
         recommendedProductList() {
             return this.homeData.recommendedProducts || []

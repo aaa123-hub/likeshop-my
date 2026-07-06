@@ -157,15 +157,15 @@
                         <text>运费合计</text>
                         <text class="muted-value">{{ freightText }}</text>
                     </view>
-                    <view class="divider" v-if="orderInfo.order_type == 0"></view>
-                    <view class="summary-row summary-row--coupon" v-if="orderInfo.order_type == 0" @tap="showCoupon = true">
+                    <view class="divider"></view>
+                    <view class="summary-row" @tap="openCouponPopup">
                         <text>优惠券</text>
                         <view class="row-value">
                             <text :class="discountAmount > 0 ? 'red-value' : 'muted-value'">{{ couponText }}</text>
                             <image class="small-arrow" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" mode="scaleToFill"></image>
                         </view>
                     </view>
-                    <template v-if="orderInfo.integral_switch">
+                    <template v-if="showIntegralRow">
                         <view class="divider"></view>
                         <view class="summary-row" @tap="changeIntegral">
                             <text>总积分</text>
@@ -185,10 +185,8 @@
                 </view>
 
                 <view class="points-settle-tip">
-                    <view class="points-settle-tip__icon">i</view>
                     <view class="points-settle-tip__text">
-                        <text>线上订单确认收货后积分到账。</text>
-                        <text>退款时将按原订单抵扣和赠送记录同步退回。</text>
+                        <text>线上订单确认收货后积分到账，退款时将按原订单抵扣和赠送记录同步退回。</text>
                     </view>
                 </view>
 
@@ -215,7 +213,7 @@
                             :subscript-size="35"
                             :first-size="50"
                             :second-size="35"
-                            :price="orderInfo.order_amount || 0"
+                            :price="payAmount"
                             :weight="500"
                         ></price-format>
                     </view>
@@ -333,10 +331,19 @@ export default {
             return this.resolveOrderImage(firstGoods.shop_logo || firstGoods.shopLogo || firstGoods.shopLogoUrl || firstGoods.storeLogo || this.orderInfo.shop_logo || this.orderInfo.shopLogo || this.orderInfo.shopLogoUrl || this.orderInfo.storeLogo || '', 'avatar')
         },
         freightText() {
+            if (this.currentDelivery.sign === 'store') {
+                return '¥0.00'
+            }
             if (!this.address.id && this.currentDelivery.sign === 'express') {
                 return '填写地址后自动计算运费'
             }
             return `¥${this.orderInfo.shipping_price || '0.00'}`
+        },
+        payAmount() {
+            const orderAmount = Number(this.orderInfo.order_amount || 0)
+            if (this.currentDelivery.sign !== 'store') return orderAmount
+            const shippingPrice = Number(this.orderInfo.shipping_price || 0)
+            return Math.max(orderAmount - shippingPrice, 0).toFixed(2)
         },
         discountAmount() {
             return Number(this.orderInfo.discount_amount || this.orderInfo.discountAmount || 0)
@@ -347,6 +354,9 @@ export default {
             if (this.usableCoupon.length) return `${this.usableCoupon.length}张可用`
             return '没有可用的优惠券'
         },
+        canOpenCoupon() {
+            return this.usableCoupon.length || this.unusableCoupon.length
+        },
         selectedCoupon() {
             if (!this.couponId) return null
             return this.usableCoupon.find(item => String(item.id || item.coupon_id || item.couponId) === String(this.couponId)) || null
@@ -356,6 +366,9 @@ export default {
             if (this.useIntegral && this.pointsDeductAmount > 0) return `${this.pointsAmount || userIntegral}积分抵¥${this.pointsDeductAmount.toFixed(2)}`
             if (this.pointsDeductAmount > 0) return `${userIntegral}积分，可抵¥${this.pointsDeductAmount.toFixed(2)}`
             return `${userIntegral}积分`
+        },
+        showIntegralRow() {
+            return this.orderInfo.integral_switch !== false && this.orderInfo.integral_switch !== 0 && this.orderInfo.integral_switch !== '0'
         },
         pointsAmount() {
             return this.pickNumber(this.orderInfo, ['pointsAmount', 'points_amount', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points'])
@@ -526,6 +539,10 @@ export default {
             this.showCoupon = false
             this.handleOrderMethods('info')
         },
+        openCouponPopup() {
+            if (!this.canOpenCoupon) return
+            this.showCoupon = true
+        },
         toggleCoupon(id) {
             if (this.couponTabsIndex !== 0) return
             this.couponId = this.couponId == id ? '' : id
@@ -578,7 +595,7 @@ export default {
         },
         initCouponData() {
             if (!this.goods.length) return
-            getOrderCoupon({ goods: this.goods })
+            getOrderCoupon({ goods: this.goods, type: this.type })
                 .then(({ code, data, msg }) => {
                     if (code != 1) throw new Error(msg)
                     return data
@@ -771,29 +788,31 @@ page {
 .tips-row {
     display: flex;
     align-items: center;
-    min-height: 96rpx;
-    padding: 14rpx 24rpx;
-    background: #ffebd8;
+    width: calc(100% - 48rpx);
+    min-height: 76rpx;
+    margin: 14rpx 24rpx 0;
+    padding: 16rpx 24rpx;
+    border: 1rpx solid rgba(255, 158, 54, 0.16);
+    border-radius: 24rpx;
+    background: linear-gradient(135deg, #fff8ef 0%, #fffdf8 100%);
+    box-shadow: 0 6rpx 18rpx rgba(222, 125, 20, 0.06);
     box-sizing: border-box;
 }
 
-/* #ifdef MP-WEIXIN */
-.tips-row {
-    padding-right: 220rpx;
-}
-/* #endif */
-
 .tips-icon {
     flex: none;
-    width: 68rpx;
-    height: 68rpx;
+    width: 34rpx;
+    height: 34rpx;
 }
 
 .tips-text {
-    margin-left: 14rpx;
+    flex: 1;
+    min-width: 0;
+    margin-left: 12rpx;
     font-size: 24rpx;
-    line-height: 28rpx;
-    color: #f1790e;
+    line-height: 34rpx;
+    color: #bf6618;
+    white-space: normal;
 }
 
 .confirm-con {
@@ -983,10 +1002,6 @@ page {
     box-sizing: border-box;
 }
 
-.summary-row--coupon {
-    background: linear-gradient(90deg, rgba(255, 246, 241, 0.9) 0%, #ffffff 52%);
-}
-
 .muted-value {
     font-size: 24rpx;
     font-weight: 400;
@@ -1045,9 +1060,9 @@ page {
 
 .points-settle-tip {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     margin: 19rpx 0 0;
-    padding: 22rpx 24rpx;
+    padding: 20rpx 24rpx;
     border: 1rpx solid #d9eaff;
     border-radius: 15rpx;
     background: linear-gradient(135deg, #f2f8ff 0%, #ffffff 100%);
@@ -1055,30 +1070,19 @@ page {
     box-sizing: border-box;
 }
 
-.points-settle-tip__icon {
-    flex: none;
-    width: 30rpx;
-    height: 30rpx;
-    margin-top: 2rpx;
-    border-radius: 50%;
-    background: #037dfa;
-    font-size: 22rpx;
-    font-weight: 600;
-    line-height: 30rpx;
-    text-align: center;
-    color: #ffffff;
-}
-
 .points-settle-tip__text {
     flex: 1;
-    margin-left: 12rpx;
-    font-size: 23rpx;
-    line-height: 34rpx;
+    min-width: 0;
+    font-size: 20rpx;
+    line-height: 28rpx;
     color: #4d6580;
+    white-space: nowrap;
 }
 
 .points-settle-tip__text text {
-    display: block;
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
 }
 
 .pay-section {

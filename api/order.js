@@ -12,12 +12,36 @@ function numberValue(value, fallback = 0) {
   return Number.isNaN(number) ? fallback : number;
 }
 
+function buildPointsPayload(data = {}) {
+  const usePoints = Boolean(data.use_integral || data.usePoints);
+  const pointsDeductAmount = usePoints ? numberValue(firstDefined(
+    data.pointsDeductAmount,
+    data.points_deduct_amount,
+    data.integral_amount,
+    data.orderInfo?.pointsDeductAmount,
+    data.orderInfo?.points_deduct_amount,
+    data.orderInfo?.integral_amount
+  )) : 0;
+  const pointsAmount = usePoints ? numberValue(firstDefined(
+    data.pointsAmount,
+    data.points_amount,
+    data.integral_num,
+    data.orderInfo?.pointsAmount,
+    data.orderInfo?.points_amount,
+    data.orderInfo?.usedPoints,
+    data.orderInfo?.used_points,
+    data.orderInfo?.integral_num
+  )) : 0;
+
+  return { pointsDeductAmount, pointsAmount, usePoints };
+}
+
 function normalizeCouponItem(item = {}) {
   const threshold = firstDefined(item.use_condition, item.useCondition, item.conditionText, item.thresholdAmount, item.minAmount, item.useThreshold);
   const amount = firstDefined(item.money, item.amount, item.discountAmount, item.couponAmount, item.value, 0);
   return {
     ...item,
-    id: firstDefined(item.id, item.couponId, item.userCouponId),
+    id: firstDefined(item.id, item.coupon_id, item.couponId, item.userCouponId),
     coupon_id: firstDefined(item.coupon_id, item.couponId, item.id, item.userCouponId),
     name: firstDefined(item.name, item.couponName, item.coupon_name, item.title, "优惠券"),
     money: amount,
@@ -234,16 +258,16 @@ function normalizeOrderPreview(data = {}) {
     address: data.address || {},
     shop_orders: data.shopOrders || data.shop_orders || [],
     goods_lists: goodsLists,
-    total_goods_price: data.goodsAmount || data.total_goods_price || 0,
-    discount_amount: data.discountAmount || data.discount_amount || 0,
+    total_goods_price: firstDefined(data.goodsAmount, data.total_goods_price, 0),
+    discount_amount: firstDefined(data.discountAmount, data.discount_amount, 0),
     points_deduct_amount: pointsDeductAmount,
     pointsDeductAmount,
     points_amount: pointsAmount,
     pointsAmount,
     integral_amount: pointsDeductAmount,
     integral_num: pointsAmount,
-    shipping_price: data.freightAmount || data.shipping_price || 0,
-    order_amount: data.payAmount || data.order_amount || 0,
+    shipping_price: firstDefined(data.freightAmount, data.shipping_price, 0),
+    order_amount: firstDefined(data.payAmount, data.pay_amount, data.order_amount, 0),
     integral_switch: pointsEnabled ?? (Number(pointsDeductAmount) > 0 || Number(pointsAmount) > 0),
     integral_limit: data.integralLimit ?? data.integral_limit ?? 0,
     integral_config: data.integralConfig ?? data.integral_config ?? 1,
@@ -270,6 +294,7 @@ function normalizePayResult(data = {}) {
 }
 
 function normalizeSubmitOrder(data = {}) {
+  const amountInfo = data.amountInfo || {};
   return {
     ...data,
     order_id: data.orderNo || data.order_id || data.id,
@@ -277,8 +302,10 @@ function normalizeSubmitOrder(data = {}) {
     type: data.type || 'order',
     payOrderNo: data.payOrderNo || data.pay_order_no || '',
     pay_order_no: data.pay_order_no || data.payOrderNo || '',
-    orderStatus: data.orderStatus || 0,
-    payStatus: data.payStatus || '',
+    orderStatus: firstDefined(data.orderStatus, data.order_status, 0),
+    payStatus: firstDefined(data.payStatus, data.pay_status, ''),
+    order_amount: firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount, 0),
+    payAmount: firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount, 0),
     expireTime: data.expireTime || data.cancel_time || 0,
   }
 }
@@ -288,17 +315,17 @@ export async function orderBuy(data) {
   const isSubmit = data && (data.action === 'submit' || data.submitToken || data.source || data.payScene || data.idempotentKey);
   const goodsList = data.goods || [];
   const cartItemIds = data.cartItemIds || goodsList.map((item) => item.cartItemId || item.cart_id).filter(Boolean);
+  const isCartOrder = data.type === 'cart' || cartItemIds.length > 0;
+  const pointsPayload = buildPointsPayload(data);
   const payload = {
     submitToken: data.submitToken || data.submit_token || data.orderInfo?.submitToken || latestSubmitToken || '',
-    source: data.source || (cartItemIds.length ? 'CART' : 'BUY_NOW'),
+    source: data.source || (isCartOrder ? 'CART' : 'BUY_NOW'),
     cartItemIds,
-    skuId: data.skuId || data.item_id || goodsList[0]?.skuId || goodsList[0]?.item_id || goodsList[0]?.id,
-    quantity: data.quantity || data.goods_num || goodsList[0]?.quantity || goodsList[0]?.num,
+    skuId: isCartOrder ? undefined : data.skuId || data.item_id || goodsList[0]?.skuId || goodsList[0]?.item_id || goodsList[0]?.id,
+    quantity: isCartOrder ? undefined : data.quantity || data.goods_num || goodsList[0]?.quantity || goodsList[0]?.num,
     addressId: data.addressId || data.address_id || '',
     couponIds: data.couponIds || (data.coupon_id ? [data.coupon_id] : []),
-    pointsDeductAmount: data.use_integral ? numberValue(firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integral_amount, data.orderInfo?.pointsDeductAmount, data.orderInfo?.points_deduct_amount, data.orderInfo?.integral_amount)) : 0,
-    pointsAmount: data.use_integral ? numberValue(firstDefined(data.pointsAmount, data.points_amount, data.integral_num, data.orderInfo?.pointsAmount, data.orderInfo?.points_amount, data.orderInfo?.usedPoints, data.orderInfo?.used_points, data.orderInfo?.integral_num)) : 0,
-    usePoints: Boolean(data.use_integral),
+    ...pointsPayload,
     remark: data.remark || data.userRemark || '',
     payScene: data.payScene || 'MINIAPP',
     idempotentKey: data.idempotentKey || `order-${Date.now()}`
@@ -379,15 +406,17 @@ export function confirmOrder(id) {
 //下单获取优惠券
 export function getOrderCoupon(data) {
   const goodsList = data?.goods || [];
+  const cartItemIds = data?.cartItemIds || goodsList.map((item) => item.cartItemId || item.cart_id).filter(Boolean);
+  const isCartOrder = data?.type === 'cart' || cartItemIds.length > 0;
+  const pointsPayload = buildPointsPayload(data);
   return request.post("miniapp/orders/preview", {
-    source: data?.source || "BUY_NOW",
-    cartItemIds: data?.cartItemIds || goodsList.map((item) => item.cartItemId || item.cart_id).filter(Boolean),
-    skuId: data?.skuId || data?.item_id || goodsList[0]?.skuId || goodsList[0]?.item_id || goodsList[0]?.id,
-    quantity: data?.quantity || data?.goods_num || goodsList[0]?.quantity || goodsList[0]?.num,
+    source: data?.source || (isCartOrder ? "CART" : "BUY_NOW"),
+    cartItemIds,
+    skuId: isCartOrder ? undefined : data?.skuId || data?.item_id || goodsList[0]?.skuId || goodsList[0]?.item_id || goodsList[0]?.id,
+    quantity: isCartOrder ? undefined : data?.quantity || data?.goods_num || goodsList[0]?.quantity || goodsList[0]?.num,
     addressId: data?.addressId || data?.address_id || '',
     couponIds: data?.couponIds || (data?.coupon_id ? [data.coupon_id] : []),
-    pointsDeductAmount: data?.pointsDeductAmount || data?.points_deduct_amount || data?.integral_amount || (data?.use_integral ? data?.orderInfo?.pointsDeductAmount || data?.orderInfo?.points_deduct_amount || data?.orderInfo?.integral_amount || 0 : 0),
-    pointsAmount: data?.pointsAmount || data?.points_amount || (data?.use_integral ? data?.orderInfo?.pointsAmount || data?.orderInfo?.points_amount || data?.orderInfo?.usedPoints || data?.orderInfo?.used_points || 0 : 0),
+    ...pointsPayload,
     remark: data?.remark || '',
     idempotentKey: data?.idempotentKey || `order-preview-${Date.now()}`
   }).then((res) => {

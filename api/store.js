@@ -420,6 +420,19 @@ function normalizeCommentPage(data = {}) {
     })
 }
 
+function normalizeHomeActivity(item = {}) {
+    return Object.assign({}, item, {
+        id: item.id || item.activityId || item.activity_id || item.targetId || item.target_id || '',
+        title: item.title || item.name || item.activityName || item.activity_name || '热门活动',
+        name: item.name || item.title || item.activityName || item.activity_name || '热门活动',
+        desc: item.desc || item.subTitle || item.subtitle || item.summary || item.description || item.activityDesc || item.activity_desc || '',
+        cover: resolveImage(item.cover || item.image || item.imageUrl || item.image_url || item.pic || item.picUrl || item.banner, 'goods'),
+        image: resolveImage(item.image || item.cover || item.imageUrl || item.image_url || item.pic || item.picUrl || item.banner, 'goods'),
+        targetId: item.targetId || item.target_id || item.activityId || item.activity_id || item.id || '',
+        url: item.url || item.link || item.jumpUrl || item.jump_url || ''
+    })
+}
+
 function normalizeHomeData(data = {}) {
     var recommendedProducts = data.recommendedProducts || data.recommendProducts || data.goodsList || data.products || data.productList || data.recommendGoods || data.recommendedGoods || data.goods || []
     var recommendedShops = data.recommendedShops || data.recommendShops || data.shopList || data.shops || data.merchantShops || []
@@ -431,7 +444,7 @@ function normalizeHomeData(data = {}) {
         recommendedProducts: (Array.isArray(recommendedProducts) ? recommendedProducts : []).map(normalizeGoodsListItem),
         recommendedShops: (Array.isArray(recommendedShops) ? recommendedShops : []).map(normalizeStreetShop),
         recentVisits: data.recentVisits || [],
-        hotActivities: Array.isArray(hotActivities) ? hotActivities : [],
+        hotActivities: (Array.isArray(hotActivities) ? hotActivities : []).map(normalizeHomeActivity),
         walletCard: data.walletCard || {
             balance: data.balance || 0,
             currency: 'CNY'

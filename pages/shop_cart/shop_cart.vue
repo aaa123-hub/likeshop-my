@@ -181,7 +181,8 @@ export default {
       return this.cartLists.findIndex((item) => item.selected == 1 && item.cart_status == 0) === -1;
     },
     isSelectedAll() {
-      return this.cartLists.length > 0 && this.cartLists.findIndex((item) => item.selected == 0 && item.cart_status == 0) === -1;
+      const availableItems = this.cartLists.filter((item) => item.cart_status == 0);
+      return availableItems.length > 0 && availableItems.findIndex((item) => item.selected == 0) === -1;
     },
     selectedCount() {
       return this.cartLists.reduce((sum, item) => {
@@ -212,10 +213,12 @@ export default {
   },
   onPullDownRefresh() {
     if (this.isLogin) {
-      this.getCartListFun();
-      return;
+      return this.getCartListFun();
     }
     uni.stopPullDownRefresh();
+  },
+  onUnload() {
+    this.clearCountSyncTimers();
   },
   methods: {
     ...mapActions(["getCartNum"]),
@@ -446,6 +449,12 @@ export default {
       delete timers[cartId];
       this.countSyncTimers = timers;
     },
+    clearCountSyncTimers() {
+      Object.keys(this.countSyncTimers).forEach((cartId) => {
+        clearTimeout(this.countSyncTimers[cartId]);
+      });
+      this.countSyncTimers = {};
+    },
     setCartItemCount(index, nextValue) {
       if (index === -1) return;
       const count = nextValue === '' ? '' : Number(nextValue || 0);
@@ -461,6 +470,8 @@ export default {
       this.cartLists.forEach((item) => {
         if (item.selected && item.cart_status == 0) {
           goods.push({
+            cart_id: item.cart_id,
+            cartItemId: item.cart_id,
             item_id: item.item_id,
             num: item.goods_num,
           });

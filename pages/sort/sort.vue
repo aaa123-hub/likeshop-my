@@ -123,7 +123,7 @@ import { getCatrgory } from '@/api/store'
 import Cache from '@/utils/cache'
 import { setTabbar } from '@/utils/tools'
 import { getDesignAsset, designAssetList } from '@/utils/design-assets'
-import { isPlaceholderImage } from '@/utils/image-placeholder'
+import { isPlaceholderImage, resolveImage as resolvePlaceholderImage } from '@/utils/image-placeholder'
 
 const defaultCategories = [
     '为你推荐',
@@ -181,6 +181,9 @@ export default {
         },
         categoryGroups() {
             if (!this.secondCategories.length) {
+                if (this.cateList.length && this.currentCategory.id) {
+                    return [{ name: '', children: [this.formatCategoryItem(this.currentCategory, 0)] }]
+                }
                 return [{
                     name: '',
                     children: fallbackHotCategories.map((item, index) => this.formatCategoryItem(item, index))
@@ -329,7 +332,7 @@ export default {
             if (image) {
                 return getDesignAsset(image)
             }
-            return ''
+            return resolvePlaceholderImage(designAssetList.categoryFallbacks[index % designAssetList.categoryFallbacks.length])
         },
         isEmptyImage(src) {
             return isPlaceholderImage(src)
