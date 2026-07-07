@@ -18,9 +18,13 @@ function buildPointsPayload(data = {}) {
     data.pointsDeductAmount,
     data.points_deduct_amount,
     data.integral_amount,
+    data.maxDeductAmount,
+    data.max_deduct_amount,
     data.orderInfo?.pointsDeductAmount,
     data.orderInfo?.points_deduct_amount,
-    data.orderInfo?.integral_amount
+    data.orderInfo?.integral_amount,
+    data.orderInfo?.maxDeductAmount,
+    data.orderInfo?.max_deduct_amount
   )) : 0;
   const pointsAmount = usePoints ? numberValue(firstDefined(
     data.pointsAmount,
@@ -33,7 +37,16 @@ function buildPointsPayload(data = {}) {
     data.orderInfo?.integral_num
   )) : 0;
 
-  return { pointsDeductAmount, pointsAmount, usePoints };
+  return {
+    pointsDeductAmount,
+    points_deduct_amount: pointsDeductAmount,
+    integral_amount: pointsDeductAmount,
+    pointsAmount,
+    points_amount: pointsAmount,
+    integral_num: pointsAmount,
+    usePoints,
+    use_integral: usePoints
+  };
 }
 
 function normalizeCouponItem(item = {}) {
@@ -249,9 +262,12 @@ function normalizeOrderPreview(data = {}) {
   const goodsLists = (data.goods_lists || data.itemList || data.items || flattenShopOrders(data.shopOrders || [])).map(normalizeOrderItem);
   const usableCoupons = (data.availableCoupons || data.usableCoupons || data.usable_coupon || data.usable || []).map(normalizeCouponItem);
   const unusableCoupons = (data.unavailableCoupons || data.unusableCoupons || data.unusable_coupon || data.unusable || []).map(normalizeCouponItem);
-  const pointsDeductAmount = firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integralAmount, data.integral_amount, data.integralDeductAmount, data.integral_deduct_amount, data.maxPointsDeductAmount, data.max_points_deduct_amount, 0);
-  const pointsAmount = firstDefined(data.pointsAmount, data.points_amount, data.usedPoints, data.used_points, data.integralNum, data.integral_num, data.deductPoints, data.deduct_points, data.maxUsablePoints, data.max_usable_points, 0);
-  const pointsEnabled = firstDefined(data.integralSwitch, data.integral_switch, data.pointsEnabled, data.points_enabled, data.supportPoints, data.support_points, data.canUsePoints, data.can_use_points);
+  const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {};
+  const pointsAccount = data.pointsAccount || data.points_account || {};
+  const pointsDeductAmount = firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integralAmount, data.integral_amount, data.integralDeductAmount, data.integral_deduct_amount, data.maxPointsDeductAmount, data.max_points_deduct_amount, data.maxDeductAmount, data.max_deduct_amount, pointsInfo.pointsDeductAmount, pointsInfo.points_deduct_amount, pointsInfo.integralAmount, pointsInfo.integral_amount, pointsInfo.maxPointsDeductAmount, pointsInfo.max_points_deduct_amount, pointsInfo.maxDeductAmount, pointsInfo.max_deduct_amount, 0);
+  const pointsAmount = firstDefined(data.pointsAmount, data.points_amount, data.usedPoints, data.used_points, data.integralNum, data.integral_num, data.deductPoints, data.deduct_points, data.maxUsablePoints, data.max_usable_points, pointsInfo.pointsAmount, pointsInfo.points_amount, pointsInfo.usedPoints, pointsInfo.used_points, pointsInfo.integralNum, pointsInfo.integral_num, pointsInfo.maxUsablePoints, pointsInfo.max_usable_points, 0);
+  const pointsEnabled = firstDefined(data.integralSwitch, data.integral_switch, data.pointsEnabled, data.points_enabled, data.supportPoints, data.support_points, data.canUsePoints, data.can_use_points, pointsInfo.integralSwitch, pointsInfo.integral_switch, pointsInfo.pointsEnabled, pointsInfo.points_enabled, pointsInfo.supportPoints, pointsInfo.support_points, pointsInfo.canUsePoints, pointsInfo.can_use_points);
+  const userIntegral = firstDefined(data.userIntegral, data.user_integral, data.availablePoints, data.available_points, data.points, pointsAccount.availablePoints, pointsAccount.available_points, pointsAccount.points, pointsInfo.userIntegral, pointsInfo.user_integral, pointsInfo.availablePoints, pointsInfo.available_points, pointsInfo.points, 0);
   const selectedCouponId = firstDefined(data.couponId, data.coupon_id, data.selectedCouponId, data.selected_coupon_id, data.usedCouponId, data.used_coupon_id);
   return {
     ...data,
@@ -262,6 +278,8 @@ function normalizeOrderPreview(data = {}) {
     discount_amount: firstDefined(data.discountAmount, data.discount_amount, 0),
     points_deduct_amount: pointsDeductAmount,
     pointsDeductAmount,
+    maxDeductAmount: pointsDeductAmount,
+    max_deduct_amount: pointsDeductAmount,
     points_amount: pointsAmount,
     pointsAmount,
     integral_amount: pointsDeductAmount,
@@ -269,10 +287,10 @@ function normalizeOrderPreview(data = {}) {
     shipping_price: firstDefined(data.freightAmount, data.shipping_price, 0),
     order_amount: firstDefined(data.payAmount, data.pay_amount, data.order_amount, 0),
     integral_switch: pointsEnabled ?? (Number(pointsDeductAmount) > 0 || Number(pointsAmount) > 0),
-    integral_limit: data.integralLimit ?? data.integral_limit ?? 0,
-    integral_config: data.integralConfig ?? data.integral_config ?? 1,
-    integral_desc: data.integralDesc || data.integral_desc || '可使用积分抵扣订单金额',
-    user_integral: data.userIntegral ?? data.user_integral ?? data.availablePoints ?? data.available_points ?? 0,
+    integral_limit: data.integralLimit ?? data.integral_limit ?? pointsInfo.integralLimit ?? pointsInfo.integral_limit ?? 0,
+    integral_config: data.integralConfig ?? data.integral_config ?? pointsInfo.integralConfig ?? pointsInfo.integral_config ?? 1,
+    integral_desc: data.integralDesc || data.integral_desc || pointsInfo.integralDesc || pointsInfo.integral_desc || '可使用积分抵扣订单金额',
+    user_integral: userIntegral,
     coupon_id: selectedCouponId || '',
     usableCoupon: usableCoupons,
     usable_coupon: usableCoupons,
@@ -424,9 +442,9 @@ export function getOrderCoupon(data) {
       return {
         ...res,
         data: {
-          usable: (res.data.availableCoupons || res.data.usableCoupons || res.data.usable || []).map(normalizeCouponItem),
-          unusable: (res.data.unavailableCoupons || res.data.unusableCoupons || res.data.unusable || []).map(normalizeCouponItem),
-          usableCoupon: (res.data.availableCoupons || res.data.usableCoupons || res.data.usable || []).map(normalizeCouponItem)
+          usable: (res.data.availableCoupons || res.data.usableCoupons || res.data.usable_coupon || res.data.usableCoupon || res.data.usable || []).map(normalizeCouponItem),
+          unusable: (res.data.unavailableCoupons || res.data.unusableCoupons || res.data.unusable_coupon || res.data.unusableCoupon || res.data.unusable || []).map(normalizeCouponItem),
+          usableCoupon: (res.data.availableCoupons || res.data.usableCoupons || res.data.usable_coupon || res.data.usableCoupon || res.data.usable || []).map(normalizeCouponItem)
         }
       }
     }

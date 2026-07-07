@@ -14,7 +14,7 @@
                 <view class="coupon-time">{{item.use_time_tips || '有效期以实际使用规则为准'}}</view>
                 <view class="coupon-type">{{item.coupon_type || item.use_condition}}</view>
             </view>
-            <button type="primary" :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')" @tap="onHandle(item.id)">
+            <button type="primary" :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')" @tap="onHandle(couponKey(item))">
                 {{getBtn}}
             </button>
             <image v-if="item.is_get" class="receive" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_receive.png"></image>
@@ -143,8 +143,13 @@ export default {
       this.showTips = Object.assign([], this.showTips);
     },
 
+    couponKey(item = {}) {
+      return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id || ''
+    },
+
     getCouponFun() {
-      getCoupon(this.id).then(res => {
+      if (!this.id) return this.$toast({title: '优惠券信息异常'})
+      getCoupon(this.id, { receiveScene: 'COUPON_CENTER' }).then(res => {
         if (res.code == 1) {
           this.$toast({title: res.msg})
           this.$emit('reflash');

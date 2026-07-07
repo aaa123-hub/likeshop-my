@@ -17,6 +17,7 @@
                     <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '暂未设置用户名' : '点击登录') }}</view>
                     <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
                     <view class="my-page__member-id my-page__member-id--hint" v-else>{{ isLogin ? '完善昵称后，好友更容易识别你' : '登录体验更多功能' }}</view>
+                    <view v-if="isLogin" :class="['my-page__role-tag', roleStatusClass]">{{ roleSummaryText }}</view>
                 </view>
                 <image
                     class="my-page__setting"
@@ -146,6 +147,7 @@ import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
 import { getService } from '@/api/app'
+import { getRoleApplications, getRoles } from '@/api/user'
 
 export default {
     data() {
@@ -153,6 +155,8 @@ export default {
             businessRoutes,
             designAssets,
             showServiceModal: false,
+			roleApplications: [],
+			roleList: [],
 			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
             serviceContacts: [
                 { type: '微信', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
@@ -166,7 +170,7 @@ export default {
         this.getServiceInfo()
     },
     onShow() {
-        this.getUser()
+        this.getUser().then(() => this.getRoleInfo())
         this.getCartNum()
     },
     onPullDownRefresh() {
@@ -232,6 +236,42 @@ export default {
                 ]
             })
         },
+        getRoleInfo() {
+            if (!this.isLogin) {
+                this.roleApplications = []
+                this.roleList = []
+                return
+            }
+            Promise.all([getRoleApplications().catch(() => null), getRoles().catch(() => null)]).then(([applicationsRes, rolesRes]) => {
+                if (applicationsRes && applicationsRes.code == 1) {
+                    const data = applicationsRes.data || {}
+                    this.roleApplications = data.applications || data.list || []
+                }
+                if (rolesRes && rolesRes.code == 1) {
+                    const data = rolesRes.data || {}
+                    this.roleList = data.roles || data.list || []
+                }
+            })
+        },
+        roleLabel(roleCode) {
+            const map = { HEADQUARTERS: '总部', SUBSIDIARY: '子公司', OPERATION_CENTER: '区域代理', PROMOTER: '推广者', MERCHANT: '商家' }
+            const code = String(roleCode || '').toUpperCase()
+            return map[code] || code || '普通用户'
+        },
+        roleStatusType(status) {
+            const normalized = String(status || '').toUpperCase()
+            if (['APPROVED', 'PASS', 'PASSED', 'SUCCESS'].includes(normalized)) return 'approved'
+            if (['PENDING_AUDIT', 'WAIT_AUDIT', 'AUDITING', 'PENDING'].includes(normalized)) return 'pending'
+            if (['REJECTED', 'REJECT', 'FAILED'].includes(normalized)) return 'rejected'
+            return 'default'
+        },
+        roleStatusLabel(status) {
+            const type = this.roleStatusType(status)
+            if (type === 'approved') return '已通过'
+            if (type === 'pending') return '审核中'
+            if (type === 'rejected') return '未通过'
+            return '未申请'
+        },
         contactService(item) {
             if (!item.value) {
                 uni.showToast({ title: '客服信息暂未配置', icon: 'none' })
@@ -282,6 +322,7 @@ export default {
         featureEntries() {
             return [
                 { name: 'KYC', url: businessRoutes.pages.userKyc.url, image: designAssets.myKyc },
+                { name: this.promoterEntryName, url: businessRoutes.pages.promoterApply.url, image: designAssets.myEcology },
                 { name: '收货地址', url: businessRoutes.pages.addressList.url, image: designAssets.myAddress },
                 { name: '反馈意见', url: businessRoutes.pages.feedback.url, image: designAssets.myFeedback },
                 { name: '生态应用', url: businessRoutes.pages.ecoApp.url, image: designAssets.myEcology },
@@ -295,6 +336,33 @@ export default {
         },
         pendingPointsCount() {
             return this.userInfo.wait_points ?? this.userInfo.waitPoints ?? this.userInfo.pending_points ?? this.userInfo.pendingPoints ?? this.userInfo.wait_receive_points ?? this.userInfo.waitReceivePoints ?? 0
+        },
+        normalizedRoles() {
+            const roles = this.roleList.length ? this.roleList : (this.userInfo.roles || this.userInfo.roleList || [])
+            return Array.isArray(roles) ? roles.map(item => typeof item === 'string' ? { roleCode: item } : item) : []
+        },
+        approvedRoles() {
+            const profileRoles = this.normalizedRoles.filter(item => item.roleCode || item.role_code || item.role)
+            const applicationRoles = this.roleApplications.filter(item => this.roleStatusType(item.applicationStatus || item.auditStatus || item.status) === 'approved')
+            return profileRoles.concat(applicationRoles)
+        },
+        promoterApplication() {
+            return this.roleApplications.find(item => String(item.roleCode || item.role_code || item.role || '').toUpperCase() === 'PROMOTER') || null
+        },
+        roleSummaryText() {
+            if (this.approvedRoles.length) return `当前角色：${this.approvedRoles.map(item => this.roleLabel(item.roleCode || item.role_code || item.role)).join('、')}`
+            if (this.promoterApplication) return `推广者申请：${this.roleStatusLabel(this.promoterApplication.applicationStatus || this.promoterApplication.auditStatus || this.promoterApplication.status)}`
+            return '当前角色：普通用户'
+        },
+        roleStatusClass() {
+            if (this.approvedRoles.length) return 'my-page__role-tag--approved'
+            if (this.promoterApplication) return `my-page__role-tag--${this.roleStatusType(this.promoterApplication.applicationStatus || this.promoterApplication.auditStatus || this.promoterApplication.status)}`
+            return ''
+        },
+        promoterEntryName() {
+            if (this.approvedRoles.some(item => String(item.roleCode || item.role_code || item.role || '').toUpperCase() === 'PROMOTER')) return '推广者中心'
+            if (this.promoterApplication) return `推广者${this.roleStatusLabel(this.promoterApplication.applicationStatus || this.promoterApplication.auditStatus || this.promoterApplication.status)}`
+            return '成为推广者'
         }
     }
 }
@@ -414,6 +482,38 @@ export default {
 
 .my-page__member-id--hint {
     color: #037dfa;
+}
+
+.my-page__role-tag {
+    display: inline-flex;
+    align-items: center;
+    max-width: 420rpx;
+    height: 34rpx;
+    margin-top: 10rpx;
+    padding: 0 16rpx;
+    color: #666666;
+    font-size: 22rpx;
+    line-height: 34rpx;
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 18rpx;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.my-page__role-tag--approved {
+    color: #037dfa;
+    background: rgba(3, 125, 250, 0.1);
+}
+
+.my-page__role-tag--pending {
+    color: #d98200;
+    background: rgba(255, 158, 31, 0.12);
+}
+
+.my-page__role-tag--rejected {
+    color: #ff2c3c;
+    background: rgba(255, 44, 60, 0.1);
 }
 
 .service-modal {

@@ -25,9 +25,12 @@ function normalizePage(data = {}, itemNormalizer) {
 
 function normalizeCoupon(item = {}) {
     const threshold = item.thresholdAmount ?? item.threshold_amount ?? 0
+    const couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id
     return {
         ...item,
-        id: item.id || item.couponId,
+        id: item.id || couponId,
+        coupon_id: couponId,
+        couponId,
         name: item.name || item.couponName || '',
         money: item.money || item.discountValue || item.discount_value || 0,
         use_condition: item.use_condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'),

@@ -2,8 +2,31 @@
     <view class="promoter-page">
         <navbar title="成为推广者" :background="{ background: '#ffffff' }" title-color="#222222"></navbar>
         <view class="header">
+            <view class="eyebrow">角色申请</view>
             <view class="title">成为推广者</view>
-            <view class="subtitle">填写资料并设置渠道后台登录账号，提交后由总代理或运营人员审核。</view>
+            <view class="subtitle">按后端返回的角色、申请记录和审核状态展示，申请后等待平台审核。</view>
+        </view>
+
+        <view class="role-card" v-if="currentRoles.length">
+            <view class="card-head">
+                <view>
+                    <view class="card-title">当前角色</view>
+                    <view class="card-subtitle">已开通角色会优先展示</view>
+                </view>
+                <view class="card-count">{{ currentRoles.length }}个</view>
+            </view>
+            <view class="role-list">
+                <view :class="['role-chip', item.roleCode === selectedRoleCode ? 'role-chip--active' : '']" v-for="item in currentRoles" :key="item.roleCode" @tap="selectRole(item.roleCode)">
+                    <text class="role-chip__name">{{ roleLabel(item.roleCode) }}</text>
+                    <text class="role-chip__meta" v-if="item.areaName">{{ item.areaName }}</text>
+                </view>
+            </view>
+        </view>
+
+        <view class="empty-state" v-else-if="!applications.length && !shouldShowForm">
+            <view class="empty-state__title">还没有角色</view>
+            <view class="empty-state__desc">可以先选择角色提交申请，审核通过后会展示角色标识。</view>
+            <view class="empty-state__btn" @tap="showApplyForm = true">去申请</view>
         </view>
 
         <view :class="['status-card', 'status-card--' + currentStatusType]" v-if="currentApplication">
@@ -24,7 +47,7 @@
         </view>
 
         <view class="info-card" v-if="currentApplication">
-            <view class="info-title">申请信息</view>
+            <view class="info-title">{{ currentRole ? '角色信息' : '申请信息' }}</view>
             <view class="info-grid">
                 <view class="info-item" v-for="item in visibleApplicationInfo" :key="item.label">
                     <text class="info-label">{{ item.label }}</text>
@@ -47,6 +70,8 @@
         </view>
 
         <view class="form-card" v-if="shouldShowForm">
+            <view class="form-title">{{ currentApplication ? '重新提交资料' : '提交申请资料' }}</view>
+            <view class="form-desc">请填写真实信息，具体审核要求以后端规则为准。</view>
             <view class="form-item">
                 <text class="label">申请角色</text>
                 <picker :range="roleOptions" range-key="label" :value="roleIndex" @change="onRoleChange">
@@ -74,6 +99,10 @@
                 <input v-model="form.confirmPassword" password placeholder="请再次输入密码" />
             </view>
             <view class="form-item">
+                <text class="label">省份编码</text>
+                <input v-model="form.provinceCode" placeholder="选填，用于渠道区域审核" />
+            </view>
+            <view class="form-item">
                 <text class="label">城市编码</text>
                 <input v-model="form.cityCode" placeholder="选填，用于渠道区域审核" />
             </view>
@@ -84,6 +113,14 @@
             <view class="form-item form-item--textarea">
                 <text class="label">申请说明</text>
                 <textarea v-model="form.remark" placeholder="可填写推广资源、经营区域等信息" />
+            </view>
+            <view class="form-item form-item--textarea">
+                <text class="label">材料链接</text>
+                <textarea v-model="form.materialUrlsText" placeholder="选填，多个材料链接用换行或逗号分隔" />
+            </view>
+            <view class="agreement-row" @tap="form.agreementAccepted = !form.agreementAccepted">
+                <checkbox :checked="form.agreementAccepted"></checkbox>
+                <text>我确认提交资料真实有效，并同意平台审核规则</text>
             </view>
         </view>
 
@@ -106,12 +143,14 @@
 <script>
 import { mapGetters } from 'vuex'
 import Navbar from '@/components/navbar/navbar.vue'
-import { applyRoleApplication, getRoleApplications } from '@/api/user'
+import { applyRoleApplication, getRoleApplications, getRoles } from '@/api/user'
 
 const roleOptions = [
+    { label: '总部', value: 'HEADQUARTERS' },
+    { label: '子公司', value: 'SUBSIDIARY' },
+    { label: '区域代理', value: 'OPERATION_CENTER' },
     { label: '推广者', value: 'PROMOTER' },
-    { label: '渠道代理', value: 'SUBSIDIARY' },
-    { label: '区代理', value: 'OPERATION_CENTER' }
+    { label: '商家', value: 'MERCHANT' }
 ]
 
 export default {
@@ -122,6 +161,7 @@ export default {
         return {
             roleOptions,
             roleIndex: 0,
+            roles: [],
             applications: [],
             form: {
                 applicantName: '',
@@ -129,24 +169,33 @@ export default {
                 username: '',
                 password: '',
                 confirmPassword: '',
+                provinceCode: '',
                 cityCode: '',
                 districtCode: '',
-                remark: ''
+                remark: '',
+                materialUrlsText: '',
+                agreementAccepted: true
             },
             showApplyForm: false,
             submitting: false
         }
     },
     computed: {
-        ...mapGetters(['userInfo']),
+        ...mapGetters(['userInfo', 'isLogin']),
         currentApplication() {
-            const roleCode = this.roleOptions[this.roleIndex].value
-            return this.applications.find((item) => item.roleCode === roleCode)
+            return this.applications.find((item) => item.roleCode === this.selectedRoleCode)
+        },
+        currentRoles() {
+            return this.roles.length ? this.roles : this.applications.filter((item) => this.statusType(item.applicationStatus) === 'approved')
+        },
+        selectedRoleCode() {
+            return this.roleOptions[this.roleIndex].value
         },
         currentStatusType() {
             return this.statusType(this.currentApplication && this.currentApplication.applicationStatus)
         },
         currentStatusDesc() {
+            if (this.currentStatusType === 'approved') return '当前角色已生效，可查看对应角色能力和入口。'
             const descMap = {
                 deposit: '资料已提交，请按平台要求完成押金缴纳。',
                 pending: '申请正在审核中，请保持手机号畅通。',
@@ -168,6 +217,7 @@ export default {
             if (status === 'approved') {
                 return [
                     { label: '登录账号', value: item.username },
+                    { label: '邀请码', value: item.inviteCode },
                     { label: '通过时间', value: item.auditTime }
                 ].filter((info) => info.value)
             }
@@ -189,6 +239,7 @@ export default {
                 { label: '手机号', value: item.mobile },
                 { label: '登录账号', value: item.username },
                 { label: '申请区域', value: this.areaText(item) },
+                { label: '邀请码', value: item.inviteCode },
                 { label: '押金金额', value: this.moneyText(item.depositAmount) },
                 { label: '押金状态', value: this.depositStatusLabel(item.depositStatus) },
                 { label: '申请时间', value: item.appliedAt },
@@ -200,9 +251,10 @@ export default {
             return this.applicationInfo.filter((item) => item.value)
         },
         shouldShowForm() {
-            return !this.currentApplication || this.showApplyForm
+            return this.currentStatusType !== 'approved' && (!this.currentApplication || this.showApplyForm)
         },
         currentActionDesc() {
+            if (this.currentStatusType === 'approved') return '当前角色已开通，可使用后端返回的角色信息。'
             const descMap = {
                 deposit: '当前申请已进入押金缴纳环节，完成缴纳后继续等待审核。',
                 pending: '申请正在审核中，暂时无需重复提交资料。',
@@ -214,9 +266,6 @@ export default {
         },
         statusActions() {
             const status = this.currentStatusType
-            if (status === 'deposit') {
-                return [{ type: 'deposit', label: '去缴纳押金', primary: true }]
-            }
             if (status === 'approved') {
                 return [{ type: 'backend', label: '进入渠道后台', primary: true }]
             }
@@ -232,14 +281,45 @@ export default {
     onLoad() {
         this.form.applicantName = this.userInfo.nickname || this.userInfo.realName || ''
         this.form.mobile = this.userInfo.mobile || ''
-        this.loadApplications()
+        this.loadPageData()
     },
     methods: {
+        async loadPageData() {
+            await Promise.all([this.loadApplications(), this.loadRoles()])
+            this.mergeRoleOptions()
+            this.syncSelectedRole()
+        },
+        async loadRoles() {
+            const res = await getRoles().catch(() => null)
+            if (res && res.code == 1) {
+                const data = res.data || {}
+                this.roles = data.roles || data.list || []
+            }
+        },
         async loadApplications() {
             const res = await getRoleApplications()
             if (res.code == 1) {
                 const data = res.data || {}
                 this.applications = data.applications || []
+            }
+        },
+        syncSelectedRole() {
+            const roleCode = (this.currentRoles[0] && this.currentRoles[0].roleCode) || (this.applications[0] && this.applications[0].roleCode)
+            if (!roleCode) return
+            this.selectRole(roleCode)
+        },
+        mergeRoleOptions() {
+            const source = this.applications
+            source.forEach((item) => {
+                if (!item.roleCode || this.roleOptions.some((role) => role.value === item.roleCode)) return
+                this.roleOptions.push({ label: item.roleName || item.roleCode, value: item.roleCode })
+            })
+        },
+        selectRole(roleCode) {
+            const index = this.roleOptions.findIndex((item) => item.value === roleCode)
+            if (index !== -1) {
+                this.roleIndex = index
+                this.showApplyForm = false
             }
         },
         onRoleChange(event) {
@@ -248,7 +328,9 @@ export default {
         },
         roleLabel(roleCode) {
             const role = roleOptions.find((item) => item.value === roleCode)
-            return role ? role.label : roleCode
+            if (role) return role.label
+            const currentRole = this.currentRoles.find((item) => item.roleCode === roleCode)
+            return (currentRole && currentRole.roleName) || roleCode
         },
         statusType(status) {
             const normalized = String(status || '').toUpperCase()
@@ -306,15 +388,20 @@ export default {
                 return
             }
             if (type === 'refresh') {
-                this.loadApplications()
+                this.loadPageData()
                 uni.showToast({ title: '状态已刷新', icon: 'none' })
                 return
             }
             if (type === 'deposit') {
-                uni.showToast({ title: '请按平台通知完成押金缴纳', icon: 'none' })
+                uni.showToast({ title: '请按后端返回流程继续处理', icon: 'none' })
                 return
             }
             if (type === 'backend') {
+                const url = this.currentApplication && this.currentApplication.backendUrl
+                if (url) {
+                    uni.navigateTo({ url })
+                    return
+                }
                 uni.showToast({ title: '请使用渠道后台入口登录', icon: 'none' })
             }
         },
@@ -322,9 +409,11 @@ export default {
             this.form.applicantName = application.applicantName || this.form.applicantName
             this.form.mobile = application.mobile || this.form.mobile
             this.form.username = application.username || this.form.username
+            this.form.provinceCode = application.provinceCode || this.form.provinceCode
             this.form.cityCode = application.cityCode || this.form.cityCode
             this.form.districtCode = application.districtCode || this.form.districtCode
             this.form.remark = application.remark || this.form.remark
+            this.form.materialUrlsText = Array.isArray(application.materialUrls) ? application.materialUrls.join('\n') : (application.materialUrls || this.form.materialUrlsText)
             this.form.password = ''
             this.form.confirmPassword = ''
         },
@@ -345,18 +434,25 @@ export default {
                 uni.showToast({ title: '两次密码输入不一致', icon: 'none' })
                 return false
             }
+            if (!this.form.agreementAccepted) {
+                uni.showToast({ title: '请先确认并同意审核规则', icon: 'none' })
+                return false
+            }
             return true
+        },
+        materialUrls() {
+            return String(this.form.materialUrlsText || '').split(/[\n,，]/).map(item => item.trim()).filter(Boolean)
         },
         async submitApply() {
             if (!this.validateForm()) return
             this.submitting = true
             try {
                 const roleCode = this.roleOptions[this.roleIndex].value
-                const res = await applyRoleApplication({ ...this.form, roleCode })
+                const res = await applyRoleApplication({ ...this.form, roleCode, materialUrls: this.materialUrls(), realnameVerified: this.userInfo.realnameVerified || this.userInfo.realname_verified })
                 if (res.code == 1) {
                     uni.showToast({ title: '申请已提交', icon: 'success' })
                     this.showApplyForm = false
-                    await this.loadApplications()
+                    await this.loadPageData()
                 } else {
                     uni.showToast({ title: res.msg || res.message || '提交失败', icon: 'none' })
                 }
@@ -370,10 +466,24 @@ export default {
 
 <style lang="scss">
 .promoter-page { min-height: 100vh; padding: 24rpx 24rpx 48rpx; background: linear-gradient(180deg, #eef7ff 0%, #f6f7fb 360rpx, #f6f7fb 100%); box-sizing: border-box; }
-.header { padding: 30rpx 28rpx; border-radius: 24rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #20c997); box-shadow: 0 18rpx 42rpx rgba(22, 136, 255, .18); }
+.header { padding: 34rpx 30rpx; border-radius: 28rpx; color: #ffffff; background: linear-gradient(135deg, #176bff 0%, #18c59f 100%); box-shadow: 0 18rpx 42rpx rgba(22, 136, 255, .2); }
+.eyebrow { display: inline-flex; padding: 6rpx 16rpx; border-radius: 999rpx; color: rgba(255, 255, 255, .92); background: rgba(255, 255, 255, .18); font-size: 22rpx; line-height: 30rpx; }
 .title { font-size: 40rpx; font-weight: 700; line-height: 56rpx; }
 .subtitle { margin-top: 12rpx; font-size: 26rpx; line-height: 38rpx; opacity: .92; }
-.status-card, .focus-card, .info-card, .action-card, .form-card, .history { margin-top: 22rpx; padding: 26rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 12rpx 34rpx rgba(31, 58, 94, .08); }
+.role-card, .status-card, .focus-card, .info-card, .action-card, .form-card, .history, .empty-state { margin-top: 22rpx; padding: 26rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 12rpx 34rpx rgba(31, 58, 94, .08); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.card-title { color: #222222; font-size: 30rpx; font-weight: 600; }
+.card-subtitle { margin-top: 6rpx; color: #888888; font-size: 23rpx; }
+.card-count { flex: none; padding: 8rpx 16rpx; border-radius: 999rpx; color: #1688ff; background: #eef7ff; font-size: 23rpx; }
+.role-list { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 18rpx; }
+.role-chip { min-width: 150rpx; padding: 16rpx 20rpx; border-radius: 20rpx; border: 1rpx solid #e6eaf0; background: #f7f9fc; box-sizing: border-box; }
+.role-chip--active { border-color: #1688ff; background: #eef7ff; }
+.role-chip__name { display: block; color: #222222; font-size: 27rpx; font-weight: 600; }
+.role-chip__meta { display: block; margin-top: 6rpx; color: #888888; font-size: 22rpx; }
+.empty-state { text-align: center; }
+.empty-state__title { color: #222222; font-size: 30rpx; font-weight: 600; }
+.empty-state__desc { margin-top: 10rpx; color: #777777; font-size: 25rpx; line-height: 38rpx; }
+.empty-state__btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 22rpx; height: 68rpx; padding: 0 36rpx; border-radius: 34rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); font-size: 27rpx; }
 .status-card { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; overflow: hidden; }
 .status-card--deposit { background: linear-gradient(135deg, #fff7e6, #ffffff); border: 1rpx solid #ffd89a; }
 .status-card--pending { background: linear-gradient(135deg, #eaf4ff, #ffffff); border: 1rpx solid #b9dcff; }
@@ -407,12 +517,15 @@ export default {
 .action-btn { flex: 1; height: 76rpx; line-height: 76rpx; border-radius: 38rpx; font-size: 28rpx; }
 .action-btn--primary { color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); box-shadow: 0 10rpx 22rpx rgba(22, 136, 255, .18); }
 .action-btn--plain { color: #1688ff; background: #eef7ff; }
+.form-title { color: #222222; font-size: 30rpx; font-weight: 600; }
+.form-desc { margin-top: 8rpx; margin-bottom: 10rpx; color: #888888; font-size: 24rpx; line-height: 36rpx; }
 .form-item { display: flex; align-items: center; min-height: 92rpx; border-bottom: 1rpx solid #f0f1f3; }
 .form-item:last-child { border-bottom: 0; }
 .form-item--textarea { align-items: flex-start; padding-top: 26rpx; }
 .label { flex: none; width: 160rpx; color: #333333; font-size: 28rpx; }
 input, textarea, .picker-value { flex: 1; min-width: 0; color: #222222; font-size: 28rpx; }
 textarea { height: 150rpx; line-height: 40rpx; }
+.agreement-row { display: flex; align-items: center; gap: 14rpx; margin-top: 22rpx; color: #666666; font-size: 24rpx; line-height: 34rpx; }
 .submit-btn { margin-top: 30rpx; height: 88rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); border-radius: 44rpx; font-size: 30rpx; box-shadow: 0 14rpx 28rpx rgba(22, 136, 255, .22); }
 .history-title { margin-bottom: 16rpx; color: #222222; font-size: 30rpx; font-weight: 600; }
 .history-item { display: flex; align-items: center; justify-content: space-between; padding: 18rpx 0; border-top: 1rpx solid #f0f1f3; }

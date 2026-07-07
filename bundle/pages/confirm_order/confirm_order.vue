@@ -168,18 +168,22 @@
                     <template v-if="showIntegralRow">
                         <view class="divider"></view>
                         <view class="summary-row" @tap="changeIntegral">
-                            <text>总积分</text>
+                            <view class="points-label">
+                                <text>积分抵扣</text>
+                                <text class="points-label__desc">{{ pointsHelpText }}</text>
+                            </view>
                             <view class="row-value">
                                 <text class="orange-value">{{ integralText }}</text>
                                 <checkbox
                                     class="integral-check"
-                                    :disabled="
-                                        Number(orderInfo.user_integral || 0) < Number(orderInfo.integral_limit || 0) ||
-                                        Number(orderInfo.integral_config) === 0
-                                    "
+                                    :disabled="!canUseIntegral"
                                     :checked="Boolean(useIntegral)"
                                 ></checkbox>
                             </view>
+                        </view>
+                        <view v-if="useIntegral && pointsDeductAmount > 0" class="summary-row summary-row--deduct">
+                            <text>已抵扣</text>
+                            <text class="red-value">-¥{{ pointsDeductAmount.toFixed(2) }}</text>
                         </view>
                     </template>
                 </view>
@@ -240,9 +244,9 @@
                     <view class="coupon-obj">
                         <view
                             v-for="item in currentCouponList"
-                            :key="item.id"
+                            :key="couponKey(item)"
                             class="coupon-card"
-                            @tap="toggleCoupon(item.id)"
+                            @tap="toggleCoupon(couponKey(item))"
                         >
                             <view class="coupon-item row">
                                 <view class="price white column-center">
@@ -255,7 +259,7 @@
                                         <view class="xxs lighter mb10">{{ item.coupon_type }}</view>
                                         <view class="xxs lighter">{{ item.use_time_tips }}</view>
                                     </view>
-                                    <checkbox v-if="couponTabsIndex === 0" :checked="couponId == item.id" class="mr20"></checkbox>
+                                    <checkbox v-if="couponTabsIndex === 0" :checked="couponId == couponKey(item)" class="mr20"></checkbox>
                                 </view>
                             </view>
                             <view class="coupon-tips xs" v-if="item.tips">{{ item.tips }}</view>
@@ -340,10 +344,23 @@ export default {
             return `¥${this.orderInfo.shipping_price || '0.00'}`
         },
         payAmount() {
-            const orderAmount = Number(this.orderInfo.order_amount || 0)
-            if (this.currentDelivery.sign !== 'store') return orderAmount
-            const shippingPrice = Number(this.orderInfo.shipping_price || 0)
-            return Math.max(orderAmount - shippingPrice, 0).toFixed(2)
+            return this.currentPayAmount.toFixed(2)
+        },
+        currentPayAmount() {
+            const orderAmount = this.moneyValue(this.orderInfo.order_amount || this.orderInfo.pay_amount || this.orderInfo.payAmount)
+            const shippingPrice = this.currentDelivery.sign === 'store' ? this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount) : 0
+            const baseAmount = Math.max(orderAmount - shippingPrice, 0)
+            if (!this.useIntegral || this.pointsDeductAmount <= 0) return baseAmount
+            const beforePoints = this.orderAmountBeforePoints
+            const deductedAmount = Math.max(beforePoints - this.pointsDeductAmount, 0)
+            const backendAppliedPoints = beforePoints > 0 && baseAmount <= deductedAmount + 0.009
+            return backendAppliedPoints ? baseAmount : Math.max(baseAmount - this.pointsDeductAmount, 0)
+        },
+        orderAmountBeforePoints() {
+            const goodsAmount = this.moneyValue(this.orderInfo.total_goods_price || this.orderInfo.goodsAmount)
+            const shippingPrice = this.currentDelivery.sign === 'store' ? 0 : this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount)
+            if (goodsAmount <= 0) return 0
+            return Math.max(goodsAmount + shippingPrice - this.discountAmount, 0)
         },
         discountAmount() {
             return Number(this.orderInfo.discount_amount || this.orderInfo.discountAmount || 0)
@@ -359,22 +376,38 @@ export default {
         },
         selectedCoupon() {
             if (!this.couponId) return null
-            return this.usableCoupon.find(item => String(item.id || item.coupon_id || item.couponId) === String(this.couponId)) || null
+            return this.usableCoupon.find(item => String(this.couponKey(item)) === String(this.couponId)) || null
         },
         integralText() {
-            const userIntegral = Number(this.orderInfo.user_integral || 0)
-            if (this.useIntegral && this.pointsDeductAmount > 0) return `${this.pointsAmount || userIntegral}积分抵¥${this.pointsDeductAmount.toFixed(2)}`
-            if (this.pointsDeductAmount > 0) return `${userIntegral}积分，可抵¥${this.pointsDeductAmount.toFixed(2)}`
-            return `${userIntegral}积分`
+            const userIntegral = this.userIntegral
+            if (!this.canUseIntegral) return `${userIntegral}积分，不满足抵扣条件`
+            if (this.useIntegral && this.pointsDeductAmount > 0) return `已使用${this.pointsAmount || userIntegral}积分`
+            if (this.pointsDeductAmount > 0) return `可抵¥${this.pointsDeductAmount.toFixed(2)}`
+            return `${userIntegral}积分可用`
+        },
+        pointsHelpText() {
+            if (!this.canUseIntegral) return '当前订单暂不可用'
+            if (this.pointsDeductAmount > 0) return `勾选后应付金额减少¥${this.pointsDeductAmount.toFixed(2)}`
+            return '勾选后将按订单规则试算抵扣'
         },
         showIntegralRow() {
-            return this.orderInfo.integral_switch !== false && this.orderInfo.integral_switch !== 0 && this.orderInfo.integral_switch !== '0'
+            const switchValue = this.orderInfo.integral_switch
+            if (switchValue === false || switchValue === 0 || switchValue === '0') return false
+            return this.userIntegral > 0 || this.pointsDeductAmount > 0 || this.pointsAmount > 0 || switchValue === true || switchValue === 1 || switchValue === '1'
+        },
+        canUseIntegral() {
+            if (!this.showIntegralRow) return false
+            if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) return false
+            return this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
+        },
+        userIntegral() {
+            return this.pickNumber(this.orderInfo, ['user_integral', 'userIntegral', 'availablePoints', 'available_points', 'points'])
         },
         pointsAmount() {
             return this.pickNumber(this.orderInfo, ['pointsAmount', 'points_amount', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points'])
         },
         pointsDeductAmount() {
-            return this.pickNumber(this.orderInfo, ['pointsDeductAmount', 'points_deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount'])
+            return this.pickNumber(this.orderInfo, ['pointsDeductAmount', 'points_deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxDeductAmount', 'max_deduct_amount'])
         },
         currentCouponList() {
             return this.couponTabsIndex === 0 ? this.usableCoupon : this.unusableCoupon
@@ -481,6 +514,13 @@ export default {
             }
             return 0
         },
+        moneyValue(value) {
+            const number = Number(value)
+            return Number.isNaN(number) ? 0 : number
+        },
+        couponKey(item = {}) {
+            return item.coupon_id || item.couponId || item.id || item.userCouponId || ''
+        },
         normalizePreviewGoods(item = {}, index = 0) {
             const original = this.goods[index] || this.goods.find(goods => String(goods.item_id || goods.skuId || goods.id || '') === String(item.item_id || item.skuId || item.sku_id || item.id || '')) || {}
             const image = this.goodsImage(item) || this.goodsImage(original)
@@ -517,10 +557,10 @@ export default {
             uni.navigateTo({ url: `/bundle_misc/pages/store_list/store_list` })
         },
         changeIntegral() {
-            if (Number(this.orderInfo.integral_config) === 0) {
+            if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) {
                 return this.$toast({ title: '当前订单暂不支持积分抵扣' })
             }
-            if (Number(this.orderInfo.integral_limit || 0) > Number(this.orderInfo.user_integral || 0)) {
+            if (Number(this.orderInfo.integral_limit || 0) > this.userIntegral) {
                 return this.$toast({ title: '未满足积分使用条件' })
             }
             this.useIntegral = this.useIntegral ? 0 : 1
@@ -595,7 +635,21 @@ export default {
         },
         initCouponData() {
             if (!this.goods.length) return
-            getOrderCoupon({ goods: this.goods, type: this.type })
+            getOrderCoupon({
+                goods: this.goods,
+                type: this.type,
+                addressId: this.addressId,
+                address_id: this.addressId,
+                couponIds: this.couponId ? [this.couponId] : [],
+                coupon_id: this.couponId,
+                use_integral: this.useIntegral,
+                pointsDeductAmount: this.useIntegral ? this.pointsDeductAmount : 0,
+                points_deduct_amount: this.useIntegral ? this.pointsDeductAmount : 0,
+                integral_amount: this.useIntegral ? this.pointsDeductAmount : 0,
+                pointsAmount: this.useIntegral ? this.pointsAmount : 0,
+                points_amount: this.useIntegral ? this.pointsAmount : 0,
+                integral_num: this.useIntegral ? this.pointsAmount : 0
+            })
                 .then(({ code, data, msg }) => {
                     if (code != 1) throw new Error(msg)
                     return data
@@ -616,6 +670,10 @@ export default {
                 if (this.address.id) this.addressId = this.address.id
                 if (!this.address.id && this.currentDelivery.sign === 'express') {
                     await this.loadDefaultAddress()
+                    if (this.addressId) {
+                        this.$nextTick(() => this.handleOrderMethods('info'))
+                        return
+                    }
                 }
                 this.orderInfo = data
                 this.goodsLists = (data.goods_lists || []).map(this.normalizePreviewGoods)
@@ -657,7 +715,12 @@ export default {
             try {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
                 if (code != 1) throw new Error(msg)
-                uni.redirectTo({ url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}&pay_way=WECHAT_JSAPI&payWay=WECHAT_JSAPI` })
+                const amount = data.payAmount || data.order_amount || this.payAmount
+                if (Number(amount || 0) <= 0) {
+                    uni.redirectTo({ url: `/bundle_user/pages/pay_result/pay_result?id=${data.order_id}` })
+                    return
+                }
+                uni.redirectTo({ url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}&amount=${amount}&pay_way=WECHAT_JSAPI&payWay=WECHAT_JSAPI` })
             } catch (err) {
                 this.$toast({ title: '下单异常，请重新操作' })
             } finally {
@@ -670,13 +733,13 @@ export default {
             if (Array.isArray(usableCoupon)) this.usableCoupon = usableCoupon
             if (Array.isArray(unusableCoupon)) this.unusableCoupon = unusableCoupon
             if (data.coupon_id || data.couponId) this.couponId = data.coupon_id || data.couponId
-            if (this.couponId && !this.usableCoupon.some(item => String(item.id || item.coupon_id || item.couponId) === String(this.couponId))) this.couponId = ''
+            if (this.couponId && !this.usableCoupon.some(item => String(this.couponKey(item)) === String(this.couponId))) this.couponId = ''
         },
         ensureDefaultCoupon() {
             if (Number(this.orderInfo.order_type || 0) !== 0) return false
             if (this.couponId || !this.usableCoupon.length) return false
             const firstCoupon = this.usableCoupon[0]
-            const id = firstCoupon.id || firstCoupon.coupon_id || firstCoupon.couponId
+            const id = this.couponKey(firstCoupon)
             if (!id) return false
             this.couponId = id
             return true
@@ -692,11 +755,18 @@ export default {
                 goods: this.goods,
                 delivery_type: this.delivery,
                 use_integral: this.useIntegral,
+                usePoints: Boolean(this.useIntegral),
                 orderInfo: this.orderInfo,
                 pointsDeductAmount: this.useIntegral ? this.pointsDeductAmount : 0,
                 pointsAmount: this.useIntegral ? this.pointsAmount : 0,
+                points_deduct_amount: this.useIntegral ? this.pointsDeductAmount : 0,
+                points_amount: this.useIntegral ? this.pointsAmount : 0,
+                integral_amount: this.useIntegral ? this.pointsDeductAmount : 0,
+                integral_num: this.useIntegral ? this.pointsAmount : 0,
+                addressId: this.addressId,
                 address_id: this.addressId,
                 address: this.address && this.address.id ? this.address : undefined,
+                couponIds: this.couponId ? [this.couponId] : [],
                 coupon_id: this.couponId,
                 bargain_launch_id: this.bargainLaunchId == -1 ? '' : this.bargainLaunchId
             }
@@ -1000,6 +1070,27 @@ page {
     font-weight: 500;
     color: #222222;
     box-sizing: border-box;
+}
+
+.summary-row--deduct {
+    min-height: 56rpx;
+    padding-top: 0;
+    color: #666666;
+    font-size: 24rpx;
+}
+
+.points-label {
+    display: flex;
+    flex-direction: column;
+    gap: 8rpx;
+}
+
+.points-label__desc {
+    max-width: 390rpx;
+    color: #999999;
+    font-size: 22rpx;
+    font-weight: 400;
+    line-height: 30rpx;
 }
 
 .muted-value {

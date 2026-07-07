@@ -366,9 +366,11 @@ export default {
         // 发送短信
         $sendSms(type) {
             if (!this.canSendSms) return
+            if (!/^1\d{10}$/.test(String(this.new_mobile || ''))) return this.$toast({ title: '请输入正确的新手机号' })
             sendSms({
-                mobile: this.userInfo.mobile || this.new_mobile,
-                key: this.smsType
+                mobile: this.new_mobile,
+                key: this.smsType,
+                scene: this.smsType
             }).then((res) => {
                 if (res.code == 1) {
                     this.$toast({

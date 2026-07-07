@@ -28,8 +28,8 @@
 		<view class="coupon-scroll">
 			<scroll-view style="heigth: 138rpx" scroll-x="true" scroll-with-animation="true" @scroll="scrollBarChange">
 				<view class="coupon-contain row">
-					<view v-for="(item, index) in list" :key="index" :class="'coupon-item mr20 row-between ' + (item.is_get ? 'recieve' : '')"
-					 @tap="onRecive(item.id)">
+					<view v-for="(item, index) in list" :key="couponKey(item) || index" :class="'coupon-item mr20 row-between ' + (item.is_get ? 'recieve' : '')"
+					 @tap="onRecive(couponKey(item))">
 						<view class="coupon-left">
 							<view class="row info">
 								<price-format :subscript-size="30" :first-size="56" :second-size="50" :price="item.money"></price-format>
@@ -93,6 +93,9 @@ getRect
 		},
 
 		methods: {
+			couponKey(item = {}) {
+				return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id || ''
+			},
 			scrollBarChange(e) {
 				let {
 					progressPer
@@ -111,7 +114,8 @@ getRect
 					return;
 				}
 
-				getCoupon(id).then(res => {
+				if (!id) return this.$toast({ title: '优惠券信息异常' })
+				getCoupon(id, { receiveScene: 'HOME' }).then(res => {
 					if (res.code == 1) {
 						this.$toast({
 							title: res.msg

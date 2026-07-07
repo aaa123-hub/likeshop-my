@@ -181,6 +181,8 @@ function fakeUserInfo() {
         wait_comment: 0,
         wait_points: 0,
         after_sale: 0,
+        roles: [],
+        role_applications: [],
         distribution_code: '',
         next_level_tips: ''
     }
@@ -209,6 +211,8 @@ function normalizeUserProfile(data = {}) {
         wait_comment: data.wait_comment ?? data.waitComment ?? 0,
         wait_points: data.wait_points ?? data.waitPoints ?? data.pending_points ?? data.pendingPoints ?? data.wait_receive_points ?? data.waitReceivePoints ?? 0,
         after_sale: data.after_sale ?? data.afterSale ?? 0,
+        roles: data.roles || data.roleList || data.userRoles || [],
+        role_applications: data.role_applications || data.roleApplications || data.applications || [],
         distribution_code: data.distribution_code || data.distributionCode || data.inviteCode || fakeUserInfo().distribution_code,
         next_level_tips: data.next_level_tips || data.nextLevelTips || '立即开通'
     }
@@ -283,9 +287,12 @@ function normalizeAddress(item = {}) {
 
 function normalizeCoupon(item = {}) {
     const threshold = item.thresholdAmount ?? item.threshold_amount ?? 0
+    const couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id
     return {
         ...item,
-        id: item.id || item.couponId,
+        id: item.id || couponId,
+        coupon_id: couponId,
+        couponId,
         name: item.name || item.couponName || item.coupon_name || '',
         money: item.money || item.amount || item.discountAmount || item.discountValue || 0,
         use_condition: item.use_condition || item.useCondition || item.condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'),
@@ -442,9 +449,11 @@ export function getUser() {
     })
 }
 
-export function getCoupon(id) {
+export function getCoupon(id, options = {}) {
     return request.post(`miniapp/coupons/${id}/receive`, {
-        receiveScene: 'APP'
+        receiveScene: options.receiveScene || options.scene || 'APP',
+        spuId: options.spuId || options.spu_id || options.productId || options.product_id,
+        productId: options.productId || options.product_id || options.spuId || options.spu_id
     })
 }
 
@@ -1005,48 +1014,20 @@ export function setUserInfo(data) {
 
 export function changeUserMobile(data) {
     const smsCode = data.smsCode || data.sms_code || data.verifyCode || data.verify_code || data.code
-    const loginCode = data.jsCode || data.loginCode || data.login_code || data.wxCode || data.wx_code
     const oldMobile = data.oldMobile || data.old_mobile || data.mobile || data.phone || ''
     const newMobile = data.newMobile || data.new_mobile || data.newPhone || data.new_phone || data.mobile || data.phone || ''
     const payload = {
-        ...data,
         mobile: newMobile,
-        phone: newMobile,
+        smsCode,
+        code: smsCode,
+        scene: data.scene || data.key || data.type || (oldMobile ? 'BGSJHM' : 'BDSJHM'),
+        action: data.action || (oldMobile ? 'change' : 'bind'),
+        oldMobile,
         newMobile,
         new_mobile: newMobile,
-        newPhone: newMobile,
-        oldMobile,
-        old_mobile: oldMobile,
-        oldPhone: oldMobile,
-        smsCode,
-        sms_code: smsCode,
-        verifyCode: data.verifyCode || data.verify_code || smsCode,
-        verify_code: data.verify_code || data.verifyCode || smsCode,
-        code: smsCode,
-        jsCode: loginCode,
-        js_code: loginCode,
-        loginCode,
-        login_code: loginCode,
-        encryptedData: data.encryptedData || data.encrypted_data,
-        encrypted_data: data.encrypted_data || data.encryptedData,
-        iv: data.iv,
-        scene: data.scene || data.key || data.type || 'BIND_MOBILE',
-        action: data.action || (oldMobile ? 'change' : 'bind')
+        old_mobile: oldMobile
     }
-    return request.post('miniapp/auth/bind-mobile', payload).then((res) => {
-        if (res.code == 1) return res
-        if (!newMobile || !/^1\d{10}$/.test(String(newMobile))) return res
-        return setUserInfo({ mobile: newMobile }).then((profileRes) => {
-            if (profileRes.code == 1) {
-                return {
-                    ...profileRes,
-                    data: normalizeUserProfile(profileRes.data || { mobile: newMobile }),
-                    msg: '手机号更换成功'
-                }
-            }
-            return res
-        })
-    })
+    return request.post('miniapp/auth/bind-mobile', payload).then((res) => res.code == 1 ? { ...res, data: normalizeUserProfile(res.data || { mobile: newMobile }) } : res)
 }
 
 export function getLevelList() {
@@ -1307,6 +1288,37 @@ function normalizeRoleApplication(data = {}) {
     }
 }
 
+function normalizeRoleItem(data = {}) {
+    return {
+        ...data,
+        roleCode: String(data.roleCode || data.role_code || data.role || data.code || '').toUpperCase(),
+        roleName: data.roleName || data.role_name || data.name || data.title || '',
+        areaName: data.areaName || data.area_name || data.cityName || data.city_name || data.districtName || data.district_name || '',
+        inviteCode: data.inviteCode || data.invite_code || data.promotionCode || data.promotion_code || data.code || '',
+        backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || ''
+    }
+}
+
+export function getRoles(params = {}) {
+    return request.get('miniapp/roles', {
+        params: {
+            userId: currentUserId(params)
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const list = extractList(data).map(normalizeRoleItem)
+        return {
+            ...res,
+            data: {
+                ...(!Array.isArray(data) ? data : {}),
+                roles: list,
+                list
+            }
+        }
+    })
+}
+
 export function getRoleApplications(params = {}) {
     return request.get('miniapp/role-applications', {
         params: {
@@ -1331,13 +1343,17 @@ export function applyRoleApplication(data = {}) {
     return request.post('miniapp/role-applications', {
         userId: currentUserId(data),
         roleCode: data.roleCode || data.role_code || 'PROMOTER',
+        provinceCode: data.provinceCode || data.province_code || '',
         cityCode: data.cityCode || data.city_code || '',
         districtCode: data.districtCode || data.district_code || '',
         applicantName: data.applicantName || data.realName || data.name || '',
         mobile: data.mobile || '',
         username: data.username || data.loginName || data.login_name || '',
         password: data.password || '',
-        remark: data.remark || ''
+        remark: data.remark || '',
+        materialUrls: data.materialUrls || data.material_urls || [],
+        realnameVerified: data.realnameVerified ?? data.realname_verified ?? data.realNameVerified ?? data.real_name_verified,
+        agreementAccepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true
     })
 }
 

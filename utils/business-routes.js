@@ -45,6 +45,7 @@ export const businessRoutes = {
     myService: { name: "我的客服", url: "/business/pages/business_pages/my_service" },
     userOrder: { name: "我的订单", url: "/bundle_order/pages/user_order/user_order" },
     userKyc: { name: "用户KYC", url: "/business/pages/business_pages/user_kyc" },
+    promoterApply: { name: "角色申请", url: "/business/pages/business_pages/promoter_apply" },
     confirmOrder: {
       name: "确认订单",
       url:

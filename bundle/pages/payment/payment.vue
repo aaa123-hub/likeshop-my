@@ -205,6 +205,10 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			// 预支付处理
 			handlePrepay() {
 				if (this.submitDisabled) return
+				if (!this.isFacePay && Number(this.amount || 0) <= 0) {
+					this.goPayResult(true)
+					return
+				}
 				if (this.isExpired) {
 					this.$toast({ title: '订单已超时，请重新下单' })
 					return

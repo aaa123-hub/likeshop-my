@@ -89,9 +89,11 @@ function normalizeCouponItem(item = {}) {
     var amount = item.money || item.amount || item.discountAmount || item.couponAmount || item.value
     var ownerType = item.ownerType || item.owner_type || (item.subsidyEligible || item.subsidy_eligible ? 'PLATFORM' : (item.merchantId || item.merchant_id ? 'MERCHANT' : ''))
     var subsidyEligible = Boolean(item.subsidyEligible || item.subsidy_eligible || ownerType === 'PLATFORM')
+    var couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id
     return Object.assign({}, item, {
-        id: item.id || item.couponId || item.userCouponId,
-        coupon_id: item.coupon_id || item.couponId || item.id || item.userCouponId,
+        id: item.id || couponId || item.userCouponId,
+        coupon_id: couponId || item.userCouponId,
+        couponId: couponId,
         name: item.name || item.couponName || item.coupon_name || item.title || '优惠券',
         use_condition: item.use_condition || item.useCondition || item.conditionText || (threshold ? '满' + threshold + '可用' : (amount ? amount + '元优惠券' : '优惠券')),
         money: amount || item.money || 0,

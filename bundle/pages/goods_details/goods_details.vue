@@ -380,7 +380,7 @@
 				<scroll-view class="goods-coupon-popup__scroll" scroll-y>
 					<view
 						v-for="item in goodsCoupons"
-						:key="item.id || item.coupon_id || item.couponId"
+						:key="couponKey(item)"
 						class="goods-coupon-card"
 					>
 						<view class="goods-coupon-card__amount">
@@ -392,7 +392,7 @@
 							<view class="goods-coupon-card__condition line1">{{ item.use_condition || item.useCondition || '满足条件即可使用' }}</view>
 							<view class="goods-coupon-card__time line1">{{ item.use_time_tips || item.useTimeTips || item.validTimeText || '有效期以实际规则为准' }}</view>
 						</view>
-						<view class="goods-coupon-card__btn" @tap.stop="receiveGoodsCoupon(item)">{{ item.is_get || item.isGet ? '已领取' : (receivingCouponId == (item.id || item.coupon_id || item.couponId) ? '领取中' : '领取') }}</view>
+						<view class="goods-coupon-card__btn" @tap.stop="receiveGoodsCoupon(item)">{{ couponButtonText(item) }}</view>
 					</view>
 					<view v-if="!goodsCoupons.length" class="goods-coupon-popup__empty">暂无可领取优惠券</view>
 				</scroll-view>
@@ -872,7 +872,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				return []
 			},
 			couponKey(item = {}) {
-				return item.id || item.coupon_id || item.couponId || item.userCouponId || ''
+				return item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id || ''
+			},
+			couponButtonText(item = {}) {
+				if (item.is_get || item.isGet) return '已领取'
+				return this.receivingCouponId == this.couponKey(item) ? '领取中' : '领取'
 			},
 			receiveGoodsCoupon(item = {}) {
 				if (item.is_get || item.isGet) return
@@ -880,9 +884,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				const id = this.couponKey(item)
 				if (!id) return uni.showToast({ title: '优惠券信息异常', icon: 'none' })
 				this.receivingCouponId = id
-				getCoupon(id).then(res => {
+				getCoupon(id, { receiveScene: 'PRODUCT_DETAIL', spuId: this.goodsDetail.spuId || this.goodsDetail.goods_id || this.goodsDetail.id }).then(res => {
 					if (res.code == 1) {
 						this.$set(item, 'is_get', 1)
+						this.$set(item, 'isGet', 1)
 						uni.showToast({ title: '领取成功', icon: 'success' })
 						return
 					}
