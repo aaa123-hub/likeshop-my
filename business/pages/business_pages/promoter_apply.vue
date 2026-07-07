@@ -146,10 +146,10 @@ import Navbar from '@/components/navbar/navbar.vue'
 import { applyRoleApplication, getRoleApplications, getRoles } from '@/api/user'
 
 const roleOptions = [
+    { label: '推广者', value: 'PROMOTER' },
     { label: '总部', value: 'HEADQUARTERS' },
     { label: '子公司', value: 'SUBSIDIARY' },
     { label: '区域代理', value: 'OPERATION_CENTER' },
-    { label: '推广者', value: 'PROMOTER' },
     { label: '商家', value: 'MERCHANT' }
 ]
 
@@ -181,12 +181,17 @@ export default {
         }
     },
     computed: {
-        ...mapGetters(['userInfo', 'isLogin']),
+        ...mapGetters(['userInfo', 'isLogin', 'inviteCode']),
         currentApplication() {
-            return this.applications.find((item) => item.roleCode === this.selectedRoleCode)
+            const item = this.applications.find((item) => item.roleCode === this.selectedRoleCode)
+            return item ? this.withPromoterCode(item) : null
         },
         currentRoles() {
-            return this.roles.length ? this.roles : this.applications.filter((item) => this.statusType(item.applicationStatus) === 'approved')
+            const roles = this.roles.length ? this.roles : this.applications.filter((item) => this.statusType(item.applicationStatus) === 'approved')
+            return roles.map(this.withPromoterCode)
+        },
+        promoterInviteCode() {
+            return this.userInfo.promoter_code || this.userInfo.promoterCode || this.userInfo.distribution_code || this.userInfo.distributionCode || this.inviteCode || ''
         },
         selectedRoleCode() {
             return this.roleOptions[this.roleIndex].value
@@ -217,7 +222,7 @@ export default {
             if (status === 'approved') {
                 return [
                     { label: '登录账号', value: item.username },
-                    { label: '邀请码', value: item.inviteCode },
+                    { label: '推广码', value: item.inviteCode || item.promoterCode || this.promoterInviteCode },
                     { label: '通过时间', value: item.auditTime }
                 ].filter((info) => info.value)
             }
@@ -239,7 +244,7 @@ export default {
                 { label: '手机号', value: item.mobile },
                 { label: '登录账号', value: item.username },
                 { label: '申请区域', value: this.areaText(item) },
-                { label: '邀请码', value: item.inviteCode },
+                { label: '推广码', value: item.inviteCode || item.promoterCode || this.promoterInviteCode },
                 { label: '押金金额', value: this.moneyText(item.depositAmount) },
                 { label: '押金状态', value: this.depositStatusLabel(item.depositStatus) },
                 { label: '申请时间', value: item.appliedAt },
@@ -315,6 +320,15 @@ export default {
                 this.roleOptions.push({ label: item.roleName || item.roleCode, value: item.roleCode })
             })
         },
+        withPromoterCode(item = {}) {
+            if (String(item.roleCode || item.role_code || item.role || '').toUpperCase() !== 'PROMOTER') return item
+            const code = item.inviteCode || item.invite_code || item.promoterCode || item.promoter_code || this.promoterInviteCode
+            return {
+                ...item,
+                inviteCode: code,
+                promoterCode: code
+            }
+        },
         selectRole(roleCode) {
             const index = this.roleOptions.findIndex((item) => item.value === roleCode)
             if (index !== -1) {
@@ -377,9 +391,10 @@ export default {
             return `¥${value}`
         },
         areaText(item = {}) {
+            const province = item.provinceName || item.provinceCode || ''
             const city = item.cityName || item.cityCode || ''
             const district = item.districtName || item.districtCode || ''
-            return [city, district].filter(Boolean).join(' / ')
+            return [province, city, district].filter(Boolean).join(' / ')
         },
         handleStatusAction(type) {
             if (type === 'reapply') {

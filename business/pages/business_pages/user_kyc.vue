@@ -1,5 +1,5 @@
 <template>
-    <business-wrapper-page scene="user-kyc"></business-wrapper-page>
+    <business-wrapper-page scene="user-kyc" :page-options="{ showFormWhenEmpty: true }"></business-wrapper-page>
 </template>
 
 <script>

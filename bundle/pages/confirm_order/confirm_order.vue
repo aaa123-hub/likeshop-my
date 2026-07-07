@@ -43,7 +43,7 @@
                                     <text class="phone">{{ address.telephone }}</text>
                                 </view>
                                 <view class="address-detail">
-                                    {{ address.province + address.city + address.district + address.address }}
+                                    {{ addressText }}
                                 </view>
                             </template>
                             <template v-else>
@@ -161,8 +161,8 @@
                     <view class="summary-row" @tap="openCouponPopup">
                         <text>优惠券</text>
                         <view class="row-value">
-                            <text :class="discountAmount > 0 ? 'red-value' : 'muted-value'">{{ couponText }}</text>
-                            <image class="small-arrow" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" mode="scaleToFill"></image>
+                            <text :class="effectiveDiscountAmount > 0 ? 'red-value' : 'muted-value'">{{ couponText }}</text>
+                            <view :class="['coupon-arrow', showCoupon ? 'coupon-arrow--open' : '']"></view>
                         </view>
                     </view>
                     <template v-if="showIntegralRow">
@@ -237,6 +237,9 @@
                         可使用优惠券 ({{ usableCoupon.length }})
                     </view>
                     <view :class="['coupon-tab', couponTabsIndex === 1 ? 'is-active' : '']" @tap="couponTabsIndex = 1">
+                        可领取优惠券 ({{ receivableCoupon.length }})
+                    </view>
+                    <view :class="['coupon-tab', couponTabsIndex === 2 ? 'is-active' : '']" @tap="couponTabsIndex = 2">
                         不可用优惠券 ({{ unusableCoupon.length }})
                     </view>
                 </view>
@@ -246,23 +249,28 @@
                             v-for="item in currentCouponList"
                             :key="couponKey(item)"
                             class="coupon-card"
-                            @tap="toggleCoupon(couponKey(item))"
+                            @tap="handleCouponCardTap(item)"
                         >
                             <view class="coupon-item row">
                                 <view class="price white column-center">
-                                    <price-format :subscript-size="34" :first-size="60" :second-size="50" :price="item.money" :weight="500"></price-format>
-                                    <view class="nr">{{ item.use_condition }}</view>
+                                    <price-format :subscript-size="34" :first-size="60" :second-size="50" :price="couponAmountValue(item)" :weight="500"></price-format>
+                                    <view class="nr">{{ couponConditionText(item) }}</view>
                                 </view>
                                 <view class="row-between coupon-info-wrap">
                                     <view class="info ml20">
-                                        <view class="bold md mb10 line1">{{ item.name }}</view>
-                                        <view class="xxs lighter mb10">{{ item.coupon_type }}</view>
-                                        <view class="xxs lighter">{{ item.use_time_tips }}</view>
+                                        <view class="bold md mb10 line1">{{ couponName(item) }}</view>
+                                        <view class="xxs lighter mb10">{{ couponTypeText(item) }}</view>
+                                        <view class="xxs lighter">{{ couponTimeText(item) }}</view>
                                     </view>
-                                    <checkbox v-if="couponTabsIndex === 0" :checked="couponId == couponKey(item)" class="mr20"></checkbox>
+                                    <checkbox v-if="couponTabsIndex === 0" :checked="isCouponSelected(item)" class="mr20" @tap.stop="toggleCoupon(item)"></checkbox>
+                                    <view
+                                        v-if="couponTabsIndex === 1"
+                                        :class="['coupon-receive-btn', couponButtonDisabled(item) ? 'coupon-receive-btn--disabled' : '']"
+                                        @tap.stop="receiveCoupon(item)"
+                                    >{{ couponButtonText(item) }}</view>
                                 </view>
                             </view>
-                            <view class="coupon-tips xs" v-if="item.tips">{{ item.tips }}</view>
+                            <view class="coupon-tips xs" v-if="item.tips">{{ localizeCouponText(item.tips) }}</view>
                         </view>
                     </view>
                     <view v-if="!currentCouponList.length" class="coupon-empty column-center">
@@ -279,8 +287,8 @@
 
 <script>
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
-import { orderBuy, getOrderCoupon, getDelivery } from '@/api/order'
-import { getDefaultAddress } from '@/api/user'
+import { orderBuy, getDelivery } from '@/api/order'
+import { getCoupon, getDefaultAddress } from '@/api/user'
 import { teamBuy } from '@/api/activity'
 import { prepay, getMnpNotice, getPayway } from '@/api/app'
 import { wxpay, alipay } from '@/utils/pay'
@@ -306,10 +314,18 @@ export default {
             userMobile: '',
             storeInfo: {},
             couponId: '',
+            selectedCouponCache: null,
+            selectedCouponCandidateIds: [],
+            pendingCouponId: '',
+            pendingCouponCache: null,
+            pendingCouponCandidateIds: [],
             showCoupon: false,
             couponTabsIndex: 0,
             usableCoupon: [],
+            receivableCoupon: [],
             unusableCoupon: [],
+            receivingCouponId: '',
+            couponManuallyCleared: false,
             payWay: 'WECHAT_JSAPI',
             bargainLaunchId: -1,
             addressTabsIndex: 0,
@@ -343,40 +359,61 @@ export default {
             }
             return `¥${this.orderInfo.shipping_price || '0.00'}`
         },
+        addressText() {
+            return [this.address.province, this.address.city, this.address.district, this.address.address]
+                .map(this.safeText)
+                .filter(Boolean)
+                .join('')
+        },
         payAmount() {
             return this.currentPayAmount.toFixed(2)
         },
         currentPayAmount() {
-            const orderAmount = this.moneyValue(this.orderInfo.order_amount || this.orderInfo.pay_amount || this.orderInfo.payAmount)
-            const shippingPrice = this.currentDelivery.sign === 'store' ? this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount) : 0
-            const baseAmount = Math.max(orderAmount - shippingPrice, 0)
+            const orderAmount = this.orderAmountBeforeDiscount
+            const baseAmount = Math.max(orderAmount - this.effectiveDiscountAmount, 0)
             if (!this.useIntegral || this.pointsDeductAmount <= 0) return baseAmount
             const beforePoints = this.orderAmountBeforePoints
             const deductedAmount = Math.max(beforePoints - this.pointsDeductAmount, 0)
             const backendAppliedPoints = beforePoints > 0 && baseAmount <= deductedAmount + 0.009
             return backendAppliedPoints ? baseAmount : Math.max(baseAmount - this.pointsDeductAmount, 0)
         },
-        orderAmountBeforePoints() {
+        orderAmountBeforeDiscount() {
             const goodsAmount = this.moneyValue(this.orderInfo.total_goods_price || this.orderInfo.goodsAmount)
             const shippingPrice = this.currentDelivery.sign === 'store' ? 0 : this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount)
-            if (goodsAmount <= 0) return 0
-            return Math.max(goodsAmount + shippingPrice - this.discountAmount, 0)
+            if (goodsAmount > 0) return goodsAmount + shippingPrice
+            const payAmount = this.moneyValue(this.orderInfo.order_amount || this.orderInfo.pay_amount || this.orderInfo.payAmount)
+            return payAmount + this.effectiveDiscountAmount + (this.useIntegral ? this.pointsDeductAmount : 0)
+        },
+        orderAmountBeforePoints() {
+            return Math.max(this.orderAmountBeforeDiscount - this.effectiveDiscountAmount, 0)
         },
         discountAmount() {
+            if (!this.couponId) return 0
             return Number(this.orderInfo.discount_amount || this.orderInfo.discountAmount || 0)
         },
+        selectedCouponAmount() {
+            return this.selectedCoupon ? this.couponAmountValue(this.selectedCoupon) : 0
+        },
+        effectiveDiscountAmount() {
+            if (this.selectedCoupon) return this.discountAmount || this.selectedCouponAmount
+            return this.discountAmount
+        },
         couponText() {
-            if (this.discountAmount > 0) return `-¥${this.discountAmount.toFixed(2)}`
-            if (this.selectedCoupon) return this.selectedCoupon.name || this.selectedCoupon.couponName || '已选择优惠券'
+            if (this.effectiveDiscountAmount > 0) return `-¥${this.effectiveDiscountAmount.toFixed(2)}`
+            if (this.selectedCoupon) return this.couponName(this.selectedCoupon)
             if (this.usableCoupon.length) return `${this.usableCoupon.length}张可用`
+            if (this.receivableCoupon.length) return `${this.receivableCoupon.length}张可领取`
             return '没有可用的优惠券'
         },
         canOpenCoupon() {
-            return this.usableCoupon.length || this.unusableCoupon.length
+            return this.usableCoupon.length || this.receivableCoupon.length || this.unusableCoupon.length
         },
         selectedCoupon() {
             if (!this.couponId) return null
-            return this.usableCoupon.find(item => String(this.couponKey(item)) === String(this.couponId)) || null
+            return this.usableCoupon.find(item => this.isCouponSelected(item)) || this.selectedCouponCache || null
+        },
+        activeCouponId() {
+            return this.showCoupon ? this.pendingCouponId : this.couponId
         },
         integralText() {
             const userIntegral = this.userIntegral
@@ -398,10 +435,12 @@ export default {
         canUseIntegral() {
             if (!this.showIntegralRow) return false
             if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) return false
-            return this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
+            return this.userIntegral > 0 && this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
         },
         userIntegral() {
-            return this.pickNumber(this.orderInfo, ['user_integral', 'userIntegral', 'availablePoints', 'available_points', 'points'])
+            const data = this.orderInfo || {}
+            const totalPoints = data.user_integral ?? data.userIntegral ?? data.availablePoints ?? data.available_points ?? data.points ?? 0
+            return this.moneyValue(totalPoints)
         },
         pointsAmount() {
             return this.pickNumber(this.orderInfo, ['pointsAmount', 'points_amount', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points'])
@@ -410,7 +449,9 @@ export default {
             return this.pickNumber(this.orderInfo, ['pointsDeductAmount', 'points_deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxDeductAmount', 'max_deduct_amount'])
         },
         currentCouponList() {
-            return this.couponTabsIndex === 0 ? this.usableCoupon : this.unusableCoupon
+            if (this.couponTabsIndex === 0) return this.usableCoupon
+            if (this.couponTabsIndex === 1) return this.receivableCoupon
+            return this.unusableCoupon
         }
     },
     onLoad(options) {
@@ -451,7 +492,6 @@ export default {
             })
             .then(() => {
                 this.handleOrderMethods('info')
-                this.initCouponData()
             })
             // 监听全局事件
             .then(() => {
@@ -518,8 +558,176 @@ export default {
             const number = Number(value)
             return Number.isNaN(number) ? 0 : number
         },
+        firstDefined(...values) {
+            return values.find(value => value !== undefined && value !== null && value !== '')
+        },
+        safeText(value) {
+            if (value === undefined || value === null) return ''
+            const text = String(value)
+            return text === 'NaN' || text === 'undefined' || text === 'null' ? '' : text
+        },
+        couponAmountRaw(item = {}) {
+            return this.firstDefined(
+                item.money,
+                item.amount,
+                item.discountAmount,
+                item.discount_amount,
+                item.discountValue,
+                item.discount_value,
+                item.couponAmount,
+                item.coupon_amount,
+                item.reduceAmount,
+                item.reduce_amount,
+                item.deductAmount,
+                item.deduct_amount,
+                item.faceValue,
+                item.face_value,
+                item.value,
+                item.coupon && (item.coupon.money || item.coupon.amount || item.coupon.discountAmount || item.coupon.discount_amount),
+                item.couponInfo && (item.couponInfo.money || item.couponInfo.amount || item.couponInfo.discountAmount || item.couponInfo.discount_amount),
+                0
+            )
+        },
+        couponAmountValue(item = {}) {
+            return this.moneyValue(this.couponAmountRaw(item))
+        },
+        couponName(item = {}) {
+            return this.localizeCouponText(item.name || item.couponName || item.coupon_name || item.title || '优惠券')
+        },
+        couponConditionText(item = {}) {
+            const threshold = this.firstDefined(item.thresholdAmount, item.threshold_amount, item.minAmount, item.min_amount, item.useThreshold, item.use_threshold)
+            return this.localizeCouponText(item.use_condition || item.useCondition || item.conditionText || item.condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'))
+        },
+        couponTypeText(item = {}) {
+            const type = String(item.coupon_type || item.couponType || item.typeText || item.type || '').toUpperCase()
+            const map = {
+                COUPON: '优惠券',
+                FULL: '满减券',
+                FULL_REDUCE: '满减券',
+                DISCOUNT: '折扣券',
+                FIXED_DISCOUNT: '折扣券',
+                REDUCE: '满减券',
+                MONEY: '现金券',
+                CASH_COUPON: '现金券',
+                FULL_REDUCTION: '满减券',
+                FULL_DISCOUNT: '满减券',
+                CASH: '现金券',
+                VOUCHER: '代金券',
+                FREIGHT: '运费券',
+                FREE_SHIPPING: '包邮券',
+                PLATFORM: '平台券',
+                MERCHANT: '商家券',
+                SHOP: '商家券',
+                STORE: '商家券'
+            }
+            return map[type] || this.localizeCouponText(item.coupon_type || item.couponType || item.typeText || '优惠券')
+        },
+        couponTimeText(item = {}) {
+            return this.localizeCouponText(item.use_time_tips || item.useTimeTips || item.validTimeText || item.valid_time_text || [item.startTime || item.start_time, item.endTime || item.end_time].filter(Boolean).join(' 至 ') || '有效期以实际使用规则为准')
+        },
+        localizeCouponText(value) {
+            const text = String(value || '')
+            const exactMap = {
+                AVAILABLE: '可使用',
+                UNAVAILABLE: '不可用',
+                RECEIVABLE: '可领取',
+                CLAIMABLE: '可领取',
+                RECEIVED: '已领取',
+                USED: '已使用',
+                EXPIRED: '已过期',
+                UNUSED: '未使用',
+                PLATFORM: '平台券',
+                MERCHANT: '商家券',
+                SHOP: '商家券',
+                STORE: '商家券',
+                DISCOUNT: '折扣券',
+                REDUCE: '满减券',
+                FULL_REDUCTION: '满减券',
+                FREE_SHIPPING: '包邮券'
+            }
+            const upper = text.toUpperCase()
+            if (exactMap[upper]) return exactMap[upper]
+            return text
+                .replace(/\bAVAILABLE\b/gi, '可使用')
+                .replace(/\bUNAVAILABLE\b/gi, '不可用')
+                .replace(/\bRECEIVABLE\b/gi, '可领取')
+                .replace(/\bCLAIMABLE\b/gi, '可领取')
+                .replace(/\bRECEIVED\b/gi, '已领取')
+                .replace(/\bUSED\b/gi, '已使用')
+                .replace(/\bEXPIRED\b/gi, '已过期')
+                .replace(/\bUNUSED\b/gi, '未使用')
+                .replace(/\bPLATFORM\b/gi, '平台')
+                .replace(/\bMERCHANT\b/gi, '商家')
+                .replace(/\bSHOP\b/gi, '商家')
+        },
         couponKey(item = {}) {
-            return item.coupon_id || item.couponId || item.id || item.userCouponId || ''
+            const template = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
+            const coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
+            return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.couponTemplateNo || item.coupon_template_no || template.couponId || template.coupon_id || template.templateId || template.template_id || template.couponTemplateId || template.coupon_template_id || template.couponTplId || template.coupon_tpl_id || template.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.couponTplId || coupon.coupon_tpl_id || coupon.id || item.id || item.userCouponId || ''
+        },
+        couponApplyId(item = {}) {
+            return this.couponApplyIds(item)[0] || ''
+        },
+        couponApplyIds(item = {}) {
+            const coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
+            return [
+                item.coupon_id,
+                item.couponId,
+                item.userCouponId,
+                item.user_coupon_id,
+                item.userCouponNo,
+                item.user_coupon_no,
+                item.receiveId,
+                item.receive_id,
+                coupon.couponId,
+                coupon.coupon_id,
+                coupon.userCouponId,
+                coupon.user_coupon_id,
+                coupon.userCouponNo,
+                coupon.user_coupon_no,
+                coupon.id,
+                item.id,
+                this.couponKey(item)
+            ].filter(value => value !== undefined && value !== null && value !== '').map(value => String(value)).filter((value, index, list) => list.indexOf(value) === index)
+        },
+        couponCompareIds(item = {}) {
+            const template = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
+            const coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
+            return [
+                ...this.couponApplyIds(item),
+                item.coupon_id, item.couponId, item.templateId, item.template_id, item.couponTemplateId, item.coupon_template_id, item.couponTplId, item.coupon_tpl_id, item.id, item.userCouponId, item.user_coupon_id,
+                template.couponId, template.coupon_id, template.templateId, template.template_id, template.couponTemplateId, template.coupon_template_id, template.id,
+                coupon.couponId, coupon.coupon_id, coupon.templateId, coupon.template_id, coupon.couponTemplateId, coupon.coupon_template_id, coupon.id, coupon.userCouponId, coupon.user_coupon_id
+            ].filter(value => value !== undefined && value !== null && value !== '').map(value => String(value))
+        },
+        isCouponSelected(item = {}) {
+            if (!this.activeCouponId) return false
+            return this.couponCompareIds(item).includes(String(this.activeCouponId))
+        },
+        couponReceivePayload(item = {}) {
+            const id = this.couponKey(item)
+            const template = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
+            const templateId = item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.templateId || item.template_id || template.couponTemplateId || template.coupon_template_id || template.templateId || template.template_id || template.id || id
+            const goods = this.goods[0] || {}
+            const productId = goods.goods_id || goods.goodsId || goods.spuId || goods.spu_id || goods.productId || goods.product_id || ''
+            return {
+                couponId: item.couponId || item.coupon_id || id,
+                coupon_id: item.couponId || item.coupon_id || id,
+                couponTemplateId: templateId,
+                coupon_template_id: templateId,
+                couponTplId: templateId,
+                coupon_tpl_id: templateId,
+                templateId,
+                template_id: templateId,
+                receiveScene: 'ORDER_CONFIRM',
+                receive_scene: 'ORDER_CONFIRM',
+                spuId: productId,
+                spu_id: productId,
+                productId,
+                product_id: productId,
+                goodsId: productId,
+                goods_id: productId
+            }
         },
         normalizePreviewGoods(item = {}, index = 0) {
             const original = this.goods[index] || this.goods.find(goods => String(goods.item_id || goods.skuId || goods.id || '') === String(item.item_id || item.skuId || item.sku_id || item.id || '')) || {}
@@ -560,6 +768,9 @@ export default {
             if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) {
                 return this.$toast({ title: '当前订单暂不支持积分抵扣' })
             }
+            if (this.userIntegral <= 0) {
+                return this.$toast({ title: '暂无可用积分' })
+            }
             if (Number(this.orderInfo.integral_limit || 0) > this.userIntegral) {
                 return this.$toast({ title: '未满足积分使用条件' })
             }
@@ -576,19 +787,70 @@ export default {
         },
         onSelectCoupon(value) {
             this.couponId = value
+            this.selectedCouponCache = this.usableCoupon.find(item => this.couponCompareIds(item).includes(String(value))) || null
+            this.couponManuallyCleared = !value
             this.showCoupon = false
             this.handleOrderMethods('info')
         },
         openCouponPopup() {
             if (!this.canOpenCoupon) return
+            this.pendingCouponId = this.couponId
+            this.pendingCouponCache = this.selectedCouponCache
+            this.pendingCouponCandidateIds = this.selectedCouponCandidateIds.slice()
             this.showCoupon = true
         },
-        toggleCoupon(id) {
+        handleCouponCardTap(item) {
+            if (this.couponTabsIndex === 1) return this.receiveCoupon(item)
+            this.toggleCoupon(item)
+        },
+        toggleCoupon(item = {}) {
             if (this.couponTabsIndex !== 0) return
-            this.couponId = this.couponId == id ? '' : id
+            const id = this.couponApplyId(item)
+            const nextId = this.isCouponSelected(item) ? '' : id
+            this.pendingCouponId = nextId
+            this.pendingCouponCache = nextId ? item : null
+            this.pendingCouponCandidateIds = nextId ? this.couponApplyIds(item) : []
+        },
+        async receiveCoupon(item = {}) {
+            const id = this.couponKey(item)
+            if (item.is_get || item.isGet) return
+            if (!id || this.receivingCouponId) return
+            this.receivingCouponId = id
+            try {
+                const res = await getCoupon(id, this.couponReceivePayload(item))
+                if (res.code != 1) {
+                    uni.showToast({ title: res.msg || '领取失败', icon: 'none' })
+                    return
+                }
+                this.$set(item, 'is_get', 1)
+                this.$set(item, 'isGet', 1)
+                uni.showToast({ title: res.msg || '领取成功', icon: 'success' })
+                await this.refreshCouponsAfterReceive()
+            } catch (error) {
+                uni.showToast({ title: '领取失败', icon: 'none' })
+            } finally {
+                this.receivingCouponId = ''
+            }
+        },
+        async refreshCouponsAfterReceive() {
+            await this.handleOrderMethods('info')
+            this.couponTabsIndex = this.receivableCoupon.length ? 1 : 0
+        },
+        couponButtonText(item = {}) {
+            if (item.is_get || item.isGet) return '已领取'
+            if (!this.couponKey(item)) return '暂不可领'
+            return this.receivingCouponId == this.couponKey(item) ? '领取中' : '领取'
+        },
+        couponButtonDisabled(item = {}) {
+            return Boolean(item.is_get || item.isGet || !this.couponKey(item) || this.receivingCouponId == this.couponKey(item))
         },
         confirmCouponPopup() {
             this.showCoupon = false
+            this.couponId = this.pendingCouponId
+            this.selectedCouponCache = this.pendingCouponCache
+            this.selectedCouponCandidateIds = this.pendingCouponCandidateIds.slice()
+            if (!this.couponId) this.couponManuallyCleared = true
+            else this.couponManuallyCleared = false
             this.handleOrderMethods('info')
         },
         authWechatMessage() {
@@ -633,37 +895,20 @@ export default {
         selectPayWay(value) {
             this.payWay = 'WECHAT_JSAPI'
         },
-        initCouponData() {
-            if (!this.goods.length) return
-            getOrderCoupon({
-                goods: this.goods,
-                type: this.type,
-                addressId: this.addressId,
-                address_id: this.addressId,
-                couponIds: this.couponId ? [this.couponId] : [],
-                coupon_id: this.couponId,
-                use_integral: this.useIntegral,
-                pointsDeductAmount: this.useIntegral ? this.pointsDeductAmount : 0,
-                points_deduct_amount: this.useIntegral ? this.pointsDeductAmount : 0,
-                integral_amount: this.useIntegral ? this.pointsDeductAmount : 0,
-                pointsAmount: this.useIntegral ? this.pointsAmount : 0,
-                points_amount: this.useIntegral ? this.pointsAmount : 0,
-                integral_num: this.useIntegral ? this.pointsAmount : 0
+        mergeReceivableCoupons(list = []) {
+            const ownedIds = new Set(this.usableCoupon.concat(this.unusableCoupon).map(item => String(this.couponKey(item))))
+            const seen = new Set()
+            return list.filter((item) => {
+                const id = String(this.couponKey(item))
+                if (!id || seen.has(id) || ownedIds.has(id) || item.is_get) return false
+                seen.add(id)
+                return true
             })
-                .then(({ code, data, msg }) => {
-                    if (code != 1) throw new Error(msg)
-                    return data
-                })
-                .then((data) => {
-                    this.usableCoupon = data.usable || []
-                    this.unusableCoupon = data.unusable || []
-                })
-                .catch(() => {})
         },
         async initPageData(from) {
             this.showLoading = true
             try {
-                const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
+                const { code, data, msg } = await this.previewOrderWithCouponFallback(from)
                 if (code != 1) throw new Error(msg)
                 const responseAddress = data.address || {}
                 this.address = responseAddress.id ? responseAddress : (this.address && this.address.id ? this.address : {})
@@ -706,6 +951,30 @@ export default {
                 }
             } catch (error) {}
         },
+        previewDiscountAmount(data = {}) {
+            return this.moneyValue(data.discount_amount || data.discountAmount)
+        },
+        async previewOrderWithCouponFallback(from) {
+            if (this.teamId) return teamBuy(from)
+            if (!from.coupon_id || !this.selectedCouponCandidateIds.length) return orderBuy(from)
+            const candidates = this.selectedCouponCandidateIds.filter((value, index, list) => value && list.indexOf(value) === index)
+            let fallbackRes = null
+            for (const id of candidates) {
+                const res = await orderBuy({
+                    ...from,
+                    coupon_id: id,
+                    couponId: id,
+                    couponIds: [id]
+                })
+                if (!fallbackRes) fallbackRes = res
+                if (res.code == 1 && this.previewDiscountAmount(res.data || {}) > 0) {
+                    this.couponId = id
+                    this.selectedCouponCandidateIds = [id].concat(candidates.filter(item => item !== id))
+                    return res
+                }
+            }
+            return fallbackRes || orderBuy(from)
+        },
         async handleOrderSubmit(from) {
             this.showLoading = true
             from.remark = this.userRemark
@@ -729,19 +998,44 @@ export default {
         },
         syncDiscountData(data = {}) {
             const usableCoupon = data.usable || data.usableCoupon || data.usable_coupon || []
+            const receivableCoupon = data.receivable || data.receivableCoupon || data.receivable_coupon || []
             const unusableCoupon = data.unusable || data.unusableCoupon || data.unusable_coupon || []
-            if (Array.isArray(usableCoupon)) this.usableCoupon = usableCoupon
-            if (Array.isArray(unusableCoupon)) this.unusableCoupon = unusableCoupon
-            if (data.coupon_id || data.couponId) this.couponId = data.coupon_id || data.couponId
-            if (this.couponId && !this.usableCoupon.some(item => String(this.couponKey(item)) === String(this.couponId))) this.couponId = ''
+            this.usableCoupon = Array.isArray(usableCoupon) ? usableCoupon : []
+            this.unusableCoupon = Array.isArray(unusableCoupon) ? unusableCoupon : []
+            this.receivableCoupon = Array.isArray(receivableCoupon) ? this.mergeReceivableCoupons(receivableCoupon) : []
+            const responseCouponId = data.coupon_id || data.couponId
+            if (responseCouponId && (!this.couponManuallyCleared || this.couponId)) {
+                this.couponId = responseCouponId
+                this.couponManuallyCleared = false
+            }
+            if (this.couponId) {
+                const selected = this.usableCoupon.find(item => this.couponCompareIds(item).includes(String(this.couponId)))
+                if (selected) {
+                    this.selectedCouponCache = selected
+                    this.selectedCouponCandidateIds = this.couponApplyIds(selected)
+                }
+                if (!selected && !this.selectedCouponCache) this.couponId = ''
+            }
+            if (!this.showCoupon) {
+                this.pendingCouponId = this.couponId
+                this.pendingCouponCache = this.selectedCouponCache
+                this.pendingCouponCandidateIds = this.selectedCouponCandidateIds.slice()
+            }
         },
         ensureDefaultCoupon() {
             if (Number(this.orderInfo.order_type || 0) !== 0) return false
+            if (this.couponManuallyCleared) return false
             if (this.couponId || !this.usableCoupon.length) return false
             const firstCoupon = this.usableCoupon[0]
-            const id = this.couponKey(firstCoupon)
+            const id = this.couponApplyId(firstCoupon)
             if (!id) return false
             this.couponId = id
+            this.selectedCouponCache = firstCoupon
+            this.selectedCouponCandidateIds = this.couponApplyIds(firstCoupon)
+            this.pendingCouponId = id
+            this.pendingCouponCache = firstCoupon
+            this.pendingCouponCandidateIds = this.selectedCouponCandidateIds.slice()
+            this.couponManuallyCleared = false
             return true
         },
         handleOrderMethods(action) {
@@ -766,9 +1060,12 @@ export default {
                 addressId: this.addressId,
                 address_id: this.addressId,
                 address: this.address && this.address.id ? this.address : undefined,
-                couponIds: this.couponId ? [this.couponId] : [],
                 coupon_id: this.couponId,
+                couponIds: this.couponId ? [this.couponId] : [],
                 bargain_launch_id: this.bargainLaunchId == -1 ? '' : this.bargainLaunchId
+            }
+            if (this.couponId) {
+                orderFrom.couponId = this.couponId
             }
             if (this.currentDelivery.sign === 'store') {
                 orderFrom.selffetch_shop_id = this.storeInfo.id
@@ -784,8 +1081,8 @@ export default {
                 orderFrom.team_id = this.teamId
                 orderFrom.found_id = this.foundId
             }
-            if (action === 'info') this.initPageData(orderFrom)
-            if (action === 'submit') this.handleOrderSubmit(orderFrom)
+            if (action === 'info') return this.initPageData(orderFrom)
+            if (action === 'submit') return this.handleOrderSubmit(orderFrom)
         }
     }
 }</script>
@@ -1144,6 +1441,22 @@ page {
     margin-left: 17rpx;
 }
 
+.coupon-arrow {
+    flex: none;
+    width: 16rpx;
+    height: 16rpx;
+    margin-left: 17rpx;
+    border-right: 3rpx solid #9aa0a6;
+    border-bottom: 3rpx solid #9aa0a6;
+    transform: rotate(-45deg);
+    transition: transform .2s ease;
+    box-sizing: border-box;
+}
+
+.coupon-arrow--open {
+    transform: rotate(45deg);
+}
+
 .integral-check {
     margin-left: 18rpx;
     transform: scale(0.72);
@@ -1346,11 +1659,40 @@ page {
 }
 
 .coupon-item .price {
+    flex: none;
     width: 200rpx;
+    min-width: 180rpx;
+    box-sizing: border-box;
 }
 
 .coupon-info-wrap {
     flex: 1;
+    min-width: 0;
+}
+
+.coupon-info-wrap .info {
+    flex: 1;
+    min-width: 0;
+}
+
+.coupon-receive-btn {
+    flex: none;
+    min-width: 104rpx;
+    height: 52rpx;
+    margin-right: 20rpx;
+    padding: 0 18rpx;
+    border-radius: 26rpx;
+    background: #037dfa;
+    color: #ffffff;
+    font-size: 24rpx;
+    line-height: 52rpx;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.coupon-receive-btn--disabled {
+    background: #d6d9df;
+    color: #ffffff;
 }
 
 .coupon-tips {

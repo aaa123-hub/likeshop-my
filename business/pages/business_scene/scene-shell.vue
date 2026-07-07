@@ -36,7 +36,7 @@
                     </view>
 
                     <view class="user-kyc-page__sheet">
-                        <view v-if="kycStatusText" class="user-kyc-page__audit-card">
+                        <view v-if="showKycAuditCard" class="user-kyc-page__audit-card">
                             <view class="user-kyc-page__audit-title">认证状态：{{ kycStatusText }}</view>
                             <view v-if="kycAuditMessage" class="user-kyc-page__audit-desc">{{ kycAuditMessage }}</view>
                             <view v-if="kycSubmitTimeText" class="user-kyc-page__audit-time">提交时间：{{ kycSubmitTimeText }}</view>
@@ -1423,7 +1423,17 @@ export default {
             return (this.sceneConfig.title || '关于我们').slice(0, 4)
         },
         kycStatusText() {
+            if (this.isKycEmpty) return ''
             return this.formatKycStatusText(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status)
+        },
+        isKycEmpty() {
+            const data = this.kycStatusInfo || {}
+            const status = String(data.kycStatus || data.kyc_status || '').toUpperCase()
+            const hasBusinessData = data.realName || data.real_name || data.certNo || data.cert_no || data.lastSubmitTime || data.last_submit_time || data.applyNo || data.applicationNo || data.id
+            return Boolean(this.pageOptions && this.pageOptions.showFormWhenEmpty && (!status || status === 'NOT_SUBMITTED') && !hasBusinessData)
+        },
+        showKycAuditCard() {
+            return Boolean(this.kycStatusText && !this.isKycEmpty)
         },
         kycStatusClass() {
             const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
@@ -1441,6 +1451,7 @@ export default {
             return this.formatSceneTime(data.lastSubmitTime || data.last_submit_time || data.submitTime || data.submit_time || data.createdAt || data.createTime || data.created_at)
         },
         kycDisplayRows() {
+            if (this.isKycEmpty) return []
             const data = this.kycStatusInfo || {}
             return [
                 { label: '认证姓名', value: data.realName || data.real_name || this.kycForm.realName },

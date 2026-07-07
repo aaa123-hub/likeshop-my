@@ -84,20 +84,47 @@ function imagesToDetailContent(images = []) {
     }).join('')
 }
 
+function firstDefined() {
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i] !== undefined && arguments[i] !== null && arguments[i] !== '') return arguments[i]
+    }
+    return undefined
+}
+
+function couponTypeText(item) {
+    var type = String(item.coupon_type || item.couponType || item.typeText || item.type || '').toUpperCase()
+    var map = {
+        DISCOUNT: '折扣券',
+        REDUCE: '满减券',
+        FULL_REDUCTION: '满减券',
+        FULL_DISCOUNT: '满减券',
+        CASH: '现金券',
+        VOUCHER: '代金券',
+        FREIGHT: '运费券',
+        FREE_SHIPPING: '包邮券',
+        PLATFORM: '平台券',
+        MERCHANT: '商家券'
+    }
+    return map[type] || item.coupon_type || item.couponType || item.typeText || '优惠券'
+}
+
 function normalizeCouponItem(item = {}) {
-    var threshold = item.thresholdAmount || item.minAmount || item.useThreshold
-    var amount = item.money || item.amount || item.discountAmount || item.couponAmount || item.value
+    var threshold = firstDefined(item.thresholdAmount, item.threshold_amount, item.minAmount, item.min_amount, item.useThreshold, item.use_threshold)
     var ownerType = item.ownerType || item.owner_type || (item.subsidyEligible || item.subsidy_eligible ? 'PLATFORM' : (item.merchantId || item.merchant_id ? 'MERCHANT' : ''))
     var subsidyEligible = Boolean(item.subsidyEligible || item.subsidy_eligible || ownerType === 'PLATFORM')
-    var couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id
+    var couponTemplate = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
+    var coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
+    var amount = firstDefined(item.money, item.amount, item.discountAmount, item.discount_amount, item.discountValue, item.discount_value, item.couponAmount, item.coupon_amount, item.reduceAmount, item.reduce_amount, item.deductAmount, item.deduct_amount, item.faceValue, item.face_value, item.value, coupon.money, coupon.amount, coupon.discountAmount, coupon.discount_amount, 0)
+    var couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.couponTemplateNo || item.coupon_template_no || couponTemplate.couponId || couponTemplate.coupon_id || couponTemplate.templateId || couponTemplate.template_id || couponTemplate.couponTemplateId || couponTemplate.coupon_template_id || couponTemplate.couponTplId || couponTemplate.coupon_tpl_id || couponTemplate.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.couponTplId || coupon.coupon_tpl_id || coupon.id || item.id
     return Object.assign({}, item, {
         id: item.id || couponId || item.userCouponId,
         coupon_id: couponId || item.userCouponId,
         couponId: couponId,
+        couponTemplateId: item.couponTemplateId || item.coupon_template_id || couponTemplate.id || couponTemplate.templateId || couponTemplate.couponTemplateId || couponId,
         name: item.name || item.couponName || item.coupon_name || item.title || '优惠券',
         use_condition: item.use_condition || item.useCondition || item.conditionText || (threshold ? '满' + threshold + '可用' : (amount ? amount + '元优惠券' : '优惠券')),
         money: amount || item.money || 0,
-        coupon_type: item.coupon_type || item.couponType || item.typeText || '优惠券',
+        coupon_type: couponTypeText(item),
         use_time_tips: item.use_time_tips || item.useTimeTips || item.validTimeText || item.valid_time_text || '',
         ownerType: ownerType,
         owner_type: ownerType,
@@ -178,7 +205,7 @@ function normalizeSkuItem(item = {}, index = 0) {
         name: item.name || item.skuName || specValueStr,
         price: item.price || item.salePrice || 0,
         team_price: item.team_price || item.teamPrice || item.groupPrice || item.salePrice || item.price || 0,
-        market_price: item.market_price || item.marketPrice || item.salePrice || 0,
+        market_price: item.market_price || item.marketPrice || item.originPrice || item.origin_price || item.originalPrice || item.original_price || item.linePrice || item.line_price || 0,
         stock: valueOr(item.stock, valueOr(item.stockQty, valueOr(item.stockQuantity, 0))),
         image,
         spec_value_str: item.spec_value_str || specValueStr,
@@ -251,9 +278,10 @@ function normalizeGoodsDetail(payload = {}, spuId) {
     pointsAmount = valueOr(pointsAmount, valueOr(detail.pointsAmount, valueOr(detail.points_amount, valueOr(detail.integralNum, detail.integral_num))))
     var giveIntegral = valueOr(detail.order_give_integral, valueOr(detail.giveIntegral, valueOr(detail.give_integral, valueOr(detail.rewardPoints, detail.reward_points))))
     var pointsEnabled = valueOr(rawMarketingConfig.pointsEnabled, valueOr(rawMarketingConfig.points_enabled, valueOr(detail.pointsEnabled, valueOr(detail.points_enabled, valueOr(detail.integralSwitch, detail.integral_switch)))))
+    var normalizedPointsEnabled = pointsEnabled === true || pointsEnabled === 1 || pointsEnabled === '1'
     var marketingConfig = Object.assign({}, rawMarketingConfig, {
-        pointsEnabled: valueOr(pointsEnabled, Number(pointsDeductAmount || 0) > 0 || Number(pointsAmount || 0) > 0),
-        points_enabled: valueOr(pointsEnabled, Number(pointsDeductAmount || 0) > 0 || Number(pointsAmount || 0) > 0),
+        pointsEnabled: normalizedPointsEnabled,
+        points_enabled: normalizedPointsEnabled,
         pointsDeductAmount: valueOr(pointsDeductAmount, 0),
         points_deduct_amount: valueOr(pointsDeductAmount, 0),
         pointsAmount: valueOr(pointsAmount, 0),

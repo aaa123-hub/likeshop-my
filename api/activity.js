@@ -24,20 +24,24 @@ function normalizePage(data = {}, itemNormalizer) {
 }
 
 function normalizeCoupon(item = {}) {
-    const threshold = item.thresholdAmount ?? item.threshold_amount ?? 0
-    const couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id
+    const threshold = item.thresholdAmount ?? item.threshold_amount ?? item.minAmount ?? item.min_amount ?? item.useThreshold ?? item.use_threshold ?? 0
+    const amount = item.money ?? item.amount ?? item.discountAmount ?? item.discount_amount ?? item.discountValue ?? item.discount_value ?? item.couponAmount ?? item.coupon_amount ?? item.value ?? 0
+    const couponTemplate = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
+    const coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
+    const couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.couponTemplateNo || item.coupon_template_no || couponTemplate.couponId || couponTemplate.coupon_id || couponTemplate.templateId || couponTemplate.template_id || couponTemplate.couponTemplateId || couponTemplate.coupon_template_id || couponTemplate.couponTplId || couponTemplate.coupon_tpl_id || couponTemplate.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.couponTplId || coupon.coupon_tpl_id || coupon.id || item.id
     return {
         ...item,
         id: item.id || couponId,
         coupon_id: couponId,
         couponId,
-        name: item.name || item.couponName || '',
-        money: item.money || item.discountValue || item.discount_value || 0,
-        use_condition: item.use_condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'),
-        use_time_tips: item.use_time_tips || [item.startTime, item.endTime].filter(Boolean).join(' 至 '),
-        coupon_type: item.coupon_type || item.couponType || '',
-        is_get: item.is_get || item.received || false,
-        tips: item.tips || ''
+        couponTemplateId: item.couponTemplateId || item.coupon_template_id || couponTemplate.id || couponTemplate.templateId || couponTemplate.couponTemplateId || couponId,
+        name: item.name || item.couponName || item.coupon_name || item.title || '优惠券',
+        money: amount,
+        use_condition: item.use_condition || item.useCondition || item.conditionText || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'),
+        use_time_tips: item.use_time_tips || item.useTimeTips || item.validTimeText || item.valid_time_text || [item.startTime || item.start_time, item.endTime || item.end_time].filter(Boolean).join(' 至 '),
+        coupon_type: item.coupon_type || item.couponType || item.typeText || '优惠券',
+        is_get: item.is_get || item.received || item.hasReceived || item.has_received || false,
+        tips: item.tips || item.description || item.remark || ''
     }
 }
 
@@ -112,8 +116,24 @@ function unsupportedPage(message = '后端暂未提供该活动接口') {
 }
 
 export function getGoodsCoupon(data) {
-    return request.post(`miniapp/coupons/${data.id || data.couponId || 0}/receive`, {
-        receiveScene: data.receiveScene || data.receive_scene || 'APP'
+    const id = data.couponTemplateId || data.coupon_template_id || data.templateId || data.template_id || data.couponTplId || data.coupon_tpl_id || data.couponId || data.coupon_id || data.id
+    const payload = {
+        couponId: data.couponId || data.coupon_id || id,
+        coupon_id: data.couponId || data.coupon_id || id,
+        couponTemplateId: data.couponTemplateId || data.coupon_template_id || data.templateId || data.template_id || id,
+        coupon_template_id: data.couponTemplateId || data.coupon_template_id || data.templateId || data.template_id || id,
+        templateId: data.templateId || data.template_id || data.couponTemplateId || data.coupon_template_id || id,
+        template_id: data.templateId || data.template_id || data.couponTemplateId || data.coupon_template_id || id,
+        receiveScene: data.receiveScene || data.receive_scene || 'APP',
+        receive_scene: data.receiveScene || data.receive_scene || 'APP',
+        spuId: data.spuId || data.spu_id || data.productId || data.product_id,
+        spu_id: data.spuId || data.spu_id || data.productId || data.product_id,
+        productId: data.productId || data.product_id || data.spuId || data.spu_id,
+        product_id: data.productId || data.product_id || data.spuId || data.spu_id
+    }
+    return request.post(`miniapp/coupons/${id || 0}/receive`, payload).then((res) => {
+        if (res.code == 1) return res
+        return request.get(`miniapp/coupons/${id || 0}/receive`, { params: payload }).catch(() => res)
     })
 }
 

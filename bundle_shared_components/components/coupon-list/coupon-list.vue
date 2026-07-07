@@ -14,8 +14,8 @@
                 <view class="coupon-time">{{item.use_time_tips || '有效期以实际使用规则为准'}}</view>
                 <view class="coupon-type">{{item.coupon_type || item.use_condition}}</view>
             </view>
-            <button type="primary" :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')" @tap="onHandle(couponKey(item))">
-                {{getBtn}}
+            <button type="primary" :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')" @tap="onHandle(item)">
+                {{item.is_get && btnType == 3 ? '已领取' : getBtn}}
             </button>
             <image v-if="item.is_get" class="receive" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_receive.png"></image>
         </view>
@@ -106,8 +106,9 @@ export default {
     }
   },
   methods: {
-    onHandle(id) {
-      this.id = id;
+    onHandle(item) {
+      this.id = this.couponKey(item);
+      if (this.btnType == 3 && item && item.is_get) return
       const {
         btnType
       } = this;
@@ -144,17 +145,21 @@ export default {
     },
 
     couponKey(item = {}) {
-      return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id || ''
+      const template = item.couponTemplate || item.coupon_template || item.template || item.templateInfo || item.template_info || item.couponTemplateInfo || item.coupon_template_info || {}
+      const coupon = item.coupon || item.couponInfo || item.coupon_info || {}
+      return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || template.couponId || template.coupon_id || template.templateId || template.template_id || template.couponTemplateId || template.coupon_template_id || template.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.id || item.id || ''
     },
 
     getCouponFun() {
       if (!this.id) return this.$toast({title: '优惠券信息异常'})
       getCoupon(this.id, { receiveScene: 'COUPON_CENTER' }).then(res => {
         if (res.code == 1) {
-          this.$toast({title: res.msg})
+          this.$toast({title: res.msg || '领取成功'})
           this.$emit('reflash');
+        } else {
+          this.$toast({title: res.msg || '领取失败'})
         }
-      });
+      }).catch(() => this.$toast({title: '领取失败'}));
     }
 
   }

@@ -202,7 +202,7 @@ function normalizeUserProfile(data = {}) {
         create_time: data.create_time || data.createTime || data.createdAt || data.registerTime || '暂未记录',
         sex: normalizeGenderForView(genderValue),
         user_money: data.user_money ?? data.balance ?? data.walletBalance ?? data.wallet?.balance ?? 0,
-        user_integral: data.user_integral ?? data.availablePoints ?? data.available_points ?? data.points ?? data.pointsAccount?.availablePoints ?? 0,
+        user_integral: data.user_integral ?? data.userIntegral ?? data.availablePoints ?? data.available_points ?? data.points ?? data.pointsAccount?.availablePoints ?? 0,
         coupon: data.coupon ?? data.couponCount ?? data.availableCouponCount ?? data.available_coupon_count ?? data.couponSummary?.availableCount ?? 0,
         gift_card_count: data.gift_card_count ?? data.giftCardCount ?? data.cardCount ?? data.giftCardSummary?.availableCount ?? 0,
         wait_pay: data.wait_pay ?? data.waitPay ?? 0,
@@ -213,7 +213,8 @@ function normalizeUserProfile(data = {}) {
         after_sale: data.after_sale ?? data.afterSale ?? 0,
         roles: data.roles || data.roleList || data.userRoles || [],
         role_applications: data.role_applications || data.roleApplications || data.applications || [],
-        distribution_code: data.distribution_code || data.distributionCode || data.inviteCode || fakeUserInfo().distribution_code,
+        distribution_code: data.distribution_code || data.distributionCode || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || fakeUserInfo().distribution_code,
+        promoter_code: data.promoter_code || data.promoterCode || data.promotionCode || data.promotion_code || data.distribution_code || data.distributionCode || data.inviteCode || fakeUserInfo().distribution_code,
         next_level_tips: data.next_level_tips || data.nextLevelTips || '立即开通'
     }
 }
@@ -273,10 +274,10 @@ function normalizeAddress(item = {}) {
         addressId: item.addressId || item.id,
         contact: item.contact || item.receiverName || item.receiver_name || '',
         telephone: item.telephone || item.mobile || item.phone || item.tel || '',
-        province: item.province || item.provinceName || findRegionNameByCode(area, provinceCode),
-        city: item.city || item.cityName || findRegionNameByCode(area, cityCode),
-        district: item.district || item.districtName || findRegionNameByCode(area, districtCode),
-        address: item.address || item.detailAddress || item.detail_address || '',
+        province: String(item.province || item.provinceName || findRegionNameByCode(area, provinceCode) || ''),
+        city: String(item.city || item.cityName || findRegionNameByCode(area, cityCode) || ''),
+        district: String(item.district || item.districtName || findRegionNameByCode(area, districtCode) || ''),
+        address: String(item.address || item.detailAddress || item.detail_address || ''),
         is_default: item.is_default ?? item.isDefault ?? 0,
         gender: normalizeAddressGenderText(gender),
         province_id: provinceCode,
@@ -285,19 +286,40 @@ function normalizeAddress(item = {}) {
     }
 }
 
+function normalizeCouponTypeText(item = {}) {
+    const type = String(item.coupon_type || item.couponType || item.typeText || item.type || '').toUpperCase()
+    const map = {
+        DISCOUNT: '折扣券',
+        REDUCE: '满减券',
+        FULL_REDUCTION: '满减券',
+        FULL_DISCOUNT: '满减券',
+        CASH: '现金券',
+        VOUCHER: '代金券',
+        FREIGHT: '运费券',
+        FREE_SHIPPING: '包邮券',
+        PLATFORM: '平台券',
+        MERCHANT: '商家券'
+    }
+    return map[type] || item.coupon_type || item.couponType || item.typeText || '优惠券'
+}
+
 function normalizeCoupon(item = {}) {
-    const threshold = item.thresholdAmount ?? item.threshold_amount ?? 0
-    const couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id
+    const threshold = item.thresholdAmount ?? item.threshold_amount ?? item.minAmount ?? item.min_amount ?? item.useThreshold ?? item.use_threshold ?? 0
+    const couponTemplate = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
+    const coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
+    const couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.couponTemplateNo || item.coupon_template_no || couponTemplate.couponId || couponTemplate.coupon_id || couponTemplate.templateId || couponTemplate.template_id || couponTemplate.couponTemplateId || couponTemplate.coupon_template_id || couponTemplate.couponTplId || couponTemplate.coupon_tpl_id || couponTemplate.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.couponTplId || coupon.coupon_tpl_id || coupon.id || item.id
+    const amount = item.money ?? item.amount ?? item.discountAmount ?? item.discount_amount ?? item.discountValue ?? item.discount_value ?? item.couponAmount ?? item.coupon_amount ?? item.reduceAmount ?? item.reduce_amount ?? item.deductAmount ?? item.deduct_amount ?? item.faceValue ?? item.face_value ?? item.value ?? coupon.money ?? coupon.amount ?? coupon.discountAmount ?? coupon.discount_amount ?? 0
     return {
         ...item,
         id: item.id || couponId,
         coupon_id: couponId,
         couponId,
+        couponTemplateId: item.couponTemplateId || item.coupon_template_id || couponTemplate.id || couponTemplate.templateId || couponTemplate.couponTemplateId || couponId,
         name: item.name || item.couponName || item.coupon_name || '',
-        money: item.money || item.amount || item.discountAmount || item.discountValue || 0,
+        money: amount,
         use_condition: item.use_condition || item.useCondition || item.condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'),
         use_time_tips: item.use_time_tips || [item.startTime, item.endTime].filter(Boolean).join(' 至 '),
-        coupon_type: item.coupon_type || item.couponType || '',
+        coupon_type: normalizeCouponTypeText(item),
         is_get: item.is_get || item.received || false
     }
 }
@@ -450,10 +472,25 @@ export function getUser() {
 }
 
 export function getCoupon(id, options = {}) {
-    return request.post(`miniapp/coupons/${id}/receive`, {
+    const receiveId = options.couponTemplateId || options.coupon_template_id || options.templateId || options.template_id || options.couponTplId || options.coupon_tpl_id || options.couponId || options.coupon_id || id || 0
+    const payload = {
+        couponId: options.couponId || options.coupon_id || id,
+        coupon_id: options.couponId || options.coupon_id || id,
+        couponTemplateId: options.couponTemplateId || options.coupon_template_id || options.templateId || options.template_id || receiveId,
+        coupon_template_id: options.couponTemplateId || options.coupon_template_id || options.templateId || options.template_id || receiveId,
+        couponTplId: options.couponTplId || options.coupon_tpl_id || options.couponTemplateId || options.coupon_template_id || receiveId,
+        coupon_tpl_id: options.couponTplId || options.coupon_tpl_id || options.couponTemplateId || options.coupon_template_id || receiveId,
+        templateId: options.templateId || options.template_id || options.couponTemplateId || options.coupon_template_id || receiveId,
+        template_id: options.templateId || options.template_id || options.couponTemplateId || options.coupon_template_id || receiveId,
         receiveScene: options.receiveScene || options.scene || 'APP',
+        receive_scene: options.receiveScene || options.scene || 'APP',
         spuId: options.spuId || options.spu_id || options.productId || options.product_id,
+        spu_id: options.spuId || options.spu_id || options.productId || options.product_id,
         productId: options.productId || options.product_id || options.spuId || options.spu_id
+    }
+    return request.post(`miniapp/coupons/${receiveId}/receive`, payload).then((res) => {
+        if (res.code == 1) return res
+        return request.get(`miniapp/coupons/${receiveId}/receive`, { params: payload }).catch(() => res)
     })
 }
 
@@ -558,7 +595,7 @@ export function getDefaultAddress() {
     return request.get('miniapp/addresses').then((res) => {
         if (res.code == 1) {
             const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
-            const item = list.find((it) => it.isDefault || it.is_default)
+            const item = list.find((it) => it.isDefault || it.is_default) || list[0]
             return {
                 ...res,
                 data: item ? normalizeAddress(item) : {}
@@ -1152,9 +1189,13 @@ export function getPointsAccount() {
 export function setAutoReceivePoints(data) {
     return request.post('miniapp/points/settings/auto-receive', {
         autoReceiveFlag: data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true,
+        auto_receive_flag: data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true,
         onlinePay: data.onlinePay ?? data.online_pay,
+        online_pay: data.onlinePay ?? data.online_pay,
         onlineReceive: data.onlineReceive ?? data.online_receive,
-        offlinePay: data.offlinePay ?? data.offline_pay
+        online_receive: data.onlineReceive ?? data.online_receive,
+        offlinePay: data.offlinePay ?? data.offline_pay,
+        offline_pay: data.offlinePay ?? data.offline_pay
     })
 }
 
@@ -1276,10 +1317,16 @@ function normalizeRoleApplication(data = {}) {
         applicantName: data.applicantName || data.applicant_name || data.realName || data.real_name || data.name || '',
         mobile: data.mobile || data.phone || data.contactMobile || data.contact_mobile || '',
         username: data.username || data.loginName || data.login_name || data.account || data.accountName || data.account_name || '',
+        provinceCode: data.provinceCode || data.province_code || '',
+        provinceName: data.provinceName || data.province_name || data.province || '',
         cityCode: data.cityCode || data.city_code || '',
         cityName: data.cityName || data.city_name || data.city || '',
         districtCode: data.districtCode || data.district_code || '',
         districtName: data.districtName || data.district_name || data.district || '',
+        inviteCode: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.distributionCode || data.distribution_code || '',
+        promoterCode: data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || data.invite_code || data.distributionCode || data.distribution_code || '',
+        backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || '',
+        materialUrls: data.materialUrls || data.material_urls || [],
         depositAmount: data.depositAmount ?? data.deposit_amount ?? data.bondAmount ?? data.bond_amount ?? data.marginAmount ?? data.margin_amount ?? '',
         depositStatus: String(data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase(),
         appliedAt: data.appliedAt || data.applied_at || data.createTime || data.create_time || data.createdAt || data.created_at || '',
@@ -1294,7 +1341,8 @@ function normalizeRoleItem(data = {}) {
         roleCode: String(data.roleCode || data.role_code || data.role || data.code || '').toUpperCase(),
         roleName: data.roleName || data.role_name || data.name || data.title || '',
         areaName: data.areaName || data.area_name || data.cityName || data.city_name || data.districtName || data.district_name || '',
-        inviteCode: data.inviteCode || data.invite_code || data.promotionCode || data.promotion_code || data.code || '',
+        inviteCode: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.distributionCode || data.distribution_code || data.code || '',
+        promoterCode: data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || data.invite_code || data.distributionCode || data.distribution_code || data.code || '',
         backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || ''
     }
 }
@@ -1352,9 +1400,12 @@ export function applyRoleApplication(data = {}) {
         password: data.password || '',
         remark: data.remark || '',
         materialUrls: data.materialUrls || data.material_urls || [],
+        material_urls: data.materialUrls || data.material_urls || [],
         realnameVerified: data.realnameVerified ?? data.realname_verified ?? data.realNameVerified ?? data.real_name_verified,
-        agreementAccepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true
-    })
+        realname_verified: data.realnameVerified ?? data.realname_verified ?? data.realNameVerified ?? data.real_name_verified,
+        agreementAccepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true,
+        agreement_accepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true
+    }).then((res) => res.code == 1 && res.data ? { ...res, data: normalizeRoleApplication(res.data) } : res)
 }
 
 export function getMessages(params = {}) {
