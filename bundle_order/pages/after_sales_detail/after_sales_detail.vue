@@ -40,15 +40,15 @@
 				<view class="goods-item row">
 					<view class="goods-img">
 						<custom-image width="100%" height="100%" radius="10rpx" lazy-load
-							:src="lists.order_goods && lists.order_goods.image" />
+							:src="detailGoods.image" />
 					</view>
 					<view class="goods-info">
-						<view class="two-txt-cut nr">{{lists.order_goods && lists.order_goods.goods_name}}</view>
+						<view class="two-txt-cut nr">{{detailGoods.goods_name}}</view>
 						<view class="row-between mt20">
 							<!-- <view class="md">￥999.00</view> -->
-							<price-format :price="lists.order_goods && lists.order_goods.goods_price" :firstSize="30"
+							<price-format :price="detailGoods.goods_price" :firstSize="30"
 								:secondSize="30" :showSubscript="true" :subscriptSize="30" color="#101010" />
-							<view class="nr">x{{lists.order_goods && lists.order_goods.goods_num}}</view>
+							<view class="nr">x{{detailGoods.goods_num}}</view>
 						</view>
 					</view>
 				</view>
@@ -58,9 +58,9 @@
 					<view class="return-title">退款方式：</view>
 					<view class="return-explain">{{lists.refund_type == 0 ? '仅退款' : '退款退货'}}</view>
 				</view>
-				<view class="return-goods-row row sm mt20">
+				<view class="return-goods-row row sm mt20" v-if="refundReason">
 					<view class="return-title">退款原因：</view>
-					<view class="return-explain">{{lists.refund_reason}}</view>
+					<view class="return-explain">{{refundReason}}</view>
 				</view>
 				<view class="return-goods-row row sm mt20">
 					<view class="return-title">退款金额：</view>
@@ -139,6 +139,7 @@ trottle,
 				goods: {},
 				reason: [],
 				lists: {},
+				refundReason: "",
 				copyContent: "",
 				confirmDialog: false
 			};
@@ -157,10 +158,12 @@ trottle,
 		onLoad: function(options) {
 			let {
 				afterSaleId,
-				order_id
+				order_id,
+				refundReason
 			} = options;
 			this.afterSaleId = afterSaleId;
 			this.orderId = order_id;
+			this.refundReason = decodeURIComponent(refundReason || "");
 		},
 
 
@@ -194,13 +197,13 @@ trottle,
 				let {
 					lists
 				} = this;
-				if (!lists.order_goods || !lists.order_goods.item_id) {
+				if (!this.detailGoods.item_id) {
 					this.$toast({ title: '缺少售后商品信息' })
 					return
 				}
 				uni.navigateTo({
-					url: '/bundle_order/pages/apply_refund/apply_refund?order_id=' + this.orderId + '&afterSaleId=' +
-						this.afterSaleId + '&item_id=' + lists.order_goods.item_id
+					url: '/bundle_order/pages/apply_refund/apply_refund?order_id=' + (this.orderId || lists.order_id || lists.order_sn) + '&afterSaleId=' +
+						this.afterSaleId + '&item_id=' + this.detailGoods.item_id
 				});
 			},
 
@@ -239,6 +242,12 @@ trottle,
 				});
 			}
 
+		},
+		computed: {
+			detailGoods() {
+				const goods = this.lists.order_goods || this.lists.goods_lists || {}
+				return Array.isArray(goods) ? goods[0] || {} : goods
+			}
 		}
 	};
 </script>

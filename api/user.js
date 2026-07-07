@@ -42,6 +42,12 @@ function normalizePageResponse(res = {}, itemNormalizer) {
 }
 
 function refundStatusText(status) {
+    if (status === 0 || status === '0') return '待商家处理'
+    if (status === 1 || status === '1') return '处理中'
+    if (status === 2 || status === '2' || status === 3 || status === '3') return '商家已同意'
+    if (status === 4 || status === '4') return '商家已拒绝'
+    if (status === 5 || status === '5') return '退款成功'
+    if (status === 6 || status === '6') return '已撤销'
     const map = {
         APPLIED: '待商家处理',
         PROCESSING: '处理中',
@@ -56,6 +62,7 @@ function refundStatusText(status) {
 }
 
 function refundStatusCode(status) {
+    if (status !== undefined && status !== null && status !== '' && !Number.isNaN(Number(status))) return Number(status)
     const map = {
         APPLIED: 0,
         PROCESSING: 1,
@@ -69,6 +76,34 @@ function refundStatusCode(status) {
     return map[String(status || '').toUpperCase()] ?? 0
 }
 
+const defaultRefundReasons = ['商品质量问题', '拍错/多拍/不想要', '未按约定时间发货', '其他']
+
+function normalizeRefundReasonText(reason) {
+    if (!reason) return ''
+    if (typeof reason === 'string') return reason
+    if (typeof reason === 'object') return reason.name || reason.reason || reason.label || reason.title || reason.text || reason.value || ''
+    return String(reason)
+}
+
+function normalizeRefundReasons(reasons) {
+    const source = Array.isArray(reasons)
+        ? reasons
+        : (reasons?.list || reasons?.items || reasons?.records || reasons?.rows || reasons?.content || reasons)
+    if (Array.isArray(source)) {
+        const list = source.map(normalizeRefundReasonText).filter(Boolean)
+        return list.length ? list : defaultRefundReasons
+    }
+    if (typeof source === 'string') {
+        const list = source.split(/[,，、]/).map((item) => item.trim()).filter(Boolean)
+        return list.length ? list : defaultRefundReasons
+    }
+    if (source && typeof source === 'object') {
+        const list = Object.values(source).map(normalizeRefundReasonText).filter(Boolean)
+        return list.length ? list : defaultRefundReasons
+    }
+    return defaultRefundReasons
+}
+
 function normalizeAfterSaleGoods(goods = {}) {
     return {
         ...goods,
@@ -77,40 +112,48 @@ function normalizeAfterSaleGoods(goods = {}) {
         goods_name: goods.goods_name || goods.spuName || goods.productName || goods.goodsName || goods.skuName || '',
         image: resolveImage(goods.image || goods.imageUrl || goods.goodsImageUrl || goods.mainImageUrl || goods.cover, 'goods'),
         goods_price: goods.goods_price || goods.salePrice || goods.unitPrice || goods.price || 0,
-        goods_num: goods.goods_num || goods.quantity || goods.num || 1
+        goods_num: goods.goods_num || goods.quantity || goods.num || 1,
+        spec_value: goods.spec_value || goods.specValue || goods.skuName || '',
+        spec_value_str: goods.spec_value_str || goods.specValue || goods.skuName || ''
     }
 }
 
 function normalizeAfterSaleItem(item = {}) {
     const refundNo = item.refundNo || item.afterSaleId || item.after_sale_id || item.id
     const status = item.refundStatus || item.afterSaleStatus || item.status
-    const images = item.evidenceImages || item.images || item.refund_image || []
-    const goods = item.orderGoods || item.goodsList || item.goods_lists || item.order_goods || item.goods || item.goodsInfo || {}
+    const images = item.evidenceImages || item.proofImages || item.images || item.refund_image || item.refundImage || []
+    const goods = item.orderGoods || item.orderItem || item.item || item.goodsList || item.goods_lists || item.order_goods || item.goods || item.goodsInfo || {}
     const normalizedGoods = Array.isArray(goods) ? goods.map(normalizeAfterSaleGoods) : [normalizeAfterSaleGoods(goods)]
+    const refundType = item.refundType || item.refund_type || item.type
+    const isReturnRefund = String(refundType || '').toUpperCase().includes('RETURN') || Number(refundType) === 1
+    const statusCode = refundStatusCode(status)
+    const statusText = item.refundStatusText || item.afterSaleStatusText || item.statusText || item.status_text || refundStatusText(status)
     return {
         ...item,
         id: refundNo,
+        after_sale_id: refundNo,
+        refundNo,
         sn: refundNo,
         order_id: item.orderNo || item.order_id,
         order_sn: item.orderNo || item.order_sn,
         sub_order_no: item.subOrderNo || item.sub_order_no,
         time: item.applyTime || item.create_time || item.createdAt || '',
         create_time: item.applyTime || item.create_time || item.createdAt || '',
-        status: refundStatusCode(status),
-        status_text: refundStatusText(status),
-        refund_type: String(item.refundType || item.refund_type || '').includes('RETURN') ? 1 : 0,
-        refund_reason: item.refundReasonMessage || item.refundReason || item.reason || '',
-        refund_remark: item.applyDescription || item.description || item.refundRemark || item.remark || '',
+        status: statusCode,
+        status_text: statusText,
+        refund_type: isReturnRefund ? 1 : 0,
+        refund_reason: item.refundReasonMessage || item.refundReasonText || item.refund_reason || normalizeRefundReasonText(item.refundReason || item.reason),
+        refund_remark: item.applyDescription || item.apply_description || item.description || item.refundRemark || item.refundRemarkMessage || item.refund_remark || item.remark || '',
         refund_price: item.refundAmount ?? item.refund_price ?? 0,
         refund_image: Array.isArray(images) ? images[0] || '' : images || '',
         order_goods: normalizedGoods,
         goods_lists: normalizedGoods,
         after_sale: {
             after_sale_id: refundNo,
-            type_text: String(item.refundType || '').includes('RETURN') ? '退款退货' : '仅退款',
+            type_text: isReturnRefund ? '退款退货' : '仅退款',
             refund_price: item.refundAmount ?? item.refund_price ?? 0,
-            status: refundStatusCode(status),
-            desc: refundStatusText(status),
+            status: statusCode,
+            desc: statusText,
             able_apply: 0
         },
         shop: item.shop || {
@@ -708,6 +751,7 @@ export function applyAfterSale(data) {
         refundType: data.refundType || data.refund_type,
         refundReason: data.refundReason || data.reason,
         refundRemark: data.refundRemark || data.remark,
+        refundAmount: data.refundAmount || data.refund_price || data.amount,
         proofImages: data.proofImages || (data.img ? [data.img] : []),
         idempotentKey: data.idempotentKey || `refund-${orderNo}-${Date.now()}`
     }).then((res) => {
@@ -738,6 +782,7 @@ export function getGoodsInfo(params) {
         const itemList = data.itemList || data.order_goods || data.goods_lists || []
         const goods = itemList.find((item) => String(item.id || item.orderItemId || item.itemId || item.skuId) === String(params.item_id || params.itemId)) || itemList[0] || {}
         const price = goods.realAmount || goods.totalAmount || goods.payAmount || goods.goods_price || goods.salePrice || 0
+        const reasons = data.refundReasons || data.refund_reasons || data.afterSaleReasons || data.after_sale_reasons || data.reason
         return {
             ...res,
             data: {
@@ -751,7 +796,7 @@ export function getGoodsInfo(params) {
                     total_pay_price: price,
                     refund_express_money: data.amountInfo?.freightAmount || 0
                 },
-                reason: ['商品质量问题', '拍错/多拍/不想要', '未按约定时间发货', '其他']
+                reason: normalizeRefundReasons(reasons)
             }
         }
     })
@@ -761,9 +806,10 @@ export function inputExpressInfo(data) {
     return request.post('miniapp/after-sales/express', {
         afterSaleId: data.afterSaleId || data.after_sale_id || data.id,
         orderNo: data.orderNo || data.order_id || data.order_sn,
-        expressCompany: data.express || data.expressCompany || data.company,
-        expressNo: data.number || data.expressNo || data.express_no,
-        remark: data.remark || ''
+        expressCompany: data.express || data.expressCompany || data.express_name || data.company,
+        expressNo: data.number || data.expressNo || data.express_no || data.invoice_no,
+        remark: data.remark || data.express_remark || '',
+        proofImages: data.proofImages || (data.express_image ? [data.express_image] : [])
     })
 }
 
@@ -1069,6 +1115,7 @@ function extractList(payload = {}) {
     if (Array.isArray(payload.list)) return payload.list
     if (Array.isArray(payload.records)) return payload.records
     if (Array.isArray(payload.items)) return payload.items
+    if (Array.isArray(payload.applications)) return payload.applications
     if (Array.isArray(payload.rows)) return payload.rows
     if (Array.isArray(payload.content)) return payload.content
     if (payload.page && typeof payload.page === 'object') return extractList(payload.page)
@@ -1235,10 +1282,47 @@ export function getMerchantQualificationStatus(params = {}) {
     })
 }
 
+function normalizeRoleApplication(data = {}) {
+    const status = String(data.applicationStatus || data.application_status || data.auditStatus || data.audit_status || data.status || '').toUpperCase()
+    const auditRemark = data.auditRemark || data.audit_remark || data.auditMessage || data.audit_message || data.rejectReason || data.reject_reason || data.reason || ''
+    return {
+        ...data,
+        applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || data.id || '',
+        roleCode: String(data.roleCode || data.role_code || data.role || '').toUpperCase(),
+        applicationStatus: status,
+        auditStatus: status,
+        auditRemark,
+        applicantName: data.applicantName || data.applicant_name || data.realName || data.real_name || data.name || '',
+        mobile: data.mobile || data.phone || data.contactMobile || data.contact_mobile || '',
+        username: data.username || data.loginName || data.login_name || data.account || data.accountName || data.account_name || '',
+        cityCode: data.cityCode || data.city_code || '',
+        cityName: data.cityName || data.city_name || data.city || '',
+        districtCode: data.districtCode || data.district_code || '',
+        districtName: data.districtName || data.district_name || data.district || '',
+        depositAmount: data.depositAmount ?? data.deposit_amount ?? data.bondAmount ?? data.bond_amount ?? data.marginAmount ?? data.margin_amount ?? '',
+        depositStatus: String(data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase(),
+        appliedAt: data.appliedAt || data.applied_at || data.createTime || data.create_time || data.createdAt || data.created_at || '',
+        auditTime: data.auditTime || data.audit_time || data.approvedAt || data.approved_at || data.reviewTime || data.review_time || data.updatedAt || data.updated_at || '',
+        remark: data.remark || data.applyRemark || data.apply_remark || data.applyDescription || data.apply_description || data.description || ''
+    }
+}
+
 export function getRoleApplications(params = {}) {
     return request.get('miniapp/role-applications', {
         params: {
             userId: currentUserId(params)
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const list = extractList(data).map(normalizeRoleApplication)
+        return {
+            ...res,
+            data: {
+                ...(!Array.isArray(data) ? data : {}),
+                applications: list,
+                list
+            }
         }
     })
 }

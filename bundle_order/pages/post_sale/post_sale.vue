@@ -79,6 +79,7 @@ export default {
             afterSaleType = AfterSaleType.NORMAL;
             break;
         case 1:
+            afterSaleType = AfterSaleType.HANDLING;
             break;
         case 2:
             afterSaleType = AfterSaleType.FINISH;

@@ -233,12 +233,14 @@ export default {
         reason: reason[reasonIndex],
         refund_type: optTyle,
         remark: remark,
-        img: fileList.length <= 0 ? "" : fileList[0].base_url,
+        order_id: this.orderId,
+        item_id: this.itemId,
+        img: fileList.length <= 0 ? "" : (fileList[0].url || fileList[0].base_url),
       };
       applyAgain(data).then((res) => {
         if (res.code == 1) {
           const result = res.data || {};
-          const afterSaleId = result.after_sale_id || result.refundNo || result.refundId || result.id;
+          const afterSaleId = result.after_sale_id || result.refundNo || result.refundId || result.id || this.afterSaleId;
           uni.$emit("refreshsale");
           this.$toast(
             {
@@ -248,7 +250,9 @@ export default {
               tab: 5,
               url:
                 "/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                afterSaleId,
+                afterSaleId +
+                "&refundReason=" +
+                encodeURIComponent(remark || ""),
             }
           );
         }
@@ -263,7 +267,7 @@ export default {
     },
 
     applyAfterSaleFun() {
-      let { reason, reasonIndex, optTyle, remark, fileList } = this;
+      let { reason, reasonIndex, optTyle, remark, fileList, goods } = this;
 
       if (!reason[reasonIndex]) {
         return this.$toast({
@@ -276,8 +280,9 @@ export default {
         order_id: this.orderId,
         reason: reason[reasonIndex],
         refund_type: optTyle,
+        amount: parseFloat(goods.total_pay_price || 0) + parseFloat(goods.refund_express_money || 0),
         remark: remark,
-        img: fileList.length <= 0 ? "" : fileList[0].url,
+        img: fileList.length <= 0 ? "" : (fileList[0].url || fileList[0].base_url),
       };
       applyAfterSale(data).then((res) => {
         if (res.code == 1) {
@@ -291,7 +296,9 @@ export default {
             uni.redirectTo({
               url:
                 "/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                afterSaleId,
+                afterSaleId +
+                "&refundReason=" +
+                encodeURIComponent(remark || ""),
             });
           }, 500);
         }

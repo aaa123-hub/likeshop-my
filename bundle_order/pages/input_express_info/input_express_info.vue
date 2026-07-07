@@ -118,7 +118,7 @@ export default {
         express_name: value.express,
         invoice_no: value.number,
         express_remark: value.remark,
-        express_image: fileList.length <= 0 ? '' : fileList[0].url
+        express_image: fileList.length <= 0 ? '' : (fileList[0].url || fileList[0].base_url)
       };
       this.inputExpressInfoFun(data);
     },
