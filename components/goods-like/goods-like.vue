@@ -33,6 +33,7 @@
 </template>
 
 <script>
+	import CustomImage from '@/components/custom-image/custom-image.vue'
 	import {
 		getRect
 	} from '@/utils/tools';
@@ -43,7 +44,7 @@
 			};
 		},
 
-		components: {},
+		components: { CustomImage },
 		props: {
 			list: {
 				type: Array,

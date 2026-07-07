@@ -1,10 +1,40 @@
-﻿# Lanhu asset upload backup
+# Lanhu asset upload backup
 # Generated at: 2026-05-18T14:53:27.552Z
 # Server: https://shengyuan.store/api/miniapp/files/upload
 # Public URL base: https://shengyuan.store
 # Request field: file
 # Request type: multipart/form-data without charset
 # Total: 101
+
+[success] 首页快捷入口图标 - 分类
+key: home_shortcut_category
+local: https://lanhu-oss-proxy.lanhuapp.com/410ccd1aedbae6ca6d4de02dade0e890
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/7f63a1c5a2ee4078b3148915403d074f/home-shortcut-category.png
+
+[success] 首页快捷入口图标 - 订单
+key: home_shortcut_order
+local: https://lanhu-oss-proxy.lanhuapp.com/e116db07c2666bead8408becab46158e
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/3cd070ca256d411fb824001454a5eb97/home-shortcut-order.png
+
+[success] 首页快捷入口图标 - 消息
+key: home_shortcut_message
+local: https://lanhu-oss-proxy.lanhuapp.com/0d5b75809f4b3fc5bb2ac23facbec89a
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/a90fd6a6345f48dd9d6a0771c5ff6127/home-shortcut-message.png
+
+[success] 首页快捷入口图标 - 活动
+key: home_shortcut_activity
+local: https://lanhu-oss-proxy.lanhuapp.com/e8e0b020a98bb7d9bad209e3b22f6ecb
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/be7a73d9cccc41f29bede6d23e1c5a36/home-shortcut-activity.png
+
+[success] 首页快捷入口图标 - 钱包
+key: home_shortcut_wallet
+local: https://lanhu-oss-proxy.lanhuapp.com/82075429ada00649169c1be2219f928c
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/33f3be5718014c6b957a62c7f0c91f14/home-shortcut-wallet.png
 
 [success] 活动中心兑换弹窗背景 - activity_exchange_dialog_bg.png
 key: assets_activity_exchange_activity_exchange_dialog_bg
@@ -160,7 +190,7 @@ request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/9566a7c565dd427b822bc943e931f327/home2_balance_bill_2x.png
 response: {"cached":true,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/9566a7c565dd427b822bc943e931f327/home2_balance_bill_2x.png","localPath":"/static/lanhu/assets/home/home2_balance_bill@2x.png"}
 
-[cached] 棣栭〉2 - 椤甸潰鑳屾櫙鍥?key: assets_home_home2_bg_2x
+[cached] lanhu asset key:assets_home_home2_bg_2x
 local: /static/lanhu/assets/home/home2_bg@2x.png
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/c6e3f8ccd2fa479d9002153f9923d380/home2_bg_2x.png
@@ -173,7 +203,7 @@ request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/9d4e1073bfdd48fdae8b730d95f2898a/home2_buyer_illustration_2x.png
 response: {"cached":true,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/9d4e1073bfdd48fdae8b730d95f2898a/home2_buyer_illustration_2x.png","localPath":"/static/lanhu/assets/home/home2_buyer_illustration@2x.png"}
 
-[cached] 棣栭〉2 - 鐢熸€佸簲鐢ㄥ浘鏍?key: assets_home_home2_ecology_icon_2x
+[cached] lanhu asset key:assets_home_home2_ecology_icon_2x
 local: /static/lanhu/assets/home/home2_ecology_icon@2x.png
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/e67a23615f1b4008b80fea223293cc90/home2_ecology_icon_2x.png
@@ -1932,3 +1962,17 @@ source: https://lanhu-oss-proxy.lanhuapp.com/e7a941da9a41662f3ee7019ebf17adc5
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png
 response: {"code":"0","message":"SUCCESS","traceId":"072b7fcd-878c-4612-b87b-664f11a6db02","data":{"objectName":"miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png","bucket":"ai-shop","fileUrl":"/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png","fileName":"e7a941da9a41662f3ee7019ebf17adc5.png","contentType":"image/png","size":1956},"timestamp":"2026-06-23T03:29:17.904009811Z"}
+
+[success] 客服中心LOGO - 钥岫商城LOGO 2.png
+key: contact_offical_logo
+local: /docs/钥岫商城LOGO 2.png
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png
+response: {"code":"0","message":"SUCCESS","traceId":"095a1d6d-d037-4ea0-9679-846c0b2945f0","data":{"contentType":"image/png","fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png","size":2377306,"url":"https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png","objectName":"miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png","bucket":"ai-shop","fileName":"____________LOGO_2.png","path":"/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png"},"timestamp":"2026-07-01T10:14:23.721534117Z"}
+
+[success] 客服中心二维码 - 二维码.png
+key: contact_offical_qrcode
+local: /docs/二维码.png
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png
+response: {"code":"0","message":"SUCCESS","traceId":"469dd910-c808-4cee-8b49-d0ad1d440ab3","data":{"contentType":"image/png","fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png","size":19256,"url":"https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png","objectName":"miniapp/5ace95d131b045d09668afcd4933e117/_________.png","bucket":"ai-shop","fileName":"_________.png","path":"/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png"},"timestamp":"2026-07-01T10:14:23.473423180Z"}

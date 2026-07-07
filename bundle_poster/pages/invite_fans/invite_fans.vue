@@ -71,7 +71,7 @@ import {
 		methods: {
 			async getPoster() {
 				const res = await apiDistributionPoster()
-				this.poster = res.data.poster
+				this.poster = res.code == 1 ? (res.data && res.data.poster) || '' : ''
 			},
 			getMnpQrCode() {
 				// apiMnpQrCode().then(res => {
@@ -85,8 +85,8 @@ import {
 					type: 0,         // 0-会员分享海报 1-商品详情 2-砍价活动
 				})
 				.then((res) => {
-					console.log('shareRes', res)
-					this.qrCode = res.data.qr_code
+					const data = res && res.data ? res.data : {}
+					this.qrCode = data.qr_code || data.qrCode || data.qrcode || ''
 					this.showPoster = true
 				})
 			},
@@ -108,7 +108,7 @@ import {
 				// #endif
 				// #ifdef H5
 				this.$toast({
-					title: 请长按图片保存
+					title: '请长按图片保存'
 				})
 				// #endif
 			},

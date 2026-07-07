@@ -4,7 +4,7 @@
 		    {{appConfig.download_doc}}
 		</view>
         <view class="row">
-            <view class="white primary-btn row-center br60 xs" @click="go2DownLoad">
+            <view class="white primary-btn row-center br60 xs" @tap="go2DownLoad">
                 下载APP
             </view>
             <u-icon name="close" size="32" color="#fff" @click="showDownload = false" />

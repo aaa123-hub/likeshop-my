@@ -5,7 +5,7 @@
 				<swiper class="swiper" :autoplay="autoplay" :circular="circular" @change="swiperChange"
 					:previous-margin="previousMargin" display-multiple-items="1">
 					<swiper-item v-for="(item, index) in lists" :key="index">
-						<view :data-item="item" style="width:100%;height:100%;" @click="goPage(item)">
+						<view :data-item="item" style="width:100%;height:100%;" @tap="goPage(item)">
 							<image mode="aspectFill" :width="'calc(100% - ' + previousMargin + ')'" height="100%"
 								:border-radius="radius" :src="item.image"></image>
 						</view>
@@ -16,8 +16,8 @@
 						:class="'dot ' + (index == currentSwiper ? 'active' : '')"></view>
 				</view>
 			</template>
-			<template v-lese v-for="(item, index) in lists" >
-				<view :key="index" :data-item="item" style="width:100%;height:100%;" @click="goPage(item)" v-if="index < 1">
+			<template v-else v-for="(item, index) in lists" >
+				<view :key="index" :data-item="item" style="width:100%;height:100%;" @tap="goPage(item)" v-if="index < 1">
 					<image mode="aspectFill" :width="'calc(100% - ' + previousMargin + ')'" height="100%"
 						:border-radius="radius" :src="item.image"></image>
 				</view>

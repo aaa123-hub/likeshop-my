@@ -64,7 +64,7 @@ export default {
   z-index: 980;
 }
 .navbar-root__status {
-  height: var(--status-bar-height);
+  height: var(--app-safe-top);
 }
 .navbar-root__bar {
   display: flex;
@@ -130,6 +130,6 @@ export default {
   line-height: 44rpx;
 }
 .navbar-root__placeholder {
-  height: calc(var(--status-bar-height) + 88rpx);
+  height: calc(var(--app-safe-top) + 88rpx);
 }
 </style>

@@ -101,7 +101,10 @@
 </template>
 
 <script>
+	import CustomImage from '@/components/custom-image/custom-image.vue'
+
 	export default {
+		components: { CustomImage },
 		props: {
 			type: {
 				type: String,

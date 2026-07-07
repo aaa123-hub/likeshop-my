@@ -30,7 +30,6 @@ export function wxpay(opt) {
 	if(isWeixinClient()) {
 		return wechath5.wxPay(opt)
 	}else {
-		console.log(opt)
 		location.href=opt
 	}
 	// #endif
@@ -54,7 +53,6 @@ export function wxpay(opt) {
 			orderInfo: opt
 		}
 		// #endif
-		console.log(params)
 		uni.requestPayment({
 			provider: 'wxpay',
 			...params,
@@ -76,7 +74,6 @@ export function alipay(opt) {
 
 	//#ifdef  H5
 	const div = document.createElement('div')
-	console.log(opt)
 	/* 此处form就是后台返回接收到的数据 */
 	div.innerHTML = opt
 	document.body.appendChild(div)
@@ -88,7 +85,6 @@ export function alipay(opt) {
 		const params = {
 			orderInfo: opt
 		}
-		console.log(params)
 		uni.requestPayment({
 			provider: 'alipay',
 			...params,
@@ -96,11 +92,9 @@ export function alipay(opt) {
 				resolve('success');
 			},
 			cancel: res => {
-				console.log(res)
 				resolve('fail');
 			},
 			fail: res => {
-				console.log(res)
 				resolve('fail');
 			}
 		});

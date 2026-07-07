@@ -66,7 +66,11 @@
 				</view>
 			</view>
 		</view>
-		<view v-show="!showHistory" class="result-panel">
+		<scroll-view v-show="!showHistory" class="result-panel" scroll-y @scrolltolower="getGoodsSearchFun">
+			<view v-if="categoryName" class="category-source">
+				<view class="category-source__label">当前分类</view>
+				<view class="category-source__name line1">{{ categoryName }}</view>
+			</view>
 			<template v-if="goodsList.length">
 				<view v-for="(item, index) in goodsList" :key="index" class="merchant-card" @tap="goResultDetail(item)">
 					<view v-if="isEmptyImage(item)" class="merchant-card__image image-placeholder">无</view>
@@ -90,8 +94,10 @@
 					</view>
 				</view>
 			</template>
-			<loading-footer v-if="showSearchFooter" :status="footerStatus" :slot-empty="true">
-				<view slot="empty" class="empty-slot">
+			<view v-if="showSearchFooter" class="search-footer">
+				<view v-if="footerStatus === 'loading'" class="search-footer__text">加载中...</view>
+				<view v-else-if="footerStatus === 'error'" class="search-footer__text" @tap="onRefresh">加载失败，点击重新加载</view>
+				<view v-else-if="footerStatus === 'empty'" class="empty-slot">
 					<u-empty
 						mode="search"
 						text="暂无数据"
@@ -100,8 +106,9 @@
 						color="#666666"
 					></u-empty>
 				</view>
-			</loading-footer>
-		</view>
+				<view v-else class="search-footer__text">我可是有底线的～</view>
+			</view>
+		</scroll-view>
 		<view v-if="showFilter" class="filter-mask" @tap="showFilter = false">
 			<view class="filter-panel" @tap.stop>
 				<view class="filter-panel__title">更多筛选</view>
@@ -167,6 +174,8 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				minPrice: '',
 				maxPrice: '',
 				sortType: '',
+				categoryName: '',
+				fromCategory: false,
 				timeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'
 			};
 		},
@@ -195,6 +204,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return !this.goodsList.length || this.status === loadingType.LOADING || this.status === loadingType.ERROR
 			},
 			footerStatus() {
+				if (!this.goodsList.length && this.status === loadingType.FINISHED) return loadingType.EMPTY
 				return this.goodsList.length ? loadingType.FINISHED : this.status
 			},
 			comprehensive() {
@@ -245,7 +255,10 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return resolveImage(item.image || item.goods_image || item.cover, 'goods')
 			},
 			getGoodsScore(item) {
-				return item.score || item.star || '5.0'
+				const score = item.shopScore ?? item.shop_score ?? item.score ?? item.star ?? item.rating
+				if (score === '' || score === null || score === undefined) return '暂无评分'
+				const value = Number(score)
+				return Number.isNaN(value) ? String(score) : value.toFixed(1)
 			},
 			getGoodsTime(item) {
 				return item.business_time || item.time_desc || '8:00-16:00'
@@ -322,13 +335,16 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 					id,
 					name,
 					type,
-					keyword
+					keyword,
+					from
 				} = option;
 				this.type = type;
 				this.keyword = keyword ? decodeURIComponent(keyword) : '';
+				this.categoryName = name ? decodeURIComponent(name) : '';
+				this.fromCategory = from === 'category' || type == 1;
 				if (id) {
 					uni.setNavigationBarTitle({
-						title: name
+						title: this.categoryName || '分类商品'
 					});
 					this.id = id;
 					this.getGoodsSearchFun();
@@ -392,7 +408,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				} = this;
 				if (status == loadingType.FINISHED) return;
 				const params = {
-					category_id: this.type == 1 ? this.id : '',
+					category_id: this.type == 1 || this.fromCategory ? this.id : '',
 					brand_id: this.type == 0 ? this.id : '',
 					page_no: page,
 					keyword,
@@ -413,10 +429,19 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 </script>
 <style lang="scss">
 	.goods-search {
+		height: 100vh;
+		padding-top: calc(var(--status-bar-height) + 278rpx);
+		box-sizing: border-box;
+		overflow: hidden;
 		min-height: 100vh;
 		background: #f4f6fb;
 
 		.search-top {
+			position: fixed;
+			left: 0;
+			right: 0;
+			top: 0;
+			z-index: 30;
 			background: #bcd1f3;
 			padding-bottom: 20rpx;
 		}
@@ -515,6 +540,11 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.filter-bar {
+			position: fixed;
+			left: 0;
+			right: 0;
+			top: calc(var(--status-bar-height) + 190rpx);
+			z-index: 29;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
@@ -540,7 +570,10 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.history-panel {
+			height: calc(100vh - var(--status-bar-height) - 190rpx);
 			padding: 24rpx;
+			box-sizing: border-box;
+			overflow-y: auto;
 		}
 
 		.word-block {
@@ -576,7 +609,39 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.result-panel {
+			height: calc(100vh - var(--status-bar-height) - 278rpx);
 			padding: 18rpx 24rpx 40rpx;
+			box-sizing: border-box;
+		}
+
+		.category-source {
+			display: flex;
+			align-items: center;
+			margin-bottom: 18rpx;
+			padding: 18rpx 22rpx;
+			border-radius: 18rpx;
+			background: #ffffff;
+			box-shadow: 0 8rpx 20rpx rgba(52, 72, 109, 0.04);
+		}
+
+		.category-source__label {
+			flex: none;
+			padding: 0 14rpx;
+			color: #1688ff;
+			font-size: 22rpx;
+			line-height: 38rpx;
+			border-radius: 20rpx;
+			background: #edf6ff;
+		}
+
+		.category-source__name {
+			flex: 1;
+			min-width: 0;
+			margin-left: 14rpx;
+			color: #222222;
+			font-size: 28rpx;
+			font-weight: 600;
+			line-height: 40rpx;
 		}
 
 		.merchant-card {

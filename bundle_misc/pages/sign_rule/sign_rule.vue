@@ -1,7 +1,23 @@
 <template>
 <!--pages/sign_rule/sign_rule.wxml-->
-<view style="padding: 30rpx">
-  <text class="nr" style="line-height: 36rpx">{{rule}}</text>
+<view class="sign-rule-page">
+  <view class="rule-card">
+    <view class="rule-title">积分有效期</view>
+    <view class="rule-content">已领取积分自领取当日起计算，有效期为24个月。有效期届满仍未使用的积分将自动清零。</view>
+  </view>
+
+  <view class="rule-card">
+    <view class="rule-title">积分提醒规则</view>
+    <view class="rule-content">
+      自积分领取当日起倒计时24个月为有效期，到期前一个月通过短信提醒用户即将失效的积分数量及失效时间。
+    </view>
+    <view class="rule-example">
+      例如：用户在2026年1月1日领取100积分，有效期至2028年1月1日，将在2027年12月1日短信提醒用户：“XX用户，您有XX积分将在X月X日23点前过期。”（短信内容待定）
+    </view>
+    <view class="rule-example">
+      用户在2026年1月2日领取100积分，有效期至2028年1月2日，将在2027年12月1日短信提醒用户：“XX用户，您有XX积分将在X月X日23点前过期。”（短信内容待定）
+    </view>
+  </view>
 </view>
 </template>
 
@@ -57,4 +73,39 @@ export default {
 </script>
 <style>
 /* pages/sign_rule/sign_rule.wxss */
+.sign-rule-page {
+  min-height: 100vh;
+  padding: 24rpx;
+  background: #f7f7f7;
+  box-sizing: border-box;
+}
+
+.rule-card {
+  padding: 28rpx 24rpx;
+  margin-bottom: 20rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+}
+
+.rule-title {
+  margin-bottom: 16rpx;
+  color: #222222;
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 44rpx;
+}
+
+.rule-content,
+.rule-example {
+  color: #666666;
+  font-size: 28rpx;
+  line-height: 44rpx;
+}
+
+.rule-example {
+  margin-top: 16rpx;
+  padding: 18rpx 20rpx;
+  background: #fafafa;
+  border-radius: 12rpx;
+}
 </style>

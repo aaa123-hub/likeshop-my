@@ -54,7 +54,9 @@
     import {loadingType} from '@/utils/type'
     import {getBargainActivityList} from "@/api/activity"
     import {loadingFun} from '@/utils/tools'
+    import CustomImage from '@/components/custom-image/custom-image.vue'
     export default {
+        components: { CustomImage },
         data() {
             return {
                 loadingStatus: loadingType.LOADING,

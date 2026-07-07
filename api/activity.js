@@ -3,7 +3,7 @@ import { orderBuy } from '@/api/order'
 import { resolveImage } from '@/utils/image-placeholder'
 
 function normalizePage(data = {}, itemNormalizer) {
-    const rawList = Array.isArray(data) ? data : (data.list || data.items || data.rows || [])
+    const rawList = Array.isArray(data) ? data : (data.list || data.records || data.items || data.rows || data.content || [])
     const list = itemNormalizer ? rawList.map(itemNormalizer) : rawList
     const pageNo = data.pageNo || data.page_no || 1
     const pageSize = data.pageSize || data.page_size || list.length || 10
@@ -148,7 +148,7 @@ export function getTeamInfo(params) {
 }
 
 export function teamCheck(data) {
-    return unsupportedPage('Backend group-buy team check API is not available')
+    return unsupportedPage('拼团队伍校验接口暂未开放')
 }
 
 export function teamBuy(data) {

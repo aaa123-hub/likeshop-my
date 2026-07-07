@@ -1,5 +1,6 @@
 import { loadingType } from "./type";
 import { baseURL } from "@/config/app.js";
+import { translateBackendMessage } from "@/utils/message";
 
 import store from "@/store";
 
@@ -158,7 +159,8 @@ export function getRect(selector, all, context) {
 
 // 轻提示
 export function toast(info = {}, navigateOpt) {
-  let title = info.title || "";
+  if (typeof info === "string") info = { title: info };
+  let title = translateBackendMessage(info.title, info.title || "");
   let icon = info.icon || "none";
   let endtime = info.endtime || 2000;
   if (title)
@@ -262,8 +264,13 @@ export function uploadFile(path) {
       fileType: "image",
       cloudPath: "",
       success: (res) => {
-        console.log("uploadFile res ==> ", res);
-        let data = JSON.parse(res.data);
+        let data;
+        try {
+          data = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+        } catch (error) {
+          reject(error);
+          return;
+        }
         if (data.code === "0") {
           data = {
             ...data,
@@ -285,8 +292,7 @@ export function uploadFile(path) {
         }
       },
       fail: (err) => {
-        console.log(err);
-        reject();
+        reject(err);
       },
     });
   });
@@ -368,9 +374,7 @@ export function setTabbar() {
       text: item.name,
       iconPath: item.un_selected_icon,
       selectedIconPath: item.selected_icon,
-      fail(res) {
-        console.log(res);
-      },
+      fail() {},
       success(res) {
         // console.log(res)
       },

@@ -2,7 +2,7 @@
 <!--components/recommend/recommend.wxml-->
 <view class="recommend" v-if="goodsList.length">
     <!-- <view class="header row-center">
-        <image class="title" src="/images/recommend_title.png" />
+        <image class="title" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/recommend_title.png" />
     </view> -->
     <view class="goods-title row-center">
         <text class="line"></text>
@@ -61,7 +61,8 @@ export default {
         page_size: 6
       }).then(function(res) {
         if (res.code == 1) {
-            that.goodsList = res.data.list
+            const data = res.data || {}
+            that.goodsList = Array.isArray(data.list) ? data.list : []
         }
       });
     }

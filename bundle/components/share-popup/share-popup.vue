@@ -14,7 +14,15 @@
 				</view>
 				<view class="share-card__qr-wrap">
 					<image v-if="isQrcodeImage" class="share-card__qr" :src="mnpQrcode" mode="aspectFit"></image>
-					<tki-qrcode v-else-if="mnpQrcode" cid="goods-share-qrcode" :val="mnpQrcode" :size="282" unit="upx" :showLoading="false" />
+					<tki-qrcode
+						v-else-if="mnpQrcode"
+						cid="share-popup-qrcode"
+						:val="mnpQrcode"
+						:size="280"
+						:onval="true"
+						:load-make="true"
+						:show-loading="false"
+					></tki-qrcode>
 					<view v-else class="share-card__qr-loading">二维码生成中</view>
 				</view>
 				<view class="share-card__tip">长按识别二维码查看商品</view>
@@ -39,7 +47,7 @@
 			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<!-- #ifdef H5 -->
-			<img style="width: 640rpx;" :src="poster" />
+			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<button class="row row-center save-btn" size="lg" @tap="savePoster">
 				<!-- #ifndef H5 -->
@@ -61,14 +69,12 @@
 			</view>
 		</u-popup>
 		<!-- #endif -->
-		<poster v-if="enablePoster" :type="type" :share-id="shareId" :config="config"
-			:qrcode="mnpQrcode" :link="getLink" @success="handleSuccess" @fail="handleFail"
-			:b-share-title="bargainShare.share_title" :b-share-intro="bargainShare.share_intro"/>
 	</view>
 </template>
 
 <script>
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
+import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	import {
 		mapGetters,
 	} from 'vuex'
@@ -80,10 +86,8 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 		baseURL,
 		basePath
 	} from '@/config/app'
-	import poster from './poster.vue'
-	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	// import {TtAppNameEnum} from '@/utils/enum'
-	export default {
+		export default {
 		components: {
 			UPopup,
 			TkiQrcode
@@ -143,11 +147,7 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 			showshare(val) {
 				if (val) this.prepareQrcode()
 			},
-			showPoster(val) {
-				if (!val) {
-					this.enablePoster = false
-				}
-			}
+			showPoster() {}
 		},
 		methods: {
 			async prepareQrcode() {
@@ -181,11 +181,11 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 					this.setQrcodeValue(qrCode)
 					if(this.type == 2 && res.data) this.bargainShare = res.data.extra
 				}
-				this.enablePoster = true
+				this.handleSuccess(this.isQrcodeImage ? this.mnpQrcode : this.config.image)
 				// #endif
 
 				// #ifdef APP-PLUS || H5
-				this.enablePoster = true
+				this.handleSuccess(this.config.image)
 				// #endif
 			},
 			// 获取商品页面二维码数据
@@ -196,7 +196,6 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 						url: this.pagePath, // 跳转页面路径
 						type: this.type,         // 0-会员分享海报 1-商品详情 2-砍价活动
 					}).then((res) => {
-						console.log('shareRes', res)
 						resolve(res)
 				}).catch(() => {
 					resolve({ code: 1, data: {} })
@@ -236,8 +235,7 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 					title: this.config.name,
 					summary: '',
 					imageUrl: this.config.image,
-					success: (res) => {
-						console.log('分享成功');
+						success: () => {
 						this.showshare = false
 					},
 					fail: (err) => {
@@ -262,11 +260,10 @@ import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 							icon: 'success'
 						});
 					},
-					fail: (err) => {
+					fail: () => {
 						this.$toast({
 							title: '保存失败'
 						});
-						console.log(err)
 					}
 				})
 

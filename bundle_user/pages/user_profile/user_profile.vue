@@ -2,16 +2,7 @@
     <view class="user-profile-container mt10">
         <navbar title="个人设置"></navbar>
         <view class="user-profile">
-            <view class="user-avatar-box row-start" @click="handleUser">
-                <!-- <button
-                    class="column column-center"
-                    hover-class="none"
-                    open-type="chooseAvatar"
-                    @chooseavatar="onChooseAvatar"
-                    @click="onChooseAvatar"
-                >
-
-                </button> -->
+            <view class="user-avatar-box row-start" @tap="handleUser">
                 <image
                     class="user-avatar"
                     :src="
@@ -19,7 +10,7 @@
                             ? userInfo.avatar
                             : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png'
                     "
-                    @click="handleUser"
+                    @tap="handleUser"
                 >
                 </image>
                 <view class="row-between flex1">
@@ -80,7 +71,7 @@
             <!-- #endif -->
 
             <!-- #ifndef MP-WEIXIN -->
-            <view class="row-info row-between" @click="showPwdPop">
+            <view class="row-info row-between" @tap="showPwdPop">
                 <view class="label md">登录密码</view>
                 <view class="row">
                     <view class="muted nr">点击设置</view>
@@ -88,23 +79,26 @@
                 </view>
             </view>
             <!-- #endif -->
-            <view class="row-info row-between bdb-line mt10" @click="goToExplain(0)">
+            <view class="row-info row-between bdb-line mt10" @tap="goToExplain(0)">
                 <view class="label md">服务协议</view>
                 <u-icon name="arrow-right" />
             </view>
-            <view class="row-info row-between bdb-line" @click="goToExplain(1)">
+            <view class="row-info row-between bdb-line" @tap="goToExplain(1)">
                 <view class="label md">隐私政策</view>
                 <u-icon name="arrow-right" />
             </view>
             <view class="row-info row-between bdb-line">
                 <view class="label md">版权信息</view>
             </view>
-            <view class="row-info row-between">
+            <view class="row-info row-between" @tap="goAboutUs">
                 <view class="label md">关于我们</view>
-                <view>v{{ version }}</view>
+                <view class="row">
+                    <view>v{{ displayVersion }}</view>
+                    <u-icon name="arrow-right" />
+                </view>
             </view>
 
-            <view class="bg-primary white save-btn row-center lg" @click="logout">退出登录</view>
+            <view class="bg-primary white save-btn row-center lg" @tap="logout">退出登录</view>
 
             <!-- 版权信息 -->
             <view class="license xs" v-if="appConfig.copyright_info">
@@ -116,21 +110,21 @@
             <view class="modify-container column-center bg-white" v-show="showMobile">
                 <view class="title xl">{{ userInfo.mobile ? '更换手机号' : '绑定手机号' }}</view>
                 <view class="modify-row row" v-if="userInfo.mobile">
-                    <view style="width: 56px; border-right: 1px solid #e5e5e5">+86</view>
-                    <view style="margin-left: 15px">{{ userInfo.mobile }}</view>
+                    <view style="width: 112rpx; border-right: 1rpx solid #e5e5e5">+86</view>
+                    <view style="margin-left: 30rpx">{{ userInfo.mobile }}</view>
                 </view>
                 <view class="modify-row row" v-else>
-                    <view style="width: 71px">手机号</view>
+                    <view style="width: 142rpx">手机号</view>
                     <input v-model="new_mobile" placeholder="请输入绑定手机号" />
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">验证码</view>
+                    <view style="width: 142rpx">验证码</view>
                     <input
                         v-model="smsCode"
-                        style="padding-left: 5px; width: 130px"
+                        style="padding-left: 10rpx; width: 260rpx"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -142,7 +136,7 @@
                     </view>
                 </view>
                 <view class="modify-row row" v-if="userInfo.mobile">
-                    <view style="width: 71px">新手机号</view>
+                    <view style="width: 142rpx">新手机号</view>
                     <input v-model="new_mobile" placeholder="请输入新的手机号码" />
                 </view>
                 <view class="primary mt10"
@@ -150,7 +144,7 @@
                         userInfo.mobile ? '更改' : '绑定'
                     }}手机号码成功后，您的账号将会变更为该设置号码</view
                 >
-                <view class="btn bg-primary white row-center" @click="$changeUserMobile">确定</view>
+                <view class="btn bg-primary white row-center" @tap="$changeUserMobile">确定</view>
             </view>
         </u-popup>
 
@@ -186,8 +180,8 @@
             <view class="modify-container column-center bg-white" v-show="showPwd">
                 <view class="title xl">设置密码</view>
                 <view class="modify-row row">
-                    <view style="width: 56px; border-right: 1px solid #e5e5e5">+86</view>
-                    <view style="margin-left: 15px">{{ userInfo.mobile }}</view>
+                    <view style="width: 112rpx; border-right: 1rpx solid #e5e5e5">+86</view>
+                    <view style="margin-left: 30rpx">{{ userInfo.mobile }}</view>
                 </view>
                 <view class="modify-row row">
                     <view style="width: 142rpx">验证码</view>
@@ -196,7 +190,7 @@
                         style="padding-left: 10rpx; width: 260rpx"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -208,14 +202,14 @@
                     </view>
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">设置密码</view>
+                    <view style="width: 142rpx">设置密码</view>
                     <input type="password" v-model="pwd" placeholder="请输入新密码" />
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">确认密码</view>
+                    <view style="width: 142rpx">确认密码</view>
                     <input type="password" v-model="comfirmPwd" placeholder="再次输入新密码确认" />
                 </view>
-                <view class="btn bg-primary white row-center" @click="$forgetPwd">确定</view>
+                <view class="btn bg-primary white row-center" @tap="$forgetPwd">确定</view>
             </view>
         </u-popup>
         <u-picker
@@ -225,14 +219,6 @@
             :range="sexList"
             @confirm="onConfirm"
          />
-		<view class="xs muted" style="margin: 50rpx 0;">
-			<view class="row-center">
-				由 likeshop 提供免费开源商城系统
-			</view>
-			<view class="row-center">
-				© likeshop.cn
-			</view>
-		</view>
     </view>
 </template>
 
@@ -296,7 +282,6 @@ export default {
             this.oaAuth()
         },
         handleUser() {
-            console.log(123465)
             uni.redirectTo({
                 url: '/bundle_user/pages/user_set/user_set'
             })
@@ -324,7 +309,6 @@ export default {
             // #endif
             // #ifdef MP-WEIXIN
             if (e.detail.avatarUrl) {
-                console.log(e.detail.avatarUrl)
                 this.uploadImage(e.detail.avatarUrl)
             }
             // #endif
@@ -363,6 +347,11 @@ export default {
         goToExplain(value) {
             uni.navigateTo({
                 url: '/bundle_user/pages/server_explan/server_explan?type=' + value
+            })
+        },
+        goAboutUs() {
+            uni.navigateTo({
+                url: '/business/pages/business_pages/about_us'
             })
         },
         toSetPayPwd() {
@@ -418,16 +407,24 @@ export default {
             }
             changeUserMobile({
                 mobile: this.userInfo.mobile,
+                oldMobile: this.userInfo.mobile,
                 new_mobile: this.new_mobile,
+                newMobile: this.new_mobile,
+                phone: this.new_mobile,
                 code: this.smsCode,
+                smsCode: this.smsCode,
+                verifyCode: this.smsCode,
+                scene: this.smsType,
                 action: this.userInfo.mobile ? 'change' : ''
             }).then((res) => {
                 if (res.code == 1) {
                     this.showMobile = false
                     this.$toast({
-                        title: res.msg
+                        title: this.userInfo.mobile ? '手机号更换成功' : '手机号绑定成功'
                     })
                     this.$getUserInfo()
+                } else {
+                    this.$toast({ title: res.msg || '手机号绑定失败，请检查验证码' })
                 }
             })
         },
@@ -451,7 +448,6 @@ export default {
         },
         // end
         timeChange(timestamp) {
-            console.log(timestamp, 'timestamp')
         },
         onConfirm(value) {
             this.$setUserInfo(value[0] + 1)
@@ -530,10 +526,19 @@ export default {
         // end
 
         async getPhoneNumber(e) {
-            const { encryptedData, iv } = e.detail
+            const { encryptedData, iv, code: phoneCode } = e.detail
+            if (String(this.code || phoneCode || '').includes('mock')) {
+                this.$toast({ title: '微信绑定手机号请使用真机调试' })
+                return
+            }
             let data = {
-                code: this.code,
+                jsCode: this.code,
+                loginCode: this.code,
+                wxCode: this.code,
+                phoneCode,
+                phone_code: phoneCode,
                 encrypted_data: encryptedData,
+                encryptedData,
                 iv
             }
             this.fieldType = FieldType.MOBILE
@@ -545,9 +550,11 @@ export default {
             changeUserMobile(data).then((res) => {
                 if (res.code == 1) {
                     this.$toast({
-                        title: res.msg
+                        title: '手机号绑定成功'
                     })
                     this.$getUserInfo()
+                } else {
+                    this.$toast({ title: res.msg || '手机号绑定失败，请重新授权' })
                 }
                 // #ifdef MP-WEIXIN
                 getWxCode().then((res) => {
@@ -593,7 +600,6 @@ export default {
         // #endif
         // 监听从裁剪页发布的事件，获得裁剪结果
         uni.$on('uAvatarCropper', (path) => {
-            console.log(path)
             this.uploadImage(path)
         })
         this.getUserProfile = trottle(this.getUserProfile, 500, this)
@@ -603,7 +609,10 @@ export default {
     },
     computed: {
         ...mapState(['token']),
-        ...mapGetters(['appConfig'])
+        ...mapGetters(['appConfig']),
+        displayVersion() {
+            return this.appConfig.version || this.appConfig.appVersion || this.appConfig.app_version || this.version
+        }
     }
 }
 </script>

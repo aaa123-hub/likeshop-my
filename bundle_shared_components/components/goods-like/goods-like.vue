@@ -34,6 +34,7 @@
 
 <script>
 import PriceFormat from '@/bundle_shared_components/components/price-format/price-format.vue'
+import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
 
 	import {
 getRect
@@ -46,7 +47,8 @@ getRect
 		},
 
 		components: {
-			PriceFormat,},
+			PriceFormat,
+			CustomImage,},
 		props: {
 			list: {
 				type: Array,

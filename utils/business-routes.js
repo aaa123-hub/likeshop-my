@@ -1,3 +1,5 @@
+import { filterEnabledRoutes, guardRoute } from '@/utils/feature-flags'
+
 export const businessRoutes = {
   tabs: {
     home: { name: "首页", url: "/pages/index/index", openType: "switchTab" },
@@ -15,14 +17,14 @@ export const businessRoutes = {
         "/bundle_misc/pages/notice_detail/notice_detail?title=%E7%B3%BB%E7%BB%9F%E9%80%9A%E7%9F%A5&time=2026-05-10%2010%3A00%3A00&content=%E8%BF%99%E6%98%AF%E7%B3%BB%E7%BB%9F%E9%80%9A%E7%9F%A5%E8%AF%A6%E6%83%85%E7%A4%BA%E4%BE%8B",
     },
     storeDetail: { name: "店铺详情", url: "/business/pages/business_pages/store_detail" },
-    fiatBalance2: { name: "法币余额2", url: "/business/pages/business_pages/fiat_balance_2" },
+    fiatBalance2: { name: "人民币余额2", url: "/business/pages/business_pages/fiat_balance_2" },
     pendingPayment: { name: "待付款", url: "/business/pages/business_pages/pending_payment" },
     storeQr: { name: "店铺二维码", url: "/business/pages/business_pages/store_qr" },
     goodsQr: { name: "商品二维码", url: "/business/pages/business_pages/goods_qr" },
     storeGroup: { name: "店铺团购", url: "/business/pages/business_pages/store_group" },
     storeAlbum: { name: "店铺相册", url: "/business/pages/business_pages/store_album" },
-    wallet: { name: "法币余额", url: "/bundle_finance/pages/user_wallet/user_wallet" },
-    fiatBalance3: { name: "法币余额3", url: "/business/pages/business_pages/fiat_balance_3" },
+    wallet: { name: "人民币余额", url: "/bundle_finance/pages/user_wallet/user_wallet" },
+    fiatBalance3: { name: "人民币余额3", url: "/business/pages/business_pages/fiat_balance_3" },
     paymentFilter: { name: "付款记录-筛选", url: "/business/pages/business_pages/payment_filter" },
     paymentRecord: { name: "付款记录", url: "/business/pages/business_pages/payment_record" },
     aboutUs: { name: "关于我们", url: "/business/pages/business_pages/about_us" },
@@ -36,6 +38,7 @@ export const businessRoutes = {
     goodsDetail: { name: "商品详情", url: "/bundle/pages/goods_details/goods_details?id=1" },
     ecoApp: { name: "生态应用", url: "/business/pages/business_pages/eco_app" },
     autoPoints: { name: "自动领取积分", url: "/business/pages/business_pages/auto_points" },
+    mallGuide: { name: "商城使用引导", url: "/business/pages/business_pages/mall_guide" },
     goodsSearch: { name: "搜索列表", url: "/bundle/pages/goods_search/goods_search" },
     addressList: { name: "收货地址", url: "/bundle/pages/user_address/user_address" },
     addressEdit: { name: "新增地址", url: "/bundle/pages/address_edit/address_edit" },
@@ -97,6 +100,7 @@ export const businessTabGroups = {
     businessRoutes.pages.facePay,
     businessRoutes.pages.introCard,
     businessRoutes.pages.autoPoints,
+    businessRoutes.pages.mallGuide,
     businessRoutes.pages.userKyc,
     businessRoutes.pages.myService,
     businessRoutes.pages.aboutUs,
@@ -105,8 +109,13 @@ export const businessTabGroups = {
   ],
 };
 
+for (const key of Object.keys(businessTabGroups)) {
+  businessTabGroups[key] = filterEnabledRoutes(businessTabGroups[key]);
+}
+
 export function openBusinessRoute(route) {
   if (!route || !route.url) return;
+  if (!guardRoute(route.url)) return;
   if (route.openType === "switchTab") {
     uni.switchTab({ url: route.url });
     return;

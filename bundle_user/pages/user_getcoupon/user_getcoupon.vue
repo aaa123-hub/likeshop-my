@@ -49,11 +49,13 @@ export default {
     getCouponListFun() {
       getCouponList().then(res => {
         if (res.code == 1) {
-          if (res.data.length <= 0) {
+          const list = Array.isArray(res.data) ? res.data : [];
+          if (list.length <= 0) {
             this.showNull = true;
             return;
           }
-            this.couponList = res.data;
+            this.showNull = false;
+            this.couponList = list;
         }
       });
     }

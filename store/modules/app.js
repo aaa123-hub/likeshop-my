@@ -9,6 +9,8 @@ import {
 } from '@/config/cachekey';
 import Cache from '@/utils/cache'
 const CART_TAB_INDEX = 3
+let getUserPromise = null
+let getUserPromiseToken = null
 const state = {
 	config: Cache.get(CONFIG) || {
 		app_agreement: 0,
@@ -29,10 +31,12 @@ const state = {
 const mutations = {
 	LOGIN(state, opt = {}) {
 		const userId = opt.userId || opt.user_id || opt.id || state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
+		const openId = opt.openId || opt.openid || opt.open_id || state.userInfo.openId || state.userInfo.openid || state.userInfo.open_id
 		state.token = opt.token;
 		state.userInfo = {
 			...state.userInfo,
-			...(userId ? { userId, user_id: userId, id: userId } : {})
+			...(userId ? { userId, user_id: userId, id: userId } : {}),
+			...(openId ? { openId, openid: openId, open_id: openId } : {})
 		}
 		Cache.set(TOKEN, opt.token, 59 * 24 * 60 * 60);
 		Cache.set(USER_INFO, state.userInfo)
@@ -104,16 +108,22 @@ const actions = {
 	},
 
 	getUser({ state, commit }) {
-		return new Promise(resolve => {
-			const userId = state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
-			if (!state.token || !userId) return resolve()
-			getUser().then(res => {
-				if (res.code == 1) {
-					commit('SETUSERINFO', res.data || {})
-				}
-				resolve()
-			})
+		const userId = state.userInfo.userId || state.userInfo.user_id || state.userInfo.id
+		if (!state.token || !userId) return Promise.resolve()
+		const token = state.token
+		if (getUserPromise && getUserPromiseToken === token) return getUserPromise
+		getUserPromiseToken = token
+		getUserPromise = getUser().then(res => {
+			if (state.token === token && res.code == 1) {
+				commit('SETUSERINFO', res.data || {})
+			}
+		}).finally(() => {
+			if (getUserPromiseToken === token) {
+				getUserPromise = null
+				getUserPromiseToken = null
+			}
 		})
+		return getUserPromise
 	},
 };
 

@@ -2,6 +2,13 @@ import request from "@/utils/request";
 import wechath5 from "@/utils/wechath5";
 import { client } from "@/utils/tools";
 import { resolveImage } from "@/utils/image-placeholder";
+import store from "@/store";
+import Cache from "@/utils/cache";
+import { USER_INFO } from "@/config/cachekey";
+
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
 
 function normalizeMiniappLoginResult(res) {
   const payload = res && res.data ? res.data : res;
@@ -33,19 +40,33 @@ function normalizeMiniappLoginResult(res) {
 }
 
 function normalizeEcoApplication(item = {}, index = 0) {
-  const linkUrl = item.linkUrl || item.url || item.appUrl || item.jumpUrl || item.pagePath || "";
+  const linkUrl = item.entryUrl || item.entry_url || item.linkUrl || item.link_url || item.url || item.appUrl || item.app_url || item.jumpUrl || item.jump_url || item.pagePath || item.page_path || "";
+  const image = item.icon || item.iconUrl || item.icon_url || item.logoUrl || item.logo_url || item.imageUrl || item.image_url || item.image || item.cover;
   return {
     ...item,
-    id: item.id || item.appId || item.appCode || index,
-    title: item.title || item.appName || item.name || "生态应用",
-    desc: item.desc || item.appDesc || item.description || "",
-    icon: resolveImage(item.icon || item.iconUrl || item.logoUrl || item.imageUrl, "goods"),
+    id: item.id || item.appId || item.app_id || item.appCode || item.app_code || index,
+    title: item.title || item.appName || item.app_name || item.name || "生态应用",
+    desc: item.desc || item.appDesc || item.app_desc || item.description || "",
+    icon: resolveImage(image, "goods"),
+    iconUrl: resolveImage(image, "goods"),
+    entryUrl: item.entryUrl || item.entry_url || linkUrl,
     linkUrl,
-    urlText: item.urlText || linkUrl || item.appCode || "暂未配置链接",
-    openType: item.openType || item.jumpType || item.type || "",
-    pagePath: item.pagePath || item.path || "",
-    appId: item.targetAppId || item.appid || item.appId || "",
+    urlText: item.urlText || item.url_text || linkUrl || item.appCode || item.app_code || "暂未配置链接",
+    openType: item.openType || item.open_type || item.jumpType || item.jump_type || item.type || "",
+    pagePath: item.pagePath || item.page_path || item.path || (/^\//.test(linkUrl) ? linkUrl : ""),
+    appId: item.targetAppId || item.target_app_id || item.appid || item.appId || item.app_id || "",
   };
+}
+
+function extractList(payload = {}) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.list)) return payload.list;
+  if (Array.isArray(payload.records)) return payload.records;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray(payload.rows)) return payload.rows;
+  if (Array.isArray(payload.content)) return payload.content;
+  if (payload.page && typeof payload.page === "object") return extractList(payload.page);
+  return [];
 }
 
 function buildMiniappLoginPayload(data = {}) {
@@ -66,16 +87,19 @@ function shouldFallbackMiniappLogin(res) {
 function normalizePayMethod(method) {
   const payMethodMap = {
     1: "WECHAT_JSAPI",
-    2: "ALIPAY",
-    3: "BALANCE",
     wechat: "WECHAT_JSAPI",
     wxpay: "WECHAT_JSAPI",
     wechat_jsapi: "WECHAT_JSAPI",
-    alipay: "ALIPAY",
-    balance: "BALANCE",
-    wallet: "BALANCE",
   };
-  return payMethodMap[String(method || "").toLowerCase()] || method || "BALANCE";
+  return payMethodMap[String(method || "").toLowerCase()] || "WECHAT_JSAPI";
+}
+
+function currentOpenId() {
+  const userInfo = store.getters.userInfo || {};
+  const cachedUserInfo = Cache.get(USER_INFO) || {};
+  return userInfo.openId || userInfo.openid || userInfo.open_id
+    || cachedUserInfo.openId || cachedUserInfo.openid || cachedUserInfo.open_id
+    || "";
 }
 
 function normalizePaymentResult(data = {}) {
@@ -212,7 +236,7 @@ function normalizePaywayResponse(res, params = {}) {
   const now = Math.floor(Date.now() / 1000);
   const amountInfo = data.amountInfo || {};
   const baseInfo = data.baseInfo || {};
-  const amount = amountInfo.payAmount || data.paidAmount || data.payAmount || data.orderAmount || baseInfo.orderAmount || params.order_amount || params.amount || 0;
+  const amount = firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount, data.paidAmount, data.orderAmount, baseInfo.orderAmount, params.order_amount, params.amount, 0);
   return {
     ...(res || {}),
     code: res && res.code == 0 ? 0 : 1,
@@ -227,13 +251,6 @@ function normalizePaywayResponse(res, params = {}) {
 
 function defaultPaywayList() {
   return [
-    {
-      id: "BALANCE",
-      name: "余额支付",
-      pay_way: "BALANCE",
-      extra: "使用账户余额支付",
-      icon: "https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png",
-    },
     {
       id: "WECHAT_JSAPI",
       name: "微信支付",
@@ -279,25 +296,34 @@ export function opLogin(data) {
 
 //预支付接口
 export async function prepay(data = {}) {
+  const openId = data.openId || data.openid || data.open_id || currentOpenId();
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
     bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
+    amount: firstDefined(data.amount, data.payAmount, data.order_amount),
     payScene: data.payScene || "MINIAPP",
-    payMethod: normalizePayMethod(data.payMethod || data.pay_way || data.payWay),
+    payMethod: "WECHAT_JSAPI",
     clientIp: data.clientIp || "127.0.0.1",
-    openId: data.openId || data.openid || data.open_id,
+    openId,
     idempotentKey:
       data.idempotentKey ||
-      `pay-${data.order_id || data.bizOrderNo || Date.now()}-${normalizePayMethod(data.pay_way)}`,
+      `pay-${data.order_id || data.bizOrderNo || Date.now()}-WECHAT_JSAPI`,
     client,
   });
   return normalizePaymentResponse(res);
 }
 
+export function queryPayment(data = {}) {
+  const payOrderNo = data.payOrderNo || data.pay_order_no || data.pay_order_id || data.order_id;
+  if (!payOrderNo) return Promise.resolve({ code: 0, msg: "缺少支付单号", data: null });
+  return request.get(`miniapp/payments/${payOrderNo}`).then(normalizePaymentResponse);
+}
+
 //小程序订阅
 export function getMnpNotice(data) {
   return request.get("miniapp/messages/unread-count", { params: { bizType: data?.scene || data?.bizType } })
-    .then((res) => (res.code == 1 ? { ...res, data: [] } : res));
+    .then((res) => (res.code == 1 ? { ...res, data: [] } : { code: 1, data: [] }))
+    .catch(() => ({ code: 1, data: [] }));
 }
 
 //账号登录
@@ -337,13 +363,22 @@ export function getJsconfig() {
 }
 
 // 忘记密码
-export function forgetPwd(data) {
-  return Promise.resolve({ code: 0, msg: "当前小程序接口文档暂未提供找回密码接口" });
+export function forgetPwd(data = {}) {
+  return request.post("miniapp/auth/password/reset", {
+    mobile: data.mobile || data.phone,
+    smsCode: data.smsCode || data.code,
+    code: data.code || data.smsCode,
+    password: data.password || data.newPassword || data.new_password,
+    newPassword: data.newPassword || data.new_password || data.password,
+  });
 }
 
 // 发送短信
-export function sendSms(data) {
-  return Promise.resolve({ code: 0, msg: "当前后端暂未提供小程序短信发送接口", data: null });
+export function sendSms(data = {}) {
+  return request.post("miniapp/sms/send", {
+    mobile: data.mobile || data.phone,
+    scene: data.scene || data.key || data.type || "LOGIN",
+  });
 }
 
 // Html5 注册账号
@@ -370,22 +405,31 @@ export function getAfterSaleGuar() {
 export function getService() {
   return request.get("miniapp/eco-applications").then((res) => {
     const payload = res.data || {};
-    const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || []);
-    const service = list.find((item) => {
+    const list = extractList(payload);
+    const serviceApp = list.find((item) => {
       const text = `${item.appCode || ""}${item.appName || ""}${item.name || ""}${item.title || ""}`.toLowerCase();
       return text.includes("service") || text.includes("客服") || text.includes("contact");
-    }) || payload.service || payload.customerService || payload.contact || {};
-    const qrCode = service.qrCode || service.qrCodeUrl || service.qrcode || service.wechatQrCode || service.imageUrl || service.iconUrl || payload.qrCodeUrl || payload.serviceQrCode;
+    }) || {};
+    const service = {
+      ...serviceApp,
+      ...(payload.service || {}),
+      ...(payload.customerService || {}),
+      ...(payload.contact || {}),
+    };
+    const qrCode = service.qrCode || service.qrCodeUrl || service.qrcode || service.wechatQrCode || service.wechatQr || service.imageUrl || service.iconUrl || payload.qrCodeUrl || payload.serviceQrCode;
+    const avatar = service.avatar || service.avatarUrl || service.logo || service.logoUrl || service.icon || service.iconUrl || service.imageUrl || qrCode;
     return {
       ...res,
       code: res.code == 1 ? 1 : res.code,
       data: {
         name: service.appName || service.name || service.title || payload.name || "平台客服",
-        image: qrCode ? resolveImage(qrCode, "avatar") : resolveImage("", "avatar"),
+        image: avatar ? resolveImage(avatar, "avatar") : "",
         qrcode: qrCode ? resolveImage(qrCode, "avatar") : "",
-        wechat: service.wechat || service.wechatNo || service.wechatAccount || service.appCode || payload.wechat || "",
-        phone: service.contactPhone || service.phone || service.mobile || payload.phone || "",
-        time: service.appDesc || service.desc || service.description || payload.time || "工作日 09:00-18:00",
+        wechat: service.wechat || service.wechatNo || service.wechatAccount || service.wechatId || service.wechat_id || payload.wechat || "",
+        qq: service.qq || service.qqNo || service.qqAccount || payload.qq || "",
+        phone: service.contactPhone || service.servicePhone || service.phone || service.mobile || payload.phone || "",
+        time: service.appDesc || service.desc || service.description || service.serviceTime || service.service_time || service.workTime || service.work_time || payload.time || "",
+        onlineUrl: service.onlineUrl || service.online_url || service.entryUrl || service.linkUrl || service.url || "",
         list,
       },
     };
@@ -396,10 +440,14 @@ export function getEcoApplications(params = {}) {
   return request.get("miniapp/eco-applications", { params }).then((res) => {
     if (res.code != 1) return res;
     const payload = res.data || {};
-    const list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || payload.records || []);
+    const list = extractList(payload);
     return {
       ...res,
-      data: list.map(normalizeEcoApplication),
+      data: {
+        ...payload,
+        list: list.map(normalizeEcoApplication),
+        customerService: payload.customerService || payload.customer_service || {},
+      },
     };
   });
 }
@@ -465,7 +513,7 @@ export function getConfig() {
 // 注册赠送优惠券
 export function getRegisterCoupon() {
   return request.get("miniapp/coupons", { params: { pageNo: 1, pageSize: 20 } })
-    .then((res) => ({ ...res, data: res.data?.list || [] }));
+    .then((res) => ({ ...res, data: extractList(res.data || {}) }));
 }
 
 // 获取支付配置
@@ -480,7 +528,45 @@ export function getPayway(params = {}) {
   return Promise.resolve({ code: 0, msg: "缺少支付业务单号", data: null });
 }
 
+function normalizeShareQrcodeResponse(res, fallbackPath = "") {
+  const data = res && res.data ? res.data : {};
+  const qrcodeInfo = data.qrcodeInfo || data.qrCodeInfo || data.qrcode_info || data.qr_code_info || {};
+  const qrCode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage
+    || qrcodeInfo.qr_code || qrcodeInfo.qrCode || qrcodeInfo.qrcode || qrcodeInfo.image || qrcodeInfo.urlImage;
+  return {
+    ...(res || {}),
+    code: qrCode || res?.code == 1 ? 1 : 0,
+    data: {
+      ...data,
+      qr_code: qrCode || "",
+      path: data.path || data.pagePath || fallbackPath,
+    },
+  };
+}
+
+function buildShareQrcodePayload(params = {}) {
+  const path = params.path || params.pagePath || params.url || "";
+  return {
+    ...params,
+    path: path.replace(/^\//, ""),
+    pagePath: path.replace(/^\//, ""),
+    url: path.replace(/^\//, ""),
+  };
+}
+
 // 获取微信小程序码-生成海报需使用
-export function getShareMnQrcode(params) {
-  return request.get("miniapp/shop/" + (params.shopId || params.shop_id || ''), { params });
+export function getShareMnQrcode(params = {}) {
+  const payload = buildShareQrcodePayload(params);
+  const fallbackPath = payload.path ? `/${payload.path}` : "";
+  const shopId = payload.shopId || payload.shop_id || "";
+  const fallback = () => shopId
+    ? request.get("miniapp/shop/" + shopId, { params: payload }).then((res) => normalizeShareQrcodeResponse(res, fallbackPath))
+    : Promise.resolve({ code: 1, data: { qr_code: "", path: fallbackPath } });
+
+  return request.post("miniapp/share/qrcode", payload)
+    .then((res) => {
+      const normalized = normalizeShareQrcodeResponse(res, fallbackPath);
+      return normalized.data.qr_code ? normalized : fallback();
+    })
+    .catch(fallback);
 }

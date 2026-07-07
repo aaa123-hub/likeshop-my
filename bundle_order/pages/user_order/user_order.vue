@@ -24,14 +24,6 @@
             </view>
             <view class="order-switch__title">我的订单</view>
         </view>
-        <view class="order-type-switch">
-            <view :class="['order-switch__item', activeTop === 0 ? 'is-active' : '']" @tap="changeTopType(0)">
-                全部订单
-            </view>
-            <view :class="['order-switch__item', activeTop === 1 ? 'is-active' : '']" @tap="changeTopType(1)">
-                待领取积分
-            </view>
-        </view>
         <view class="order-tabs">
             <view
                 v-for="(item, index) in order"
@@ -44,17 +36,14 @@
         </view>
     </view>
     <view class="order-content">
-        <block
+        <order-list
             v-for="(item, index) in order"
             :key="item.type"
-        >
-            <order-list
-                v-if="item.isShow"
-                v-show="active === index"
-                :order-type="item.type"
-                :ref="'order' + item.type"
-            ></order-list>
-        </block>
+            v-if="item.isShow"
+            v-show="active === index"
+            :order-type="item.type"
+            :ref="'order' + item.type"
+        ></order-list>
     </view>
 </view>
 </template>
@@ -68,15 +57,18 @@ import UIcon from '@/bundle_order/components/uview-ui/components/u-icon/u-icon.v
 export default {
   data() {
     return {
-      activeTop: 0,
-      active: orderType.ALL,
+      active: 0,
       order: [{
         name: '全部',
         type: orderType.ALL,
         isShow: false
       }, {
-        name: '待付款',
+        name: '待支付',
         type: orderType.PAY,
+        isShow: false
+      }, {
+        name: '待发货',
+        type: orderType.SHIP,
         isShow: false
       }, {
         name: '待收货',
@@ -99,46 +91,42 @@ export default {
 			UIcon
 		},
   props: {},
-  onLoad: function (options) {
-    if (options && options.points == 1) {
-      this.changeTopType(1)
-      return
-    }
-    const{order} = this
-    let type = options.type || orderType.ALL;
-	let index = order.findIndex(item => item.type == type)
-    this.changeShow(index);
+  onLoad: function (options = {}) {
+    const { order } = this
+    const type = options.type === 'closed' ? orderType.CLOSE : (options.type || orderType.ALL);
+    const index = order.findIndex(item => item.type == type)
+    this.changeShow(index >= 0 ? index : 0);
   },
 
   onPullDownRefresh: function () {
     const {active, order} = this
-   const current = this.$refs['order' + order[active].type]
-   if (current && current[0] && current[0].reflesh) current[0].reflesh()
-   else uni.stopPullDownRefresh()
+    const current = this.$refs['order' + order[active].type]
+    const component = Array.isArray(current) ? current[0] : current
+    if (component && component.reflesh) {
+      Promise.resolve(component.reflesh()).finally(() => uni.stopPullDownRefresh())
+      return
+    }
+    uni.stopPullDownRefresh()
   },
 
   onReachBottom: function () {
 	  const {active, order} = this
-	const current = this.$refs['order' + order[active].type]
-	if (current && current[0] && current[0].getOrderListFun) current[0].getOrderListFun()
+    const current = this.$refs['order' + order[active].type]
+    const component = Array.isArray(current) ? current[0] : current
+    if (component && component.getOrderListFun) component.getOrderListFun()
   },
   methods: {
     changeShow(index) {
-		if(index != -1) {
+		if(index >= 0) {
+			const item = this.order[index]
+			if (!item) return
+			if (item && item.url) {
+				uni.navigateTo({ url: item.url })
+				return
+			}
 			this.active = index
 			this.order[index].isShow = true
 		}
-    },
-    changeTopType(type) {
-      this.activeTop = type
-      const targetType = type === 1 ? orderType.FINISH : orderType.ALL
-      const index = this.order.findIndex(item => item.type == targetType)
-      this.changeShow(index)
-      this.$nextTick(() => {
-        const current = this.$refs['order' + targetType]
-        const component = Array.isArray(current) ? current[0] : current
-        if (component && component.reflesh) component.reflesh()
-      })
     },
     goBack() {
       const pages = getCurrentPages();
@@ -154,7 +142,7 @@ export default {
 <style lang="scss">
 .user-order {
   min-height: 100vh;
-  background: #f7f8fa;
+  background: linear-gradient(180deg, #eaf3ff 0%, #f7f9fc 320rpx, #f7f9fc 100%);
 }
 
 .order-top {
@@ -162,7 +150,8 @@ export default {
   top: 0;
   z-index: 9;
   padding-top: var(--status-bar-height);
-  background: #ffffff;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 10rpx 30rpx rgba(26, 72, 130, .06);
 }
 
 .order-switch {
@@ -193,57 +182,44 @@ export default {
   line-height: 44rpx;
 }
 
-.order-type-switch {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 76rpx;
-  padding: 0 156rpx;
-}
-
-.order-switch__item {
-  position: relative;
-  flex: 1;
-  text-align: center;
-  font-size: 34rpx;
-  font-weight: 600;
-  color: #a5a5a5;
-}
-
 .order-tabs {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 88rpx;
-  padding: 0 24rpx;
-  border-top: 1rpx solid #f2f3f5;
+  gap: 8rpx;
+  height: 104rpx;
+  padding: 0 16rpx 12rpx;
+  box-sizing: border-box;
 }
 
 .order-tabs__item {
+  flex: 1;
   position: relative;
-  font-size: 30rpx;
-  font-weight: 500;
-  color: #a5a5a5;
+  min-width: 0;
+  padding: 16rpx 4rpx;
+  color: #667085;
+  font-size: 24rpx;
+  font-weight: 600;
+  text-align: center;
+  background: #f3f6fb;
+  border-radius: 999rpx;
+  box-sizing: border-box;
+  line-height: 30rpx;
+  white-space: nowrap;
 }
 
 .is-active {
-  color: #1f7af4;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1f7af4 0%, #03a6ff 100%);
+  box-shadow: 0 10rpx 22rpx rgba(31, 122, 244, .2);
 
   &::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: -18rpx;
-    width: 52rpx;
-    height: 8rpx;
-    background: #1f7af4;
-    border-radius: 8rpx;
-    transform: translateX(-50%);
+    display: none;
   }
 }
 
 .order-content {
   min-height: calc(100vh - 184rpx);
+  padding-top: 4rpx;
 }
 </style>

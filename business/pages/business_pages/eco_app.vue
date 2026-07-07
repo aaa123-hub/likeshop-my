@@ -1,35 +1,34 @@
 <template>
     <view class="eco-page">
-        <view class="eco-bg">
-            <view class="eco-content">
-                <view class="eco-header">
-                    <view class="eco-back" @tap="goBack"></view>
-                    <text class="eco-title">生态应用</text>
-                </view>
+        <view class="eco-shell">
+            <view class="eco-header">
+                <view class="eco-back" @tap="goBack"></view>
+                <text class="eco-title">生态应用</text>
+            </view>
 
-                <view class="eco-grid">
-                    <view
-                        v-for="(item, index) in loopData0"
-                        :key="index"
-                        class="eco-card"
-						:style="{ backgroundImage: `url(${item.cardBg})` }"
-                        @tap="openApp(item)"
-                    >
-                        <view class="eco-card__head">
-                            <image class="eco-card__icon" :src="item.icon" mode="aspectFill"></image>
-                            <text class="eco-card__name">{{ item.title }}</text>
+            <view class="eco-grid" v-if="loopData0.length">
+                <view
+                    v-for="(item, index) in loopData0"
+                    :key="item.id || index"
+                    :class="['eco-card', `eco-card--${index % 4}`]"
+                    @tap="openApp(item)"
+                >
+                    <view class="eco-card__head">
+                        <view class="eco-card__icon-wrap">
+                            <image v-if="item.icon" class="eco-card__icon" :src="item.icon" mode="aspectFill"></image>
                         </view>
-                        <view class="eco-card__foot">
-                            <text class="eco-card__url">{{ item.urlText }}</text>
-                            <image class="eco-card__arrow" :src="item.arrow" mode="aspectFit"></image>
-                        </view>
+                        <text class="eco-card__title line1">{{ item.title }}</text>
+                    </view>
+                    <view class="eco-card__foot">
+                        <text class="eco-card__url line1">{{ item.entryText }}</text>
+                        <view class="eco-card__arrow"></view>
                     </view>
                 </view>
+            </view>
 
-                <view v-if="!loading && !loopData0.length" class="eco-empty">
-                    <view class="eco-empty__title">暂无生态应用</view>
-                    <view class="eco-empty__desc">应用配置后会展示在这里</view>
-                </view>
+            <view v-if="!loading && !loopData0.length" class="eco-empty">
+                <view class="eco-empty__title">暂无生态应用</view>
+                <view class="eco-empty__desc">后台配置应用后会展示在这里</view>
             </view>
         </view>
     </view>
@@ -38,35 +37,18 @@
 <script>
 import { getEcoApplications } from '@/api/app'
 import { resolveImage } from '@/utils/image-placeholder'
+import { baseURL } from '@/config/app'
 
-const cardBackgrounds = [
-    'https://shengyuan.store/api/miniapp/files/miniapp/55370f24e008455485dc898d18fdfa24/be7cc876b2094b74ee0eba29ef07b145.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/9b8c35e5c8104d3cb05952ea783243ca/d4c33ec474b6bbd7d39c0203a548fb40.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/a121bc996fcf466c9f5d257adbb52d24/af2bbdf994fa3c0ef35cc2e313008722.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/935c3d850461481db3c763bebda4598b/ef5de8906549dcff1344adc4bd30f99e.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/0cd54acef85c4c93a90846b9ac0a060f/0413578f349662726395145504d86344.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/4de939cd2bbc43758f02d45abdd45717/aa437949540bc4253ca48ef9fd839e2a.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/91784135f9ff436689fdcc349f84f4e3/fa48364177ff3653867cbdb9c8da0f01.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/a364ccd4e9ab41308545d26055fd5862/81c2c956434428e9896b8063bfc9a72a.png'
-]
-
-const arrowImages = [
-    'https://shengyuan.store/api/miniapp/files/miniapp/2e0f54ff5ce44fae92a05c608af43c18/5f7942136bf528b7f933552a0d63aeaf.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/901c75e37f9d4956b9ba47f9f3eb192f/d34cf0e062a2622299d7bbbdfcaee748.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/ca52b45ad8d84b9ba0053e11d20dfd48/2bf6f361e9ad935d35e6b5c91fe92e99.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/21c999987fce41fbb7161e0c26bf09b9/32fadc5465767727fd4a49dc8ddb377a.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/2ed55f056262429db66806e3bed9cb9d/bbc08b0b6626f28391202b013859163b.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/111939b312c14abc9d3fc5499cb0c76f/cb0d48c1bdf5ae493d0e3c8ab0327b9b.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/27872562621b447ead8ae1c1f222ceaf/adf3250c832fea164c3d1b2946302dbb.png',
-    'https://shengyuan.store/api/miniapp/files/miniapp/f750dd79203e44a19f12b6ca2b2371e7/a232c7c25a8a69a30c18152f3aba48cf.png'
+const fallbackEcoApps = [
+    { title: '商家入驻', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/4392f8a4a0d14d49ad384109e9862452/home-ecology-icon.png', entryText: '申请开通店铺', entryUrl: '/business/pages/business_pages/user_kyc' },
+    { title: '面对面付款', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png', entryText: '线下扫码支付', entryUrl: '/business/pages/business_pages/face_pay' },
+    { title: '商街服务', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/b08d89d504054cc1a3dc29a229796c9f/user-ecology.png', entryText: '查看附近商家', entryUrl: '/pages/street/street' },
+    { title: '客服反馈', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/a90fd6a6345f48dd9d6a0771c5ff6127/home-shortcut-message.png', entryText: '提交问题建议', entryUrl: '/business/pages/business_pages/feedback' }
 ]
 
 export default {
     data() {
         return {
-            statusImage: 'https://shengyuan.store/api/miniapp/files/miniapp/d97fce7aadd0496b8e58e01bd571f4d1/4d93cd1c8d542d2e086451b42c6ea382.png',
-            backImage: 'https://shengyuan.store/api/miniapp/files/miniapp/1e966ff6836d403e9e02d28a41c8086e/c073f61c3357ea0c4fb34f91dc409aad.png',
-            capsuleImage: 'https://shengyuan.store/api/miniapp/files/miniapp/6e76ad947def4030aa266217fbb05e99/78088a7223eda53dc8e5a5bc96c57cb1.png',
             loading: false,
             loopData0: []
         }
@@ -78,17 +60,36 @@ export default {
         getEcoApplications() {
             this.loading = true
             getEcoApplications().then(res => {
-                if (res.code == 1) {
-                    this.loopData0 = (res.data || []).map((item, index) => ({
-                        ...item,
-                        cardBg: cardBackgrounds[index % cardBackgrounds.length],
-                        arrow: arrowImages[index % arrowImages.length],
-                        icon: resolveImage(item.icon, 'goods')
-                    }))
-                }
+                if (res.code != 1) return
+                const data = res.data || {}
+                const list = this.extractEcoList(data)
+                this.loopData0 = (list.length ? list : fallbackEcoApps).map(item => ({
+                    ...item,
+                    title: item.title || item.appName || item.app_name || item.name || '生态应用',
+                    icon: this.resolveEcoImage(item.icon || item.iconUrl || item.icon_url || item.logoUrl || item.logo_url || item.image || item.cover || item.imageUrl || item.image_url),
+                    entryText: this.getEntryText(item),
+                    entryUrl: item.entryUrl || item.entry_url || item.linkUrl || item.link_url || item.url || item.appUrl || item.app_url || item.jumpUrl || item.jump_url || '',
+                    pagePath: item.pagePath || item.page_path || item.path || '',
+                    appId: item.appId || item.app_id || item.appid || item.targetAppId || item.target_app_id || ''
+                }))
             }).finally(() => {
                 this.loading = false
             })
+        },
+        extractEcoList(data = {}) {
+            if (Array.isArray(data)) return data
+            return data.list || data.records || data.items || data.rows || data.content || []
+        },
+        getEntryText(item = {}) {
+            const text = item.urlText || item.entryName || item.entry_name || item.linkUrl || item.link_url || item.entryUrl || item.entry_url || item.url || item.appCode || item.app_code || ''
+            return text || '暂未配置链接'
+        },
+        resolveEcoImage(src) {
+            if (!src) return ''
+            const value = String(src).trim()
+            if (/^https?:\/\//i.test(value)) return resolveImage(value, 'goods')
+            if (value.startsWith('/')) return `${baseURL}${value}`
+            return resolveImage(value, 'goods')
         },
         goBack() {
             const pages = getCurrentPages()
@@ -99,15 +100,25 @@ export default {
             uni.switchTab({ url: '/pages/index/index' })
         },
         openApp(item) {
-            if (item.pagePath) {
-                uni.navigateTo({ url: item.pagePath })
+            const targetUrl = item.entryUrl || item.pagePath || item.linkUrl || item.url || ''
+            if (item.appId) {
+                uni.navigateToMiniProgram({
+                    appId: item.appId,
+                    path: item.pagePath || targetUrl || '',
+                    fail: () => uni.showToast({ title: '暂无法打开该应用', icon: 'none' })
+                })
                 return
             }
-            if (item.linkUrl && /^https?:\/\//i.test(item.linkUrl)) {
-                uni.setClipboardData({ data: item.linkUrl })
+            if (targetUrl && /^\//.test(targetUrl)) {
+                uni.navigateTo({ url: targetUrl })
                 return
             }
-            uni.showToast({ title: item.urlText || '暂未配置应用链接', icon: 'none' })
+            if (targetUrl && /^https?:\/\//i.test(targetUrl)) {
+                uni.setClipboardData({ data: targetUrl })
+                uni.showToast({ title: '链接已复制', icon: 'none' })
+                return
+            }
+            uni.showToast({ title: item.entryText || '暂未配置应用链接', icon: 'none' })
         }
     }
 }
@@ -119,43 +130,46 @@ export default {
     width: 100%;
     min-height: 100vh;
     overflow-x: hidden;
-    background: #f8f8f9;
+    background: #f7f8fb;
 }
 
-.eco-status {
-    display: block;
-    width: 690rpx;
-    height: 26rpx;
-    margin: 28rpx 0 0 34rpx;
+.eco-page::before {
+    content: '';
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    background: linear-gradient(180deg, #eaf6ff 0%, #f6f8fb 38%, #f7f8fb 100%);
+    pointer-events: none;
 }
 
-.eco-content {
-    width: 100%;
+.eco-shell {
+    position: relative;
+    z-index: 1;
     min-height: 100vh;
-    padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+    padding: calc(var(--app-safe-top) + 45rpx) 24rpx 80rpx;
     box-sizing: border-box;
 }
 
 .eco-header {
+    position: relative;
     display: flex;
-    align-items: flex-start;
-    width: 702rpx;
+    align-items: center;
     height: 64rpx;
-    margin: calc(var(--status-bar-height) + 24rpx) auto 0;
 }
 
 .eco-back {
     position: relative;
-    width: 42rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52rpx;
     height: 64rpx;
-    margin-top: 0;
 }
 
 .eco-back::after {
     content: '';
-    position: absolute;
-    left: 14rpx;
-    top: 20rpx;
     width: 18rpx;
     height: 18rpx;
     border-left: 4rpx solid #222222;
@@ -164,128 +178,123 @@ export default {
 }
 
 .eco-title {
-    flex: 1;
-    height: 34rpx;
-    margin: 17rpx 42rpx 0 0;
-    overflow: hidden;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     color: #222222;
     font-size: 36rpx;
     font-family: PingFangSC-Medium, PingFang SC, sans-serif;
     font-weight: 500;
     line-height: 36rpx;
-    text-align: center;
     white-space: nowrap;
-}
-
-.eco-capsule {
-    width: 168rpx;
-    height: 64rpx;
-    margin-left: 114rpx;
 }
 
 .eco-grid {
     display: flex;
     flex-wrap: wrap;
-    width: 702rpx;
-    margin: 28rpx auto 0;
+    justify-content: space-between;
+    margin-top: 28rpx;
 }
 
 .eco-card {
     width: 338rpx;
     height: 141rpx;
-    margin: 0 26rpx 18rpx 0;
-    background-repeat: no-repeat;
-    background-position: -4rpx -4rpx;
-    background-size: 346rpx 149rpx;
-    border-radius: 20rpx;
+    margin-bottom: 18rpx;
+    padding: 19rpx 20rpx 23rpx 17rpx;
     box-sizing: border-box;
+    border-radius: 18rpx;
+    overflow: hidden;
 }
 
-.eco-card:nth-child(2n) {
-    margin-right: 0;
+.eco-card--0 {
+    background: linear-gradient(135deg, #eaf7ff 0%, #ffffff 58%, #f0fbff 100%);
 }
 
-.eco-card:nth-last-child(-n + 2) {
-    margin-bottom: 0;
+.eco-card--1 {
+    background: linear-gradient(135deg, #fff4ed 0%, #ffffff 58%, #fff8f0 100%);
+}
+
+.eco-card--2 {
+    background: linear-gradient(135deg, #eef5ff 0%, #ffffff 58%, #f4f8ff 100%);
+}
+
+.eco-card--3 {
+    background: linear-gradient(135deg, #f0fff6 0%, #ffffff 58%, #f7fff9 100%);
 }
 
 .eco-card__head {
     display: flex;
-    align-items: flex-start;
-    width: 231rpx;
+    align-items: center;
     height: 52rpx;
-    margin: 19rpx 0 0 17rpx;
+}
+
+.eco-card__icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52rpx;
+    height: 52rpx;
+    margin-right: 14rpx;
+    border-radius: 50%;
+    background: #eeeeee;
+    overflow: hidden;
 }
 
 .eco-card__icon {
-    flex: none;
     width: 52rpx;
     height: 52rpx;
-    border-radius: 50%;
 }
 
-.eco-card__name {
-    width: 165rpx;
-    height: 27rpx;
-    margin: 12rpx 0 0 14rpx;
-    overflow: hidden;
+.eco-card__title {
+    flex: 1;
     color: #222222;
     font-size: 28rpx;
     font-family: PingFangSC-Medium, PingFang SC, sans-serif;
     font-weight: 500;
     line-height: 28rpx;
-    text-align: left;
-    white-space: nowrap;
 }
 
 .eco-card__foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 294rpx;
     height: 22rpx;
-    margin: 25rpx 0 23rpx 20rpx;
+    margin-top: 25rpx;
 }
 
 .eco-card__url {
-    width: 221rpx;
-    height: 22rpx;
-    overflow: hidden;
+    width: 250rpx;
     color: #999999;
     font-size: 22rpx;
-    font-weight: 400;
     line-height: 22rpx;
-    text-align: left;
-    white-space: nowrap;
-    text-overflow: ellipsis;
 }
 
 .eco-card__arrow {
-    width: 20rpx;
-    height: 21rpx;
+    width: 14rpx;
+    height: 14rpx;
+    border-top: 3rpx solid #b8b8b8;
+    border-right: 3rpx solid #b8b8b8;
+    transform: rotate(45deg);
 }
 
 .eco-empty {
-    width: 702rpx;
-    margin: 120rpx auto 0;
-    padding: 70rpx 30rpx;
-    background: #ffffff;
-    border-radius: 24rpx;
+    margin: 160rpx 24rpx 0;
+    padding: 58rpx 30rpx;
     text-align: center;
-    box-sizing: border-box;
+    border-radius: 24rpx;
+    background: rgba(255, 255, 255, 0.86);
 }
 
 .eco-empty__title {
     color: #222222;
     font-size: 30rpx;
-    font-weight: 600;
-    line-height: 42rpx;
+    font-weight: 500;
 }
 
 .eco-empty__desc {
-    margin-top: 16rpx;
+    margin-top: 14rpx;
     color: #999999;
     font-size: 24rpx;
-    line-height: 34rpx;
 }
 </style>

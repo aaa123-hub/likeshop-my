@@ -54,12 +54,14 @@ export default {
       } = this;
       getMyCoupon({
         type,
-        status: type
+        status: type,
+        pageSize: 100
       }).then(res => {
         if (res.code == 1) {
-          const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.lists || [])
+          const data = res.data || {}
+          const list = Array.isArray(data) ? data : (data.list || data.lists || [])
           this.$emit('getnum', {
-            detail: list.length
+            detail: data.total ?? list.length
           });
 
           this.couponList = list;

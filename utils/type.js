@@ -24,9 +24,11 @@ export const orderType = {
  ALL: 'all',
   //全部
  PAY: 'pay',
-  //待付款
+   //待付款
+ SHIP: 'ship',
+  //待发货
  DELIVERY: 'delivery',
-  //待收货
+   //待收货
  FINISH: 'finish',
   //待收货
  CLOSE: 'close' //待收货

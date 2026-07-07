@@ -152,10 +152,7 @@ export default {
             this.$refs.uModal.clearLoading()
         },
         hasPayWord() {
-            console.log(11)
-
             hasPayPassword().then((res) => {
-                console.log(res)
                 if (res.code == 0) {
                     this.showSetPwd = true
                 }
@@ -180,7 +177,6 @@ export default {
             }
         },
         showTips() {
-            console.log(this.userInfo)
             return Boolean(!this.userInfo.mobile)
         }
     }

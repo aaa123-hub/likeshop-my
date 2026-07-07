@@ -59,9 +59,9 @@
                     </view>
                 </view>
                 <view class="column xs">
-                    <view class="msg"><span class="primary">{{item.fans_team}} </span>人</view>
-                    <view class="mt5 msg"><span>{{item.fans_order}} </span>单</view>
-                    <view class="mt5 msg"><span>{{item.fans_money}} </span>元</view>
+                    <view class="msg"><text class="primary">{{item.fans_team}} </text>人</view>
+                    <view class="mt5 msg"><text>{{item.fans_order}} </text>单</view>
+                    <view class="mt5 msg"><text>{{item.fans_money}} </text>元</view>
                 </view>
             </view>
             <loading-footer :status="loadingStatus" slotEmpty>

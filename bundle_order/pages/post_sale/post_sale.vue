@@ -13,6 +13,8 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
+import Tabs from '@/bundle_order/components/tabs/tabs.vue'
+import Tab from '@/bundle_order/components/tab/tab.vue'
 import AfterSalesList from '@/bundle_order/components/after-sales-list/after-sales-list.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
@@ -58,6 +60,8 @@ export default {
 
   components: {
 			Navbar,
+			Tabs,
+			Tab,
 			AfterSalesList
 		},
   props: {},
@@ -75,6 +79,7 @@ export default {
             afterSaleType = AfterSaleType.NORMAL;
             break;
         case 1:
+            afterSaleType = AfterSaleType.HANDLING;
             break;
         case 2:
             afterSaleType = AfterSaleType.FINISH;
@@ -84,7 +89,8 @@ export default {
             break;
     }
 
-    let myComponent = this.$refs[afterSaleType] && this.$refs[afterSaleType][0];
+    const current = this.$refs[afterSaleType]
+    const myComponent = Array.isArray(current) ? current[0] : current
     if (myComponent && myComponent.getAfterSaleListFun) {
       myComponent.getAfterSaleListFun();
     }
@@ -113,8 +119,10 @@ export default {
           this.active = type == AfterSaleType.NORMAL ? 0 : type == AfterSaleType.HANDLING ? 1 : 2
       }
 
-      if(this.$refs[type] && this.$refs[type][0] && this.$refs[type][0].getAfterSaleListFun) {
-          this.$refs[type][0].getAfterSaleListFun()
+      const current = this.$refs[type]
+      const component = Array.isArray(current) ? current[0] : current
+      if(component && component.getAfterSaleListFun) {
+          component.getAfterSaleListFun()
       }
     },
 
@@ -137,42 +145,65 @@ image {
 }
 
 .post-sale {
+    min-height: 100vh;
+    background: #f7f8fa;
+
     .contain {
+        padding-bottom: 24rpx;
+
         .sale-list {
-            padding: 20rpx 0;
+            padding: 24rpx;
+
             .sale-item {
+                margin-bottom: 24rpx;
+                border-radius: 22rpx;
+                overflow: hidden;
+                box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
                 .sale-header {
-                    padding: 20rpx 24rpx;
+                    padding: 24rpx 24rpx 10rpx;
+
                     .store-name {
                         font-weight: bold;
                         font-family:PingFang SC;
                         line-height: 40rpx;
+                        color: #333;
                     }
                 }
                 .sale-goods-show {
-                    padding: 20rpx 24rpx;
+                    padding: 24rpx;
+
                     .goods-img {
                         height: 160rpx;
                         width: 160rpx;
+                        flex: none;
                     }
                     .goods-desc {
                         margin-left: 24rpx;
+                        min-width: 0;
                     }
                     .sale-status {
-                        padding: 20rpx 60rpx;
-                        background-color: #F6F6F6;
+                        padding: 18rpx 24rpx;
+                        background-color: #F8F8F8;
+                        border-radius: 14rpx;
                     }
                 }
                 .sale-footer {
-                    padding: 0 24rpx 22rpx;
+                    padding: 0 24rpx 24rpx;
+
                     .btn {
-                        padding: 9rpx 34rpx;
+                        height: 58rpx;
+                        padding: 0 34rpx;
                         font-family: PingFang SC;
+                        background: #fff7f8;
                     }
                     .grey-btn {
-                        border: 1px solid #CCCCCC;
-                        padding: 9rpx 34rpx;
+                        height: 58rpx;
+                        border: 1px solid #DDDDDD;
+                        padding: 0 34rpx;
                         font-family: PingFang SC;
+                        color: #555;
+                        background: #fff;
                     }
                 }
             }

@@ -12,24 +12,31 @@
             <view class="license-status__remark" v-if="statusRemark">{{ statusRemark }}</view>
             <view class="license-status__time" v-if="statusTime">{{ statusTime }}</view>
         </view>
-        <view class="license-card">
+        <view class="license-approved" v-if="isApproved">
+            <view class="license-approved__title">资质已通过</view>
+            <view class="license-approved__row"><text>商家名称</text><text>{{ form.merchantName || '-' }}</text></view>
+            <view class="license-approved__row"><text>联系电话</text><text>{{ form.contactMobile || '-' }}</text></view>
+            <view class="license-approved__row"><text>联系邮箱</text><text>{{ form.email || '-' }}</text></view>
+            <view class="license-approved__desc" v-if="form.remark">{{ form.remark }}</view>
+        </view>
+        <view class="license-card" v-if="!isApproved">
             <view class="license-item">
                 <view class="license-item__label">店铺名称</view>
-                <input class="license-item__input" v-model="form.merchantName" placeholder="请输入您的店铺名称" placeholder-class="license-placeholder" />
+                <input class="license-item__input" v-model="form.merchantName" :disabled="isApproved" placeholder="请输入您的店铺名称" placeholder-class="license-placeholder" />
             </view>
             <view class="license-item">
                 <view class="license-item__label">联系电话</view>
-                <input class="license-item__input" v-model="form.contactMobile" type="number" maxlength="11" placeholder="请输入您的电话" placeholder-class="license-placeholder" />
+                <input class="license-item__input" v-model="form.contactMobile" :disabled="isApproved" type="number" maxlength="11" placeholder="请输入您的电话" placeholder-class="license-placeholder" />
             </view>
             <view class="license-item">
                 <view class="license-item__label">电子邮箱</view>
-                <input class="license-item__input" v-model="form.email" placeholder="请输入您的电子邮箱" placeholder-class="license-placeholder" />
+                <input class="license-item__input" v-model="form.email" :disabled="isApproved" placeholder="请输入您的电子邮箱" placeholder-class="license-placeholder" />
             </view>
         </view>
-        <view class="license-extra">
+        <view class="license-extra" v-if="!isApproved">
             <view class="license-desc">
                 <view class="license-desc__title">网店说明</view>
-                <textarea class="license-desc__textarea" v-model="form.remark" placeholder="请输入网店说明" placeholder-class="license-placeholder" maxlength="200"></textarea>
+                <textarea class="license-desc__textarea" v-model="form.remark" :disabled="isApproved" placeholder="请输入网店说明" placeholder-class="license-placeholder" maxlength="200"></textarea>
                 <view class="license-desc__count">{{ form.remark.length }}/200</view>
             </view>
         </view>
@@ -69,20 +76,24 @@ import Navbar from '@/components/navbar/navbar.vue'
                 return this.userInfo.user_id || this.userInfo.userId || this.userInfo.id
             },
             auditStatus() {
-                return this.status.audit_status || this.status.auditStatus || this.status.status
+                return String(this.status.audit_status || this.status.auditStatus || this.status.status || '').toUpperCase()
             },
             statusRemark() {
                 return this.status.audit_remark || this.status.auditRemark || this.status.remark || ''
             },
             statusTime() {
-                return this.status.updated_at || this.status.updatedAt || this.status.updateTime || this.status.createTime || ''
+                const time = this.status.updated_at || this.status.updatedAt || this.status.updateTime || this.status.createTime || this.status.createdAt || ''
+                return this.formatDisplayTime(time)
             },
             statusText() {
                 const statusMap = {
+                    SUBMITTED: '审核中',
                     PENDING: '审核中',
                     AUDITING: '审核中',
+                    SUCCESS: '已通过',
                     APPROVED: '已通过',
                     PASS: '已通过',
+                    FAILED: '未通过',
                     REJECTED: '未通过',
                     REJECT: '未通过'
                 }
@@ -94,7 +105,12 @@ import Navbar from '@/components/navbar/navbar.vue'
                 if (status === 'REJECTED' || status === 'REJECT') return 'license-status__value--danger'
                 return 'license-status__value--pending'
             },
+            isApproved() {
+                const status = this.auditStatus
+                return status === 'APPROVED' || status === 'PASS'
+            },
             submitButtonText() {
+                if (this.isApproved) return '已通过'
                 return this.auditStatus ? '重新提交' : '去开通'
             }
         },
@@ -104,6 +120,15 @@ import Navbar from '@/components/navbar/navbar.vue'
                     if (source[key] !== undefined && source[key] !== null && source[key] !== '') return source[key]
                 }
                 return ''
+            },
+            formatDisplayTime(value) {
+                if (!value) return ''
+                if (typeof value === 'string' && /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(value)) return value.replace(/-/g, '/').slice(0, 16)
+                const time = Number(value)
+                const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000)
+                if (Number.isNaN(date.getTime())) return String(value)
+                const pad = (num) => String(num).padStart(2, '0')
+                return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
             },
             getStatus() {
                 if (!this.userId) return
@@ -115,7 +140,7 @@ import Navbar from '@/components/navbar/navbar.vue'
                         this.form.email = this.pickValue(res.data, ['email', 'merchantEmail', 'merchant_email', 'contactEmail', 'contact_email', 'settlementAccountNo', 'settlement_account_no']) || this.form.email
                         this.form.settlementAccountNo = this.pickValue(res.data, ['settlementAccountNo', 'settlement_account_no', 'email', 'merchantEmail', 'merchant_email']) || this.form.settlementAccountNo
                         this.form.qualificationUrl = this.pickValue(res.data, ['qualificationUrl', 'qualification_url']) || this.form.qualificationUrl
-                        this.form.remark = this.pickValue(res.data, ['remark', 'description', 'shopDescription', 'shop_description', 'storeDescription', 'store_description', 'onlineShopDescription', 'online_shop_description', 'auditRemark']) || this.form.remark
+                        this.form.remark = this.pickValue(res.data, ['shopDescription', 'shop_description', 'storeDescription', 'store_description', 'onlineShopDescription', 'online_shop_description', 'description', 'merchantRemark', 'merchant_remark', 'remark']) || this.form.remark
                     }
                 })
             },
@@ -127,6 +152,7 @@ import Navbar from '@/components/navbar/navbar.vue'
             },
             submitApply() {
                 if (this.submitting) return
+                if (this.isApproved) return
                 const message = this.validateForm()
                 if (message) {
                     this.$toast({ title: message })
@@ -173,11 +199,10 @@ import Navbar from '@/components/navbar/navbar.vue'
         position: relative;
         display: flex;
         flex-direction: column;
-        height: 100vh;
         min-height: 100vh;
         padding: 0 24rpx calc(24rpx + env(safe-area-inset-bottom));
         box-sizing: border-box;
-        overflow: hidden;
+        overflow-y: auto;
         background: #f7f8fa;
 
         > *:not(.license-bg) {
@@ -274,6 +299,41 @@ import Navbar from '@/components/navbar/navbar.vue'
         color: #8a8f99;
     }
 
+    .license-approved {
+        flex: none;
+        z-index: 3;
+        margin: 0 0 18rpx;
+        padding: 26rpx 24rpx;
+        background: #ffffff;
+        border-radius: 24rpx;
+        box-shadow: 0 14rpx 30rpx rgba(23, 172, 106, 0.12);
+    }
+
+    .license-approved__title {
+        margin-bottom: 18rpx;
+        color: #17ac6a;
+        font-size: 32rpx;
+        font-weight: 700;
+    }
+
+    .license-approved__row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12rpx 0;
+        color: #444444;
+        font-size: 26rpx;
+    }
+
+    .license-approved__desc {
+        margin-top: 14rpx;
+        padding: 18rpx;
+        color: #666666;
+        font-size: 24rpx;
+        line-height: 36rpx;
+        background: #f6fbf8;
+        border-radius: 16rpx;
+    }
+
     .license-item {
         display: flex;
         align-items: center;
@@ -350,6 +410,7 @@ import Navbar from '@/components/navbar/navbar.vue'
         align-items: center;
         justify-content: center;
         width: 540rpx;
+        max-width: 100%;
         height: 78rpx;
         margin: 22rpx auto 0;
         color: #ffffff;

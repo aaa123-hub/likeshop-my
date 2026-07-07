@@ -1092,8 +1092,13 @@ let QRCode = {};
             }
             var ctx = uni.createCanvasContext(options.canvasId, options.context);
             var count = qrCodeAlg.getModuleCount();
-            var ratioSize = options.size;
-            var ratioImgSize = options.imageSize;
+            var ratioSize = Number(options.size || options.width || options.height || 0);
+            if (!ratioSize) {
+                if (options.cbResult) options.cbResult('')
+                if (options.showLoading) uni.hideLoading();
+                return;
+            }
+            var ratioImgSize = Number(options.imageSize || 0);
             //计算每个点的长宽
             var tileW = (ratioSize / count).toPrecision(4);
             var tileH = (ratioSize / count).toPrecision(4);
@@ -1112,11 +1117,13 @@ let QRCode = {};
                     ctx.fillRect(Math.round(col * tileW), Math.round(row * tileH), w, h);
                 }
             }
-            if (options.image) {
+            if (typeof options.image === 'string' && options.image && ratioImgSize > 0 && ratioImgSize <= ratioSize) {
                 var x = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
                 var y = Number(((ratioSize - ratioImgSize) / 2).toFixed(2));
                 drawRoundedRect(ctx, x, y, ratioImgSize, ratioImgSize, 2, 6, true, true)
-                ctx.drawImage(options.image, x, y, ratioImgSize, ratioImgSize);
+                try {
+                    ctx.drawImage(options.image, x, y, ratioImgSize, ratioImgSize);
+                } catch (error) {}
                 // 画圆角矩形
                 function drawRoundedRect(ctxi, x, y, width, height, r, lineWidth, fill, stroke) {
                     ctxi.setLineWidth(lineWidth);
@@ -1142,10 +1149,10 @@ let QRCode = {};
                     // 保存到临时区域
                     setTimeout(() => {
                         uni.canvasToTempFilePath({
-                            width: options.width,
-                            height: options.height,
-                            destWidth: options.width,
-                            destHeight: options.height,
+                            width: options.width || ratioSize,
+                            height: options.height || ratioSize,
+                            destWidth: options.destWidth || options.width || ratioSize,
+                            destHeight: options.destHeight || options.height || ratioSize,
                             canvasId: options.canvasId,
                             quality: Number(1),
                             success: function (res) {
@@ -1153,9 +1160,9 @@ let QRCode = {};
                                     options.cbResult(res.tempFilePath)
                                 }
                             },
-                            fail: function (res) {
+                            fail: function () {
                                 if (options.cbResult) {
-                                    options.cbResult(res)
+                                    options.cbResult('')
                                 }
                             },
                             complete: function () {

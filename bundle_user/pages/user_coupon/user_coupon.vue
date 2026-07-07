@@ -16,7 +16,7 @@
     <view class="coupon-list">
         <view v-if="loading" class="coupon-loading">加载中...</view>
         <template v-else-if="currentList.length">
-            <view v-for="(item, index) in currentList" :key="item.id || index" :class="['coupon-card', active !== 0 ? 'coupon-card--disabled' : '']">
+            <view v-for="(item, index) in currentList" :key="index" :class="['coupon-card', active !== 0 ? 'coupon-card--disabled' : '']">
                 <view class="coupon-card__price">
                     <text class="coupon-card__symbol">¥</text>
                     <text class="coupon-card__money">{{ formatMoney(item.money) }}</text>
@@ -31,8 +31,14 @@
             </view>
         </template>
         <view v-else class="coupon-empty">
+            <view class="coupon-empty__icon">
+                <view class="coupon-empty__stub"></view>
+                <view class="coupon-empty__dot coupon-empty__dot--left"></view>
+                <view class="coupon-empty__dot coupon-empty__dot--right"></view>
+            </view>
             <view class="coupon-empty__title">暂无优惠券</view>
             <view class="coupon-empty__desc">有可用优惠券时会展示在这里</view>
+            <view class="coupon-empty__button" @tap="useCoupon">去首页看看</view>
         </view>
     </view>
 </view>
@@ -55,6 +61,22 @@ export default {
                 1: [],
                 2: []
             },
+            couponPages: {
+                0: 1,
+                1: 1,
+                2: 1
+            },
+            couponHasNext: {
+                0: true,
+                1: true,
+                2: true
+            },
+            couponLoading: {
+                0: false,
+                1: false,
+                2: false
+            },
+            pageSize: 20,
             coupons: [
                 { title: '可使用', num: 0, type: 0 },
                 { title: '已使用', num: 0, type: 1 },
@@ -76,29 +98,48 @@ export default {
         }
     },
     onShow() {
-        this.loadCouponList()
+        this.loadAllCouponCounts()
+    },
+    onReachBottom() {
+        this.loadCouponByType(this.currentType, true, false)
     },
     methods: {
         changeTab(index) {
             if (this.active === index) return
             this.active = index
-            this.loadCouponList()
+            if (!this.currentList.length) this.loadCouponList()
         },
         async loadCouponList() {
-            const type = this.currentType
+            return this.loadCouponByType(this.currentType, true, true)
+        },
+        async loadAllCouponCounts() {
             this.loading = true
+            await Promise.all(this.coupons.map(item => this.loadCouponByType(item.type, false, true)))
+            this.loading = false
+        },
+        async loadCouponByType(type, manageLoading = true, reset = false) {
+            if (this.couponLoading[type]) return
+            if (!reset && !this.couponHasNext[type]) return
+            if (manageLoading) this.loading = true
+            this.$set(this.couponLoading, type, true)
             try {
-                const res = await getMyCoupon({ type, status: type })
-                const list = res.code == 1 ? (Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.lists || [])) : []
-                this.$set(this.couponLists, type, list)
+                const pageNo = reset ? 1 : this.couponPages[type]
+                const res = await getMyCoupon({ type, status: type, pageNo, pageSize: this.pageSize })
+                const data = res.data || {}
+                const list = res.code == 1 ? (Array.isArray(data) ? data : (data.list || data.lists || [])) : []
+                const nextList = reset ? list : (this.couponLists[type] || []).concat(list)
+                this.$set(this.couponLists, type, nextList)
+                this.$set(this.couponPages, type, pageNo + 1)
+                this.$set(this.couponHasNext, type, Boolean(data.hasNext ?? data.more))
                 const index = this.coupons.findIndex(item => item.type === type)
-                if (index !== -1) this.$set(this.coupons[index], 'num', list.length)
+                if (index !== -1) this.$set(this.coupons[index], 'num', data.total ?? nextList.length)
             } catch (error) {
-                this.$set(this.couponLists, type, [])
+                if (reset) this.$set(this.couponLists, type, [])
                 const index = this.coupons.findIndex(item => item.type === type)
-                if (index !== -1) this.$set(this.coupons[index], 'num', 0)
+                if (index !== -1 && reset) this.$set(this.coupons[index], 'num', 0)
             } finally {
-                this.loading = false
+                this.$set(this.couponLoading, type, false)
+                if (manageLoading) this.loading = false
             }
         },
         formatMoney(value) {
@@ -125,6 +166,7 @@ export default {
     display: flex;
     height: 88rpx;
     background: #ffffff;
+    box-shadow: 0 8rpx 22rpx rgba(24, 40, 80, 0.04);
 }
 
 .coupon-tab {
@@ -174,6 +216,26 @@ export default {
     overflow: hidden;
     background: #ffffff;
     box-shadow: 0 10rpx 30rpx rgba(24, 40, 80, 0.05);
+}
+
+.coupon-card::before,
+.coupon-card::after {
+    content: '';
+    position: absolute;
+    left: 190rpx;
+    width: 28rpx;
+    height: 28rpx;
+    border-radius: 50%;
+    background: #f6f7fb;
+    z-index: 2;
+}
+
+.coupon-card::before {
+    top: -14rpx;
+}
+
+.coupon-card::after {
+    bottom: -14rpx;
 }
 
 .coupon-card__price {
@@ -250,12 +312,50 @@ export default {
 }
 
 .coupon-empty {
-    margin: 140rpx 6rpx 0;
-    padding: 80rpx 30rpx;
+    margin: 120rpx 6rpx 0;
+    padding: 74rpx 30rpx 64rpx;
     background: #ffffff;
     border-radius: 24rpx;
     text-align: center;
     box-shadow: 0 12rpx 36rpx rgba(24, 40, 80, 0.04);
+}
+
+.coupon-empty__icon {
+    position: relative;
+    width: 210rpx;
+    height: 126rpx;
+    margin: 0 auto 34rpx;
+    border-radius: 22rpx;
+    background: linear-gradient(135deg, #fff5ed 0%, #ffe2d8 100%);
+    overflow: hidden;
+}
+
+.coupon-empty__stub {
+    position: absolute;
+    left: 36rpx;
+    top: 40rpx;
+    width: 138rpx;
+    height: 18rpx;
+    border-radius: 18rpx;
+    background: rgba(255, 76, 54, 0.22);
+    box-shadow: 0 34rpx 0 rgba(255, 76, 54, 0.14);
+}
+
+.coupon-empty__dot {
+    position: absolute;
+    top: 49rpx;
+    width: 30rpx;
+    height: 30rpx;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+.coupon-empty__dot--left {
+    left: -15rpx;
+}
+
+.coupon-empty__dot--right {
+    right: -15rpx;
 }
 
 .coupon-empty__title {
@@ -270,5 +370,20 @@ export default {
     color: #999999;
     font-size: 24rpx;
     line-height: 34rpx;
+}
+
+.coupon-empty__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 216rpx;
+    height: 64rpx;
+    margin: 34rpx auto 0;
+    border-radius: 32rpx;
+    color: #ffffff;
+    font-size: 26rpx;
+    font-weight: 600;
+    background: linear-gradient(90deg, #ff8b3d 0%, #ff2c3c 100%);
+    box-shadow: 0 10rpx 22rpx rgba(255, 76, 54, 0.18);
 }
 </style>

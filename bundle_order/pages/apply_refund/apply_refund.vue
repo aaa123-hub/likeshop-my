@@ -152,7 +152,7 @@ import { baseURL } from "@/config/app";
 import { getGoodsInfo, applyAfterSale, applyAgain } from "@/api/user";
 import { uploadFile, trottle } from "@/utils/tools.js";
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
 
 export default {
 	components: {
@@ -211,8 +211,6 @@ export default {
     },
 
     onSubmit() {
-      console.log(this.afterSaleId);
-
       if (this.afterSaleId) {
         this.applyAgainFun();
       } else {
@@ -235,11 +233,14 @@ export default {
         reason: reason[reasonIndex],
         refund_type: optTyle,
         remark: remark,
-        img: fileList.length <= 0 ? "" : fileList[0].base_url,
+        order_id: this.orderId,
+        item_id: this.itemId,
+        img: fileList.length <= 0 ? "" : (fileList[0].url || fileList[0].base_url),
       };
       applyAgain(data).then((res) => {
         if (res.code == 1) {
-          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
+          const result = res.data || {};
+          const afterSaleId = result.after_sale_id || result.refundNo || result.refundId || result.id || this.afterSaleId;
           uni.$emit("refreshsale");
           this.$toast(
             {
@@ -249,7 +250,9 @@ export default {
               tab: 5,
               url:
                 "/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                afterSaleId,
+                afterSaleId +
+                "&refundReason=" +
+                encodeURIComponent(remark || ""),
             }
           );
         }
@@ -264,7 +267,7 @@ export default {
     },
 
     applyAfterSaleFun() {
-      let { reason, reasonIndex, optTyle, remark, fileList } = this;
+      let { reason, reasonIndex, optTyle, remark, fileList, goods } = this;
 
       if (!reason[reasonIndex]) {
         return this.$toast({
@@ -277,12 +280,14 @@ export default {
         order_id: this.orderId,
         reason: reason[reasonIndex],
         refund_type: optTyle,
+        amount: parseFloat(goods.total_pay_price || 0) + parseFloat(goods.refund_express_money || 0),
         remark: remark,
-        img: fileList.length <= 0 ? "" : fileList[0].url,
+        img: fileList.length <= 0 ? "" : (fileList[0].url || fileList[0].base_url),
       };
       applyAfterSale(data).then((res) => {
         if (res.code == 1) {
-          const afterSaleId = res.data.after_sale_id || res.data.refundNo || res.data.refundId || res.data.id;
+          const result = res.data || {};
+          const afterSaleId = result.after_sale_id || result.refundNo || result.refundId || result.id;
           uni.$emit("refreshsale");
           this.$toast({
             title: "提交成功",
@@ -291,7 +296,9 @@ export default {
             uni.redirectTo({
               url:
                 "/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
-                afterSaleId,
+                afterSaleId +
+                "&refundReason=" +
+                encodeURIComponent(remark || ""),
             });
           }, 500);
         }
@@ -323,8 +330,9 @@ export default {
         item_id: itemId,
       }).then((res) => {
         if (res.code == 1) {
-          this.goods = res.data.goods;
-          this.reason = res.data.reason;
+          const data = res.data || {};
+          this.goods = data.goods || {};
+          this.reason = Array.isArray(data.reason) ? data.reason : [];
         }
       });
     },
@@ -334,34 +342,50 @@ export default {
 <style lang="scss">
 /* pages/apply_refund/apply_refund.wxss */
 .apply-refund {
-  padding-bottom: 50rpx;
+  min-height: 100vh;
+  padding: 24rpx 24rpx 50rpx;
+  background: #f7f8fa;
+
   .goods {
-    padding: 20rpx 0;
     background-color: white;
-    padding: 20rpx 24rpx;
+    padding: 24rpx;
+    border-radius: 22rpx;
+    box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
     .goods-info {
       margin-left: 24rpx;
       flex: 1;
+      min-width: 0;
     }
   }
 }
 
 .opt-box {
+  border-radius: 22rpx;
+  overflow: hidden;
+  box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
   .opt-item {
-    padding: 20rpx 20rpx 20rpx 30rpx;
+    padding: 28rpx 24rpx;
     background-color: white;
   }
 }
 
 .border-line {
-  border: 1px solid #f2f2f2;
+  border-bottom: 1px solid #f2f2f2;
 }
 
 .apply-refund {
   .refund-info {
     background-color: #fff;
-    padding: 24rpx 20rpx;
+    padding: 26rpx 24rpx;
     border-bottom: var(--border);
+
+    &:first-child {
+      margin-top: 20rpx;
+      border-radius: 22rpx 22rpx 0 0;
+    }
+
     .label {
       align-self: start;
       width: 140rpx;
@@ -371,22 +395,27 @@ export default {
     textarea {
       flex: 1;
       height: 172rpx;
-      border-radius: 10rpx;
+      border-radius: 16rpx;
       padding: 20rpx;
       box-sizing: border-box;
+      background: #f7f8fa;
     }
   }
   .upload {
-    padding: 0 20rpx 20rpx;
+    padding: 0 24rpx 24rpx;
+    border-radius: 0 0 22rpx 22rpx;
+    box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
     .title {
       padding: 24rpx 0;
     }
   }
   .btn {
-    width: 680rpx;
-    margin-top: 30rpx;
-    margin-left: 26rpx;
-    margin-right: 26rpx;
+    width: 100%;
+    margin-top: 32rpx;
+    margin-left: 0;
+    margin-right: 0;
+    box-shadow: 0 12rpx 24rpx rgba(255, 44, 60, 0.18);
   }
 }
 

@@ -37,27 +37,7 @@
                 </view>
             </view>
 
-            <view class="my-page__asset-panel">
-                <view class="my-page__gift-card" @tap="goPage(businessRoutes.pages.wallet.url)">
-                    <image class="my-page__card-bg my-page__card-bg--gift" :src="designAssets.myGiftCard" mode="scaleToFill"></image>
-                    <view class="my-page__card-name my-page__card-name--gift">我的礼品卡</view>
-                    <view class="my-page__card-number my-page__card-number--gift">{{ userInfo.coupon || 0 }}张</view>
-                </view>
-                <view class="my-page__asset-right">
-                    <view class="my-page__asset-item my-page__asset-item--points" @tap="goPage('/bundle_misc/pages/user_sign/user_sign')">
-                        <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myPointsCard" mode="scaleToFill"></image>
-                        <view class="my-page__card-name my-page__card-name--points">我的积分</view>
-                        <view class="my-page__card-number my-page__card-number--points">{{ userInfo.user_integral || 0 }}</view>
-                    </view>
-                    <view class="my-page__asset-item my-page__asset-item--coupon" @tap="goPage('/bundle_user/pages/user_coupon/user_coupon')">
-                        <image class="my-page__card-bg my-page__card-bg--asset" :src="designAssets.myCouponCard" mode="scaleToFill"></image>
-                        <view class="my-page__card-name my-page__card-name--coupon">我的优惠券</view>
-                        <view class="my-page__card-number my-page__card-number--coupon">{{ userInfo.coupon || 0 }}张</view>
-                    </view>
-                </view>
-            </view>
-
-            <image class="my-page__strategy" :src="designAssets.myStrategyBanner" mode="scaleToFill" @tap="goPage(businessRoutes.pages.pageIndex.url)"></image>
+            <image class="my-page__strategy" :src="designAssets.myStrategyBanner" mode="scaleToFill" @tap="goPage(businessRoutes.pages.mallGuide.url)"></image>
 
             <view class="my-section my-section--online">
                 <view class="my-section__head">
@@ -108,7 +88,10 @@
                 </view>
                 <view class="my-value-grid">
                     <view class="my-value-item" v-for="item in valueEntries" :key="item.name" @tap="openEntry(item)">
-                        <image class="my-value-icon" :src="item.image" mode="aspectFit"></image>
+                        <view class="my-value-icon-wrap">
+                            <image class="my-value-icon" :src="item.image" mode="aspectFit"></image>
+                            <view v-if="item.badge" class="my-value-badge">{{ item.badge }}</view>
+                        </view>
                         <view class="my-value-text">{{ item.name }}</view>
                     </view>
                 </view>
@@ -162,6 +145,7 @@ import Cache from '@/utils/cache'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
+import { getService } from '@/api/app'
 
 export default {
     data() {
@@ -171,14 +155,15 @@ export default {
             showServiceModal: false,
 			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
             serviceContacts: [
-				{ type: '微信', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
-				{ type: 'QQ', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/f3a751f36ea442378ed3b18f916ce872/contact-message-icon.png' },
-				{ type: '手机号', value: '133 1212 1313', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/ad78cb6626b94083b5b4690cd5d7bc91/contact-email-icon.png' }
+                { type: '微信', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
+                { type: 'QQ', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/f3a751f36ea442378ed3b18f916ce872/contact-message-icon.png' },
+                { type: '手机号', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/ad78cb6626b94083b5b4690cd5d7bc91/contact-email-icon.png' }
             ]
         }
     },
     onLoad() {
         setTabbar()
+        this.getServiceInfo()
     },
     onShow() {
         this.getUser()
@@ -236,7 +221,22 @@ export default {
         closeServiceModal() {
             this.showServiceModal = false
         },
+        getServiceInfo() {
+            getService().then(res => {
+                if (res.code != 1) return
+                const data = res.data || {}
+                this.serviceContacts = [
+                    { ...this.serviceContacts[0], value: data.wechat || '' },
+                    { ...this.serviceContacts[1], value: data.qq || '' },
+                    { ...this.serviceContacts[2], value: data.phone || '' }
+                ]
+            })
+        },
         contactService(item) {
+            if (!item.value) {
+                uni.showToast({ title: '客服信息暂未配置', icon: 'none' })
+                return
+            }
             if (item.type === '手机号') {
                 uni.makePhoneCall({ phoneNumber: item.value.replace(/\s/g, '') })
                 return
@@ -252,9 +252,9 @@ export default {
         onlineOrderEntries() {
             return [
                 { name: '待付款', url: '/bundle_order/pages/user_order/user_order?type=pay', image: designAssets.myOrderPay, badge: this.userInfo.wait_pay },
-                { name: '待发货', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
+                { name: '待发货', url: '/bundle_order/pages/user_order/user_order?type=ship', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
                 { name: '待收货/核销', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myOrderReceive, badge: this.userInfo.wait_take },
-                { name: '待取积分', url: '/bundle_order/pages/user_order/user_order?points=1', image: designAssets.myOrderPoints, badge: this.userInfo.wait_comment },
+                { name: '待取积分', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints, badge: this.pendingPointsCount },
                 { name: '售后', url: '/bundle_order/pages/post_sale/post_sale', image: designAssets.myOrderAfterSale, badge: this.userInfo.after_sale }
             ]
         },
@@ -272,7 +272,8 @@ export default {
         },
         valueEntries() {
             return [
-                { name: '待领取\n线上订单', url: '/bundle_order/pages/user_order/user_order?points=1', image: designAssets.myValueOnline },
+                { name: `我的积分\n${this.userInfo.user_integral || 0}`, url: '/bundle_misc/pages/user_sign/user_sign', image: designAssets.myOrderPoints },
+                { name: '待领取\n线上订单', url: businessRoutes.pages.autoPoints.url, image: designAssets.myValueOnline, badge: this.pendingPointsCount },
                 { name: '待领取\n线下订单', url: '/business/pages/business_pages/face_pay', image: designAssets.myValueOffline },
                 { name: '联盟订单', url: '/pages/street/street', image: designAssets.myValueAlliance, openType: 'switchTab' },
                 { name: '领取积分\n设置', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints }
@@ -291,6 +292,9 @@ export default {
         displayNickname() {
             const nickname = this.userInfo.nickname || this.userInfo.username || this.userInfo.mobile || ''
             return String(nickname).trim()
+        },
+        pendingPointsCount() {
+            return this.userInfo.wait_points ?? this.userInfo.waitPoints ?? this.userInfo.pending_points ?? this.userInfo.pendingPoints ?? this.userInfo.wait_receive_points ?? this.userInfo.waitReceivePoints ?? 0
         }
     }
 }
@@ -317,7 +321,7 @@ export default {
 .my-page__screen {
     position: relative;
     width: 100%;
-    min-height: calc(2266rpx + var(--page-safe-top));
+    min-height: calc(1918rpx + var(--page-safe-top));
     overflow: visible;
 }
 
@@ -525,6 +529,11 @@ export default {
     white-space: nowrap;
 }
 
+.service-contact__value:empty::after {
+    content: '暂未配置';
+    color: #999999;
+}
+
 .service-contact__btn {
     display: flex;
     align-items: center;
@@ -563,8 +572,8 @@ export default {
 .my-page__merchant {
     position: absolute;
     left: 47rpx;
+    right: 47rpx;
     top: calc(var(--page-safe-top) + 299rpx);
-    width: 656rpx;
     height: 157rpx;
 }
 
@@ -572,7 +581,7 @@ export default {
     position: absolute;
     left: 0;
     top: 0;
-    width: 656rpx;
+    width: 100%;
     height: 157rpx;
 }
 
@@ -610,135 +619,28 @@ export default {
     margin-left: 20rpx;
 }
 
-.my-page__asset-panel {
-    position: absolute;
-    left: 26rpx;
-    top: calc(var(--page-safe-top) + 395rpx);
-    width: 698rpx;
-    height: 349rpx;
-    background: rgba(255, 255, 255, 1);
-    border-radius: 15rpx;
-}
-
-.my-page__gift-card {
-    position: absolute;
-    left: 22rpx;
-    top: 50rpx;
-    width: 311rpx;
-    height: 269rpx;
-    overflow: hidden;
-}
-
-.my-page__card-bg {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 0;
-}
-
-.my-page__card-bg--gift {
-    width: 311rpx;
-    height: 269rpx;
-}
-
-.my-page__card-bg--asset {
-    width: 311rpx;
-    height: 123rpx;
-}
-
-.my-page__card-name {
-    position: absolute;
-    z-index: 1;
-    font-size: 24rpx;
-    font-family: PingFangSC-Regular, sans-serif;
-    font-weight: normal;
-    line-height: 24rpx;
-    white-space: nowrap;
-}
-
-.my-page__card-name--gift {
-    left: 27rpx;
-    top: 31rpx;
-    color: rgba(208, 50, 1, 1);
-}
-
-.my-page__card-name--points {
-    left: 22rpx;
-    top: 25rpx;
-    color: rgba(1, 59, 208, 1);
-}
-
-.my-page__card-name--coupon {
-    left: 26rpx;
-    top: 25rpx;
-    color: rgba(54, 1, 208, 1);
-}
-
-.my-page__card-number {
-    position: absolute;
-    z-index: 1;
-    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
-    font-size: 35rpx;
-    font-weight: 500;
-    line-height: 24rpx;
-    white-space: nowrap;
-}
-
-.my-page__card-number--gift {
-    left: 28rpx;
-    top: 74rpx;
-    color: rgba(208, 50, 1, 1);
-}
-
-.my-page__card-number--points {
-    left: 27rpx;
-    top: 62rpx;
-    color: rgba(35, 1, 208, 1);
-}
-
-.my-page__card-number--coupon {
-    left: 27rpx;
-    top: 62rpx;
-    color: rgba(54, 1, 208, 1);
-}
-
-.my-page__asset-right {
-    position: absolute;
-    left: 355rpx;
-    top: 50rpx;
-    width: 311rpx;
-    height: 269rpx;
-}
-
-.my-page__asset-item {
-    position: relative;
-    width: 311rpx;
-    height: 123rpx;
-    overflow: hidden;
-}
-
-.my-page__asset-item + .my-page__asset-item {
-    margin-top: 23rpx;
-}
-
 .my-page__strategy {
     position: absolute;
     left: 26rpx;
-    top: calc(var(--page-safe-top) + 780rpx);
-    width: 698rpx;
-    height: 135rpx;
+    right: 26rpx;
+    top: calc(var(--page-safe-top) + 395rpx);
+    height: 184rpx;
+    border-radius: 24rpx;
+    box-shadow: 0 16rpx 38rpx rgba(31, 122, 244, 0.12);
+    width: auto;
 }
 
 .my-section {
     position: absolute;
     left: 26rpx;
-    width: 698rpx;
-    background: rgba(255, 255, 255, 1);
-    border-radius: 15rpx;
+    right: 26rpx;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 24rpx;
+    box-shadow: 0 12rpx 30rpx rgba(28, 45, 90, 0.06);
 }
 
 .my-section--online {
-    top: calc(var(--page-safe-top) + 941rpx);
+    top: calc(var(--page-safe-top) + 611rpx);
     min-height: 213rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
@@ -749,22 +651,22 @@ export default {
 }
 
 .my-section--pair-1 {
-    top: calc(var(--page-safe-top) + 1175rpx);
+    top: calc(var(--page-safe-top) + 845rpx);
 }
 
 .my-section--pair-2 {
-    top: calc(var(--page-safe-top) + 1409rpx);
+    top: calc(var(--page-safe-top) + 1079rpx);
 }
 
 .my-section--value {
-    top: calc(var(--page-safe-top) + 1643rpx);
+    top: calc(var(--page-safe-top) + 1313rpx);
     min-height: 237rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-section--feature {
-    top: calc(var(--page-safe-top) + 1902rpx);
+    top: calc(var(--page-safe-top) + 1572rpx);
     min-height: 322rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
@@ -918,6 +820,28 @@ export default {
 .my-value-icon {
     width: 42rpx;
     height: 42rpx;
+}
+
+.my-value-icon-wrap {
+    position: relative;
+    width: 42rpx;
+    height: 42rpx;
+}
+
+.my-value-badge {
+    position: absolute;
+    right: -18rpx;
+    top: -14rpx;
+    min-width: 28rpx;
+    height: 28rpx;
+    padding: 0 8rpx;
+    color: #ffffff;
+    font-size: 18rpx;
+    line-height: 28rpx;
+    text-align: center;
+    background: #ff2c3c;
+    border-radius: 18rpx;
+    box-sizing: border-box;
 }
 
 .my-value-text {

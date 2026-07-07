@@ -39,7 +39,7 @@
             <view
               class="row-center sms-btn sm br60"
               :style="{ color: mobile.length == 11 ? 'red' : 'gray' }"
-              @click="sendSmsFun()"
+              @tap="sendSmsFun()"
             >
               <view v-show="canSendSms">获取验证码</view>
               <u-count-down
@@ -120,7 +120,7 @@
       </u-checkbox>
       <button
         class="btn white bg-primary row-center"
-        @click="registerFun"
+        @tap="registerFun"
         :class="{ inactive }"
       >
         注册
@@ -194,7 +194,6 @@ export default {
     };
   },
   onLoad() {
-    console.log(this.appConfig);
   },
   computed: {
     ...mapGetters(["appConfig"]),
@@ -260,7 +259,11 @@ export default {
           setTimeout(() => {
             uni.navigateBack();
           }, 1000);
+        } else {
+          this.$toast({ title: res.msg || '注册失败' });
         }
+      }).catch((err) => {
+        this.$toast({ title: err?.msg || err?.message || '注册失败' });
       });
     },
 
@@ -284,7 +287,11 @@ export default {
           this.canSendSms = false;
           this.$toast(res.msg);
           if (this.$refs.countDown && this.$refs.countDown.start) this.$refs.countDown.start();
+        } else {
+          this.$toast({ title: res.msg || '验证码发送失败' });
         }
+      }).catch((err) => {
+        this.$toast({ title: err?.msg || err?.message || '验证码发送失败' });
       });
     },
   },
@@ -297,34 +304,36 @@ page {
 }
 .register-container {
   min-height: 100vh;
-  padding: 40px 20px 0;
+  padding: 80rpx 40rpx 0;
+  box-sizing: border-box;
   .input-container {
     .input {
       height: 100rpx;
       border-radius: 10rpx;
-      width: 670rpx;
+      width: 100%;
       border: $solid-border;
       margin-top: 30rpx;
+      box-sizing: border-box;
     }
     .input-item {
-      padding: 0 10px;
-      height: 44px;
-      margin-bottom: 15px;
-      border-bottom: 1px solid #d7d7d7;
+      padding: 0 20rpx;
+      height: 88rpx;
+      margin-bottom: 30rpx;
+      border-bottom: 1rpx solid #d7d7d7;
       .input-label {
-        width: 90px;
-        font-size: 15px;
+        width: 180rpx;
+        font-size: 30rpx;
         flex: none;
       }
       input {
         flex: 1;
-        font-size: 15px;
+        font-size: 30rpx;
       }
       .bd-primary {
-        height: 29px;
-        width: 88px;
+        height: 58rpx;
+        width: 176rpx;
         flex: none;
-        border: 1px solid $color-primary;
+        border: 1rpx solid $color-primary;
         cursor: pointer;
         .seconds {
           color: $color-primary;

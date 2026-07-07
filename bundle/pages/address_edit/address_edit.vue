@@ -226,6 +226,9 @@ export default {
             value.district_id = parseInt(district_id)
             value.is_default = is_default
             value.gender = this.gender
+            value.sex = this.gender === '女士' ? 2 : 1
+            value.contactGender = this.gender
+            value.receiverGender = this.gender
             value.id = addressId
             delete value.region
 
@@ -248,7 +251,7 @@ export default {
                     })
                     .catch((err) => {
                         return this.$toast({
-                            title: err?.msg || err?.message || '保存失败'
+                            title: (err && (err.msg || err.message)) || '保存失败'
                         })
                     })
             } else {
@@ -270,7 +273,7 @@ export default {
                     })
                     .catch((err) => {
                         return this.$toast({
-                            title: err?.msg || err?.message || '添加失败'
+                            title: (err && (err.msg || err.message)) || '添加失败'
                         })
                     })
             }
@@ -298,15 +301,33 @@ export default {
             this.addressObj.address = e.detail.value
         },
 
+        normalizeGender(value) {
+            const gender = String(value === undefined || value === null ? '' : value).trim()
+            if (['女士', '女', '2', 'female', 'FEMALE'].includes(gender)) return '女士'
+            if (['先生', '男士', '男', '1', 'male', 'MALE'].includes(gender)) return '先生'
+            return '先生'
+        },
+
         getOneAddressFun() {
             getOneAddress(this.addressId).then((res) => {
                 if (res.code == 1) {
-                    let { city, province, district } = res.data
-                    this.addressObj = Object.assign({}, this.addressObj, res.data, {
-                        id: res.data.id || res.data.addressId || this.addressId,
-                        is_default: res.data.is_default || res.data.isDefault ? 1 : 0
+                    const data = res.data || {}
+                    let { city, province, district } = data
+                    this.addressObj = Object.assign({}, this.addressObj, data, {
+                        id: data.id || data.addressId || this.addressId,
+                        is_default: data.is_default || data.isDefault ? 1 : 0
                     })
-                    this.gender = res.data.gender || '先生'
+                    this.gender = this.normalizeGender(
+                        data.sex ||
+                            data.contactGender ||
+                            data.receiverGender ||
+                            data.contact_gender ||
+                            data.receiver_gender ||
+                            data.genderText ||
+                            data.genderName ||
+                            data.gender ||
+                            data.title
+                    )
                     this.region = `${province} ${city} ${district}`
                 }
             })
@@ -330,10 +351,11 @@ export default {
                 district
             }).then((res) => {
                 if (res.code == 1) {
-                    if (res.data.province && res.data.city && res.data.district) {
-                        this.addressObj.province_id = res.data.province
-                        this.addressObj.city_id = res.data.city
-                        this.addressObj.district_id = res.data.district
+                    const data = res.data || {}
+                    if (data.province && data.city && data.district) {
+                        this.addressObj.province_id = data.province
+                        this.addressObj.city_id = data.city
+                        this.addressObj.district_id = data.district
                         this.region = `${province} ${city} ${district}`
                     }
                     this.addressObj.contact = contact

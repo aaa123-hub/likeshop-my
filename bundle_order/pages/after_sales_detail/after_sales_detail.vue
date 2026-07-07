@@ -19,7 +19,7 @@
 			<!-- <view class="negotiation-record row-between bg-white mt20">
 		<view class="nr">协商记录</view>
 		<view class="arrow">
-			<image src="/images/arrow_right.png" />
+			<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" />
 		</view>
 	</view> -->
 			<view class="return-address-contain row bg-white mt20" v-show="!(lists.refund_type == 0)">
@@ -31,7 +31,7 @@
 			<view class="goods-container bg-white mt20">
 				<!-- <view class="goods-header row">
 			<view class="store-img mr10">
-				<image src="/images/icon_shop.png" />
+				<image src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_shop.png" />
 			</view>
 			<view class="store-name nr bold">
 				{{lists.shop.name}}
@@ -40,15 +40,15 @@
 				<view class="goods-item row">
 					<view class="goods-img">
 						<custom-image width="100%" height="100%" radius="10rpx" lazy-load
-							:src="lists.order_goods && lists.order_goods.image" />
+							:src="detailGoods.image" />
 					</view>
 					<view class="goods-info">
-						<view class="two-txt-cut nr">{{lists.order_goods && lists.order_goods.goods_name}}</view>
+						<view class="two-txt-cut nr">{{detailGoods.goods_name}}</view>
 						<view class="row-between mt20">
 							<!-- <view class="md">￥999.00</view> -->
-							<price-format :price="lists.order_goods && lists.order_goods.goods_price" :firstSize="30"
+							<price-format :price="detailGoods.goods_price" :firstSize="30"
 								:secondSize="30" :showSubscript="true" :subscriptSize="30" color="#101010" />
-							<view class="nr">x{{lists.order_goods && lists.order_goods.goods_num}}</view>
+							<view class="nr">x{{detailGoods.goods_num}}</view>
 						</view>
 					</view>
 				</view>
@@ -58,9 +58,9 @@
 					<view class="return-title">退款方式：</view>
 					<view class="return-explain">{{lists.refund_type == 0 ? '仅退款' : '退款退货'}}</view>
 				</view>
-				<view class="return-goods-row row sm mt20">
+				<view class="return-goods-row row sm mt20" v-if="refundReason">
 					<view class="return-title">退款原因：</view>
-					<view class="return-explain">{{lists.refund_reason}}</view>
+					<view class="return-explain">{{refundReason}}</view>
 				</view>
 				<view class="return-goods-row row sm mt20">
 					<view class="return-title">退款金额：</view>
@@ -107,7 +107,7 @@
 <script>
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
 import UModal from '@/bundle_order/components/uview-ui/components/u-modal/u-modal.vue'
-import CustomImage from '@/bundle_shared_components/components/custom-image/custom-image.vue'
+import CustomImage from '@/components/custom-image/custom-image.vue'
 	// +----------------------------------------------------------------------
 	// | LikeShop100%开源免费商用电商系统
 	// +----------------------------------------------------------------------
@@ -139,6 +139,7 @@ trottle,
 				goods: {},
 				reason: [],
 				lists: {},
+				refundReason: "",
 				copyContent: "",
 				confirmDialog: false
 			};
@@ -157,10 +158,12 @@ trottle,
 		onLoad: function(options) {
 			let {
 				afterSaleId,
-				order_id
+				order_id,
+				refundReason
 			} = options;
 			this.afterSaleId = afterSaleId;
 			this.orderId = order_id;
+			this.refundReason = decodeURIComponent(refundReason || "");
 		},
 
 
@@ -194,13 +197,13 @@ trottle,
 				let {
 					lists
 				} = this;
-				if (!lists.order_goods || !lists.order_goods.item_id) {
+				if (!this.detailGoods.item_id) {
 					this.$toast({ title: '缺少售后商品信息' })
 					return
 				}
 				uni.navigateTo({
-					url: '/bundle_order/pages/apply_refund/apply_refund?order_id=' + this.orderId + '&afterSaleId=' +
-						this.afterSaleId + '&item_id=' + lists.order_goods.item_id
+					url: '/bundle_order/pages/apply_refund/apply_refund?order_id=' + (this.orderId || lists.order_id || lists.order_sn) + '&afterSaleId=' +
+						this.afterSaleId + '&item_id=' + this.detailGoods.item_id
 				});
 			},
 
@@ -239,6 +242,12 @@ trottle,
 				});
 			}
 
+		},
+		computed: {
+			detailGoods() {
+				const goods = this.lists.order_goods || this.lists.goods_lists || {}
+				return Array.isArray(goods) ? goods[0] || {} : goods
+			}
 		}
 	};
 </script>
@@ -246,12 +255,15 @@ trottle,
 	/* pages/after_sales_detail/after_sales_detail.wxss */
 
 	.after-sales-detail {
+		min-height: 100vh;
+		background: #f7f8fa;
 		padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 
 		.after-sales-header {
 			.after-sales-status {
-				padding: 48rpx 30rpx;
-				background-color: #555555;
+				padding: 54rpx 30rpx 64rpx;
+				background: linear-gradient(135deg, #ff5864 0%, #ff8a55 100%);
+				font-weight: 600;
 			}
 
 			.after-sales-explain {
@@ -269,29 +281,53 @@ trottle,
 		}
 
 		.return-goods-container {
-			padding: 20rpx 24rpx 55rpx;
+			margin: 20rpx 24rpx 0;
+			padding: 26rpx 24rpx 34rpx;
+			border-radius: 22rpx;
+			box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
 
 			.return-goods-row {
 				line-height: 40rpx;
 				font-weight: 400;
+
+				.return-title {
+					width: 150rpx;
+					color: #888;
+					flex: none;
+				}
+
+				.return-explain {
+					flex: 1;
+					color: #333;
+					word-break: break-all;
+				}
 			}
 		}
 
 		.btn-group {
-			padding: 0rpx 24rpx;
+			padding: 0rpx 24rpx env(safe-area-inset-bottom);
 			position: fixed;
 			left: 0;
 			right: 0;
 			bottom: 0;
-			height: 100rpx;
+			height: calc(104rpx + env(safe-area-inset-bottom));
+			box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.04);
 
 			.btn {
-				padding: 10rpx 34rpx;
-				border: 1px solid #999999;
+				height: 58rpx;
+				padding: 0 34rpx;
+				border: 1px solid #dddddd;
+				color: #444;
+				background: #fff;
 			}
 		}
 
 		.goods-container {
+			margin: -24rpx 24rpx 0;
+			border-radius: 22rpx;
+			overflow: hidden;
+			box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
+
 			.goods-header {
 				padding: 20rpx 24rpx;
 
@@ -325,7 +361,10 @@ trottle,
 	}
 
 	.return-address-contain {
-		padding: 20rpx 24rpx 28rpx 30rpx;
+		margin: 20rpx 24rpx 0;
+		padding: 24rpx;
+		border-radius: 22rpx;
+		box-shadow: 0 12rpx 34rpx rgba(35, 37, 45, 0.06);
 
 		.address {
 			flex: 1;
@@ -340,12 +379,12 @@ trottle,
 
 		.copy-btn {
 			flex: 0 0 13%;
-			background-color: #F4F4F4;
-			color: #555555;
+			background-color: #fff3f4;
+			color: #ff2c3c;
 			align-self: flex-start;
-			padding: 3rpx 16rpx;
+			padding: 6rpx 16rpx;
 			margin-left: 12rpx;
-			border-radius: 4rpx;
+			border-radius: 999rpx;
 		}
 	}
 

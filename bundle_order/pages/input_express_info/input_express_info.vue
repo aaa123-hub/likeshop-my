@@ -107,7 +107,6 @@ export default {
       let {
         fileList
       } = this;
-      console.log(value);
       if (!value.express) return this.$toast({
         title: '请填写物流公司名称'
       });
@@ -119,7 +118,7 @@ export default {
         express_name: value.express,
         invoice_no: value.number,
         express_remark: value.remark,
-        express_image: fileList.length <= 0 ? '' : fileList[0].url
+        express_image: fileList.length <= 0 ? '' : (fileList[0].url || fileList[0].base_url)
       };
       this.inputExpressInfoFun(data);
     },
@@ -138,7 +137,7 @@ export default {
     },
 
     handleImage(index) {
-        this.fileList.splice(index)
+        this.fileList.splice(index, 1)
     }
 
   }

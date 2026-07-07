@@ -2,14 +2,8 @@
     <view class="user-profile-container mt10">
         <navbar title="个人资料"></navbar>
         <view class="user-profile">
-            <view class="user-avatar-box column-center">
-                <button
-                    class="column column-center"
-                    hover-class="none"
-                    open-type="chooseAvatar"
-                    @chooseavatar="onChooseAvatar"
-                    @click="onChooseAvatar"
-                >
+            <view class="user-avatar-box column-center" @tap="chooseAvatarImage">
+                <view class="column column-center">
                     <image
                         class="user-avatar"
                         :src="
@@ -20,18 +14,18 @@
                     >
                     </image>
                     <view class="muted xs">点击修改头像</view>
-                </button>
+                </view>
             </view>
             <view class="row-info row bdb-line">
                 <view class="label md">ID</view>
                 <view class="md row" style="flex: 1">{{ userInfo.sn }}</view>
             </view>
-            <view class="row-info row bdb-line" @click="changeName">
+            <view class="row-info row bdb-line" @tap="changeName">
                 <view class="label md">昵称</view>
                 <view class="md row" style="flex: 1">{{ userInfo.nickname }}</view>
                 <u-icon name="arrow-right" />
             </view>
-            <view class="row-info row bdb-line" @click="changeSex()">
+            <view class="row-info row bdb-line" @tap="changeSex()">
                 <view class="label md">性别</view>
                 <view class="md row" :class="userInfo.sex == 0 ? 'muted' : ''" style="flex: 1">
                     {{ userInfo.sex == 0 ? '未设置' : userInfo.sex == 1 ? '男' : '女' }}
@@ -44,7 +38,7 @@
                     {{ userInfo.mobile ? userInfo.mobile : '未绑定' }}
                 </view>
                 <!-- #ifdef H5 || APP-PLUS -->
-                <view class="bd-btn br60 row-center" @click="showModifyMobile">
+                <view class="bd-btn br60 row-center" @tap="showModifyMobile">
                     {{ userInfo.mobile ? '更换手机号' : '绑定手机号' }}
                 </view>
                 <!-- #endif -->
@@ -61,28 +55,28 @@
             </view>
             <view class="row-info row bdb-line">
                 <view class="label md">注册时间 </view>
-                <view class="md row" style="flex: 1">{{ userInfo.create_time }}</view>
+                <view class="md row" style="flex: 1">{{ userInfo.create_time || '暂未记录' }}</view>
             </view>
         </view>
         <u-popup type="center" closeable v-model="showMobile" mode="center" border-radius="14">
             <view class="modify-container column-center bg-white" v-show="showMobile">
                 <view class="title xl">{{ userInfo.mobile ? '更换手机号' : '绑定手机号' }}</view>
                 <view class="modify-row row" v-if="userInfo.mobile">
-                    <view style="width: 56px; border-right: 1px solid #e5e5e5">+86</view>
-                    <view style="margin-left: 15px">{{ userInfo.mobile }}</view>
-                </view>
-                <view class="modify-row row" v-else>
-                    <view style="width: 71px">手机号</view>
-                    <input v-model="new_mobile" placeholder="请输入绑定手机号" />
+                    <view style="width: 112rpx; border-right: 1rpx solid #e5e5e5">+86</view>
+                    <view style="margin-left: 30rpx">{{ userInfo.mobile }}</view>
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">验证码</view>
+                    <view style="width: 142rpx">新手机号</view>
+                    <input v-model="new_mobile" placeholder="请输入新的手机号" type="number" maxlength="11" />
+                </view>
+                <view class="modify-row row">
+                    <view style="width: 142rpx">验证码</view>
                     <input
                         v-model="smsCode"
-                        style="padding-left: 5px; width: 130px"
+                        style="padding-left: 10rpx; width: 260rpx"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -90,19 +84,11 @@
                             unique-key="page-b"
                         >
                         </view>
-                        <view class="xs">{{ tips }}</view>
+                        <view class="xs">{{ tips || '发送验证码' }}</view>
                     </view>
                 </view>
-                <view class="modify-row row" v-if="userInfo.mobile">
-                    <view style="width: 71px">新手机号</view>
-                    <input v-model="new_mobile" placeholder="请输入新的手机号码" />
-                </view>
-                <view class="primary mt10"
-                    >{{
-                        userInfo.mobile ? '更改' : '绑定'
-                    }}手机号码成功后，您的账号将会变更为该设置号码</view
-                >
-                <view class="btn bg-primary white row-center" @click="$changeUserMobile">确定</view>
+                <view class="primary mt10">手机号更换成功后，将用于账号登录和通知。</view>
+                <view class="btn bg-primary white row-center" @tap="$changeUserMobile">确定</view>
             </view>
         </u-popup>
 
@@ -119,27 +105,25 @@
                 style="width: 70vw; padding: 24rpx"
             >
                 <view class="title xl">修改用户名</view>
-                <form @submit="changeNameConfirm">
-                    <view label="新昵称" :labelWidth="120">
-                        <input
-                            style="height: 60rpx"
-                            class="nr"
-                            :value="userInfo.nickname"
-                            name="nickname"
-                            type="nickname"
-                            placeholder="请输入新的昵称"
-                        />
-                    </view>
-                    <button class="btn bg-primary white row-center" form-type="submit">确定</button>
-                </form>
+                <view class="nickname-field">
+                    <input
+                        v-model="newNickname"
+                        class="nickname-input nr"
+                        type="nickname"
+                        maxlength="20"
+                        placeholder="请输入新的昵称"
+                        placeholder-class="nickname-placeholder"
+                    />
+                </view>
+                <view class="btn bg-primary white row-center" @tap="changeNameConfirm">确定</view>
             </view>
         </u-popup>
         <u-popup v-model="showPwd" closeable mode="center" border-radius="14">
             <view class="modify-container column-center bg-white" v-show="showPwd">
                 <view class="title xl">设置密码</view>
                 <view class="modify-row row">
-                    <view style="width: 56px; border-right: 1px solid #e5e5e5">+86</view>
-                    <view style="margin-left: 15px">{{ userInfo.mobile }}</view>
+                    <view style="width: 112rpx; border-right: 1rpx solid #e5e5e5">+86</view>
+                    <view style="margin-left: 30rpx">{{ userInfo.mobile }}</view>
                 </view>
                 <view class="modify-row row">
                     <view style="width: 142rpx">验证码</view>
@@ -148,7 +132,7 @@
                         style="padding-left: 10rpx; width: 260rpx"
                         placeholder="请输入验证码"
                     />
-                    <view class="send-code-btn nr row-center" @click="$sendSms">
+                    <view class="send-code-btn nr row-center" @tap="$sendSms">
                         <view
                             :keep-running="true"
                             ref="uCode"
@@ -160,14 +144,14 @@
                     </view>
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">设置密码</view>
+                    <view style="width: 142rpx">设置密码</view>
                     <input type="password" v-model="pwd" placeholder="请输入新密码" />
                 </view>
                 <view class="modify-row row">
-                    <view style="width: 71px">确认密码</view>
+                    <view style="width: 142rpx">确认密码</view>
                     <input type="password" v-model="comfirmPwd" placeholder="再次输入新密码确认" />
                 </view>
-                <view class="btn bg-primary white row-center" @click="$forgetPwd">确定</view>
+                <view class="btn bg-primary white row-center" @tap="$forgetPwd">确定</view>
             </view>
         </u-popup>
         <u-picker
@@ -234,6 +218,18 @@ export default {
         codeChange(text) {
             this.tips = text
         },
+        chooseAvatarImage() {
+            this.fieldType = FieldType.AVATAR
+            uni.chooseImage({
+                count: 1,
+                sizeType: ['compressed'],
+                sourceType: ['album', 'camera'],
+                success: (res) => {
+                    const path = res.tempFilePaths && res.tempFilePaths[0]
+                    if (path) this.uploadImage(path)
+                }
+            })
+        },
         onChooseAvatar(e) {
             this.fieldType = FieldType.AVATAR
             // #ifndef MP-WEIXIN
@@ -253,16 +249,17 @@ export default {
             })
             // #endif
             // #ifdef MP-WEIXIN
-            if (e.detail.avatarUrl) {
-                console.log(e.detail.avatarUrl)
+            if (e && e.detail && e.detail.avatarUrl) {
                 this.uploadImage(e.detail.avatarUrl)
+            } else {
+                this.chooseAvatarImage()
             }
             // #endif
         },
         // 修改用户昵称
-        async changeNameConfirm(e) {
+        async changeNameConfirm() {
             this.fieldType = FieldType.NICKNAME
-            this.newNickname = e.detail.value.nickname
+            this.newNickname = (this.newNickname || '').trim()
             if (!this.newNickname)
                 return this.$toast({
                     title: '请输入新的昵称'
@@ -304,16 +301,18 @@ export default {
                 url: '/bundle_finance/pages/set_pay_pwd/set_pay_pwd'
             })
         },
-        // 发送短信
-        $sendSms(type) {
+        $sendSms() {
             if (!this.canSendSms) return
+            const mobile = this.showMobile ? this.new_mobile : this.userInfo.mobile
+            if (!/^1\d{10}$/.test(String(mobile || ''))) return this.$toast({ title: '请输入正确的手机号' })
             sendSms({
-                mobile: this.userInfo.mobile || this.new_mobile,
-                key: this.smsType
+                mobile,
+                key: this.smsType,
+                scene: this.smsType
             }).then((res) => {
                 if (res.code == 1) {
                     this.$toast({
-                        title: res.msg
+                        title: res.msg || '验证码已发送'
                     })
                     if (this.$refs.uCode && this.$refs.uCode.start) this.$refs.uCode.start()
                 }
@@ -334,30 +333,28 @@ export default {
             this.smsType = this.userInfo.mobile ? SMSType.CHANGE_MOBILE : SMSType.BIND
         },
         $changeUserMobile() {
-            if (!this.smsCode) {
-                this.$toast({
-                    title: '请输入验证码'
-                })
-                return
-            }
-            if (!this.new_mobile) {
-                this.$toast({
-                    title: '请输入新的手机号码'
-                })
-                return
-            }
+            if (!/^1\d{10}$/.test(String(this.new_mobile || ''))) return this.$toast({ title: '请输入正确的新手机号' })
+            if (!this.smsCode) return this.$toast({ title: '请输入验证码' })
             changeUserMobile({
                 mobile: this.userInfo.mobile,
+                oldMobile: this.userInfo.mobile,
                 new_mobile: this.new_mobile,
+                newMobile: this.new_mobile,
+                phone: this.new_mobile,
                 code: this.smsCode,
-                action: this.userInfo.mobile ? 'change' : ''
+                smsCode: this.smsCode,
+                verifyCode: this.smsCode,
+                scene: this.smsType,
+                action: this.userInfo.mobile ? 'change' : 'bind'
             }).then((res) => {
                 if (res.code == 1) {
                     this.showMobile = false
                     this.$toast({
-                        title: res.msg
+                        title: this.userInfo.mobile ? '手机号更换成功' : '手机号绑定成功'
                     })
                     this.$getUserInfo()
+                } else {
+                    this.$toast({ title: res.msg || '手机号更换失败，请检查验证码' })
                 }
             })
         },
@@ -381,7 +378,6 @@ export default {
         },
         // end
         timeChange(timestamp) {
-            console.log(timestamp, 'timestamp')
         },
         onConfirm(value) {
             this.$setUserInfo(value[0] + 1)
@@ -454,16 +450,21 @@ export default {
         // 修改昵称
         changeName() {
             this.fieldType = FieldType.NICKNAME
-            this.newNickname = ''
+            this.newNickname = this.userInfo.nickname || ''
             this.showNickName = true
         },
         // end
 
         async getPhoneNumber(e) {
             const { encryptedData, iv } = e.detail
-            let data = {
+                let data = {
                 code: this.code,
+                smsCode: this.code,
+                jsCode: this.code,
+                loginCode: this.code,
+                wxCode: this.code,
                 encrypted_data: encryptedData,
+                encryptedData,
                 iv
             }
             this.fieldType = FieldType.MOBILE
@@ -475,9 +476,11 @@ export default {
             changeUserMobile(data).then((res) => {
                 if (res.code == 1) {
                     this.$toast({
-                        title: res.msg
+                        title: '手机号绑定成功'
                     })
                     this.$getUserInfo()
+                } else {
+                    this.$toast({ title: res.msg || '手机号绑定失败，请重新授权' })
                 }
                 // #ifdef MP-WEIXIN
                 getWxCode().then((res) => {
@@ -513,7 +516,6 @@ export default {
         // #endif
         // 监听从裁剪页发布的事件，获得裁剪结果
         uni.$on('uAvatarCropper', (path) => {
-            console.log(path)
             this.uploadImage(path)
         })
         this.getUserProfile = trottle(this.getUserProfile, 500, this)
@@ -618,6 +620,26 @@ export default {
             padding: 0 180rpx;
             border-radius: 20rpx;
             margin-top: 60rpx;
+        }
+
+        .nickname-field {
+            width: 100%;
+            padding: 18rpx 22rpx;
+            box-sizing: border-box;
+            border: 1rpx solid #e5e5e5;
+            border-radius: 16rpx;
+            background: #f7f8fa;
+        }
+
+        .nickname-input {
+            width: 100%;
+            height: 64rpx;
+            line-height: 64rpx;
+            color: #222222;
+        }
+
+        .nickname-placeholder {
+            color: #999999;
         }
     }
 }

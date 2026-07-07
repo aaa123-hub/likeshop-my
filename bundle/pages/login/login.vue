@@ -59,7 +59,6 @@
                     :class="{ 'is-loading': loginLoading }"
                     hover-class="company-login__button--hover"
                     :loading="loginLoading"
-                    @click="mnpLoginFun"
                     @tap="mnpLoginFun"
                 >
                     一键登录

@@ -29,7 +29,7 @@
 			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<!-- #ifdef H5 -->
-			<img style="width: 640rpx;" :src="poster" />
+			<image style="width: 640rpx;" mode="widthFix" :src="poster"></image>
 			<!-- #endif -->
 			<button class="row row-center save-btn" size="lg" @tap="savePoster">
 				<!-- #ifndef H5 -->
@@ -154,7 +154,7 @@ import UPopup from '@/activity/components/uview-ui/components/u-popup/u-popup.vu
 					this.mnpQrcode = String(qrCode).replaceAll("\r\n", "")
 
 					if(this.type == 2) {
-						this.bargainShare = res.data.extra
+						this.bargainShare = res && res.data ? res.data.extra : null
 					}
 				}
 				this.enablePoster = true

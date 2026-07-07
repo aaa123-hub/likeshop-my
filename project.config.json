@@ -1,5 +1,6 @@
 {
   "description": "项目配置文件",
+  "miniprogramRoot": "unpackage/dist/dev/mp-weixin/",
   "packOptions": {
     "ignore": [
       {
@@ -53,7 +54,7 @@
     "uglifyFileName": false,
     "checkInvalidKey": true,
     "checkSiteMap": true,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "compileHotReLoad": false,
     "useMultiFrameRuntime": false,
     "useApiHook": false,
@@ -78,7 +79,9 @@
     "useCompilerPlugins": false,
     "condition": false,
     "swc": false,
-    "disableSWC": true
+    "disableSWC": true,
+    "ignoreUploadUnusedFiles": true,
+    "bigPackageSizeSupport": true
   },
   "compileType": "miniprogram",
   "libVersion": "2.14.4",

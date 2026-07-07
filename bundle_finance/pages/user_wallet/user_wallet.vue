@@ -1,7 +1,7 @@
 <template>
 <view class="user-wallet">
     <navbar
-        title="法币余额"
+        title="余额"
         :background="{ background: '#f7f8fa' }"
         :border-bottom="false"
     ></navbar>
@@ -9,7 +9,7 @@
         <view class="wallet-card">
             <view class="wallet-card__head">
                 <view>
-                    <view class="wallet-card__label">我的余额(HK$）</view>
+                    <view class="wallet-card__label">我的余额（元）</view>
                     <view class="wallet-card__amount">
                         <text>¥</text>{{ formatMoney(wallet.user_money) }}
                     </view>
@@ -19,19 +19,18 @@
             <view class="wallet-card__foot">
                 <view class="wallet-card__desc">
                     可提现金额
-                    <text class="wallet-card__question">?</text>
+                    <text class="wallet-card__question" @tap.stop="showWithdrawableTip">?</text>
                 </view>
-                <view class="wallet-card__value">¥{{ formatMoney(wallet.user_money) }}</view>
+                <view class="wallet-card__value">¥{{ formatMoney(withdrawableAmount) }}</view>
             </view>
         </view>
-        <navigator
+        <view
             v-if="wallet.open_withdraw !== 0"
             class="wallet-btn"
-            hover-class="none"
-            url="/bundle_user/pages/user_withdraw/user_withdraw"
+            @tap="handleWithdrawTap"
         >
-            提现
-        </navigator>
+            微信提现到余额
+        </view>
         <view class="wallet-records-card">
             <view class="wallet-tabs">
                 <view
@@ -102,7 +101,7 @@ import Navbar from '@/components/navbar/navbar.vue'
 // +----------------------------------------------------------------------
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
-import { getWallet, getAccountLog, getWithdrawRecords } from '@/api/user';
+import { getWallet, getAccountLog, getWithdrawRecords, applyWithdraw } from '@/api/user';
 export default {
   data() {
     return {
@@ -185,7 +184,8 @@ export default {
         page_no: 1
       }).then((res) => {
         if (res.code == 1) {
-          this.billList = res.data.lists || res.data || []
+          const data = res.data || {}
+          this.billList = Array.isArray(data.lists) ? data.lists : (Array.isArray(data) ? data : [])
         }
       })
     },
@@ -195,8 +195,54 @@ export default {
         page_no: 1
       }).then((res) => {
         if (res.code == 1) {
-          this.withdrawList = res.data.lists || res.data || []
+          const data = res.data || {}
+          this.withdrawList = Array.isArray(data.lists) ? data.lists : (Array.isArray(data) ? data : [])
         }
+      })
+    },
+    handleWithdrawTap() {
+      uni.showModal({
+        title: '微信提现到余额',
+        placeholderText: '请输入提现金额',
+        editable: true,
+        confirmText: '确认提现',
+        success: async ({ confirm, content }) => {
+          if (!confirm) return
+          const amount = Number(content || 0)
+          if (!amount || amount <= 0) {
+            uni.showToast({ title: '请输入正确金额', icon: 'none' })
+            return
+          }
+          uni.showLoading({ title: '正在提交', mask: true })
+          try {
+            const withdrawNo = `wechat-to-balance-${Date.now()}`
+            const res = await applyWithdraw({
+              amount,
+              accountType: 'BALANCE',
+              accountNo: this.wallet.accountNo || this.wallet.account_no || this.wallet.userNo || this.wallet.user_no || 'BALANCE',
+              accountName: this.wallet.accountName || this.wallet.account_name || this.wallet.nickname || '小程序余额',
+              idempotentKey: withdrawNo,
+              remark: '微信提现到小程序余额'
+            })
+            if (res.code != 1) throw new Error(res.msg || '提现申请失败')
+            uni.showToast({ title: '已提交入账申请', icon: 'none' })
+            this.activeTab = 1
+            this.getWalletFun()
+            this.getWithdrawListFun()
+          } catch (error) {
+            uni.showToast({ title: error.message || '提现申请失败', icon: 'none' })
+          } finally {
+            uni.hideLoading()
+          }
+        }
+      })
+    },
+    showWithdrawableTip() {
+      uni.showModal({
+        title: '可提现金额说明',
+        content: '这里的提现表示将微信侧资金转入当前小程序“我的余额”，不受当前页可提现金额限制，实际处理结果以后端审核为准。',
+        showCancel: false,
+        confirmText: '知道了'
       })
     }
 
@@ -209,6 +255,9 @@ export default {
     this.getWithdrawListFun()
   },
   computed: {
+    withdrawableAmount() {
+      return Number(this.wallet.withdrawable_amount ?? this.wallet.able_withdraw ?? this.wallet.withdrawableAmount ?? this.wallet.user_money ?? 0)
+    },
     activeRecords() {
       return this.activeTab === 0 ? this.billRecords : this.withdrawRecords
     },

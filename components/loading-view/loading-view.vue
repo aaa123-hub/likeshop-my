@@ -1,6 +1,6 @@
 <template>
 <view :class="'loading ' + ( type == 'flex' ? 'flex' : '' )" :style="{backgroundColor, }">
-    <loading :color="color" :size="size"></loading>
+    <view class="loading-spinner" :style="spinnerStyle"></view>
 </view>
 </template>
 
@@ -28,6 +28,15 @@ export default {
 		default: 40
 	}
   },
+  computed: {
+    spinnerStyle() {
+      return {
+        width: this.size + 'rpx',
+        height: this.size + 'rpx',
+        borderTopColor: this.color || '#666'
+      }
+    }
+  },
   methods: {}
 };
 </script>
@@ -48,5 +57,17 @@ export default {
     position: static;
     flex: 1;
     width: 100%;
+}
+
+.loading-spinner {
+    border: 4rpx solid #e5e5e5;
+    border-top-color: #666;
+    border-radius: 50%;
+    animation: loading-rotate .8s linear infinite;
+}
+
+@keyframes loading-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 </style>

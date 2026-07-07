@@ -39,10 +39,12 @@ export function getUserProfile() {
 	return new Promise((resolve, reject) => {
 		uni.getUserProfile({
 			desc: '获取用户信息，完善用户资料 ',
-			success: (res) => {
+				success: (res) => {
 				resolve(res);
 			},
-			fail(res) {}
+			fail(res) {
+				reject(res)
+			}
 
 		})
 	})
@@ -90,16 +92,17 @@ async function _wxMnpLogin() {
 export const toLogin = trottle(_toLogin, 1000)
 // 去登录
 function _toLogin() {
-	uni.navigateTo({
-		url: '/bundle/pages/login/login'
-	});
-	//#ifdef  H5
+	const loginUrl = '/bundle/pages/login/login'
 	const pathLogin = 'bundle/pages/login/login'
 	let path = currentPage().route
-	if (path != pathLogin) {
-		uni.navigateTo({
-			url: '/bundle/pages/login/login'
-		})
-	}
+	if (path == pathLogin) return
+	//#ifdef  H5
+	uni.navigateTo({
+		url: loginUrl
+	})
+	return
 	// #endif
+	uni.navigateTo({
+		url: loginUrl
+	});
 }

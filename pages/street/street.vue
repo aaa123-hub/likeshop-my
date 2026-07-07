@@ -21,11 +21,10 @@
             <view class="street-service-grid">
                 <view
                     v-for="(item, index) in streetCategories"
-                    :key="item.key || item.name"
+                    :key="index"
                     class="street-service-item"
                     :data-index="index"
                     @tap.stop="openStreetCategory"
-                    @click.stop="openStreetCategory"
                 >
                     <view class="street-service-item__icon-shell">
                         <view v-if="isEmptyImage(item.image)" class="street-service-item__image image-placeholder">无</view>
@@ -38,11 +37,10 @@
             <view class="street-merchant-list">
                 <view
                     v-for="(item, index) in streetMerchants"
-                    :key="item.shopId || index"
+                    :key="index"
                     class="street-merchant-card"
                     :data-index="index"
                     @tap.stop="openStreetMerchant"
-                    @click.stop="openStreetMerchant"
                 >
                     <view class="street-merchant-card__image-shell">
                         <view v-if="isEmptyImage(item.image)" class="street-merchant-card__image image-placeholder">无</view>
@@ -78,8 +76,9 @@ import { getStreetIndex } from '@/api/store'
 import { setTabbar, tabbarList } from '@/utils/tools'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 
-const streetAsset = (name) => `https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/${name}`
-const merchantThumb = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/merchant_thumb.png'
+const STREET_ASSET_BASE = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/'
+const streetAsset = (name) => `${STREET_ASSET_BASE}${name}`
+const merchantThumb = ''
 const emptyServiceNames = ['服装', '本地生活', '粮油饮品']
 
 export default {
@@ -103,9 +102,9 @@ export default {
                 { name: '粮油饮品', image: '', url: '/business/pages/business_pages/street_goods' }
             ],
             streetMerchants: [
-                { name: '广州市越秀区斌记面家', score: '5.0', meta: '营业中 · 地址待补充', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
-                { name: '本地生活精选店', score: '5.0', meta: '营业中 · 地址待补充', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
-                { name: '社区优选服务中心', score: '5.0', meta: '营业中 · 地址待补充', image: merchantThumb, url: '/business/pages/business_pages/store_detail' }
+                { name: '广州市越秀区斌记面家', score: '5.0', meta: '营业中 · 到店体验', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
+                { name: '本地生活精选店', score: '5.0', meta: '营业中 · 本地生活', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
+                { name: '社区优选服务中心', score: '5.0', meta: '营业中 · 社区服务', image: merchantThumb, url: '/business/pages/business_pages/store_detail' }
             ]
         }
     },
@@ -223,8 +222,8 @@ export default {
         openStreetMerchant(event) {
             const index = Number(event && event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.index)
             const item = this.streetMerchants[index]
-            if (!item || !item.shopId) {
-                uni.showToast({ title: '门店信息暂不可打开', icon: 'none' })
+            if (!item) return
+            if (!item.shopId && !item.url) {
                 return
             }
             this.goPage(item.url)

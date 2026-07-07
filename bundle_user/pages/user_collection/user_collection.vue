@@ -178,7 +178,7 @@ export default {
         }
         .del-btn {
             height: 100%;
-            width: 65px;
+            width: 130rpx;
         }
         .store-list {
             height:  calc(100vh - 100rpx);

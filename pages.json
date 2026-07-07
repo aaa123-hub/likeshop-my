@@ -157,7 +157,8 @@
 				{
 					"path": "pages/user_withdraw/user_withdraw",
 					"style": {
-						"navigationBarTitleText": "提现"
+						"navigationBarTitleText": "提现",
+						"navigationStyle": "custom"
 					}
 				},
 				{
@@ -491,7 +492,7 @@
 				{
 					"path": "pages/business_pages/fiat_balance_2",
 					"style": {
-						"navigationBarTitleText": "法币余额2",
+						"navigationBarTitleText": "人民币余额2",
 						"navigationStyle": "custom"
 					}
 				},
@@ -540,7 +541,7 @@
 				{
 					"path": "pages/business_pages/fiat_balance_3",
 					"style": {
-						"navigationBarTitleText": "法币余额3",
+						"navigationBarTitleText": "人民币余额3",
 						"navigationStyle": "custom"
 					}
 				},
@@ -590,7 +591,8 @@
 					"path": "pages/business_pages/recent_visits",
 					"style": {
 						"navigationBarTitleText": "最近访问",
-						"navigationStyle": "custom"
+						"navigationStyle": "custom",
+						"enablePullDownRefresh": true
 					}
 				},
 				{
@@ -615,6 +617,13 @@
 					}
 				},
 				{
+					"path": "pages/business_pages/mall_guide",
+					"style": {
+						"navigationBarTitleText": "商城使用引导",
+						"navigationStyle": "custom"
+					}
+				},
+				{
 					"path": "pages/business_pages/my_service",
 					"style": {
 						"navigationBarTitleText": "我的-客服",
@@ -625,6 +634,13 @@
 					"path": "pages/business_pages/user_kyc",
 					"style": {
 						"navigationBarTitleText": "用户KYC",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "pages/business_pages/promoter_apply",
+					"style": {
+						"navigationBarTitleText": "成为推广者",
 						"navigationStyle": "custom"
 					}
 				},
@@ -787,24 +803,25 @@
 		"autoscan": false,
 		"custom": {
 			"^u-(icon|modal|empty)$": "@/components/uview-ui/components/u-$1/u-$1.vue",
-			"^loading-footer$": "@/bundle_shared_components/components/loading-footer/loading-footer.vue",
-			"^loading-view$": "@/bundle_shared_components/components/loading-view/loading-view.vue",
-			"^goods-list$": "@/bundle_shared_components/components/goods-list/goods-list.vue",
-			"^goods-like$": "@/bundle_shared_components/components/goods-like/goods-like.vue",
+			"^price-format$": "@/components/price-format/price-format.vue",
+			"^loading-footer$": "@/components/loading-footer/loading-footer.vue",
+			"^loading-view$": "@/components/loading-view/loading-view.vue",
+			"^goods-list$": "@/components/goods-list/goods-list.vue",
+			"^goods-like$": "@/components/goods-like/goods-like.vue",
 			"^order-goods$": "@/bundle_shared_components/components/order-goods/order-goods.vue",
 			"^order-dialog$": "@/bundle_shared_components/components/order-dialog/order-dialog.vue",
 			"^coupon-list$": "@/bundle_shared_components/components/coupon-list/coupon-list.vue",
 			"^coupon-obj$": "@/bundle_shared_components/components/coupon-obj/coupon-obj.vue",
 			"^my-coupons$": "@/bundle_shared_components/components/my-coupons/my-coupons.vue",
-			"^bubble-tips$": "@/bundle_shared_components/components/bubble-tips/bubble-tips.vue",
-			"^custom-image$": "@/bundle_shared_components/components/custom-image/custom-image.vue",
+			"^bubble-tips$": "@/components/bubble-tips/bubble-tips.vue",
+			"^custom-image$": "@/components/custom-image/custom-image.vue",
 			"^download-nav$": "@/bundle_shared_components/components/download-nav/download-nav.vue",
 			"^pick-regions$": "@/bundle_shared_components/components/pick-regions/pick-regions.vue",
-			"^recommend$": "@/bundle_shared_components/components/recommend/recommend.vue",
+			"^recommend$": "@/components/recommend/recommend.vue",
 			"^swipers$": "@/bundle_shared_components/components/swipers/swipers.vue",
 			"^tabs$": "@/bundle_shared_components/components/tabs/tabs.vue",
 			"^navbar$": "@/components/navbar/navbar.vue",
-			"^cu-progress$": "@/bundle_shared_components/components/cu-progress/cu-progress.vue",
+			"^cu-progress$": "@/components/cu-progress/cu-progress.vue",
 			"^cate-(.*)$": "@/bundle_shared_components/components/cate-$1/cate-$1.vue"
 		}
 	}

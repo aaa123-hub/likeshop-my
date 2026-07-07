@@ -20,6 +20,7 @@
 
 <script>
 import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vue'
+import { getMessageDetail, readMessage } from '@/api/user'
 
 export default {
   components: {
@@ -28,6 +29,7 @@ export default {
   data() {
     return {
       detail: {
+        id: "",
         title: "",
         time: "",
         content: "",
@@ -36,23 +38,39 @@ export default {
   },
   onLoad(options) {
     this.detail = {
+      id: options.id || "",
       title: decodeURIComponent(options.title || ""),
       time: decodeURIComponent(options.time || ""),
       content: decodeURIComponent(options.content || ""),
     };
+    if (this.detail.id) this.loadMessageDetail(this.detail.id);
   },
   computed: {
     detailTitle() {
-      return this.detail.title || "标题标题标题标题标题标题标题标题";
+      return this.detail.title || "公告详情";
     },
     detailTime() {
-      return this.detail.time || "2026-01-01";
+      return this.detail.time || "";
     },
     detailContent() {
-      return this.detail.content || "详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充情内容填充详情内容填充详情\n\n内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填\n\n充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填充情内容填充详情内容填充详情内容填充详情内容填充详情内容填充详情内容填";
+      return this.detail.content || "暂无公告内容";
     },
   },
   methods: {
+    loadMessageDetail(id) {
+      getMessageDetail(id).then((res) => {
+        if (res.code == 1 && res.data) {
+          const data = res.data;
+          this.detail = {
+            id,
+            title: data.title || this.detail.title,
+            time: data.create_time || data.createTime || data.sendTime || this.detail.time,
+            content: data.content || this.detail.content,
+          };
+          readMessage(id);
+        }
+      });
+    },
     goBack() {
       const pages = getCurrentPages();
       if (pages.length > 1) {
