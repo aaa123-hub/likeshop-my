@@ -209,9 +209,8 @@ export default {
             const inviteCode = Cache.get('INVITE_CODE')
             if (inviteCode) {
                 Cache.remove('INVITE_CODE')
-                inputInviteCode({
-                    code: inviteCode
-                })
+                const invitePayload = typeof inviteCode === 'object' ? inviteCode : { code: inviteCode }
+                inputInviteCode(invitePayload)
             }
 
             // #ifdef H5

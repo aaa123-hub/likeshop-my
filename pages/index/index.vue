@@ -35,10 +35,10 @@
 
             <view class="promoter-card" @tap="goPage('/business/pages/business_pages/promoter_apply')">
                 <view>
-                    <view class="promoter-card__title">成为推广者</view>
-                    <view class="promoter-card__desc">提交资料后可继续申请渠道角色</view>
+                    <view class="promoter-card__title">角色申请</view>
+                    <view class="promoter-card__desc">完成实名后，可申请推广者、代理等角色</view>
                 </view>
-                <view class="promoter-card__action">立即申请</view>
+                <view class="promoter-card__action">申请角色</view>
             </view>
 
             <view class="banner-wrap" v-if="bannerList.length">

@@ -4,7 +4,7 @@
 		<view class="after-sales-detail">
 			<view class="after-sales-header">
 				<view class="after-sales-status white lg">
-					{{lists.status_text}}
+					{{ refundStatusText(lists.status_text || lists.status) }}
 				</view>
 				<!-- <view class="after-sales-explain bg-white" hidden="{{lists.status == 2 || lists.status == 5 || lists == 6}}">
 			<text class="xs muted" style="line-height: 40rpx" wx:if="{{lists.status == 0 || lists.status == 1 || lists == 4}}">如果商家拒绝，您可重新发起申请
@@ -60,7 +60,7 @@
 				</view>
 				<view class="return-goods-row row sm mt20" v-if="refundReason">
 					<view class="return-title">退款原因：</view>
-					<view class="return-explain">{{refundReason}}</view>
+					<view class="return-explain">{{refundReasonText(refundReason)}}</view>
 				</view>
 				<view class="return-goods-row row sm mt20">
 					<view class="return-title">退款金额：</view>
@@ -240,6 +240,45 @@ trottle,
 						this.lists = res.data || {}
 					}
 				});
+			},
+			refundStatusText(status) {
+				const text = String(status || '')
+				const map = {
+					APPLIED: '待商家处理',
+					PENDING: '待商家处理',
+					PROCESSING: '处理中',
+					REFUNDING: '退款中',
+					APPROVED: '商家已同意',
+					RETURNING: '待买家退货',
+					REJECTED: '商家已拒绝',
+					CANCELLED: '已撤销',
+					CANCELED: '已撤销',
+					REFUNDED: '退款成功',
+					SUCCESS: '退款成功',
+					FAILED: '退款失败',
+					0: '待商家处理',
+					1: '处理中',
+					2: '商家已同意',
+					3: '商家已同意',
+					4: '商家已拒绝',
+					5: '退款成功',
+					6: '已撤销'
+				}
+				return map[text.toUpperCase()] || map[status] || (/^[A-Z0-9_-]+$/.test(text) ? '售后处理中' : text)
+			},
+			refundReasonText(reason) {
+				const text = String(reason || '')
+				const map = {
+					QUALITY_PROBLEM: '商品质量问题',
+					WRONG_GOODS: '商品错发/漏发',
+					NOT_RECEIVED: '未收到货',
+					NO_REASON: '七天无理由',
+					DO_NOT_WANT: '拍错/多拍/不想要',
+					NOT_AS_DESCRIBED: '商品与描述不符',
+					DELAY_SHIPMENT: '未按约定时间发货',
+					OTHER: '其他'
+				}
+				return text.split(/[,，、]/).map(item => map[item.toUpperCase()] || item).join('、')
 			}
 
 		},

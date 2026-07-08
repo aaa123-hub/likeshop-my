@@ -54,7 +54,7 @@
                         </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">证件类型</text>
-                            <text class="user-kyc-page__value">ID卡</text>
+                            <text class="user-kyc-page__value">身份证</text>
                         </view>
                         <view class="user-kyc-page__field">
                             <text class="user-kyc-page__label">证件号码</text>
@@ -178,6 +178,20 @@
                         <view class="face-pay-shell__scan" @tap="scanFacePayCode">
                             <u-icon name="scan" color="#222222" size="54"></u-icon>
                             <text>扫一扫</text>
+                        </view>
+                    </view>
+                    <view class="face-pay-calculator">
+                        <view class="face-pay-calculator__title">线下核销积分预览</view>
+                        <view class="face-pay-calc-row">
+                            <text>商品原价</text>
+                            <input v-model="facePayOriginalPrice" type="digit" placeholder="请输入金额" />
+                        </view>
+                        <view class="face-pay-calc-row">
+                            <text>让利比例</text>
+                            <input v-model="facePayBenefitRatio" type="digit" placeholder="例如 0.1" />
+                        </view>
+                        <view class="face-pay-calc-result">
+                            消费者预计可获得 <text>{{ facePayRewardPoints }}</text> 积分
                         </view>
                     </view>
                     <view class="face-pay-submit" @tap="submitFacePay">确认付款</view>
@@ -702,11 +716,6 @@
                             <text>人民币合计（元）:</text>
                             <text>{{ paymentRecordSummary.fiatAmount }}</text>
                         </view>
-                        <view class="payment-summary-card__line"></view>
-                        <view class="payment-summary-card__row">
-                            <text>数字币（元）:</text>
-                            <text>{{ paymentRecordSummary.digitalAmount }}</text>
-                        </view>
                     </view>
 
                     <view v-if="!paymentRecordList.length" class="payment-record-empty">
@@ -743,20 +752,6 @@
                                     <u-icon name="search" size="34" color="#111111"></u-icon>
                                 </view>
                                 <text class="payment-filter-sheet__search-placeholder">输入关键词</text>
-                            </view>
-
-                            <view class="payment-filter-sheet__section">
-                                <view class="payment-filter-sheet__section-title">付款方式</view>
-                                <view class="payment-filter-sheet__option-row payment-filter-sheet__option-row--two">
-                                    <view
-                                        v-for="item in paymentMethodOptions"
-                                        :key="item.label"
-                                        :class="['payment-filter-sheet__option', item.active ? 'payment-filter-sheet__option--active' : '']"
-                                        @tap="selectPaymentFilterOption(paymentMethodOptions, item)"
-                                    >
-                                        {{ item.label }}
-                                    </view>
-                                </view>
                             </view>
 
                             <view class="payment-filter-sheet__section">
@@ -848,19 +843,6 @@
                                 <u-icon name="search" size="34" color="#111111"></u-icon>
                             </view>
                             <text class="payment-filter-sheet__search-placeholder">输入关键词</text>
-                        </view>
-
-                        <view class="payment-filter-sheet__section">
-                            <view class="payment-filter-sheet__section-title">付款方式</view>
-                            <view class="payment-filter-sheet__option-row payment-filter-sheet__option-row--two">
-                                <view
-                                    v-for="item in paymentMethodOptions"
-                                    :key="item.label"
-                                    :class="['payment-filter-sheet__option', item.active ? 'payment-filter-sheet__option--active' : '']"
-                                >
-                                    {{ item.label }}
-                                </view>
-                            </view>
                         </view>
 
                         <view class="payment-filter-sheet__section">
@@ -1124,6 +1106,7 @@ import { getDesignAsset, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, uploadFile } from '@/utils/tools'
 import { guardRoute, showFeatureDisabledToast } from '@/utils/feature-flags'
+import { formatKycStatusText as formatSharedKycStatusText, localizeBackendText, normalizeKycStatus } from '@/utils/backend-text'
 import Navbar from '@/components/navbar/navbar.vue'
 import UPopup from '@/business/components/uview-ui/components/u-popup/u-popup.vue'
 import UIcon from '@/business/components/uview-ui/components/u-icon/u-icon.vue'
@@ -1166,6 +1149,8 @@ export default {
 			shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
 			shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png',
 			facePayCode: '',
+            facePayOriginalPrice: '',
+            facePayBenefitRatio: '',
 			feedbackHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/c860e9e880ac44709ba98fb0844390c9/17e52b5f7f7af0e92c09f57bd56f679e.png',
 			feedbackUploadIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/e5d8d8724ebd49afbb6a747ff66f8d09/feedback-upload-icon.png',
 			paymentRecordFilterIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png',
@@ -1270,15 +1255,10 @@ export default {
             paymentRecordSummary: {
                 totalAmount: '¥0.00',
                 totalCount: '0',
-                fiatAmount: '¥0.00',
-                digitalAmount: '¥0.00'
+                fiatAmount: '¥0.00'
             },
             paymentRecordList: [],
             showPaymentFilter: false,
-            paymentMethodOptions: [
-                { label: '全部', active: true },
-                { label: '人民币', active: false }
-            ],
             paymentStatusOptions: [
                 { label: '全部', active: false },
                 { label: '未支付', active: false },
@@ -1428,7 +1408,7 @@ export default {
         },
         isKycEmpty() {
             const data = this.kycStatusInfo || {}
-            const status = String(data.kycStatus || data.kyc_status || '').toUpperCase()
+            const status = normalizeKycStatus(data.kycStatus || data.kyc_status || '')
             const hasBusinessData = data.realName || data.real_name || data.certNo || data.cert_no || data.lastSubmitTime || data.last_submit_time || data.applyNo || data.applicationNo || data.id
             return Boolean(this.pageOptions && this.pageOptions.showFormWhenEmpty && (!status || status === 'NOT_SUBMITTED') && !hasBusinessData)
         },
@@ -1436,15 +1416,15 @@ export default {
             return Boolean(this.kycStatusText && !this.isKycEmpty)
         },
         kycStatusClass() {
-            const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
-            if (status === 'APPROVED' || status === 'SUCCESS' || status === 'PASS') return 'is-success'
-            if (status === 'REJECTED' || status === 'FAILED') return 'is-error'
-            if (status === 'PENDING' || status === 'SUBMITTED' || status === 'AUDITING') return 'is-pending'
+            const status = normalizeKycStatus(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '')
+            if (status === 'APPROVED') return 'is-success'
+            if (status === 'REJECTED') return 'is-error'
+            if (status === 'PENDING_AUDIT') return 'is-pending'
             return ''
         },
         kycAuditMessage() {
-            const message = this.kycStatusInfo.rejectReasonMessage || this.kycStatusInfo.reject_reason_message || this.kycStatusInfo.auditMessage || this.kycStatusInfo.audit_message || ''
-            return this.formatKycStatusText(message) || message
+            const message = this.kycStatusInfo.rejectReasonMessage || this.kycStatusInfo.reject_reason_message || this.kycStatusInfo.rejectReasonCode || this.kycStatusInfo.reject_reason_code || this.kycStatusInfo.auditMessage || this.kycStatusInfo.audit_message || ''
+            return localizeBackendText(message, this.kycStatusClass === 'is-error' ? '实名审核未通过，请重新提交资料' : '')
         },
         kycSubmitTimeText() {
             const data = this.kycStatusInfo || {}
@@ -1459,13 +1439,13 @@ export default {
                 { label: '证件号码', value: data.certNo || data.cert_no || this.kycForm.certNo },
                 { label: '提交时间', value: this.kycSubmitTimeText },
                 { label: '审核时间', value: this.formatSceneTime(data.auditTime || data.audit_time || data.updatedAt || data.updateTime || data.updated_at) },
-                { label: '认证类型', value: data.kycTypeName || data.kyc_type_name || data.kycType || data.kyc_type },
+                { label: '认证类型', value: localizeBackendText(data.kycTypeName || data.kyc_type_name || data.kycType || data.kyc_type, '') },
                 { label: '手机号', value: data.mobile || data.phone || data.contactMobile || data.contact_mobile },
                 { label: '申请编号', value: data.applyNo || data.apply_no || data.applicationNo || data.id }
             ].filter(item => item.value !== undefined && item.value !== null && item.value !== '')
         },
         canEditKyc() {
-            const status = String(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '').toUpperCase()
+            const status = normalizeKycStatus(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '')
             return !status || status === 'NOT_SUBMITTED' || status === 'REJECTED' || status === 'FAILED'
         },
         kycSubmitText() {
@@ -1653,6 +1633,12 @@ export default {
                 const name = (item.name || item.shopName || item.goods_name || '').toLowerCase()
                 return name.includes(keyword)
             })
+        },
+        facePayRewardPoints() {
+            const price = Number(this.facePayOriginalPrice || 0)
+            const ratio = Number(this.facePayBenefitRatio || 0)
+            if (Number.isNaN(price) || Number.isNaN(ratio) || price <= 0 || ratio <= 0) return '0'
+            return ((4 + 1) * ratio * price).toFixed(2)
         }
     },
     watch: {
@@ -1720,19 +1706,7 @@ export default {
             return map[String(value || '').toUpperCase()] || value || ''
         },
         formatKycStatusText(value) {
-            const status = String(value || '').toUpperCase()
-            const statusMap = {
-                NOT_SUBMITTED: '未提交',
-                PENDING: '审核中',
-                SUBMITTED: '审核中',
-                AUDITING: '审核中',
-                APPROVED: '已通过',
-                SUCCESS: '已通过',
-                PASS: '已通过',
-                REJECTED: '未通过',
-                FAILED: '未通过'
-            }
-            return statusMap[status] || ''
+            return formatSharedKycStatusText(value)
         },
         guardScene(scene) {
             const sceneRouteMap = {
@@ -1993,9 +1967,6 @@ export default {
             })
         },
         resetPaymentFilter() {
-            this.paymentMethodOptions.forEach((item, index) => {
-                item.active = index === 0
-            })
             this.paymentStatusOptions.forEach((item, index) => {
                 item.active = index === 0
             })
@@ -2006,27 +1977,25 @@ export default {
         },
         async loadPaymentRecords() {
             try {
-                const method = this.paymentMethodOptions.find(item => item.active)?.label || '全部'
                 const status = this.paymentStatusOptions.find(item => item.active)?.label || '全部'
-                const payMethodMap = {
-                    '微信支付': 'WECHAT',
-                    '余额支付': 'BALANCE',
-                    '人民币': 'FIAT'
-                }
                 const payStatusMap = {
+                    '未支付': 'CREATED',
                     '待支付': 'CREATED',
                     '已支付': 'SUCCESS',
                     '支付失败': 'FAILED'
                 }
                 const res = await getPaymentRecords({
-                    payMethod: method === '全部' ? '' : (payMethodMap[method] || ''),
                     payStatus: status === '全部' ? '' : (payStatusMap[status] || ''),
                     pageNo: 1,
                     pageSize: 20
                 })
                 if (res.code != 1) return
                 const list = res.data?.lists || res.data?.records || res.data?.list || []
-                this.paymentRecordList = Array.isArray(list) ? list : []
+                const expectedStatus = status === '全部' ? '' : (payStatusMap[status] || '')
+                this.paymentRecordList = (Array.isArray(list) ? list : []).filter(item => {
+                    if (!expectedStatus) return true
+                    return this.normalizePaymentRecordStatus(item) === expectedStatus
+                })
                 const totalAmount = this.paymentRecordList.reduce((sum, item) => {
                     const amount = Number(item.change_amount ?? item.amount ?? item.changeAmount ?? item.money ?? 0)
                     return Number.isNaN(amount) ? sum : sum + Math.abs(amount)
@@ -2034,8 +2003,7 @@ export default {
                 this.paymentRecordSummary = {
                     totalAmount: `¥${totalAmount.toFixed(2)}`,
                     totalCount: String(res.data?.count || res.data?.total || this.paymentRecordList.length || 0),
-                    fiatAmount: `¥${totalAmount.toFixed(2)}`,
-                    digitalAmount: '¥0.00'
+                    fiatAmount: `¥${totalAmount.toFixed(2)}`
                 }
             } catch (error) {
                 console.error('[payment-record] load failed:', error)
@@ -2044,6 +2012,14 @@ export default {
             const amount = Number(value || 0)
             if (Number.isNaN(amount)) return value || '0.00'
             return Math.abs(amount).toFixed(2)
+        },
+        normalizePaymentRecordStatus(item = {}) {
+            const raw = String(item.payStatus || item.pay_status || item.status || item.paymentStatus || item.payment_status || '').toUpperCase()
+            const text = String(item.status_text || item.pay_status_text || item.type_desc || '').toUpperCase()
+            if (['SUCCESS', 'PAID', 'PAY_SUCCESS', '1'].includes(raw) || /已支付|支付成功/.test(text)) return 'SUCCESS'
+            if (['FAILED', 'FAIL', 'PAY_FAILED', '2'].includes(raw) || /失败/.test(text)) return 'FAILED'
+            if (['CREATED', 'PENDING', 'WAIT_PAY', 'UNPAID', 'NOT_PAID', 'PROCESSING', '0'].includes(raw) || /未支付|待支付|支付中/.test(text)) return 'CREATED'
+            return raw
         },
         getCurrentPageOptions() {
             if (this.pageOptions && Object.keys(this.pageOptions).length) return this.pageOptions
@@ -2331,7 +2307,6 @@ export default {
             if (this.storeShareQrcode || this.storeShareQrcodeLoading) return
             this.storeShareQrcodeLoading = true
             const qrcodeValue = this.storeShareUrl()
-            console.log('店铺二维码内容', qrcodeValue)
             this.storeShareQrcodeTempImage = ''
             this.storeShareQrcode = qrcodeValue
             this.storeShareQrcodeIsImage = false
@@ -4209,6 +4184,59 @@ export default {
 
 .face-pay-shell__scan text {
     margin-top: 10rpx;
+}
+
+.face-pay-calculator {
+    margin: 30rpx 24rpx 0;
+    padding: 26rpx 24rpx;
+    border-radius: 20rpx;
+    background: #ffffff;
+    box-shadow: 0 10rpx 24rpx rgba(31, 122, 244, 0.08);
+}
+
+.face-pay-calculator__title {
+    color: #222222;
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 42rpx;
+}
+
+.face-pay-calc-row {
+    display: flex;
+    align-items: center;
+    min-height: 82rpx;
+    border-bottom: 1rpx solid #edf0f5;
+    color: #333333;
+    font-size: 26rpx;
+}
+
+.face-pay-calc-row text {
+    flex: none;
+    width: 150rpx;
+}
+
+.face-pay-calc-row input {
+    flex: 1;
+    min-width: 0;
+    color: #222222;
+    font-size: 26rpx;
+    text-align: right;
+}
+
+.face-pay-calc-result {
+    margin-top: 22rpx;
+    padding: 18rpx 20rpx;
+    border-radius: 16rpx;
+    color: #5a6678;
+    background: #f3f8ff;
+    font-size: 25rpx;
+    line-height: 36rpx;
+}
+
+.face-pay-calc-result text {
+    color: #1f7af4;
+    font-size: 32rpx;
+    font-weight: 700;
 }
 
 .face-pay-submit {

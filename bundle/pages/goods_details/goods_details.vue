@@ -482,6 +482,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 	import { resolveImage } from '@/utils/image-placeholder'
 	import { baseURL } from '@/config/app'
 	import PriceFormat from '@/bundle/components/price-format/price-format.vue'
+	import { formatCouponText } from '@/utils/backend-text'
 	export default {
 		components: {
 			GoodsLike,
@@ -939,6 +940,9 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					AVAILABLE: '可使用',
 					UNAVAILABLE: '不可用',
 					RECEIVABLE: '可领取',
+					ORDER_CONFIRM_RECEIVABLE: '',
+					ORDER_CONFIRM_AVAILABLE: '',
+					ORDER_CONFIRM_UNAVAILABLE: '',
 					CLAIMABLE: '可领取',
 					RECEIVED: '已领取',
 					USED: '已使用',
@@ -954,8 +958,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					FREE_SHIPPING: '包邮券'
 				}
 				const upper = text.toUpperCase()
-				if (exactMap[upper]) return exactMap[upper]
-				return text
+				if (Object.prototype.hasOwnProperty.call(exactMap, upper)) return exactMap[upper]
+				return formatCouponText(text, '')
+					.replace(/\bORDER_CONFIRM_RECEIVABLE\b/gi, '')
+					.replace(/\bORDER_CONFIRM_AVAILABLE\b/gi, '')
+					.replace(/\bORDER_CONFIRM_UNAVAILABLE\b/gi, '')
 					.replace(/\bAVAILABLE\b/gi, '可使用')
 					.replace(/\bUNAVAILABLE\b/gi, '不可用')
 					.replace(/\bRECEIVABLE\b/gi, '可领取')

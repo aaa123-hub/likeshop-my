@@ -528,7 +528,11 @@ export default {
         // end
 
         async getPhoneNumber(e) {
-            const { encryptedData, iv, code: phoneCode } = e.detail
+            const { encryptedData, iv, code: phoneCode, errMsg } = e.detail || {}
+            if (!phoneCode && !encryptedData) {
+                this.$toast({ title: errMsg && errMsg.includes('deny') ? '已取消手机号授权' : '未获取到手机号授权' })
+                return
+            }
             if (String(this.code || phoneCode || '').includes('mock')) {
                 this.$toast({ title: '微信绑定手机号请使用真机调试' })
                 return
@@ -539,12 +543,15 @@ export default {
                 wxCode: this.code,
                 phoneCode,
                 phone_code: phoneCode,
+                code: phoneCode,
                 encrypted_data: encryptedData,
                 encryptedData,
-                iv
+                iv,
+                scene: SMSType.BIND,
+                action: 'bind'
             }
             this.fieldType = FieldType.MOBILE
-            if (encryptedData) {
+            if (phoneCode || encryptedData) {
                 this.$changeUserMobileMP(data)
             }
         },

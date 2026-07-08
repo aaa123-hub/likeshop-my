@@ -5,6 +5,10 @@ import Cache from '@/utils/cache'
 import { USER_INFO } from '@/config/cachekey'
 import { resolveImage } from '@/utils/image-placeholder'
 
+function firstDefined(...values) {
+    return values.find((value) => value !== undefined && value !== null && value !== '')
+}
+
 function normalizeListResponse(res = {}) {
     const data = res.data || {}
     const list = data.list || data.items || data.rows || data || []
@@ -50,12 +54,30 @@ function refundStatusText(status) {
     if (status === 6 || status === '6') return '已撤销'
     const map = {
         APPLIED: '待商家处理',
+        APPLY: '待商家处理',
+        PENDING: '待商家处理',
+        PENDING_REVIEW: '待商家处理',
+        WAIT_AUDIT: '待商家处理',
+        WAIT_SELLER: '待商家处理',
+        WAIT_MERCHANT: '待商家处理',
         PROCESSING: '处理中',
+        REFUNDING: '退款中',
+        IN_PROGRESS: '处理中',
         APPROVED: '商家已同意',
+        PASS: '商家已同意',
+        PASSED: '商家已同意',
+        MERCHANT_APPROVED: '商家已同意',
         RETURNING: '待买家退货',
+        WAIT_RETURN: '待买家退货',
+        WAIT_BUYER_RETURN: '待买家退货',
         REJECTED: '商家已拒绝',
+        REJECT: '商家已拒绝',
         CANCELLED: '已撤销',
+        CANCELED: '已撤销',
+        CLOSED: '已关闭',
         REFUNDED: '退款成功',
+        REFUND_SUCCESS: '退款成功',
+        SUCCESS: '退款成功',
         FAILED: '退款失败'
     }
     return map[String(status || '').toUpperCase()] || status || '处理中'
@@ -65,12 +87,30 @@ function refundStatusCode(status) {
     if (status !== undefined && status !== null && status !== '' && !Number.isNaN(Number(status))) return Number(status)
     const map = {
         APPLIED: 0,
+        APPLY: 0,
+        PENDING: 0,
+        PENDING_REVIEW: 0,
+        WAIT_AUDIT: 0,
+        WAIT_SELLER: 0,
+        WAIT_MERCHANT: 0,
         PROCESSING: 1,
+        REFUNDING: 1,
+        IN_PROGRESS: 1,
         APPROVED: 2,
+        PASS: 2,
+        PASSED: 2,
+        MERCHANT_APPROVED: 2,
         RETURNING: 2,
+        WAIT_RETURN: 2,
+        WAIT_BUYER_RETURN: 2,
         REJECTED: 4,
+        REJECT: 4,
         CANCELLED: 6,
+        CANCELED: 6,
+        CLOSED: 6,
         REFUNDED: 5,
+        REFUND_SUCCESS: 5,
+        SUCCESS: 5,
         FAILED: 4
     }
     return map[String(status || '').toUpperCase()] ?? 0
@@ -80,9 +120,38 @@ const defaultRefundReasons = ['商品质量问题', '拍错/多拍/不想要', '
 
 function normalizeRefundReasonText(reason) {
     if (!reason) return ''
+    const reasonMap = {
+        QUALITY_PROBLEM: '商品质量问题',
+        WRONG_GOODS: '商品错发/漏发',
+        NOT_RECEIVED: '未收到货',
+        NO_REASON: '七天无理由',
+        DO_NOT_WANT: '拍错/多拍/不想要',
+        NOT_AS_DESCRIBED: '商品与描述不符',
+        DELAY_SHIPMENT: '未按约定时间发货',
+        OTHER: '其他'
+    }
     if (typeof reason === 'string') return reason
+        .split(/[,，、]/)
+        .map((item) => reasonMap[String(item || '').toUpperCase()] || item)
+        .join('、')
     if (typeof reason === 'object') return reason.name || reason.reason || reason.label || reason.title || reason.text || reason.value || ''
     return String(reason)
+}
+
+function refundTypeText(type) {
+    if (type === 0 || type === '0') return '仅退款'
+    if (type === 1 || type === '1') return '退货退款'
+    const text = String(type || '').toUpperCase()
+    const map = {
+        ONLY_REFUND: '仅退款',
+        REFUND_ONLY: '仅退款',
+        REFUND: '仅退款',
+        RETURN_REFUND: '退货退款',
+        RETURN_AND_REFUND: '退货退款',
+        REFUND_RETURN: '退货退款',
+        RETURN: '退货退款'
+    }
+    return map[text] || (text.includes('RETURN') ? '退货退款' : '仅退款')
 }
 
 function normalizeRefundReasons(reasons) {
@@ -125,9 +194,11 @@ function normalizeAfterSaleItem(item = {}) {
     const goods = item.orderGoods || item.orderItem || item.item || item.goodsList || item.goods_lists || item.order_goods || item.goods || item.goodsInfo || {}
     const normalizedGoods = Array.isArray(goods) ? goods.map(normalizeAfterSaleGoods) : [normalizeAfterSaleGoods(goods)]
     const refundType = item.refundType || item.refund_type || item.type
-    const isReturnRefund = String(refundType || '').toUpperCase().includes('RETURN') || Number(refundType) === 1
+    const typeText = item.refundTypeText || item.refund_type_text || item.typeText || item.type_text || refundTypeText(refundType)
+    const isReturnRefund = typeText === '退货退款'
     const statusCode = refundStatusCode(status)
-    const statusText = item.refundStatusText || item.afterSaleStatusText || item.statusText || item.status_text || refundStatusText(status)
+    const rawStatusText = item.refundStatusText || item.afterSaleStatusText || item.statusText || item.status_text || status
+    const statusText = refundStatusText(rawStatusText)
     return {
         ...item,
         id: refundNo,
@@ -142,7 +213,7 @@ function normalizeAfterSaleItem(item = {}) {
         status: statusCode,
         status_text: statusText,
         refund_type: isReturnRefund ? 1 : 0,
-        refund_reason: item.refundReasonMessage || item.refundReasonText || item.refund_reason || normalizeRefundReasonText(item.refundReason || item.reason),
+        refund_reason: normalizeRefundReasonText(item.refundReasonMessage || item.refundReasonText || item.refund_reason || item.refundReason || item.reason),
         refund_remark: item.applyDescription || item.apply_description || item.description || item.refundRemark || item.refundRemarkMessage || item.refund_remark || item.remark || '',
         refund_price: item.refundAmount ?? item.refund_price ?? 0,
         refund_image: Array.isArray(images) ? images[0] || '' : images || '',
@@ -150,7 +221,7 @@ function normalizeAfterSaleItem(item = {}) {
         goods_lists: normalizedGoods,
         after_sale: {
             after_sale_id: refundNo,
-            type_text: isReturnRefund ? '退款退货' : '仅退款',
+            type_text: typeText,
             refund_price: item.refundAmount ?? item.refund_price ?? 0,
             status: statusCode,
             desc: statusText,
@@ -803,13 +874,13 @@ export function applyAfterSale(data) {
     }).then((res) => {
         if (res.code != 1) {
             const message = String(res.message || res.msg || '')
-            if (res.code === 'A0004' && /refund already applied/i.test(message)) {
+            if (res.code === 'A0004' || /refund already applied|already.*refund|already.*after.?sale|重复|已申请|售后中|退款中/i.test(message)) {
                 return getAfterSaleList({ orderNo, order_no: orderNo, pageNo: 1, pageSize: 1 }).then((listRes) => {
                     const source = listRes.data || {}
                     const existing = (Array.isArray(source) ? source : source.list || [])[0]
                     return existing
-                        ? { code: 1, msg: '已申请售后', data: existing }
-                        : { ...res, msg: '已申请售后' }
+                        ? { code: 1, msg: '该订单正在退款/售后处理中，请勿重复申请', data: existing, existingAfterSale: true }
+                        : { ...res, msg: '该订单正在退款/售后处理中，请勿重复申请', existingAfterSale: true }
                 })
             }
             return res
@@ -827,6 +898,10 @@ export function getGoodsInfo(params) {
         const data = res.data || {}
         const itemList = data.itemList || data.order_goods || data.goods_lists || []
         const goods = itemList.find((item) => String(item.id || item.orderItemId || item.itemId || item.skuId) === String(params.item_id || params.itemId)) || itemList[0] || {}
+        const afterSale = goods.afterSale || goods.after_sale || goods.refundInfo || goods.refund_info || data.refundInfo || data.refund_info || {}
+        const afterSaleStatus = afterSale.refundStatus || afterSale.afterSaleStatus || afterSale.status || goods.refundStatus || goods.afterSaleStatus || goods.after_status
+        const afterSaleId = afterSale.afterSaleId || afterSale.after_sale_id || afterSale.refundNo || afterSale.id || goods.afterSaleId || goods.after_sale_id || goods.refundNo
+        const statusText = afterSaleId || afterSaleStatus !== undefined ? refundStatusText(afterSale.statusText || afterSale.status_text || afterSaleStatus) : ''
         const price = goods.realAmount || goods.totalAmount || goods.payAmount || goods.goods_price || goods.salePrice || 0
         const reasons = data.refundReasons || data.refund_reasons || data.afterSaleReasons || data.after_sale_reasons || data.reason
         return {
@@ -840,9 +915,15 @@ export function getGoodsInfo(params) {
                     image: resolveImage(goods.image || goods.imageUrl || goods.mainImageUrl || goods.cover, 'goods'),
                     goods_num: goods.goods_num || goods.quantity || goods.num || 1,
                     total_pay_price: price,
-                    refund_express_money: data.amountInfo?.freightAmount || 0
+                    refund_express_money: data.amountInfo?.freightAmount || 0,
+                    after_sale_id: afterSaleId || '',
+                    after_status_desc: statusText || '',
+                    refund_btn: !(afterSaleId || statusText)
                 },
-                reason: normalizeRefundReasons(reasons)
+                reason: normalizeRefundReasons(reasons),
+                existingAfterSale: Boolean(afterSaleId || statusText),
+                afterSaleId: afterSaleId || '',
+                afterStatusText: statusText || ''
             }
         }
     })
@@ -897,7 +978,6 @@ export function getPaymentRecords(params = {}) {
     return request.get('miniapp/payments/records', {
         params: {
             payStatus: params.payStatus || params.status || '',
-            payMethod: params.payMethod || params.method || '',
             pageNo: params.pageNo || params.page_no || 1,
             pageSize: params.pageSize || params.page_size || 20
         }
@@ -954,7 +1034,10 @@ export function getRechargeRecord(params) {
 export function inputInviteCode(data) {
     return request.get('miniapp/alliance/card', {
         params: {
-            inviteCode: data.invite_code || data.inviteCode || data.code
+            inviteCode: data.invite_code || data.inviteCode || data.code,
+            promoterUserId: data.promoterUserId || data.promoter_user_id || data.uid || data.userId,
+            roleCode: data.roleCode || data.role_code || data.role,
+            scene: data.scene || ''
         }
     }).then((res) => res.code == 1 ? { ...res, msg: res.msg || '绑定成功' } : res)
 }
@@ -1050,13 +1133,23 @@ export function setUserInfo(data) {
 }
 
 export function changeUserMobile(data) {
-    const smsCode = data.smsCode || data.sms_code || data.verifyCode || data.verify_code || data.code
+    const phoneCode = data.phoneCode || data.phone_code || data.wechatPhoneCode || data.wechat_phone_code
+    const smsCode = data.smsCode || data.sms_code || data.verifyCode || data.verify_code || (!phoneCode ? data.code : '')
+    const loginCode = data.jsCode || data.loginCode || data.login_code || data.wxCode || data.wx_code
     const oldMobile = data.oldMobile || data.old_mobile || data.mobile || data.phone || ''
     const newMobile = data.newMobile || data.new_mobile || data.newPhone || data.new_phone || data.mobile || data.phone || ''
     const payload = {
         mobile: newMobile,
         smsCode,
-        code: smsCode,
+        code: phoneCode || smsCode,
+        phoneCode,
+        phone_code: phoneCode,
+        jsCode: loginCode,
+        loginCode,
+        wxCode: loginCode,
+        encryptedData: data.encryptedData || data.encrypted_data,
+        encrypted_data: data.encrypted_data || data.encryptedData,
+        iv: data.iv,
         scene: data.scene || data.key || data.type || (oldMobile ? 'BGSJHM' : 'BDSJHM'),
         action: data.action || (oldMobile ? 'change' : 'bind'),
         oldMobile,
@@ -1203,6 +1296,69 @@ export function getAutoReceivePoints() {
     return request.get('miniapp/points/settings/auto-receive')
 }
 
+function normalizeKycStatus(status, data = {}) {
+    const normalized = String(status || '').toUpperCase()
+    const approved = ['APPROVED']
+    const pending = ['PENDING_AUDIT']
+    const rejected = ['REJECTED']
+    const empty = ['NOT_SUBMITTED', 'UNSUBMITTED', 'NONE', 'NO_AUTH', 'UNAUTHENTICATED', 'UNVERIFIED', 'NOT_AUTHENTICATED', 'NOT_VERIFIED']
+    if (approved.includes(normalized)) return 'APPROVED'
+    if (pending.includes(normalized)) return 'PENDING_AUDIT'
+    if (rejected.includes(normalized)) return 'REJECTED'
+    if (empty.includes(normalized)) return 'NOT_SUBMITTED'
+    return 'NOT_SUBMITTED'
+}
+
+function normalizeKycPayload(data = {}) {
+    const rawStatus = firstDefined(data.kycStatus, data.kyc_status)
+    const nextAction = firstDefined(data.nextAction, data.next_action, '')
+    const status = normalizeKycStatus(rawStatus, data)
+    const realName = firstDefined(data.realName, data.real_name, data.realNameMask, data.real_name_mask, '')
+    const certNo = firstDefined(data.certNo, data.cert_no, data.certNoMask, data.cert_no_mask, '')
+    const certType = firstDefined(data.certType, data.cert_type, 'ID_CARD')
+    const certFrontUrl = firstDefined(data.certFrontUrl, data.cert_front_url, '')
+    const certBackUrl = firstDefined(data.certBackUrl, data.cert_back_url, '')
+    const auditMessage = firstDefined(data.auditMessage, data.audit_message, data.message, '')
+    const rejectReasonCode = firstDefined(data.rejectReasonCode, data.reject_reason_code, '')
+    const rejectReasonMessage = firstDefined(data.rejectReasonMessage, data.reject_reason_message, data.rejectReason, data.reject_reason, '')
+    const lastSubmitTime = firstDefined(data.lastSubmitTime, data.last_submit_time, data.submitTime, data.submit_time, data.createTime, data.create_time, '')
+    return {
+        ...data,
+        rawKycStatus: rawStatus || '',
+        raw_kyc_status: rawStatus || '',
+        kycStatus: status,
+        kyc_status: status,
+        realName,
+        real_name: realName,
+        certNo,
+        cert_no: certNo,
+        certType,
+        cert_type: certType,
+        certFrontUrl,
+        cert_front_url: certFrontUrl,
+        certBackUrl,
+        cert_back_url: certBackUrl,
+        auditMessage,
+        audit_message: auditMessage,
+        rejectReasonCode,
+        reject_reason_code: rejectReasonCode,
+        rejectReasonMessage,
+        reject_reason_message: rejectReasonMessage,
+        lastSubmitTime,
+        last_submit_time: lastSubmitTime,
+        nextAction,
+        next_action: nextAction
+    }
+}
+
+function isKycNotSubmittedResponse(res = {}) {
+    const code = String(firstDefined(res.rawCode, res.code, '')).toUpperCase()
+    const message = String(res.msg || res.message || '').toLowerCase()
+    const knownCodes = ['NOT_SUBMITTED', 'UNSUBMITTED', 'NO_AUTH', 'UNAUTHENTICATED', 'UNVERIFIED', 'NOT_AUTHENTICATED', 'NOT_VERIFIED', 'KYC_NOT_SUBMITTED', 'KYC_NOT_FOUND', 'A0420', 'A0404']
+    return knownCodes.includes(code)
+        || /未实名|未认证|未提交|无实名|暂无实名|not[_\s-]?(submitted|verified|authenticated)|kyc[_\s-]?(not[_\s-]?found|not[_\s-]?submitted)/i.test(message)
+}
+
 export function submitKyc(data) {
     return request.post('miniapp/kyc/submit', {
         realName: data.realName || data.real_name,
@@ -1210,43 +1366,28 @@ export function submitKyc(data) {
         certNo: data.certNo || data.cert_no,
         certFrontUrl: data.certFrontUrl || data.cert_front_url || data.front,
         certBackUrl: data.certBackUrl || data.cert_back_url || data.back,
-        contractSigned: data.contractSigned ?? data.contract_signed,
-        contractTitle: data.contractTitle || data.contract_title,
         requestNo: data.requestNo || data.request_no || `kyc-${Date.now()}`
-    })
+    }).then((res) => res.code == 1 ? { ...res, data: normalizeKycPayload(res.data || {}) } : res)
 }
 
 export function getKycStatus() {
     return request.get('miniapp/kyc/status').then((res) => {
-        if (res.code != 1) return res
-        const data = res.data || {}
+        if (res.code != 1) {
+            if (isKycNotSubmittedResponse(res)) {
+                return {
+                    ...res,
+                    code: 1,
+                    data: normalizeKycPayload({ kycStatus: 'NOT_SUBMITTED' }),
+                    show: false
+                }
+            }
+            return res
+        }
         return {
             ...res,
-            data: {
-                ...data,
-                kycStatus: data.kycStatus || data.status || 'NOT_SUBMITTED',
-                kyc_status: data.kycStatus || data.kyc_status || data.status || 'NOT_SUBMITTED',
-                realName: data.realName || data.realNameMask || data.real_name || '',
-                real_name: data.realName || data.realNameMask || data.real_name || '',
-                certNo: data.certNo || data.certNoMask || data.cert_no || '',
-                cert_no: data.certNo || data.certNoMask || data.cert_no || '',
-                certType: data.certType || data.cert_type || 'ID_CARD',
-                cert_type: data.certType || data.cert_type || 'ID_CARD',
-                certFrontUrl: data.certFrontUrl || data.cert_front_url || '',
-                cert_front_url: data.certFrontUrl || data.cert_front_url || '',
-                certBackUrl: data.certBackUrl || data.cert_back_url || '',
-                cert_back_url: data.certBackUrl || data.cert_back_url || '',
-                auditMessage: data.auditMessage || data.message || '',
-                audit_message: data.auditMessage || data.audit_message || data.message || '',
-                rejectReasonCode: data.rejectReasonCode || '',
-                reject_reason_code: data.rejectReasonCode || data.reject_reason_code || '',
-                rejectReasonMessage: data.rejectReasonMessage || data.rejectReason || '',
-                reject_reason_message: data.rejectReasonMessage || data.reject_reason_message || data.rejectReason || '',
-                lastSubmitTime: data.lastSubmitTime || data.submitTime || data.createTime || '',
-                last_submit_time: data.lastSubmitTime || data.last_submit_time || data.submitTime || data.createTime || ''
-            }
+            data: normalizeKycPayload(res.data || {})
         }
-    }).catch(() => ({ code: 1, data: { kycStatus: 'NOT_SUBMITTED', auditMessage: '' } }))
+    })
 }
 
 function normalizeMerchantQualification(data = {}) {
@@ -1296,7 +1437,18 @@ export function getMerchantQualificationStatus(params = {}) {
             userId: params.userId || params.user_id
         }
     }).then((res) => {
-        if (res.code != 1 || !res.data) return res
+        if (res.code != 1 || !res.data) {
+            const message = String(res.msg || res.message || '')
+            if (res.code === 'A0108' || /No static resource|merchant-qualification\/status/i.test(message)) {
+                return {
+                    ...res,
+                    code: 1,
+                    data: normalizeMerchantQualification({ auditStatus: 'NOT_SUBMITTED' }),
+                    show: false
+                }
+            }
+            return res
+        }
         return {
             ...res,
             data: normalizeMerchantQualification(res.data)
@@ -1307,16 +1459,23 @@ export function getMerchantQualificationStatus(params = {}) {
 function normalizeRoleApplication(data = {}) {
     const status = String(data.applicationStatus || data.application_status || data.auditStatus || data.audit_status || data.status || '').toUpperCase()
     const auditRemark = data.auditRemark || data.audit_remark || data.auditMessage || data.audit_message || data.rejectReason || data.reject_reason || data.reason || ''
+    const payStatus = String(data.payStatus || data.pay_status || data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase()
     return {
         ...data,
         applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || data.id || '',
-        roleCode: String(data.roleCode || data.role_code || data.role || '').toUpperCase(),
+        depositNo: data.depositNo || data.deposit_no || data.bondNo || data.bond_no || data.marginNo || data.margin_no || '',
+        roleCode: normalizeRoleCode(data.roleCode || data.role_code || data.role || ''),
         applicationStatus: status,
         auditStatus: status,
         auditRemark,
         applicantName: data.applicantName || data.applicant_name || data.realName || data.real_name || data.name || '',
         mobile: data.mobile || data.phone || data.contactMobile || data.contact_mobile || '',
         username: data.username || data.loginName || data.login_name || data.account || data.accountName || data.account_name || '',
+        certType: data.certType || data.cert_type || '',
+        certNo: data.certNo || data.cert_no || '',
+        certFrontUrl: data.certFrontUrl || data.cert_front_url || '',
+        certBackUrl: data.certBackUrl || data.cert_back_url || '',
+        businessLicenseUrl: data.businessLicenseUrl || data.business_license_url || '',
         provinceCode: data.provinceCode || data.province_code || '',
         provinceName: data.provinceName || data.province_name || data.province || '',
         cityCode: data.cityCode || data.city_code || '',
@@ -1328,22 +1487,40 @@ function normalizeRoleApplication(data = {}) {
         backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || '',
         materialUrls: data.materialUrls || data.material_urls || [],
         depositAmount: data.depositAmount ?? data.deposit_amount ?? data.bondAmount ?? data.bond_amount ?? data.marginAmount ?? data.margin_amount ?? '',
-        depositStatus: String(data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase(),
+        payStatus,
+        depositStatus: payStatus,
+        refundStatus: data.refundStatus || data.refund_status || '',
+        financeAuditStatus: data.financeAuditStatus || data.finance_audit_status || '',
+        paidAt: data.paidAt || data.paid_at || '',
         appliedAt: data.appliedAt || data.applied_at || data.createTime || data.create_time || data.createdAt || data.created_at || '',
         auditTime: data.auditTime || data.audit_time || data.approvedAt || data.approved_at || data.reviewTime || data.review_time || data.updatedAt || data.updated_at || '',
         remark: data.remark || data.applyRemark || data.apply_remark || data.applyDescription || data.apply_description || data.description || ''
     }
 }
 
+function normalizeRoleCode(roleCode) {
+    const code = String(roleCode || '').toUpperCase()
+    const map = {
+        HEADQUARTERS: 'HQ',
+        OPERATION_CENTER: 'AGENT',
+        AREA_AGENT: 'AGENT',
+        COUNTY_AGENT: 'AGENT'
+    }
+    return map[code] || code
+}
+
 function normalizeRoleItem(data = {}) {
     return {
         ...data,
-        roleCode: String(data.roleCode || data.role_code || data.role || data.code || '').toUpperCase(),
+        roleCode: normalizeRoleCode(data.roleCode || data.role_code || data.role || data.code),
         roleName: data.roleName || data.role_name || data.name || data.title || '',
+        label: data.label || data.roleName || data.role_name || data.name || data.title || '',
+        value: normalizeRoleCode(data.roleCode || data.role_code || data.role || data.code || data.value),
         areaName: data.areaName || data.area_name || data.cityName || data.city_name || data.districtName || data.district_name || '',
         inviteCode: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.distributionCode || data.distribution_code || data.code || '',
         promoterCode: data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || data.invite_code || data.distributionCode || data.distribution_code || data.code || '',
-        backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || ''
+        backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || '',
+        depositAmount: data.depositAmount ?? data.deposit_amount ?? data.bondAmount ?? data.bond_amount ?? data.marginAmount ?? data.margin_amount ?? ''
     }
 }
 
@@ -1356,12 +1533,23 @@ export function getRoles(params = {}) {
         if (res.code != 1) return res
         const data = res.data || {}
         const list = extractList(data).map(normalizeRoleItem)
+        const rawApplyRoles = data.applyRoles || data.apply_roles || data.roleOptions || data.role_options || data.availableRoles || data.available_roles || data.configs || data.roleConfigs || data.role_configs || []
+        const applyRoles = (Array.isArray(rawApplyRoles) ? rawApplyRoles : []).map(normalizeRoleItem)
+        const roleDepositConfig = {
+            ...(data.roleDepositConfig || data.role_deposit_config || data.depositConfig || data.deposit_config || {})
+        }
+        applyRoles.forEach((item) => {
+            if (item.roleCode && item.depositAmount !== '') roleDepositConfig[item.roleCode] = item.depositAmount
+        })
         return {
             ...res,
             data: {
                 ...(!Array.isArray(data) ? data : {}),
                 roles: list,
-                list
+                list,
+                applyRoles,
+                roleOptions: applyRoles,
+                roleDepositConfig
             }
         }
     })
@@ -1376,12 +1564,22 @@ export function getRoleApplications(params = {}) {
         if (res.code != 1) return res
         const data = res.data || {}
         const list = extractList(data).map(normalizeRoleApplication)
+        const depositOrders = (data.depositOrders || data.deposit_orders || []).map(normalizeRoleApplication)
+        const depositsByApplicationNo = depositOrders.reduce((map, item) => {
+            if (item.applicationNo) map[item.applicationNo] = item
+            return map
+        }, {})
+        const applications = list.map((item) => {
+            const deposit = depositsByApplicationNo[item.applicationNo]
+            return deposit ? { ...item, ...deposit, applicationStatus: item.applicationStatus, auditStatus: item.auditStatus } : item
+        })
         return {
             ...res,
             data: {
                 ...(!Array.isArray(data) ? data : {}),
-                applications: list,
-                list
+                applications,
+                depositOrders,
+                list: applications
             }
         }
     })
@@ -1390,14 +1588,25 @@ export function getRoleApplications(params = {}) {
 export function applyRoleApplication(data = {}) {
     return request.post('miniapp/role-applications', {
         userId: currentUserId(data),
-        roleCode: data.roleCode || data.role_code || 'PROMOTER',
+        roleCode: normalizeRoleCode(data.roleCode || data.role_code || 'PROMOTER'),
         provinceCode: data.provinceCode || data.province_code || '',
+        provinceName: data.provinceName || data.province_name || '',
         cityCode: data.cityCode || data.city_code || '',
+        cityName: data.cityName || data.city_name || '',
         districtCode: data.districtCode || data.district_code || '',
+        districtName: data.districtName || data.district_name || '',
         applicantName: data.applicantName || data.realName || data.name || '',
         mobile: data.mobile || '',
         username: data.username || data.loginName || data.login_name || '',
         password: data.password || '',
+        certType: data.certType || data.cert_type || 'ID_CARD',
+        certNo: data.certNo || data.cert_no || '',
+        certFrontUrl: data.certFrontUrl || data.cert_front_url || '',
+        certBackUrl: data.certBackUrl || data.cert_back_url || '',
+        businessLicenseUrl: data.businessLicenseUrl || data.business_license_url || '',
+        depositPayOrderNo: data.depositPayOrderNo || data.deposit_pay_order_no || data.depositNo || data.deposit_no || '',
+        depositBizOrderNo: data.depositBizOrderNo || data.deposit_biz_order_no || '',
+        depositAmount: data.depositAmount ?? data.deposit_amount ?? '',
         remark: data.remark || '',
         materialUrls: data.materialUrls || data.material_urls || [],
         material_urls: data.materialUrls || data.material_urls || [],
@@ -1406,6 +1615,46 @@ export function applyRoleApplication(data = {}) {
         agreementAccepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true,
         agreement_accepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true
     }).then((res) => res.code == 1 && res.data ? { ...res, data: normalizeRoleApplication(res.data) } : res)
+}
+
+export function getRoleWorkbench(params = {}) {
+    return request.get('miniapp/roles/workbench', {
+        params: {
+            userId: currentUserId(params),
+            roleCode: normalizeRoleCode(params.roleCode || params.role_code || params.role)
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        return {
+            ...res,
+            data: {
+                ...data,
+                availablePoints: data.availablePoints ?? data.available_points ?? data.pointsAvailable ?? data.points_available ?? 0,
+                available_points: data.availablePoints ?? data.available_points ?? data.pointsAvailable ?? data.points_available ?? 0,
+                frozenPoints: data.frozenPoints ?? data.frozen_points ?? data.pointsFrozen ?? data.points_frozen ?? 0,
+                frozen_points: data.frozenPoints ?? data.frozen_points ?? data.pointsFrozen ?? data.points_frozen ?? 0,
+                todayProfit: data.todayProfit ?? data.today_profit ?? data.todayEstimatedProfit ?? data.today_estimated_profit ?? data.todayIncome ?? data.today_income ?? 0,
+                today_profit: data.todayProfit ?? data.today_profit ?? data.todayEstimatedProfit ?? data.today_estimated_profit ?? data.todayIncome ?? data.today_income ?? 0,
+                inviteCode: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.distributionCode || data.distribution_code || '',
+                posterUrl: data.posterUrl || data.poster_url || data.poster || data.posterImage || data.poster_image || '',
+                qrcodeUrl: data.qrcodeUrl || data.qrcode_url || data.qrCode || data.qr_code || data.qrcode || data.qr_code_url || data.image || ''
+            }
+        }
+    })
+}
+
+export function getRolePointsLedger(params = {}) {
+    return request.get('miniapp/points/ledger', {
+        params: {
+            userId: currentUserId(params),
+            roleCode: normalizeRoleCode(params.roleCode || params.role_code || params.role),
+            timeRange: params.timeRange || params.time_range || '',
+            bizType: params.bizType || params.biz_type || params.type || '',
+            pageNo: params.pageNo || params.page_no || 1,
+            pageSize: params.pageSize || params.page_size || 20
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLedgerItem) : res)
 }
 
 export function getMessages(params = {}) {

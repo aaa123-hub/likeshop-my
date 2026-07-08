@@ -61,8 +61,7 @@
                         <image class="address-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png" mode="scaleToFill"></image>
                         <view class="address-content">
                             <template v-if="storeInfo.id">
-                                <view class="address-person">{{ storeInfo.name }}</view>
-                                <view class="address-detail">{{ storeInfo.shop_address }}</view>
+                                <view class="address-detail">{{ storeAddressText }}</view>
                             </template>
                             <template v-else>
                                 <view class="address-empty">请选择门店地址</view>
@@ -185,12 +184,26 @@
                             <text>已抵扣</text>
                             <text class="red-value">-¥{{ pointsDeductAmount.toFixed(2) }}</text>
                         </view>
+                        <view class="points-detail-row">
+                            <view class="points-detail-item">
+                                <text class="points-detail-label">当前积分</text>
+                                <text class="points-detail-value">{{ userIntegral }}积分</text>
+                            </view>
+                            <view class="points-detail-item">
+                                <text class="points-detail-label">最多抵扣</text>
+                                <text class="points-detail-value">¥{{ pointsDeductAmount.toFixed(2) }}</text>
+                            </view>
+                            <view class="points-detail-item">
+                                <text class="points-detail-label">预计使用</text>
+                                <text class="points-detail-value">{{ pointsAmount || 0 }}积分</text>
+                            </view>
+                        </view>
                     </template>
                 </view>
 
-                <view class="points-settle-tip">
+                <view class="points-settle-tip" v-if="showIntegralRow">
                     <view class="points-settle-tip__text">
-                        <text>线上订单确认收货后积分到账，退款时将按原订单抵扣和赠送记录同步退回。</text>
+                        <text>{{ pointsSettleTip }}</text>
                     </view>
                 </view>
 
@@ -246,6 +259,17 @@
                 <scroll-view class="coupon-scroll" scroll-y>
                     <view class="coupon-obj">
                         <view
+                            v-if="couponTabsIndex === 0"
+                            class="coupon-none row-between"
+                            @tap="clearPendingCoupon"
+                        >
+                            <view>
+                                <view class="bold md mb10">不使用优惠券</view>
+                                <view class="xxs lighter">本次订单不抵扣优惠券</view>
+                            </view>
+                            <view :class="['coupon-check', !pendingCouponId ? 'coupon-check--active' : '']"></view>
+                        </view>
+                        <view
                             v-for="item in currentCouponList"
                             :key="couponKey(item)"
                             class="coupon-card"
@@ -259,10 +283,14 @@
                                 <view class="row-between coupon-info-wrap">
                                     <view class="info ml20">
                                         <view class="bold md mb10 line1">{{ couponName(item) }}</view>
-                                        <view class="xxs lighter mb10">{{ couponTypeText(item) }}</view>
+                                        <view v-if="couponTypeText(item)" class="xxs lighter mb10">{{ couponTypeText(item) }}</view>
                                         <view class="xxs lighter">{{ couponTimeText(item) }}</view>
                                     </view>
-                                    <checkbox v-if="couponTabsIndex === 0" :checked="isCouponSelected(item)" class="mr20" @tap.stop="toggleCoupon(item)"></checkbox>
+                                    <view
+                                        v-if="couponTabsIndex === 0"
+                                        :class="['coupon-check', isCouponPendingSelected(item) ? 'coupon-check--active' : '']"
+                                        @tap.stop="toggleCoupon(item)"
+                                    ></view>
                                     <view
                                         v-if="couponTabsIndex === 1"
                                         :class="['coupon-receive-btn', couponButtonDisabled(item) ? 'coupon-receive-btn--disabled' : '']"
@@ -288,7 +316,7 @@
 <script>
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 import { orderBuy, getDelivery } from '@/api/order'
-import { getCoupon, getDefaultAddress } from '@/api/user'
+import { getCoupon, getDefaultAddress, getPointsAccount, getUserInfo } from '@/api/user'
 import { teamBuy } from '@/api/activity'
 import { prepay, getMnpNotice, getPayway } from '@/api/app'
 import { wxpay, alipay } from '@/utils/pay'
@@ -319,6 +347,7 @@ export default {
             pendingCouponId: '',
             pendingCouponCache: null,
             pendingCouponCandidateIds: [],
+            lastCouponToggleAt: 0,
             showCoupon: false,
             couponTabsIndex: 0,
             usableCoupon: [],
@@ -326,6 +355,7 @@ export default {
             unusableCoupon: [],
             receivingCouponId: '',
             couponManuallyCleared: false,
+            pointsFallback: {},
             payWay: 'WECHAT_JSAPI',
             bargainLaunchId: -1,
             addressTabsIndex: 0,
@@ -360,10 +390,26 @@ export default {
             return `¥${this.orderInfo.shipping_price || '0.00'}`
         },
         addressText() {
-            return [this.address.province, this.address.city, this.address.district, this.address.address]
+            const fullAddress = this.address.fullAddress || this.address.full_address || this.address.addressText || this.address.address_text
+            if (fullAddress) return this.safeText(fullAddress)
+            return [this.address.province, this.address.city, this.address.district, this.address.address || this.address.detailAddress || this.address.detail_address]
                 .map(this.safeText)
                 .filter(Boolean)
                 .join('')
+        },
+        storeAddressText() {
+            return this.safeText(
+                this.storeInfo.map_address
+                || this.storeInfo.mapAddress
+                || this.storeInfo.shop_address
+                || this.storeInfo.address
+                || this.storeInfo.detailAddress
+                || this.storeInfo.detail_address
+                || this.storeInfo.poiaddress
+                || this.storeInfo.poiAddress
+                || this.storeInfo.name
+                || ''
+            )
         },
         payAmount() {
             return this.currentPayAmount.toFixed(2)
@@ -389,7 +435,28 @@ export default {
         },
         discountAmount() {
             if (!this.couponId) return 0
-            return Number(this.orderInfo.discount_amount || this.orderInfo.discountAmount || 0)
+            const explicitAmount = this.moneyValue(this.firstDefined(
+                this.orderInfo.discount_amount,
+                this.orderInfo.discountAmount,
+                this.orderInfo.coupon_discount_amount,
+                this.orderInfo.couponDiscountAmount,
+                this.orderInfo.coupon_amount,
+                this.orderInfo.couponAmount,
+                this.orderInfo.reduce_amount,
+                this.orderInfo.reduceAmount,
+                0
+            ))
+            if (explicitAmount > 0) return explicitAmount
+            const payAmount = this.moneyValue(this.firstDefined(
+                this.orderInfo.order_amount,
+                this.orderInfo.pay_amount,
+                this.orderInfo.payAmount,
+                this.orderInfo.actual_amount,
+                this.orderInfo.actualAmount,
+                0
+            ))
+            if (payAmount <= 0) return 0
+            return Math.max(this.orderAmountBeforeDiscount - payAmount - (this.useIntegral ? this.pointsDeductAmount : 0), 0)
         },
         selectedCouponAmount() {
             return this.selectedCoupon ? this.couponAmountValue(this.selectedCoupon) : 0
@@ -399,6 +466,7 @@ export default {
             return this.discountAmount
         },
         couponText() {
+            if (this.couponManuallyCleared && !this.couponId) return '不使用优惠券'
             if (this.effectiveDiscountAmount > 0) return `-¥${this.effectiveDiscountAmount.toFixed(2)}`
             if (this.selectedCoupon) return this.couponName(this.selectedCoupon)
             if (this.usableCoupon.length) return `${this.usableCoupon.length}张可用`
@@ -410,7 +478,8 @@ export default {
         },
         selectedCoupon() {
             if (!this.couponId) return null
-            return this.usableCoupon.find(item => this.isCouponSelected(item)) || this.selectedCouponCache || null
+            const ids = this.selectedCouponCandidateIds.length ? this.selectedCouponCandidateIds : [this.couponId]
+            return this.usableCoupon.find(item => this.couponIdsIntersect(this.couponCompareIds(item), ids)) || this.selectedCouponCache || null
         },
         activeCouponId() {
             return this.showCoupon ? this.pendingCouponId : this.couponId
@@ -428,25 +497,103 @@ export default {
             return '勾选后将按订单规则试算抵扣'
         },
         showIntegralRow() {
-            const switchValue = this.orderInfo.integral_switch
-            if (switchValue === false || switchValue === 0 || switchValue === '0') return false
-            return this.userIntegral > 0 || this.pointsDeductAmount > 0 || this.pointsAmount > 0 || switchValue === true || switchValue === 1 || switchValue === '1'
+            const switchValue = this.firstDefined(
+                this.orderInfo.integral_switch,
+                this.orderInfo.integralSwitch,
+                this.orderInfo.pointsEnabled,
+                this.orderInfo.points_enabled,
+                this.orderInfo.supportPoints,
+                this.orderInfo.support_points,
+                this.orderInfo.canUsePoints,
+                this.orderInfo.can_use_points
+            )
+            const hasPointsData = this.userIntegral > 0 || this.pointsDeductAmount > 0 || this.pointsAmount > 0
+            if ((switchValue === false || switchValue === 0 || switchValue === '0') && !hasPointsData) return false
+            return true
         },
         canUseIntegral() {
             if (!this.showIntegralRow) return false
             if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) return false
-            return this.userIntegral > 0 && this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
+            return (this.userIntegral > 0 || this.pointsDeductAmount > 0 || this.pointsAmount > 0) && this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
         },
         userIntegral() {
             const data = this.orderInfo || {}
-            const totalPoints = data.user_integral ?? data.userIntegral ?? data.availablePoints ?? data.available_points ?? data.points ?? 0
+            const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
+            const pointsAccount = data.pointsAccount || data.points_account || {}
+            const fallback = this.pointsFallback || {}
+            const totalPoints = this.firstDefined(
+                data.user_integral,
+                data.userIntegral,
+                data.availablePoints,
+                data.available_points,
+                data.points,
+                data.point,
+                data.integral,
+                data.integralBalance,
+                data.integral_balance,
+                data.availableIntegral,
+                data.available_integral,
+                data.totalPoints,
+                data.total_points,
+                data.totalIntegral,
+                data.total_integral,
+                pointsAccount.availablePoints,
+                pointsAccount.available_points,
+                pointsAccount.availableIntegral,
+                pointsAccount.available_integral,
+                pointsAccount.points,
+                pointsAccount.integral,
+                pointsInfo.userIntegral,
+                pointsInfo.user_integral,
+                pointsInfo.availablePoints,
+                pointsInfo.available_points,
+                pointsInfo.availableIntegral,
+                pointsInfo.available_integral,
+                pointsInfo.points,
+                pointsInfo.integral,
+                fallback.available_points,
+                fallback.availablePoints,
+                fallback.user_integral,
+                fallback.userIntegral,
+                fallback.points,
+                fallback.integral,
+                fallback.total_points,
+                fallback.totalPoints,
+                data.pointsAmount,
+                data.points_amount,
+                data.integralNum,
+                data.integral_num,
+                0
+            )
             return this.moneyValue(totalPoints)
         },
         pointsAmount() {
-            return this.pickNumber(this.orderInfo, ['pointsAmount', 'points_amount', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points'])
+            const data = this.orderInfo || {}
+            const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
+            const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
+            const backendPoints = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsAmount', 'points_amount', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points', 'maxUsableIntegral', 'max_usable_integral', 'usablePoints', 'usable_points', 'usableIntegral', 'usable_integral'])
+            if (backendPoints > 0) return backendPoints
+            if (this.pointsDeductAmount > 0) return Math.min(this.userIntegral, Math.ceil(this.pointsDeductAmount / 0.008))
+            return 0
         },
         pointsDeductAmount() {
-            return this.pickNumber(this.orderInfo, ['pointsDeductAmount', 'points_deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxDeductAmount', 'max_deduct_amount'])
+            const data = this.orderInfo || {}
+            const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
+            const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
+            const backendAmount = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsDeductAmount', 'points_deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxIntegralDeductAmount', 'max_integral_deduct_amount', 'maxDeductAmount', 'max_deduct_amount', 'deductAmount', 'deduct_amount'])
+            if (backendAmount > 0) return backendAmount
+            const goodsAmount = this.moneyValue(this.orderInfo.total_goods_price || this.orderInfo.goodsAmount)
+            const shippingPrice = this.currentDelivery.sign === 'store' ? 0 : this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount)
+            const fallbackBaseAmount = goodsAmount > 0
+                ? Math.max(goodsAmount + shippingPrice - this.effectiveDiscountAmount, 0)
+                : this.moneyValue(this.orderInfo.order_amount || this.orderInfo.pay_amount || this.orderInfo.payAmount)
+            return Math.min(this.userIntegral * 0.008, fallbackBaseAmount)
+        },
+        pointsSettleTip() {
+            if (this.useIntegral && this.pointsAmount > 0) {
+                return `本次抵扣的 ${this.pointsAmount} 积分，在订单完成后将自动转入商家对应的小程序账户中`
+            }
+            return '线上订单确认收货后积分到账，退款时将按原订单抵扣和赠送记录同步退回。'
         },
         currentCouponList() {
             if (this.couponTabsIndex === 0) return this.usableCoupon
@@ -491,6 +638,7 @@ export default {
                 }
             })
             .then(() => {
+                this.loadPointsFallback()
                 this.handleOrderMethods('info')
             })
             // 监听全局事件
@@ -518,7 +666,11 @@ export default {
                 })
 
                 uni.$on('store', (params) => {
-                    this.storeInfo = this.normalizeStoreInfo(params)
+                    this.applySelectedStore(params)
+                    this.$nextTick(() => this.handleOrderMethods('info'))
+                })
+                uni.$on('store:selected', (params) => {
+                    this.applySelectedStore(params)
                     this.$nextTick(() => this.handleOrderMethods('info'))
                 })
             })
@@ -529,6 +681,7 @@ export default {
         // 取消全局监听
         uni.$off('selectaddress')
         uni.$off('store')
+        uni.$off('store:selected')
         uni.$off('payment')
     },
 
@@ -566,6 +719,23 @@ export default {
             const text = String(value)
             return text === 'NaN' || text === 'undefined' || text === 'null' ? '' : text
         },
+        async loadPointsFallback() {
+            try {
+                const [accountRes, userRes] = await Promise.all([
+                    getPointsAccount().catch(() => null),
+                    getUserInfo().catch(() => null)
+                ])
+                const account = accountRes && accountRes.code == 1 ? accountRes.data || {} : {}
+                const user = userRes && userRes.code == 1 ? userRes.data || {} : {}
+                this.pointsFallback = {
+                    ...account,
+                    user_integral: this.firstDefined(account.user_integral, account.userIntegral, account.available_points, account.availablePoints, account.points, user.user_integral, user.userIntegral, user.points, user.total_points, user.totalPoints, 0),
+                    available_points: this.firstDefined(account.available_points, account.availablePoints, account.points, user.available_points, user.availablePoints, user.user_integral, user.userIntegral, user.points, 0)
+                }
+            } catch (error) {
+                this.pointsFallback = {}
+            }
+        },
         couponAmountRaw(item = {}) {
             return this.firstDefined(
                 item.money,
@@ -601,6 +771,7 @@ export default {
         couponTypeText(item = {}) {
             const type = String(item.coupon_type || item.couponType || item.typeText || item.type || '').toUpperCase()
             const map = {
+                ORDER_CONFIRM_RECEIVABLE: '',
                 COUPON: '优惠券',
                 FULL: '满减券',
                 FULL_REDUCE: '满减券',
@@ -620,6 +791,7 @@ export default {
                 SHOP: '商家券',
                 STORE: '商家券'
             }
+            if (Object.prototype.hasOwnProperty.call(map, type)) return map[type]
             return map[type] || this.localizeCouponText(item.coupon_type || item.couponType || item.typeText || '优惠券')
         },
         couponTimeText(item = {}) {
@@ -631,6 +803,9 @@ export default {
                 AVAILABLE: '可使用',
                 UNAVAILABLE: '不可用',
                 RECEIVABLE: '可领取',
+                ORDER_CONFIRM_RECEIVABLE: '',
+                ORDER_CONFIRM_AVAILABLE: '',
+                ORDER_CONFIRM_UNAVAILABLE: '',
                 CLAIMABLE: '可领取',
                 RECEIVED: '已领取',
                 USED: '已使用',
@@ -646,8 +821,11 @@ export default {
                 FREE_SHIPPING: '包邮券'
             }
             const upper = text.toUpperCase()
-            if (exactMap[upper]) return exactMap[upper]
+            if (Object.prototype.hasOwnProperty.call(exactMap, upper)) return exactMap[upper]
             return text
+                .replace(/\bORDER_CONFIRM_RECEIVABLE\b/gi, '')
+                .replace(/\bORDER_CONFIRM_AVAILABLE\b/gi, '')
+                .replace(/\bORDER_CONFIRM_UNAVAILABLE\b/gi, '')
                 .replace(/\bAVAILABLE\b/gi, '可使用')
                 .replace(/\bUNAVAILABLE\b/gi, '不可用')
                 .replace(/\bRECEIVABLE\b/gi, '可领取')
@@ -700,9 +878,21 @@ export default {
                 coupon.couponId, coupon.coupon_id, coupon.templateId, coupon.template_id, coupon.couponTemplateId, coupon.coupon_template_id, coupon.id, coupon.userCouponId, coupon.user_coupon_id
             ].filter(value => value !== undefined && value !== null && value !== '').map(value => String(value))
         },
+        couponIdsIntersect(left = [], right = []) {
+            const ids = new Set((right || []).filter(value => value !== undefined && value !== null && value !== '').map(value => String(value)))
+            return (left || []).some(value => ids.has(String(value)))
+        },
         isCouponSelected(item = {}) {
-            if (!this.activeCouponId) return false
-            return this.couponCompareIds(item).includes(String(this.activeCouponId))
+            const ids = this.showCoupon
+                ? (this.pendingCouponCandidateIds.length ? this.pendingCouponCandidateIds : (this.pendingCouponId ? [this.pendingCouponId] : []))
+                : (this.selectedCouponCandidateIds.length ? this.selectedCouponCandidateIds : (this.couponId ? [this.couponId] : []))
+            if (!ids.length) return false
+            return this.couponIdsIntersect(this.couponCompareIds(item), ids)
+        },
+        isCouponPendingSelected(item = {}) {
+            const ids = this.pendingCouponCandidateIds.length ? this.pendingCouponCandidateIds : (this.pendingCouponId ? [this.pendingCouponId] : [])
+            if (!ids.length) return false
+            return this.couponIdsIntersect(this.couponCompareIds(item), ids)
         },
         couponReceivePayload(item = {}) {
             const id = this.couponKey(item)
@@ -746,13 +936,29 @@ export default {
         },
         normalizeStoreInfo(info = {}) {
             const id = info.id || info.shop_id || info.shopId || info.selffetch_shop_id || info.selffetchShopId || ''
+            const latitude = info.latitude ?? info.lat ?? info.location?.latitude ?? ''
+            const longitude = info.longitude ?? info.lng ?? info.location?.longitude ?? ''
+            const address = info.map_address || info.mapAddress || info.shop_address || info.address || info.detailAddress || info.detail_address || info.poiaddress || info.poiAddress || ''
             return {
                 ...info,
-                id,
-                name: info.name || info.shop_name || info.shopName || info.storeName || '自提门店',
-                shop_address: info.shop_address || info.address || info.detailAddress || info.detail_address || '',
-                mobile: info.mobile || info.phone || info.telephone || ''
+                id: id || (latitude && longitude ? `map_${latitude}_${longitude}` : ''),
+                name: address || info.name || info.shop_name || info.shopName || info.storeName || '地图选点地址',
+                map_address: address,
+                mapAddress: address,
+                shop_address: address,
+                address,
+                mobile: info.mobile || info.phone || info.telephone || '',
+                latitude,
+                longitude,
+                map_selected: Boolean(info.map_selected || info.mapSelected)
             }
+        },
+        applySelectedStore(info = {}) {
+            const store = this.normalizeStoreInfo(info)
+            if (!store.id && !(store.latitude && store.longitude)) return
+            this.storeInfo = store
+            const storeIndex = this.addressTabsList.findIndex(item => item.sign === 'store')
+            if (storeIndex !== -1) this.addressTabsIndex = storeIndex
         },
         changeDelivery(index) {
             this.addressTabsIndex = index
@@ -762,7 +968,10 @@ export default {
             uni.navigateTo({ url: `/bundle/pages/user_address/user_address?type=${1}` })
         },
         onAddressStore() {
-            uni.navigateTo({ url: `/bundle_misc/pages/store_list/store_list` })
+            const selected = this.storeInfo && (this.storeInfo.id || this.storeInfo.latitude || this.storeInfo.longitude)
+                ? `?selected=${encodeURIComponent(JSON.stringify(this.storeInfo))}`
+                : ''
+            uni.navigateTo({ url: `/bundle_misc/pages/store_list/store_list${selected}` })
         },
         changeIntegral() {
             if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) {
@@ -788,6 +997,7 @@ export default {
         onSelectCoupon(value) {
             this.couponId = value
             this.selectedCouponCache = this.usableCoupon.find(item => this.couponCompareIds(item).includes(String(value))) || null
+            this.selectedCouponCandidateIds = this.selectedCouponCache ? this.couponApplyIds(this.selectedCouponCache) : (value ? [value] : [])
             this.couponManuallyCleared = !value
             this.showCoupon = false
             this.handleOrderMethods('info')
@@ -805,11 +1015,26 @@ export default {
         },
         toggleCoupon(item = {}) {
             if (this.couponTabsIndex !== 0) return
+            if (this.isCouponPendingSelected(item)) {
+                this.pendingCouponId = ''
+                this.pendingCouponCache = null
+                this.pendingCouponCandidateIds = []
+                return
+            }
             const id = this.couponApplyId(item)
-            const nextId = this.isCouponSelected(item) ? '' : id
-            this.pendingCouponId = nextId
-            this.pendingCouponCache = nextId ? item : null
-            this.pendingCouponCandidateIds = nextId ? this.couponApplyIds(item) : []
+            if (!id) {
+                uni.showToast({ title: '优惠券缺少可用于下单的领取记录ID', icon: 'none' })
+                return
+            }
+            this.couponManuallyCleared = false
+            this.pendingCouponId = id
+            this.pendingCouponCache = item
+            this.pendingCouponCandidateIds = this.couponApplyIds(item)
+        },
+        clearPendingCoupon() {
+            this.pendingCouponId = ''
+            this.pendingCouponCache = null
+            this.pendingCouponCandidateIds = []
         },
         async receiveCoupon(item = {}) {
             const id = this.couponKey(item)
@@ -848,9 +1073,17 @@ export default {
             this.showCoupon = false
             this.couponId = this.pendingCouponId
             this.selectedCouponCache = this.pendingCouponCache
-            this.selectedCouponCandidateIds = this.pendingCouponCandidateIds.slice()
-            if (!this.couponId) this.couponManuallyCleared = true
-            else this.couponManuallyCleared = false
+            this.selectedCouponCandidateIds = this.pendingCouponCandidateIds.length
+                ? this.pendingCouponCandidateIds.slice()
+                : (this.selectedCouponCache ? this.couponApplyIds(this.selectedCouponCache) : (this.couponId ? [this.couponId] : []))
+            if (this.couponId && !this.selectedCouponCandidateIds.includes(String(this.couponId))) {
+                this.selectedCouponCandidateIds.unshift(String(this.couponId))
+            }
+            this.couponManuallyCleared = !this.couponId
+            if (this.couponId && this.orderInfo) {
+                this.$set(this.orderInfo, 'noCoupon', false)
+                this.$set(this.orderInfo, 'no_coupon', false)
+            }
             this.handleOrderMethods('info')
         },
         authWechatMessage() {
@@ -871,8 +1104,8 @@ export default {
             if (this.currentDelivery.sign === 'express' && !this.address.id) {
                 return this.$toast({ title: '请先选择收货地址' })
             }
-            if (this.currentDelivery.sign === 'store' && !this.storeInfo.id) {
-                return this.$toast({ title: '请先选择自提门店' })
+            if (this.currentDelivery.sign === 'store' && !this.storeInfo.id && !(this.storeInfo.latitude && this.storeInfo.longitude)) {
+                return this.$toast({ title: '请先选择自提地址' })
             }
             if (this.currentDelivery.sign === 'store' && (!this.userConsignee || !this.userMobile)) {
                 return this.$toast({ title: '请填写提货人和联系方式' })
@@ -930,7 +1163,10 @@ export default {
                 const selffetchInfo = data.selffetch_info || data.selffetchInfo || data.pickupInfo || {}
                 if (Object.keys(selffetchInfo).length) {
                     const responseStore = this.normalizeStoreInfo(selffetchInfo.selffetch_shop || selffetchInfo.selffetchShop || selffetchInfo.shop || {})
-                    this.storeInfo = responseStore.id ? responseStore : (this.storeInfo && this.storeInfo.id ? this.storeInfo : {})
+                    const userSelectedMapStore = this.storeInfo && this.storeInfo.map_selected && (this.storeInfo.id || (this.storeInfo.latitude && this.storeInfo.longitude))
+                    this.storeInfo = userSelectedMapStore
+                        ? this.storeInfo
+                        : (responseStore.id ? responseStore : (this.storeInfo && this.storeInfo.id ? this.storeInfo : {}))
                     this.userConsignee = selffetchInfo.contact || selffetchInfo.consignee || selffetchInfo.receiverName || this.userConsignee
                     this.userMobile = selffetchInfo.mobile || selffetchInfo.receiverMobile || this.userMobile
                 }
@@ -952,7 +1188,23 @@ export default {
             } catch (error) {}
         },
         previewDiscountAmount(data = {}) {
-            return this.moneyValue(data.discount_amount || data.discountAmount)
+            const explicitAmount = this.moneyValue(this.firstDefined(
+                data.discount_amount,
+                data.discountAmount,
+                data.coupon_discount_amount,
+                data.couponDiscountAmount,
+                data.coupon_amount,
+                data.couponAmount,
+                data.reduce_amount,
+                data.reduceAmount,
+                0
+            ))
+            if (explicitAmount > 0) return explicitAmount
+            const goodsAmount = this.moneyValue(this.firstDefined(data.total_goods_price, data.goodsAmount, data.goods_amount, 0))
+            const shippingPrice = this.currentDelivery.sign === 'store' ? 0 : this.moneyValue(this.firstDefined(data.shipping_price, data.freightAmount, data.freight_amount, 0))
+            const payAmount = this.moneyValue(this.firstDefined(data.order_amount, data.pay_amount, data.payAmount, data.actual_amount, data.actualAmount, 0))
+            if (goodsAmount + shippingPrice <= 0 || payAmount <= 0) return 0
+            return Math.max(goodsAmount + shippingPrice - payAmount - (this.useIntegral ? this.pointsDeductAmount : 0), 0)
         },
         async previewOrderWithCouponFallback(from) {
             if (this.teamId) return teamBuy(from)
@@ -964,6 +1216,8 @@ export default {
                     ...from,
                     coupon_id: id,
                     couponId: id,
+                    userCouponId: id,
+                    user_coupon_id: id,
                     couponIds: [id]
                 })
                 if (!fallbackRes) fallbackRes = res
@@ -1015,6 +1269,9 @@ export default {
                     this.selectedCouponCandidateIds = this.couponApplyIds(selected)
                 }
                 if (!selected && !this.selectedCouponCache) this.couponId = ''
+            } else {
+                this.selectedCouponCache = null
+                this.selectedCouponCandidateIds = []
             }
             if (!this.showCoupon) {
                 this.pendingCouponId = this.couponId
@@ -1047,6 +1304,9 @@ export default {
             const orderFrom = {
                 action,
                 goods: this.goods,
+                orderChannel: this.currentDelivery.sign === 'store' ? 'OFFLINE_PICKUP' : 'ONLINE',
+                goodsSource: this.detectGoodsSource(this.goods),
+                is1688: this.is1688Goods(this.goods),
                 delivery_type: this.delivery,
                 use_integral: this.useIntegral,
                 usePoints: Boolean(this.useIntegral),
@@ -1060,16 +1320,23 @@ export default {
                 addressId: this.addressId,
                 address_id: this.addressId,
                 address: this.address && this.address.id ? this.address : undefined,
-                coupon_id: this.couponId,
-                couponIds: this.couponId ? [this.couponId] : [],
+                coupon_id: this.couponManuallyCleared ? '' : this.couponId,
+                couponId: this.couponManuallyCleared ? '' : this.couponId,
+                userCouponId: this.couponManuallyCleared ? '' : this.couponId,
+                user_coupon_id: this.couponManuallyCleared ? '' : this.couponId,
+                couponIds: this.couponManuallyCleared || !this.couponId ? [] : [this.couponId],
+                coupon_ids: this.couponManuallyCleared || !this.couponId ? [] : [this.couponId],
+                noCoupon: this.couponManuallyCleared,
+                no_coupon: this.couponManuallyCleared,
                 bargain_launch_id: this.bargainLaunchId == -1 ? '' : this.bargainLaunchId
-            }
-            if (this.couponId) {
-                orderFrom.couponId = this.couponId
             }
             if (this.currentDelivery.sign === 'store') {
                 orderFrom.selffetch_shop_id = this.storeInfo.id
                 orderFrom.store_id = this.storeInfo.id
+                orderFrom.pickupLatitude = this.storeInfo.latitude
+                orderFrom.pickupLongitude = this.storeInfo.longitude
+                orderFrom.pickupAddress = this.storeAddressText
+                orderFrom.pickupName = this.storeAddressText
                 orderFrom.consignee = this.userConsignee
                 orderFrom.mobile = this.userMobile
             }
@@ -1083,6 +1350,27 @@ export default {
             }
             if (action === 'info') return this.initPageData(orderFrom)
             if (action === 'submit') return this.handleOrderSubmit(orderFrom)
+        },
+        detectGoodsSource(goods = []) {
+            const first = goods[0] || {}
+            return first.goodsSource || first.goods_source || first.source || first.platform || first.supplierType || first.supplier_type || (this.is1688Goods(goods) ? '1688' : 'SELF')
+        },
+        is1688Goods(goods = []) {
+            return goods.some((item = {}) => {
+                const text = [
+                    item.goodsSource,
+                    item.goods_source,
+                    item.source,
+                    item.platform,
+                    item.supplierType,
+                    item.supplier_type,
+                    item.thirdPlatform,
+                    item.third_platform,
+                    item.importSource,
+                    item.import_source
+                ].filter(Boolean).join(' ').toLowerCase()
+                return item.is1688 || item.is_1688 || /1688|alibaba|阿里巴巴/.test(text)
+            })
         }
     }
 }</script>
@@ -1390,6 +1678,45 @@ page {
     line-height: 30rpx;
 }
 
+.points-detail-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12rpx;
+    padding: 0 29rpx 24rpx;
+    box-sizing: border-box;
+}
+
+.points-detail-item {
+    min-width: 0;
+    padding: 16rpx 10rpx;
+    border-radius: 12rpx;
+    background: #fff7ef;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.points-detail-label,
+.points-detail-value {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.points-detail-label {
+    color: #a15c1c;
+    font-size: 20rpx;
+    line-height: 26rpx;
+}
+
+.points-detail-value {
+    margin-top: 8rpx;
+    color: #ff7417;
+    font-size: 22rpx;
+    font-weight: 600;
+    line-height: 28rpx;
+}
+
 .muted-value {
     font-size: 24rpx;
     font-weight: 400;
@@ -1642,6 +1969,14 @@ page {
     background: #f6f6f6;
 }
 
+.coupon-none {
+    margin: 20rpx 0;
+    padding: 28rpx 26rpx;
+    border-radius: 16rpx;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
 .coupon-obj {
     padding: 20rpx 24rpx;
 }
@@ -1693,6 +2028,34 @@ page {
 .coupon-receive-btn--disabled {
     background: #d6d9df;
     color: #ffffff;
+}
+
+.coupon-check {
+    position: relative;
+    flex: none;
+    width: 38rpx;
+    height: 38rpx;
+    margin-right: 22rpx;
+    border: 2rpx solid #c8ced8;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.coupon-check--active {
+    border-color: #037dfa;
+    background: #037dfa;
+}
+
+.coupon-check--active::after {
+    content: '';
+    position: absolute;
+    left: 11rpx;
+    top: 6rpx;
+    width: 10rpx;
+    height: 18rpx;
+    border-right: 4rpx solid #ffffff;
+    border-bottom: 4rpx solid #ffffff;
+    transform: rotate(45deg);
 }
 
 .coupon-tips {

@@ -179,9 +179,9 @@ author: likeshop.cn.team
                 <custom-image class="order-goods-image" width="168rpx" height="168rpx" radius="18rpx" mode="aspectFill" lazy-load :src="item.image_str || item.image"></custom-image>
                 <view class="order-goods-info">
                   <view class="order-goods-name line2">
-                    <text v-if="team.need" class="team-tag">{{ team.need }}人团</text>{{ item.goods_name || item.name }}
+                    <text v-if="team.need" class="team-tag">{{ team.need }}人团</text>{{ goodsName(item) }}
                   </view>
-                  <view class="order-goods-spec line1">{{ item.spec_value_str || item.spec_value || '默认规格' }}</view>
+                  <view v-if="goodsSpec(item)" class="order-goods-spec line1">{{ goodsSpec(item) }}</view>
                   <view class="order-goods-bottom">
                     <view class="order-goods-price">
                       <price-format :weight="500" :subscript-size="24" :first-size="34" :second-size="24" :price="item.original_price || item.goods_price"></price-format>
@@ -190,12 +190,12 @@ author: likeshop.cn.team
                   </view>
                 </view>
               </view>
-              <view class="order-goods-actions" v-if="item.comment_btn || item.refund_btn || item.after_status_desc">
-                <view class="after-status" v-if="item.after_status_desc">{{ item.after_status_desc }}</view>
+              <view class="order-goods-actions" v-if="item.comment_btn || canApplyRefund(item) || afterStatusText(item)">
+                <view class="after-status" v-if="afterStatusText(item)">{{ afterStatusText(item) }}</view>
                 <navigator hover-class="none" :url="'/bundle_order/pages/goods_reviews/goods_reviews?id=' + item.id" v-if="item.comment_btn">
                   <button size="xs" class="goods-action-btn" hover-class="none">评价晒图</button>
                 </navigator>
-                <navigator hover-class="none" :url="'/bundle_order/pages/apply_refund/apply_refund?order_id=' + item.order_id + '&item_id=' + item.item_id" v-if="item.refund_btn">
+                <navigator hover-class="none" :url="'/bundle_order/pages/apply_refund/apply_refund?order_id=' + item.order_id + '&item_id=' + item.item_id" v-if="canApplyRefund(item)">
                   <button size="xs" class="goods-action-btn" hover-class="none">申请退款</button>
                 </navigator>
               </view>
@@ -453,6 +453,7 @@ import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-c
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
 import UModal from '@/bundle/components/uview-ui/components/u-modal/u-modal.vue'
 import PriceFormat from '@/bundle/components/price-format/price-format.vue'
+import { cleanBackendText, cleanEmptyBackendText, isBackendCodeText } from '@/utils/backend-text'
 
 export default {
   data() {
@@ -681,7 +682,7 @@ export default {
       if (value === undefined || value === null || value === '') return '-';
       if (Array.isArray(value)) return value.length ? value.join('、') : '-';
       if (typeof value === 'object') return JSON.stringify(value);
-      return value;
+      return cleanEmptyBackendText(value, '') || '-';
     },
     buildRows(rows) {
       return rows
@@ -693,6 +694,12 @@ export default {
       const amount = Number(value);
       if (Number.isNaN(amount)) return value;
       return `¥${amount.toFixed(2)}`;
+    },
+    goodsName(item = {}) {
+      return cleanEmptyBackendText(item.goods_name || item.name, '商品信息');
+    },
+    goodsSpec(item = {}) {
+      return cleanEmptyBackendText(item.spec_value_str || item.spec_value, '');
     },
     joinText(list, separator = ' ') {
       return list.filter((item) => item !== undefined && item !== null && item !== '').join(separator);
@@ -713,11 +720,11 @@ export default {
     },
     formatDeliveryType(type) {
       const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', PICKUP: '门店自提' };
-      return map[type] || type;
+      return map[type] || cleanBackendText(type, '');
     },
     formatPayStatus(status) {
       const map = { UNPAID: '未支付', WAIT_PAY: '未支付', PAID: '已支付', SUCCESS: '已支付', REFUNDED: '已退款', REFUND: '已退款', CLOSED: '已关闭', CANCELLED: '已关闭', CANCELED: '已关闭', 0: '未支付', 1: '已支付' };
-      return map[String(status).toUpperCase()] || map[status] || status;
+      return map[String(status).toUpperCase()] || map[status] || cleanBackendText(status, '');
     },
     formatPayWay(value) {
       return '微信支付';
@@ -730,7 +737,72 @@ export default {
       if (/^submit-/i.test(text)) return '订单已提交'
       const map = { CREATED: '待付款', WAIT_PAY: '待付款', PENDING_PAY: '待付款', UNPAID: '待付款', SUBMITTED: '订单已提交', SUBMIT: '订单已提交', PAID: '待发货', WAIT_SHIP: '待发货', WAIT_DELIVERY: '待发货', SHIPPED: '待收货', WAIT_RECEIVE: '待收货', DELIVERED: '待收货', COMPLETED: '已完成', SUCCESS: '已完成', FINISHED: '已完成', REFUNDING: '售后处理中', REFUNDED: '已退款', CANCELLED: '已关闭', CANCELED: '已关闭', CLOSED: '已关闭', CLOSE: '已关闭', CLOSED_ORDER: '已关闭', 0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已关闭' };
       const mapped = map[text.toUpperCase()] || map[status];
-      return mapped || (/^[A-Z0-9_-]+$/.test(text) ? '订单处理中' : status);
+      return mapped || (isBackendCodeText(text) ? '订单处理中' : cleanBackendText(status, ''));
+    },
+    formatRefundStatusText(status) {
+      const text = String(status || '')
+      const map = {
+        APPLIED: '待商家处理',
+        PENDING: '待商家处理',
+        PENDING_REVIEW: '待商家处理',
+        WAIT_AUDIT: '待商家处理',
+        PROCESSING: '处理中',
+        REFUNDING: '退款中',
+        APPROVED: '商家已同意',
+        RETURNING: '待买家退货',
+        REJECTED: '商家已拒绝',
+        CANCELLED: '已撤销',
+        CANCELED: '已撤销',
+        REFUNDED: '退款成功',
+        SUCCESS: '退款成功',
+        FAILED: '退款失败',
+        0: '待商家处理',
+        1: '处理中',
+        2: '商家已同意',
+        3: '商家已同意',
+        4: '商家已拒绝',
+        5: '退款成功',
+        6: '已撤销'
+      }
+      return map[text.toUpperCase()] || map[status] || (isBackendCodeText(text) ? '售后处理中' : cleanBackendText(text, ''))
+    },
+    formatRefundTypeText(type) {
+      const text = String(type || '')
+      const map = {
+        ONLY_REFUND: '仅退款',
+        REFUND_ONLY: '仅退款',
+        REFUND: '仅退款',
+        RETURN_REFUND: '退货退款',
+        RETURN_AND_REFUND: '退货退款',
+        REFUND_RETURN: '退货退款',
+        RETURN: '退货退款',
+        0: '仅退款',
+        1: '退货退款'
+      }
+      return map[text.toUpperCase()] || map[type] || (text.includes('RETURN') ? '退货退款' : cleanBackendText(text, ''))
+    },
+    formatRefundReasonText(reason) {
+      const text = String(reason || '')
+      const map = {
+        QUALITY_PROBLEM: '商品质量问题',
+        WRONG_GOODS: '商品错发/漏发',
+        NOT_RECEIVED: '未收到货',
+        NO_REASON: '七天无理由',
+        DO_NOT_WANT: '拍错/多拍/不想要',
+        NOT_AS_DESCRIBED: '商品与描述不符',
+        DELAY_SHIPMENT: '未按约定时间发货',
+        OTHER: '其他'
+      }
+      return text.split(/[,，、]/).map(item => map[item.toUpperCase()] || item).join('、')
+    },
+    hasAfterSale(item = {}) {
+      return Boolean(item.after_sale_id || item.afterSaleId || item.refundNo || item.refund_no || item.after_sale || item.afterSale || item.refund_info || item.refundInfo)
+    },
+    afterStatusText(item = {}) {
+      return this.formatRefundStatusText(this.pickValue(item, ['after_status_desc', 'afterStatusDesc', 'refundStatusText', 'status_text']) || this.pickValue(item.after_sale || item.afterSale || {}, ['desc', 'statusText', 'status_text', 'status']) || this.pickValue(item.refund_info || item.refundInfo || {}, ['statusText', 'status_text', 'status']))
+    },
+    canApplyRefund(item = {}) {
+      return Boolean(item.refund_btn) && !this.hasAfterSale(item) && !this.afterStatusText(item)
     },
   },
   computed: {
@@ -813,10 +885,10 @@ export default {
     refundRows() {
       const refund = this.orderDetail.refund_info || {};
       return this.buildRows([
-        ['售后状态', this.formatOrderStatusText(this.pickValue(refund, ['statusText', 'status_text', 'refundStatusText', 'refund_status_text', 'status']))],
-        ['售后类型', this.pickValue(refund, ['typeText', 'type_text', 'refundTypeText', 'refund_type_text', 'type'])],
+        ['售后状态', this.formatRefundStatusText(this.pickValue(refund, ['statusText', 'status_text', 'refundStatusText', 'refund_status_text', 'status']))],
+        ['售后类型', this.formatRefundTypeText(this.pickValue(refund, ['typeText', 'type_text', 'refundTypeText', 'refund_type_text', 'type']))],
         ['退款金额', this.formatMoney(this.pickValue(refund, ['refundAmount', 'refund_amount', 'amount']))],
-        ['申请原因', this.pickValue(refund, ['reason', 'refundReason', 'refund_reason'])],
+        ['申请原因', this.formatRefundReasonText(this.pickValue(refund, ['reason', 'refundReason', 'refund_reason']))],
         ['申请时间', this.formatDisplayTime(this.pickValue(refund, ['createTime', 'create_time', 'applyTime', 'apply_time']))],
         ['处理时间', this.formatDisplayTime(this.pickValue(refund, ['handleTime', 'handle_time', 'auditTime', 'audit_time']))]
       ]);

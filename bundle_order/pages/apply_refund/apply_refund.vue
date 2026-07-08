@@ -211,6 +211,10 @@ export default {
     },
 
     onSubmit() {
+      if (!this.afterSaleId && this.goods && (this.goods.after_sale_id || this.goods.after_status_desc)) {
+        this.showExistingAfterSale();
+        return;
+      }
       if (this.afterSaleId) {
         this.applyAgainFun();
       } else {
@@ -288,6 +292,10 @@ export default {
         if (res.code == 1) {
           const result = res.data || {};
           const afterSaleId = result.after_sale_id || result.refundNo || result.refundId || result.id;
+          if (res.existingAfterSale || res.msg === '该订单正在退款/售后处理中，请勿重复申请') {
+            this.showExistingAfterSale(afterSaleId);
+            return;
+          }
           uni.$emit("refreshsale");
           this.$toast({
             title: "提交成功",
@@ -303,6 +311,16 @@ export default {
           }, 500);
         }
       });
+    },
+    showExistingAfterSale(afterSaleId = '') {
+      const id = afterSaleId || this.goods.after_sale_id || this.afterSaleId;
+      uni.showToast({ title: '该订单正在退款/售后处理中，请勿重复申请', icon: 'none' });
+      if (!id) return;
+      setTimeout(() => {
+        uni.redirectTo({
+          url: '/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=' + id + '&order_id=' + this.orderId
+        });
+      }, 500);
     },
 
     afterRead(e) {
@@ -333,6 +351,9 @@ export default {
           const data = res.data || {};
           this.goods = data.goods || {};
           this.reason = Array.isArray(data.reason) ? data.reason : [];
+          if (data.existingAfterSale || this.goods.after_sale_id || this.goods.after_status_desc) {
+            this.hiddenOpt = true;
+          }
         }
       });
     },

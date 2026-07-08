@@ -781,7 +781,11 @@ export function getOrderCommentList(data) {
 
 export function changeGoodsCount(data) {
     var cartItemId = data.cartItemId || data.cart_id
-    if (cartItemId) return request.put('miniapp/cart/items/' + cartItemId, { quantity: data.goods_num || data.quantity || data.value, checked: data.checked })
+    if (cartItemId) {
+        var payload = { quantity: data.goods_num || data.quantity || data.value }
+        if (data.checked !== undefined && data.checked !== null) payload.checked = data.checked
+        return request.put('miniapp/cart/items/' + cartItemId, payload)
+    }
     return request.post('miniapp/cart/items', { skuId: data.skuId || data.item_id || data.sku_id, quantity: data.goods_num || data.quantity || data.value })
 }
 
@@ -794,7 +798,12 @@ export function selectedOpt(data) {
                 return failed || { code: 1, data: results }
             })
         }
-        return request.put('miniapp/cart/items/' + cartItemId, { quantity: data.goods_num || data.quantity, checked: valueOr(data.checked, data.selected) })
+        var payload = {}
+        var quantity = data.goods_num || data.quantity
+        var checked = valueOr(data.checked, data.selected)
+        if (quantity !== undefined && quantity !== null) payload.quantity = quantity
+        if (checked !== undefined && checked !== null) payload.checked = checked
+        return request.put('miniapp/cart/items/' + cartItemId, payload)
     }
     return request.post('miniapp/cart/items', data)
 }
@@ -852,10 +861,72 @@ export function getPoster(data) {
     })
 }
 
-export function getStoreList(data) {
-    return request.get('miniapp/shop/' + (data.shop_id || data.shopId || ''), {
-        params: data
+export function getStoreList(data = {}) {
+    var params = Object.assign({}, data, {
+        pageNo: data.pageNo || data.page_no || data.page || 1,
+        pageSize: data.pageSize || data.page_size || 10,
+        keyword: data.keyword || data.name || ''
     })
+    var endpoints = [
+        'miniapp/selffetch-shops',
+        'miniapp/self-fetch/shops',
+        'miniapp/pickup/shops',
+        'miniapp/shop/list',
+        'miniapp/shops'
+    ]
+    var normalizeStore = function(item) {
+        var id = item.id || item.shop_id || item.shopId || item.selffetch_shop_id || item.selffetchShopId || item.storeId || item.store_id
+        return Object.assign({}, item, {
+            id: id,
+            shop_id: item.shop_id || id,
+            shopId: item.shopId || id,
+            selffetch_shop_id: item.selffetch_shop_id || id,
+            selffetchShopId: item.selffetchShopId || id,
+            name: item.name || item.shop_name || item.shopName || item.storeName || '自提门店',
+            shop_address: item.shop_address || item.address || item.detailAddress || item.detail_address || item.poiAddress || item.poiaddress || '',
+            business_status: item.business_status ?? item.businessStatus ?? item.openStatus ?? item.status ?? 1,
+            business_start_time: item.business_start_time || item.businessStartTime || item.openTime || '',
+            business_end_time: item.business_end_time || item.businessEndTime || item.closeTime || '',
+            mobile: item.mobile || item.phone || item.telephone || '',
+            latitude: item.latitude ?? item.lat ?? '',
+            longitude: item.longitude ?? item.lng ?? '',
+            distance: item.distance || item.distanceText || item.distance_text || ''
+        })
+    }
+    var normalizeRes = function(res) {
+        if (res.code != 1) return res
+        var payload = res.data || {}
+        var source = Array.isArray(payload) ? payload : (payload.list || payload.lists || payload.records || payload.rows || payload.items || payload.shops || payload.shopList || [])
+        var list = Array.isArray(source) ? source.map(normalizeStore) : []
+        var pageNo = payload.pageNo || payload.page_no || params.pageNo || 1
+        var pageSize = payload.pageSize || payload.page_size || params.pageSize || 10
+        var total = payload.total || list.length
+        var more = payload.hasNext ?? payload.more ?? (Number(total) > Number(pageNo) * Number(pageSize))
+        return Object.assign({}, res, {
+            data: Object.assign({}, !Array.isArray(payload) ? payload : {}, {
+                list: list,
+                lists: list,
+                pageNo: pageNo,
+                page_no: pageNo,
+                pageSize: pageSize,
+                page_size: pageSize,
+                total: total,
+                more: more,
+                hasNext: more
+            })
+        })
+    }
+    var requestList = function(index) {
+        return request.get(endpoints[index], { params: params }).then(function(res) {
+            if (res.code == 1) return normalizeRes(res)
+            if (index < endpoints.length - 1) return requestList(index + 1)
+            return normalizeRes(res)
+        }).catch(function(error) {
+            if (index < endpoints.length - 1) return requestList(index + 1)
+            throw error
+        })
+    }
+    return requestList(0)
 }
 
 export function getLiveRoom(data) {

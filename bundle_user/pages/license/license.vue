@@ -17,7 +17,7 @@
             <view class="license-approved__row"><text>商家名称</text><text>{{ form.merchantName || '-' }}</text></view>
             <view class="license-approved__row"><text>联系电话</text><text>{{ form.contactMobile || '-' }}</text></view>
             <view class="license-approved__row"><text>联系邮箱</text><text>{{ form.email || '-' }}</text></view>
-            <view class="license-approved__desc" v-if="form.remark">{{ form.remark }}</view>
+            <view class="license-approved__desc">{{ form.remark || '暂无网店说明' }}</view>
         </view>
         <view class="license-card" v-if="!isApproved">
             <view class="license-item">
@@ -46,6 +46,7 @@
 
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
+import { localizeBackendText, normalizeBackendCode } from '@/utils/backend-text'
     import { mapGetters } from "vuex"
     import {
         applyMerchantQualification,
@@ -76,10 +77,10 @@ import Navbar from '@/components/navbar/navbar.vue'
                 return this.userInfo.user_id || this.userInfo.userId || this.userInfo.id
             },
             auditStatus() {
-                return String(this.status.audit_status || this.status.auditStatus || this.status.status || '').toUpperCase()
+                return normalizeBackendCode(this.status.audit_status || this.status.auditStatus || this.status.status || '')
             },
             statusRemark() {
-                return this.status.audit_remark || this.status.auditRemark || this.status.remark || ''
+                return localizeBackendText(this.status.audit_remark || this.status.auditRemark || this.status.remark || '', '')
             },
             statusTime() {
                 const time = this.status.updated_at || this.status.updatedAt || this.status.updateTime || this.status.createTime || this.status.createdAt || ''
@@ -97,7 +98,7 @@ import Navbar from '@/components/navbar/navbar.vue'
                     REJECTED: '未通过',
                     REJECT: '未通过'
                 }
-                return statusMap[this.auditStatus] || this.auditStatus
+                return statusMap[this.auditStatus] || localizeBackendText(this.auditStatus, '审核中')
             },
             statusClass() {
                 const status = this.auditStatus
@@ -111,7 +112,11 @@ import Navbar from '@/components/navbar/navbar.vue'
             },
             submitButtonText() {
                 if (this.isApproved) return '已通过'
+                if (this.isPending) return '审核中'
                 return this.auditStatus ? '重新提交' : '去开通'
+            },
+            isPending() {
+                return ['SUBMITTED', 'PENDING', 'AUDITING', 'PENDING_AUDIT', 'WAIT_AUDIT'].includes(this.auditStatus)
             }
         },
         methods: {
@@ -153,6 +158,10 @@ import Navbar from '@/components/navbar/navbar.vue'
             submitApply() {
                 if (this.submitting) return
                 if (this.isApproved) return
+                if (this.isPending) {
+                    this.$toast({ title: '资质正在审核中' })
+                    return
+                }
                 const message = this.validateForm()
                 if (message) {
                     this.$toast({ title: message })

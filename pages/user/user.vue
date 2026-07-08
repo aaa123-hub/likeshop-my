@@ -17,7 +17,17 @@
                     <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '暂未设置用户名' : '点击登录') }}</view>
                     <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
                     <view class="my-page__member-id my-page__member-id--hint" v-else>{{ isLogin ? '完善昵称后，好友更容易识别你' : '登录体验更多功能' }}</view>
-                    <view v-if="isLogin" :class="['my-page__role-tag', roleStatusClass]">{{ roleSummaryText }}</view>
+                    <view v-if="isLogin" class="my-page__identity-row">
+                        <view :class="['my-page__identity-pill', baseIdentityClass]">{{ baseIdentityLabel }}</view>
+                        <view v-if="roleSummaryText" class="my-page__identity-text">{{ roleSummaryText }}</view>
+                    </view>
+                    <view v-if="isLogin" class="my-page__role-badges">
+                        <view
+                            v-for="item in displayRoleBadges"
+                            :key="item.code"
+                            :class="['my-page__role-badge', 'my-page__role-badge--' + item.code.toLowerCase()]"
+                        >{{ item.label }}</view>
+                    </view>
                 </view>
                 <image
                     class="my-page__setting"
@@ -147,7 +157,7 @@ import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
 import { getService } from '@/api/app'
-import { getRoleApplications, getRoles } from '@/api/user'
+import { getMerchantQualificationStatus, getRoleApplications, getRoles } from '@/api/user'
 
 export default {
     data() {
@@ -157,6 +167,7 @@ export default {
             showServiceModal: false,
 			roleApplications: [],
 			roleList: [],
+            merchantQualification: {},
 			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
             serviceContacts: [
                 { type: '微信', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
@@ -240,9 +251,14 @@ export default {
             if (!this.isLogin) {
                 this.roleApplications = []
                 this.roleList = []
+                this.merchantQualification = {}
                 return
             }
-            Promise.all([getRoleApplications().catch(() => null), getRoles().catch(() => null)]).then(([applicationsRes, rolesRes]) => {
+            Promise.all([
+                getRoleApplications().catch(() => null),
+                getRoles().catch(() => null),
+                getMerchantQualificationStatus({ userId: this.userInfo.user_id || this.userInfo.userId || this.userInfo.id }).catch(() => null)
+            ]).then(([applicationsRes, rolesRes, merchantRes]) => {
                 if (applicationsRes && applicationsRes.code == 1) {
                     const data = applicationsRes.data || {}
                     this.roleApplications = data.applications || data.list || []
@@ -251,12 +267,20 @@ export default {
                     const data = rolesRes.data || {}
                     this.roleList = data.roles || data.list || []
                 }
+                if (merchantRes && merchantRes.code == 1) {
+                    this.merchantQualification = merchantRes.data || {}
+                }
             })
         },
         roleLabel(roleCode) {
-            const map = { HEADQUARTERS: '总部', SUBSIDIARY: '子公司', OPERATION_CENTER: '区域代理', PROMOTER: '推广者', MERCHANT: '商家' }
-            const code = String(roleCode || '').toUpperCase()
+            const code = this.normalizeRoleCode(roleCode)
+            const map = { HQ: '总部', HEADQUARTERS: '总部', SUBSIDIARY: '子公司', AGENT: '区域代理', OPERATION_CENTER: '区域代理', PROMOTER: '推广者', MERCHANT: '商家' }
             return map[code] || code || '普通用户'
+        },
+        normalizeRoleCode(roleCode) {
+            const code = String(roleCode || '').toUpperCase()
+            const map = { HEADQUARTERS: 'HQ', OPERATION_CENTER: 'AGENT', AREA_AGENT: 'AGENT', COUNTY_AGENT: 'AGENT' }
+            return map[code] || code
         },
         roleStatusType(status) {
             const normalized = String(status || '').toUpperCase()
@@ -339,20 +363,60 @@ export default {
         },
         normalizedRoles() {
             const roles = this.roleList.length ? this.roleList : (this.userInfo.roles || this.userInfo.roleList || [])
-            return Array.isArray(roles) ? roles.map(item => typeof item === 'string' ? { roleCode: item } : item) : []
+            return Array.isArray(roles) ? roles.map(item => typeof item === 'string' ? { roleCode: this.normalizeRoleCode(item) } : { ...item, roleCode: this.normalizeRoleCode(item.roleCode || item.role_code || item.role) }) : []
         },
         approvedRoles() {
             const profileRoles = this.normalizedRoles.filter(item => item.roleCode || item.role_code || item.role)
             const applicationRoles = this.roleApplications.filter(item => this.roleStatusType(item.applicationStatus || item.auditStatus || item.status) === 'approved')
-            return profileRoles.concat(applicationRoles)
+                .map(item => ({ ...item, roleCode: this.normalizeRoleCode(item.roleCode || item.role_code || item.role) }))
+            const seen = new Set()
+            return profileRoles.concat(applicationRoles).filter((item) => {
+                const code = this.normalizeRoleCode(item.roleCode || item.role_code || item.role)
+                if (!code || code === 'MERCHANT' || seen.has(code)) return false
+                seen.add(code)
+                item.roleCode = code
+                return true
+            })
+        },
+        displayRoleBadges() {
+            const roles = this.approvedRoleEntries
+            if (roles.length) return roles.slice(0, 4)
+            if (this.activeRoleApplication) {
+                const code = this.normalizeRoleCode(this.activeRoleApplication.roleCode || this.activeRoleApplication.role_code || this.activeRoleApplication.role)
+                return [{
+                    code: code || 'pending',
+                    label: `${this.roleLabel(code)}${this.roleStatusLabel(this.activeRoleApplication.applicationStatus || this.activeRoleApplication.auditStatus || this.activeRoleApplication.status)}`
+                }]
+            }
+            return []
+        },
+        approvedRoleEntries() {
+            return this.approvedRoles.map(item => {
+                const code = this.normalizeRoleCode(item.roleCode || item.role_code || item.role)
+                return { ...item, code, label: this.roleLabel(code) }
+            })
         },
         promoterApplication() {
             return this.roleApplications.find(item => String(item.roleCode || item.role_code || item.role || '').toUpperCase() === 'PROMOTER') || null
         },
+        activeRoleApplication() {
+            return this.roleApplications.find(item => this.roleStatusType(item.applicationStatus || item.auditStatus || item.status) !== 'default') || null
+        },
         roleSummaryText() {
-            if (this.approvedRoles.length) return `当前角色：${this.approvedRoles.map(item => this.roleLabel(item.roleCode || item.role_code || item.role)).join('、')}`
-            if (this.promoterApplication) return `推广者申请：${this.roleStatusLabel(this.promoterApplication.applicationStatus || this.promoterApplication.auditStatus || this.promoterApplication.status)}`
-            return '当前角色：普通用户'
+            if (this.approvedRoles.length) return `附加角色：${this.approvedRoles.map(item => this.roleLabel(item.roleCode || item.role_code || item.role)).join('、')}`
+            if (this.activeRoleApplication) return `${this.roleLabel(this.activeRoleApplication.roleCode || this.activeRoleApplication.role_code || this.activeRoleApplication.role)}${this.roleStatusLabel(this.activeRoleApplication.applicationStatus || this.activeRoleApplication.auditStatus || this.activeRoleApplication.status)}`
+            return ''
+        },
+        isMerchantApproved() {
+            const status = String(this.merchantQualification.audit_status || this.merchantQualification.auditStatus || this.merchantQualification.status || this.userInfo.merchantStatus || this.userInfo.merchant_status || '').toUpperCase()
+            const flag = this.userInfo.isMerchant || this.userInfo.is_merchant || this.userInfo.merchantId || this.userInfo.merchant_id
+            return Boolean(flag) || ['APPROVED', 'PASS', 'PASSED', 'SUCCESS', 'REALNAME_VERIFIED'].includes(status)
+        },
+        baseIdentityLabel() {
+            return this.isMerchantApproved ? '商家' : '普通用户'
+        },
+        baseIdentityClass() {
+            return this.isMerchantApproved ? 'my-page__role-tag--merchant' : 'my-page__role-tag--normal'
         },
         roleStatusClass() {
             if (this.approvedRoles.length) return 'my-page__role-tag--approved'
@@ -360,9 +424,8 @@ export default {
             return ''
         },
         promoterEntryName() {
-            if (this.approvedRoles.some(item => String(item.roleCode || item.role_code || item.role || '').toUpperCase() === 'PROMOTER')) return '推广者中心'
-            if (this.promoterApplication) return `推广者${this.roleStatusLabel(this.promoterApplication.applicationStatus || this.promoterApplication.auditStatus || this.promoterApplication.status)}`
-            return '成为推广者'
+            if (this.activeRoleApplication) return `角色${this.roleStatusLabel(this.activeRoleApplication.applicationStatus || this.activeRoleApplication.auditStatus || this.activeRoleApplication.status)}`
+            return '角色申请'
         }
     }
 }
@@ -389,7 +452,7 @@ export default {
 .my-page__screen {
     position: relative;
     width: 100%;
-    min-height: calc(1918rpx + var(--page-safe-top));
+    min-height: calc(2168rpx + var(--page-safe-top));
     overflow: visible;
 }
 
@@ -433,15 +496,16 @@ export default {
     left: 36rpx;
     right: 34rpx;
     top: calc(var(--page-safe-top) + 104rpx);
-    height: 142rpx;
+    min-height: 178rpx;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .my-page__avatar {
     width: 142rpx;
     height: 142rpx;
     flex: none;
+    margin-top: 6rpx;
 }
 
 .my-page__profile-text {
@@ -484,18 +548,34 @@ export default {
     color: #037dfa;
 }
 
-.my-page__role-tag {
-    display: inline-flex;
+.my-page__identity-row {
+    display: flex;
     align-items: center;
-    max-width: 420rpx;
-    height: 34rpx;
+    gap: 10rpx;
     margin-top: 10rpx;
+}
+
+.my-page__identity-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: 36rpx;
     padding: 0 16rpx;
     color: #666666;
     font-size: 22rpx;
-    line-height: 34rpx;
+    line-height: 36rpx;
     background: rgba(255, 255, 255, 0.72);
     border-radius: 18rpx;
+    white-space: nowrap;
+}
+
+.my-page__identity-text {
+    flex: 1;
+    min-width: 0;
+    color: #666666;
+    font-size: 22rpx;
+    line-height: 34rpx;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -514,6 +594,41 @@ export default {
 .my-page__role-tag--rejected {
     color: #ff2c3c;
     background: rgba(255, 44, 60, 0.1);
+}
+
+.my-page__role-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8rpx;
+    max-height: 44rpx;
+    margin-top: 8rpx;
+    overflow: hidden;
+}
+
+.my-page__role-badge {
+    height: 34rpx;
+    padding: 0 14rpx;
+    border-radius: 17rpx;
+    color: #666666;
+    background: rgba(255, 255, 255, .76);
+    font-size: 21rpx;
+    line-height: 34rpx;
+}
+
+.my-page__role-badge--promoter { color: #037dfa; background: #eaf4ff; }
+.my-page__role-badge--agent { color: #00a66a; background: #eafff6; }
+.my-page__role-badge--subsidiary { color: #8a5cf6; background: #f1edff; }
+.my-page__role-badge--hq { color: #d98200; background: #fff6e6; }
+.my-page__role-badge--merchant { color: #b27135; background: #fff3e8; }
+.my-page__role-badge--normal { color: #667085; background: rgba(255, 255, 255, .78); }
+.my-page__role-tag--merchant {
+    color: #b27135;
+    background: #fff3e8;
+}
+
+.my-page__role-tag--normal {
+    color: #667085;
+    background: rgba(255, 255, 255, .78);
 }
 
 .service-modal {
@@ -665,7 +780,7 @@ export default {
 .my-page__setting {
     width: 37rpx;
     height: 42rpx;
-    margin-left: 24rpx;
+    margin: 10rpx 0 0 24rpx;
     flex: none;
 }
 
@@ -723,7 +838,7 @@ export default {
     position: absolute;
     left: 26rpx;
     right: 26rpx;
-    top: calc(var(--page-safe-top) + 395rpx);
+    top: calc(var(--page-safe-top) + 474rpx);
     height: 184rpx;
     border-radius: 24rpx;
     box-shadow: 0 16rpx 38rpx rgba(31, 122, 244, 0.12);
@@ -740,7 +855,7 @@ export default {
 }
 
 .my-section--online {
-    top: calc(var(--page-safe-top) + 611rpx);
+    top: calc(var(--page-safe-top) + 690rpx);
     min-height: 213rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
@@ -751,22 +866,22 @@ export default {
 }
 
 .my-section--pair-1 {
-    top: calc(var(--page-safe-top) + 845rpx);
+    top: calc(var(--page-safe-top) + 924rpx);
 }
 
 .my-section--pair-2 {
-    top: calc(var(--page-safe-top) + 1079rpx);
+    top: calc(var(--page-safe-top) + 1158rpx);
 }
 
 .my-section--value {
-    top: calc(var(--page-safe-top) + 1313rpx);
+    top: calc(var(--page-safe-top) + 1392rpx);
     min-height: 237rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-section--feature {
-    top: calc(var(--page-safe-top) + 1572rpx);
+    top: calc(var(--page-safe-top) + 1651rpx);
     min-height: 322rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;

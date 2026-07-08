@@ -1976,3 +1976,81 @@ local: /docs/二维码.png
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png
 response: {"code":"0","message":"SUCCESS","traceId":"469dd910-c808-4cee-8b49-d0ad1d440ab3","data":{"contentType":"image/png","fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png","size":19256,"url":"https://shengyuan.store/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png","objectName":"miniapp/5ace95d131b045d09668afcd4933e117/_________.png","bucket":"ai-shop","fileName":"_________.png","path":"/api/miniapp/files/miniapp/5ace95d131b045d09668afcd4933e117/_________.png"},"timestamp":"2026-07-01T10:14:23.473423180Z"}
+
+# 用户KYC蓝湖图片上传 - 2026-07-08T06:17:32.380Z
+[success] 用户KYC - 返回图标
+key: kyc_back_icon
+local: https://lanhu-oss-proxy.lanhuapp.com/097ab946dbaa04397e2e5764e5ce75da
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/4319d1ba5ac6419ea63a5fa32f7ce9dd/kyc_back_icon-097ab946dbaa04397e2e5764e5ce75da.png
+response: {"code":"0","message":"SUCCESS","traceId":"ee284b88-e7a1-48b3-bb54-680c28154461","data":{"bucket":"ai-shop","objectName":"miniapp/4319d1ba5ac6419ea63a5fa32f7ce9dd/kyc_back_icon-097ab946dbaa04397e2e5764e5ce75da.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/4319d1ba5ac6419ea63a5fa32f7ce9dd/kyc_back_icon-097ab946dbaa04397e2e5764e5ce75da.png","size":2294,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/4319d1ba5ac6419ea63a5fa32f7ce9dd/kyc_back_icon-097ab946dbaa04397e2e5764e5ce75da.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/4319d1ba5ac6419ea63a5fa32f7ce9dd/kyc_back_icon-097ab946dbaa04397e2e5764e5ce75da.png","fileName":"kyc_back_icon-097ab946dbaa04397e2e5764e5ce75da.png"},"timestamp":"2026-07-08T06:17:31.331761315Z"}
+
+[success] 用户KYC - 分割线1
+key: kyc_line_1
+local: https://lanhu-oss-proxy.lanhuapp.com/73a3a71052c4f23b4e7b446a6a600c80
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/931cf4a08b9b4b6fac089a01df57745c/kyc_line_1-73a3a71052c4f23b4e7b446a6a600c80.png
+response: {"code":"0","message":"SUCCESS","traceId":"0afe441f-ef72-4e5e-9e71-1f94c555482c","data":{"bucket":"ai-shop","objectName":"miniapp/931cf4a08b9b4b6fac089a01df57745c/kyc_line_1-73a3a71052c4f23b4e7b446a6a600c80.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/931cf4a08b9b4b6fac089a01df57745c/kyc_line_1-73a3a71052c4f23b4e7b446a6a600c80.png","size":1966,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/931cf4a08b9b4b6fac089a01df57745c/kyc_line_1-73a3a71052c4f23b4e7b446a6a600c80.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/931cf4a08b9b4b6fac089a01df57745c/kyc_line_1-73a3a71052c4f23b4e7b446a6a600c80.png","fileName":"kyc_line_1-73a3a71052c4f23b4e7b446a6a600c80.png"},"timestamp":"2026-07-08T06:17:31.437397497Z"}
+
+[success] 用户KYC - 分割线2
+key: kyc_line_2
+local: https://lanhu-oss-proxy.lanhuapp.com/34db1a6092cd233ad20d0d9b92b5dda0
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/d6c1adfea8734be8b412c4e905a1f0c0/kyc_line_2-34db1a6092cd233ad20d0d9b92b5dda0.png
+response: {"code":"0","message":"SUCCESS","traceId":"82324ec3-3893-4d79-b545-2eecfd1d58d8","data":{"bucket":"ai-shop","objectName":"miniapp/d6c1adfea8734be8b412c4e905a1f0c0/kyc_line_2-34db1a6092cd233ad20d0d9b92b5dda0.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/d6c1adfea8734be8b412c4e905a1f0c0/kyc_line_2-34db1a6092cd233ad20d0d9b92b5dda0.png","size":1966,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/d6c1adfea8734be8b412c4e905a1f0c0/kyc_line_2-34db1a6092cd233ad20d0d9b92b5dda0.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/d6c1adfea8734be8b412c4e905a1f0c0/kyc_line_2-34db1a6092cd233ad20d0d9b92b5dda0.png","fileName":"kyc_line_2-34db1a6092cd233ad20d0d9b92b5dda0.png"},"timestamp":"2026-07-08T06:17:31.534864046Z"}
+
+[success] 用户KYC - 分割线3
+key: kyc_line_3
+local: https://lanhu-oss-proxy.lanhuapp.com/80e3ce4e12515ddfce0e84556ddb4f90
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/ee3af1b3883e44feb0f2c47c2133c547/kyc_line_3-80e3ce4e12515ddfce0e84556ddb4f90.png
+response: {"code":"0","message":"SUCCESS","traceId":"b8a7d7b8-2b67-44d9-95eb-d17155394919","data":{"bucket":"ai-shop","objectName":"miniapp/ee3af1b3883e44feb0f2c47c2133c547/kyc_line_3-80e3ce4e12515ddfce0e84556ddb4f90.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/ee3af1b3883e44feb0f2c47c2133c547/kyc_line_3-80e3ce4e12515ddfce0e84556ddb4f90.png","size":1966,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/ee3af1b3883e44feb0f2c47c2133c547/kyc_line_3-80e3ce4e12515ddfce0e84556ddb4f90.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/ee3af1b3883e44feb0f2c47c2133c547/kyc_line_3-80e3ce4e12515ddfce0e84556ddb4f90.png","fileName":"kyc_line_3-80e3ce4e12515ddfce0e84556ddb4f90.png"},"timestamp":"2026-07-08T06:17:31.630857396Z"}
+
+[success] 用户KYC - 上传占位图标
+key: kyc_upload_icon
+local: https://lanhu-oss-proxy.lanhuapp.com/55f17afc942884185b55bbcecd87de64
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/4e0997cbf20e4dada514532ec3f0b327/kyc_upload_icon-55f17afc942884185b55bbcecd87de64.png
+response: {"code":"0","message":"SUCCESS","traceId":"64d52421-e15b-4aa0-9cd3-7ce1b6ca1e0c","data":{"bucket":"ai-shop","objectName":"miniapp/4e0997cbf20e4dada514532ec3f0b327/kyc_upload_icon-55f17afc942884185b55bbcecd87de64.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/4e0997cbf20e4dada514532ec3f0b327/kyc_upload_icon-55f17afc942884185b55bbcecd87de64.png","size":3878,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/4e0997cbf20e4dada514532ec3f0b327/kyc_upload_icon-55f17afc942884185b55bbcecd87de64.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/4e0997cbf20e4dada514532ec3f0b327/kyc_upload_icon-55f17afc942884185b55bbcecd87de64.png","fileName":"kyc_upload_icon-55f17afc942884185b55bbcecd87de64.png"},"timestamp":"2026-07-08T06:17:31.726548965Z"}
+
+[success] 用户KYC - 加号图标
+key: kyc_plus_icon
+local: https://lanhu-oss-proxy.lanhuapp.com/ac126f69b68c9ba9c828f7e0d04cc427
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/0e3eb700081d496093648bc6b04d8c6d/kyc_plus_icon-ac126f69b68c9ba9c828f7e0d04cc427.png
+response: {"code":"0","message":"SUCCESS","traceId":"62ad83af-f58f-4367-a282-306b54111765","data":{"bucket":"ai-shop","objectName":"miniapp/0e3eb700081d496093648bc6b04d8c6d/kyc_plus_icon-ac126f69b68c9ba9c828f7e0d04cc427.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/0e3eb700081d496093648bc6b04d8c6d/kyc_plus_icon-ac126f69b68c9ba9c828f7e0d04cc427.png","size":2523,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/0e3eb700081d496093648bc6b04d8c6d/kyc_plus_icon-ac126f69b68c9ba9c828f7e0d04cc427.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/0e3eb700081d496093648bc6b04d8c6d/kyc_plus_icon-ac126f69b68c9ba9c828f7e0d04cc427.png","fileName":"kyc_plus_icon-ac126f69b68c9ba9c828f7e0d04cc427.png"},"timestamp":"2026-07-08T06:17:31.824547059Z"}
+
+[success] 用户KYC - 顶部插画
+key: kyc_hero_illustration
+local: https://lanhu-oss-proxy.lanhuapp.com/447f889fdd7aba2d9c33e93eeb15e50b
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/2668ecfb67e44216b32b672605d879ed/kyc_hero_illustration-447f889fdd7aba2d9c33e93eeb15e50b.png
+response: {"code":"0","message":"SUCCESS","traceId":"86398531-27c0-4a45-8537-7de97d5ade5f","data":{"bucket":"ai-shop","objectName":"miniapp/2668ecfb67e44216b32b672605d879ed/kyc_hero_illustration-447f889fdd7aba2d9c33e93eeb15e50b.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/2668ecfb67e44216b32b672605d879ed/kyc_hero_illustration-447f889fdd7aba2d9c33e93eeb15e50b.png","size":55998,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/2668ecfb67e44216b32b672605d879ed/kyc_hero_illustration-447f889fdd7aba2d9c33e93eeb15e50b.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/2668ecfb67e44216b32b672605d879ed/kyc_hero_illustration-447f889fdd7aba2d9c33e93eeb15e50b.png","fileName":"kyc_hero_illustration-447f889fdd7aba2d9c33e93eeb15e50b.png"},"timestamp":"2026-07-08T06:17:32.035993788Z"}
+
+[success] 用户KYC - 页面背景
+key: kyc_page_bg
+local: https://lanhu-oss-proxy.lanhuapp.com/b9e7de2c995ec4fb96c591809908a10d
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/34a5b1926f48421cab099da90818f6ab/kyc_page_bg-b9e7de2c995ec4fb96c591809908a10d.png
+response: {"code":"0","message":"SUCCESS","traceId":"9191ed78-42f0-46c8-b631-14c3187ba597","data":{"bucket":"ai-shop","objectName":"miniapp/34a5b1926f48421cab099da90818f6ab/kyc_page_bg-b9e7de2c995ec4fb96c591809908a10d.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/34a5b1926f48421cab099da90818f6ab/kyc_page_bg-b9e7de2c995ec4fb96c591809908a10d.png","size":8078,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/34a5b1926f48421cab099da90818f6ab/kyc_page_bg-b9e7de2c995ec4fb96c591809908a10d.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/34a5b1926f48421cab099da90818f6ab/kyc_page_bg-b9e7de2c995ec4fb96c591809908a10d.png","fileName":"kyc_page_bg-b9e7de2c995ec4fb96c591809908a10d.png"},"timestamp":"2026-07-08T06:17:32.128028466Z"}
+
+[success] 用户KYC - 顶部背景
+key: kyc_header_bg
+local: https://lanhu-oss-proxy.lanhuapp.com/033bdca85e38f41ccfbda94133198053
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/cf66415bf11441ca96eb58ecdfcaa419/kyc_header_bg-033bdca85e38f41ccfbda94133198053.png
+response: {"code":"0","message":"SUCCESS","traceId":"689ec6a4-f09d-45a3-a4b9-80ce973ef02d","data":{"bucket":"ai-shop","objectName":"miniapp/cf66415bf11441ca96eb58ecdfcaa419/kyc_header_bg-033bdca85e38f41ccfbda94133198053.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/cf66415bf11441ca96eb58ecdfcaa419/kyc_header_bg-033bdca85e38f41ccfbda94133198053.png","size":32806,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/cf66415bf11441ca96eb58ecdfcaa419/kyc_header_bg-033bdca85e38f41ccfbda94133198053.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/cf66415bf11441ca96eb58ecdfcaa419/kyc_header_bg-033bdca85e38f41ccfbda94133198053.png","fileName":"kyc_header_bg-033bdca85e38f41ccfbda94133198053.png"},"timestamp":"2026-07-08T06:17:32.230320029Z"}
+
+[success] 用户KYC - 证件正面背景
+key: kyc_photo_front_bg
+local: https://lanhu-oss-proxy.lanhuapp.com/7cfc48b4017c60cab0cd1f4dfe85fa05
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/73f494794de84fd4be4a4b224d535dff/kyc_photo_front_bg-7cfc48b4017c60cab0cd1f4dfe85fa05.png
+response: {"code":"0","message":"SUCCESS","traceId":"414d9a88-6456-43de-9ee7-1cc93cbc5199","data":{"bucket":"ai-shop","objectName":"miniapp/73f494794de84fd4be4a4b224d535dff/kyc_photo_front_bg-7cfc48b4017c60cab0cd1f4dfe85fa05.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/73f494794de84fd4be4a4b224d535dff/kyc_photo_front_bg-7cfc48b4017c60cab0cd1f4dfe85fa05.png","size":33710,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/73f494794de84fd4be4a4b224d535dff/kyc_photo_front_bg-7cfc48b4017c60cab0cd1f4dfe85fa05.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/73f494794de84fd4be4a4b224d535dff/kyc_photo_front_bg-7cfc48b4017c60cab0cd1f4dfe85fa05.png","fileName":"kyc_photo_front_bg-7cfc48b4017c60cab0cd1f4dfe85fa05.png"},"timestamp":"2026-07-08T06:17:32.347678595Z"}
+
+[success] 用户KYC - 证件反面背景
+key: kyc_photo_back_bg
+local: https://lanhu-oss-proxy.lanhuapp.com/e46b78fd9e4096a3a4374942a753e7e5
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png
+response: {"code":"0","message":"SUCCESS","traceId":"cd761d19-cf8d-46ad-9da5-764f1b6b9074","data":{"bucket":"ai-shop","objectName":"miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","size":11535,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","fileName":"kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png"},"timestamp":"2026-07-08T06:17:32.457237202Z"}

@@ -645,6 +645,22 @@
 					}
 				},
 				{
+					"path": "pages/business_pages/role_workbench",
+					"style": {
+						"navigationBarTitleText": "角色工作台",
+						"navigationStyle": "custom",
+						"enablePullDownRefresh": true
+					}
+				},
+				{
+					"path": "pages/business_pages/points_ledger",
+					"style": {
+						"navigationBarTitleText": "积分流水",
+						"navigationStyle": "custom",
+						"enablePullDownRefresh": true
+					}
+				},
+				{
 					"path": "pages/page_index/page_index",
 					"style": {
 						"navigationBarTitleText": "页面总览",

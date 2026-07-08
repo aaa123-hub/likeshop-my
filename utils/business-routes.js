@@ -46,6 +46,8 @@ export const businessRoutes = {
     userOrder: { name: "我的订单", url: "/bundle_order/pages/user_order/user_order" },
     userKyc: { name: "用户KYC", url: "/business/pages/business_pages/user_kyc" },
     promoterApply: { name: "角色申请", url: "/business/pages/business_pages/promoter_apply" },
+    roleWorkbench: { name: "角色工作台", url: "/business/pages/business_pages/role_workbench" },
+    pointsLedger: { name: "积分流水", url: "/business/pages/business_pages/points_ledger" },
     confirmOrder: {
       name: "确认订单",
       url:

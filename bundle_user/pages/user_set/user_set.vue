@@ -456,19 +456,26 @@ export default {
         // end
 
         async getPhoneNumber(e) {
-            const { encryptedData, iv } = e.detail
-                let data = {
-                code: this.code,
-                smsCode: this.code,
+            const { encryptedData, iv, code: phoneCode, errMsg } = e.detail || {}
+            if (!phoneCode && !encryptedData) {
+                this.$toast({ title: errMsg && errMsg.includes('deny') ? '已取消手机号授权' : '未获取到手机号授权' })
+                return
+            }
+            let data = {
                 jsCode: this.code,
                 loginCode: this.code,
                 wxCode: this.code,
+                code: phoneCode,
+                phoneCode,
+                phone_code: phoneCode,
                 encrypted_data: encryptedData,
                 encryptedData,
-                iv
+                iv,
+                scene: SMSType.BIND,
+                action: 'bind'
             }
             this.fieldType = FieldType.MOBILE
-            if (encryptedData) {
+            if (phoneCode || encryptedData) {
                 this.$changeUserMobileMP(data)
             }
         },

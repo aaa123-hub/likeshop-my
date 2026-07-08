@@ -220,6 +220,7 @@ import OrderGoods from '@/bundle_order/components/order-goods/order-goods.vue'
 import LoadingFooter from '@/components/loading-footer/loading-footer.vue'
 import LoadingView from '@/components/loading-view/loading-view.vue'
 import OrderDialog from '@/bundle_order/components/order-dialog/order-dialog.vue'
+import { cleanBackendText, cleanEmptyBackendText, isBackendCodeText } from '@/utils/backend-text'
 export default {
   data() {
     return {
@@ -482,6 +483,12 @@ export default {
     normalizeStatus(value) {
       return String(value || '').toUpperCase();
     },
+    cleanText(value, fallback = '') {
+      return cleanBackendText(value, fallback);
+    },
+    cleanPlainText(value, fallback = '') {
+      return cleanEmptyBackendText(value, fallback);
+    },
     isClosedOrder(item) {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
       return item.order_status == 4 || item.close_btn || item.closed_btn || ['CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER'].includes(status);
@@ -526,7 +533,7 @@ export default {
       };
       if (map[status]) return map[status];
       if (this.isClosedOrder(item)) return '已关闭';
-      return (/^[A-Z0-9_-]+$/.test(String(rawText))) ? '订单处理中' : (rawText || this.getOrderStatus(item.order_status) || '处理中');
+      return isBackendCodeText(rawText) ? '订单处理中' : (this.cleanText(rawText) || this.getOrderStatus(item.order_status) || '处理中');
     },
     orderStatusClass(item) {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
@@ -546,26 +553,26 @@ export default {
     },
     formatDeliveryType(type) {
       const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', PICKUP: '门店自提' };
-      return map[type] || type || '';
+      return map[type] || this.cleanText(type);
     },
     formatPayWay(value) {
       const map = { WECHAT_JSAPI: '微信支付', WECHAT: '微信支付', ALIPAY: '支付宝', BALANCE: '余额支付', OFFLINE: '线下支付', 1: '微信支付', 2: '支付宝', 3: '余额支付' };
-      return map[value] || value || '';
+      return map[value] || this.cleanText(value);
     },
     formatPayStatus(status) {
       const map = { UNPAID: '未支付', PAID: '已支付', REFUNDED: '已退款', CLOSED: '已关闭', 0: '未支付', 1: '已支付' };
-      return map[status] || status || '';
+      return map[status] || this.cleanText(status);
     },
     orderMetaRows(item) {
       return [
-        { label: '订单类型', value: item.order_type_desc },
-        { label: '商家', value: item.shop_name || item.shopName },
+        { label: '订单类型', value: this.cleanText(item.order_type_desc) },
+        { label: '商家', value: this.cleanPlainText(item.shop_name || item.shopName) },
         { label: '下单时间', value: this.formatDisplayTime(item.create_time || item.createTime || item.createdAt) },
         { label: '支付时间', value: this.formatDisplayTime(item.pay_time || item.payTime || item.paidAt) },
         { label: '配送方式', value: this.formatDeliveryType(item.delivery_type || item.deliveryType) },
         { label: '支付方式', value: this.formatPayWay(item.pay_way_text || item.payMethod || item.pay_way) },
         { label: '支付状态', value: this.formatPayStatus(item.pay_status || item.payStatus) }
-      ].filter((row) => row.value !== undefined && row.value !== null && row.value !== '');
+      ].filter((row) => this.cleanText(row.value) !== '');
     },
   },
   computed: {

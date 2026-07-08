@@ -62,19 +62,29 @@ export default {
       if (!options.query) return;
       const scene = options.query.scene;
       let invite_code = options.query.invite_code;
+      let promoterUserId = options.query.promoterUserId || options.query.uid || "";
+      let roleCode = options.query.role || options.query.roleCode || "";
       if (!invite_code && scene) {
         try {
-          invite_code = strToParams(decodeURIComponent(scene)).invite_code;
+          const decodedScene = decodeURIComponent(scene);
+          const sceneParams = strToParams(decodedScene);
+          invite_code = sceneParams.invite_code || sceneParams.inviteCode || sceneParams.code || sceneParams.allianceCode || "";
+          const uidMatch = decodedScene.match(/(?:^|&)uid_([^&]+)/);
+          promoterUserId = promoterUserId || String(sceneParams.promoterUserId || sceneParams.promoter_user_id || sceneParams.uid || sceneParams.userId || "").replace(/^uid_/, "") || (uidMatch && uidMatch[1]) || "";
+          roleCode = roleCode || sceneParams.role || sceneParams.roleCode || sceneParams.role_type || sceneParams.roleType || "";
         } catch (e) {
           return;
         }
       }
-      if (invite_code) {
+      if (invite_code || promoterUserId) {
         inputInviteCode({
           code: invite_code,
+          promoterUserId,
+          roleCode,
+          scene,
         }).then((res) => {
           if (res.code == -1) {
-            Cache.set("INVITE_CODE", invite_code);
+            Cache.set("INVITE_CODE", { invite_code, promoterUserId, roleCode, scene });
           }
         });
       }

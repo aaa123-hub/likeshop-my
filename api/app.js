@@ -297,9 +297,10 @@ export function opLogin(data) {
 //预支付接口
 export async function prepay(data = {}) {
   const openId = data.openId || data.openid || data.open_id || currentOpenId();
+  const bizOrderNo = data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id;
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
-    bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
+    bizOrderNo,
     amount: firstDefined(data.amount, data.payAmount, data.order_amount),
     payScene: data.payScene || "MINIAPP",
     payMethod: "WECHAT_JSAPI",
@@ -307,7 +308,7 @@ export async function prepay(data = {}) {
     openId,
     idempotentKey:
       data.idempotentKey ||
-      `pay-${data.order_id || data.bizOrderNo || Date.now()}-WECHAT_JSAPI`,
+      `pay-${bizOrderNo || Date.now()}-WECHAT_JSAPI`,
     client,
   });
   return normalizePaymentResponse(res);

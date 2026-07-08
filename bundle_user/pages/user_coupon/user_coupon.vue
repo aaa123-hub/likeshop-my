@@ -25,7 +25,7 @@
                 <view class="coupon-card__info">
                     <view class="coupon-card__name line1">{{ item.name || '优惠券' }}</view>
                     <view class="coupon-card__time line1">{{ item.use_time_tips || '有效期以实际使用规则为准' }}</view>
-                    <view class="coupon-card__type line1">{{ item.coupon_type || item.use_condition }}</view>
+                    <view class="coupon-card__type line1">{{ couponTypeText(item) }}</view>
                 </view>
                 <view class="coupon-card__action" @tap.stop="useCoupon(item)">{{ actionText }}</view>
             </view>
@@ -47,6 +47,7 @@
 <script>
 import Navbar from '@/components/navbar/navbar.vue'
 import { getMyCoupon } from '@/api/user'
+import { formatCouponText, formatCouponTypeText } from '@/utils/backend-text'
 
 export default {
     components: {
@@ -146,6 +147,12 @@ export default {
             const money = Number(value || 0)
             if (Number.isNaN(money)) return value || '0'
             return Number.isInteger(money) ? String(money) : money.toFixed(2)
+        },
+        couponTypeText(item = {}) {
+            return formatCouponTypeText(item.coupon_type || item.couponType || item.typeText || item.type || item.use_condition || item.useCondition, '优惠券')
+        },
+        couponText(value, fallback = '') {
+            return formatCouponText(value, fallback)
         },
         useCoupon() {
             if (this.currentType !== 0) return

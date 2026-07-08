@@ -21,9 +21,9 @@
                             type="primary"
                             mode="plain"
                         />
-                        {{ item.goods_name || item.name }}
+                        {{ goodsName(item) }}
                     </view>
-                    <view class="goods-spec xs muted mb20">{{ item.spec_value_str || item.spec_value }}</view>
+                    <view v-if="goodsSpec(item)" class="goods-spec xs muted mb20">{{ goodsSpec(item) }}</view>
                     <view class="row-between">
                         <view class="goods-price row">
                             <view class="primary">
@@ -86,14 +86,14 @@
                     <button size="xs" class="plain goods-action br60" hover-class="none">评价晒图</button>
                 </navigator>
                 <navigator
-                    v-if="item.refund_btn"
+                    v-if="canApplyRefund(item)"
                     hover-class="none"
                     :url="'/bundle_order/pages/apply_refund/apply_refund?order_id=' + item.order_id + '&item_id=' + item.item_id"
                 >
                     <button size="xs" class="plain goods-action goods-action--primary br60" hover-class="none">申请退款</button>
                 </navigator>
-                <view v-if="item.after_status_desc" class="after-status">
-                    {{ item.after_status_desc }}
+                <view v-if="afterStatusText(item)" class="after-status">
+                    {{ afterStatusText(item) }}
                 </view>
             </view>
         </view>
@@ -103,6 +103,7 @@
 <script>
 import PriceFormat from '@/bundle_order/components/price-format/price-format.vue'
 import CustomImage from '@/components/custom-image/custom-image.vue'
+import { cleanEmptyBackendText, cleanBackendText } from '@/utils/backend-text'
 
 export default {
     components: {
@@ -140,8 +141,41 @@ export default {
             const value = [item.original_price, item.goods_price, item.price].find((price) => price !== undefined && price !== null && price !== '')
             return value === undefined || value === null ? '' : value
         },
+        goodsName(item = {}) {
+            return cleanEmptyBackendText(item.goods_name || item.name, '商品信息')
+        },
+        goodsSpec(item = {}) {
+            return cleanEmptyBackendText(item.spec_value_str || item.spec_value, '')
+        },
         showGoodsFooter(item) {
-            return this.link && Boolean(item.comment_btn || item.refund_btn || item.after_status_desc)
+            return this.link && Boolean(item.comment_btn || this.canApplyRefund(item) || this.afterStatusText(item))
+        },
+        canApplyRefund(item = {}) {
+            return Boolean(item.refund_btn) && !this.afterStatusText(item) && !this.hasAfterSale(item)
+        },
+        hasAfterSale(item = {}) {
+            return Boolean(item.after_sale_id || item.afterSaleId || item.refundNo || item.refund_no || item.after_sale || item.afterSale || item.refund_info || item.refundInfo)
+        },
+        afterStatusText(item = {}) {
+            return this.localizeStatus(item.after_status_desc || item.afterStatusDesc || item.refundStatusText || item.status_text || item.after_sale?.desc || item.afterSale?.desc || item.refund_info?.status_text || item.refundInfo?.statusText || '')
+        },
+        localizeStatus(value) {
+            const text = String(value || '')
+            const map = {
+                APPLIED: '待商家处理',
+                PENDING: '待商家处理',
+                PROCESSING: '处理中',
+                REFUNDING: '退款中',
+                APPROVED: '商家已同意',
+                RETURNING: '待买家退货',
+                REJECTED: '商家已拒绝',
+                CANCELLED: '已撤销',
+                CANCELED: '已撤销',
+                REFUNDED: '退款成功',
+                SUCCESS: '退款成功',
+                FAILED: '退款失败'
+            }
+            return map[text.toUpperCase()] || cleanBackendText(text, '')
         },
         toGoods(id) {
             if (!this.link) return

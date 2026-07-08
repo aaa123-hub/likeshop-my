@@ -1,5 +1,6 @@
 import request from "@/utils/request";
 import { resolveImage } from "@/utils/image-placeholder";
+import { cleanBackendText, cleanEmptyBackendText } from "@/utils/backend-text";
 
 let latestSubmitToken = "";
 
@@ -50,8 +51,15 @@ function couponTypeText(item = {}) {
     FREIGHT: "运费券",
     FREE_SHIPPING: "包邮券",
     PLATFORM: "平台券",
-    MERCHANT: "商家券"
+    MERCHANT: "商家券",
+    ORDER_CONFIRM_RECEIVABLE: "",
+    ORDER_CONFIRM_AVAILABLE: "",
+    ORDER_CONFIRM_UNAVAILABLE: "",
+    RECEIVABLE: "可领取",
+    AVAILABLE: "可使用",
+    UNAVAILABLE: "不可用"
   };
+  if (Object.prototype.hasOwnProperty.call(map, type)) return map[type];
   return map[type] || item.coupon_type || item.couponType || item.typeText || "优惠券";
 }
 
@@ -59,7 +67,7 @@ function compactPayload(payload = {}) {
   return Object.keys(payload).reduce((result, key) => {
     const value = payload[key];
     if (value === undefined || value === null || value === "") return result;
-    if (Array.isArray(value) && !value.length && key !== "couponIds") return result;
+    if (Array.isArray(value) && !value.length && key !== "couponIds" && key !== "coupon_ids") return result;
     result[key] = value;
     return result;
   }, {});
@@ -128,16 +136,24 @@ function normalizePreviewAddress(data = {}) {
   const source = data.address || data.addressInfo || data.address_info || data.receiverInfo || data.receiver_info || data.defaultAddress || data.default_address || {};
   const id = firstDefined(source.id, source.addressId, source.address_id);
   if (!id) return {};
+  const province = String(firstDefined(source.province, source.provinceName, source.province_name, ""));
+  const city = String(firstDefined(source.city, source.cityName, source.city_name, ""));
+  const district = String(firstDefined(source.district, source.districtName, source.district_name, source.area, source.areaName, source.area_name, ""));
+  const detail = String(firstDefined(source.address, source.detailAddress, source.detail_address, source.addressDetail, source.address_detail, ""));
+  const fullAddress = String(firstDefined(source.fullAddress, source.full_address, source.addressText, source.address_text, source.deliveryAddress, source.delivery_address, "") || [province, city, district, detail].filter(Boolean).join(""));
   return {
     ...source,
     id,
     addressId: id,
     contact: firstDefined(source.contact, source.receiverName, source.receiver_name, source.consignee, source.name, ""),
-    telephone: firstDefined(source.telephone, source.mobile, source.phone, source.receiverMobile, source.receiver_mobile, ""),
-    province: String(firstDefined(source.province, source.provinceName, source.province_name, "")),
-    city: String(firstDefined(source.city, source.cityName, source.city_name, "")),
-    district: String(firstDefined(source.district, source.districtName, source.district_name, "")),
-    address: String(firstDefined(source.address, source.detailAddress, source.detail_address, source.addressDetail, source.address_detail, ""))
+    telephone: firstDefined(source.telephone, source.mobile, source.phone, source.receiverMobile, source.receiver_mobile, source.receiverPhone, source.receiver_phone, ""),
+    province,
+    city,
+    district,
+    address: detail,
+    detailAddress: detail,
+    fullAddress,
+    addressText: fullAddress
   };
 }
 
@@ -189,11 +205,35 @@ function formatOrderStatus(status) {
     REFUNDING: "售后处理中",
     REFUNDED: "已退款"
   };
-  return statusMap[normalized] || status || "";
+  return statusMap[normalized] || cleanBackendText(status, "") || "";
+}
+function formatRefundStatus(status) {
+  if (status === 0 || status === '0') return '待商家处理';
+  if (status === 1 || status === '1') return '处理中';
+  if (status === 2 || status === '2' || status === 3 || status === '3') return '商家已同意';
+  if (status === 4 || status === '4') return '商家已拒绝';
+  if (status === 5 || status === '5') return '退款成功';
+  if (status === 6 || status === '6') return '已撤销';
+  const map = {
+    APPLIED: "待商家处理",
+    PENDING: "待商家处理",
+    PROCESSING: "处理中",
+    REFUNDING: "退款中",
+    APPROVED: "商家已同意",
+    RETURNING: "待买家退货",
+    REJECTED: "商家已拒绝",
+    CANCELLED: "已撤销",
+    CANCELED: "已撤销",
+    REFUNDED: "退款成功",
+    SUCCESS: "退款成功",
+    FAILED: "退款失败"
+  };
+  return map[String(status || '').toUpperCase()] || cleanBackendText(status, "") || "";
 }
 function normalizeOrderDetail(data = {}) {
   const baseInfo = data.baseInfo || data;
   const amountInfo = data.amountInfo || {};
+  const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {};
   const deliveryInfo = data.deliveryInfo || data.delivery_info || data.logisticsInfo || data.logistics_info || {};
   const receiverInfo = data.receiverInfo || data.receiver_info || data.addressInfo || data.address_info || {};
   const shopInfo = data.shopInfo || data.shop_info || data.storeInfo || data.store_info || {};
@@ -204,29 +244,46 @@ function normalizeOrderDetail(data = {}) {
   const isFinished = ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(normalizedStatus) || status === 3;
   const isClosed = ['CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER', '4'].includes(normalizedStatus) || status === 4;
   const canRefund = Boolean(data.canRefund ?? data.refundable ?? data.can_refund ?? baseInfo.canRefund ?? baseInfo.refundable);
-  const itemList = (data.itemList || data.order_goods || data.goods_lists || []).map((item) => ({
-    ...normalizeOrderItem(item),
-    order_id: data.orderNo || baseInfo.orderNo || data.id,
-    refund_btn: canRefund || item.refund_btn || item.canRefund || item.refundable
-  }));
+  const itemList = (data.itemList || data.order_goods || data.goods_lists || []).map((item) => {
+    const normalizedItem = normalizeOrderItem(item);
+    const afterSale = item.afterSale || item.after_sale || item.refundInfo || item.refund_info || {};
+    const afterSaleId = firstDefined(afterSale.afterSaleId, afterSale.after_sale_id, afterSale.refundNo, afterSale.id, item.afterSaleId, item.after_sale_id, item.refundNo, item.refund_no);
+    const afterStatus = firstDefined(afterSale.statusText, afterSale.status_text, afterSale.refundStatusText, afterSale.refund_status_text, afterSale.status, item.after_status_desc, item.afterStatusDesc, item.refundStatusText, item.refund_status_text, item.refundStatus, item.afterSaleStatus);
+    const afterStatusText = afterSaleId || afterStatus !== undefined ? formatRefundStatus(afterStatus) : '';
+    return {
+      ...normalizedItem,
+      order_id: data.orderNo || baseInfo.orderNo || data.id,
+      after_sale_id: afterSaleId || '',
+      after_status_desc: afterStatusText || '',
+      refund_info: afterSale,
+      refund_btn: Boolean(canRefund || item.refund_btn || item.canRefund || item.refundable) && !afterSaleId && !afterStatusText
+    };
+  });
   return {
     ...data,
     id: data.orderNo || baseInfo.orderNo || data.id,
     order_sn: data.orderNo || baseInfo.orderNo || baseInfo.orderSn || data.order_sn,
     order_status: status,
-    order_status_desc: data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc || formatOrderStatus(data.orderStatus || baseInfo.orderStatus || data.order_status),
+    order_status_desc: cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(data.orderStatus || baseInfo.orderStatus || data.order_status),
     pay_status: data.payStatus || baseInfo.payStatus || data.pay_status || data.paymentStatus || baseInfo.paymentStatus,
     order_amount: firstDefined(amountInfo.payAmount, data.payAmount, baseInfo.orderAmount, data.order_amount),
     goods_price: firstDefined(amountInfo.goodsAmount, data.goodsAmount, baseInfo.goodsAmount, data.goods_price),
     shipping_price: firstDefined(amountInfo.freightAmount, data.freightAmount, baseInfo.freightAmount, data.shipping_price),
     discount_amount: firstDefined(amountInfo.discountAmount, data.discountAmount, baseInfo.discountAmount, data.discount_amount),
-    integral_amount: firstDefined(amountInfo.integralAmount, baseInfo.integralAmount, data.integral_amount),
+    integral_amount: firstDefined(amountInfo.integralAmount, amountInfo.integral_amount, baseInfo.integralAmount, data.integral_amount),
+    integralAmount: firstDefined(amountInfo.integralAmount, amountInfo.integral_amount, baseInfo.integralAmount, data.integralAmount, data.integral_amount),
+    pointsDeductAmount: firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integralDeductAmount, data.integral_deduct_amount, amountInfo.pointsDeductAmount, amountInfo.points_deduct_amount, amountInfo.integralAmount, amountInfo.integral_amount, pointsInfo.pointsDeductAmount, pointsInfo.points_deduct_amount, pointsInfo.integralAmount, pointsInfo.integral_amount, 0),
+    points_deduct_amount: firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integralDeductAmount, data.integral_deduct_amount, amountInfo.pointsDeductAmount, amountInfo.points_deduct_amount, amountInfo.integralAmount, amountInfo.integral_amount, pointsInfo.pointsDeductAmount, pointsInfo.points_deduct_amount, pointsInfo.integralAmount, pointsInfo.integral_amount, 0),
+    pointsAmount: firstDefined(data.pointsAmount, data.points_amount, data.usedPoints, data.used_points, data.integralNum, data.integral_num, amountInfo.pointsAmount, amountInfo.points_amount, amountInfo.integralNum, amountInfo.integral_num, pointsInfo.pointsAmount, pointsInfo.points_amount, pointsInfo.integralNum, pointsInfo.integral_num, 0),
+    points_amount: firstDefined(data.pointsAmount, data.points_amount, data.usedPoints, data.used_points, data.integralNum, data.integral_num, amountInfo.pointsAmount, amountInfo.points_amount, amountInfo.integralNum, amountInfo.integral_num, pointsInfo.pointsAmount, pointsInfo.points_amount, pointsInfo.integralNum, pointsInfo.integral_num, 0),
+    user_integral: firstDefined(data.userIntegral, data.user_integral, data.availablePoints, data.available_points, pointsInfo.userIntegral, pointsInfo.user_integral, pointsInfo.availablePoints, pointsInfo.available_points, pointsInfo.points, 0),
+    give_integral: firstDefined(data.order_give_integral, data.giveIntegral, data.give_integral, data.rewardPoints, data.reward_points, pointsInfo.giveIntegral, pointsInfo.give_integral, pointsInfo.rewardPoints, pointsInfo.reward_points, 0),
     order_goods: itemList,
     goods_lists: itemList,
-    order_type_desc: data.orderTypeDesc || baseInfo.orderTypeDesc || data.order_type_desc,
-    pay_way_text: data.payMethodText || data.payMethodName || data.payMethod || baseInfo.payMethodText || baseInfo.payMethodName || baseInfo.payMethod || data.pay_way_text,
+    order_type_desc: cleanBackendText(data.orderTypeDesc || baseInfo.orderTypeDesc || data.order_type_desc, ""),
+    pay_way_text: cleanBackendText(data.payMethodText || data.payMethodName || data.payMethod || baseInfo.payMethodText || baseInfo.payMethodName || baseInfo.payMethod || data.pay_way_text, ""),
     pay_way: data.payMethod || baseInfo.payMethod || data.pay_way || data.payWay,
-    shop_name: data.shopName || data.shop_name || shopInfo.shopName || shopInfo.name || baseInfo.shopName,
+    shop_name: cleanEmptyBackendText(data.shopName || data.shop_name || shopInfo.shopName || shopInfo.name || baseInfo.shopName, ""),
     shop_logo: resolveImage(data.shopLogo || data.shop_logo || shopInfo.logo || shopInfo.shopLogo || '', 'goods'),
     goods_num: firstDefined(data.goodsNum, data.goods_num, data.totalNum, data.total_num, itemList.reduce((sum, item) => sum + Number(item.goods_num || 0), 0)),
     create_time: baseInfo.createdAt || baseInfo.createTime || data.createdAt || data.create_time,
@@ -237,12 +294,12 @@ function normalizeOrderDetail(data = {}) {
     order_cancel_time: baseInfo.expireTime || data.expireTime || data.order_cancel_time,
     delivery_type: baseInfo.deliveryType || data.delivery_type || data.deliveryType,
     order_type: baseInfo.orderType || data.order_type || 0,
-    consignee: baseInfo.consignee || baseInfo.receiverName || receiverInfo.consignee || receiverInfo.receiverName || data.consignee,
-    mobile: baseInfo.mobile || baseInfo.receiverMobile || receiverInfo.mobile || receiverInfo.receiverMobile || data.mobile,
-    delivery_address: baseInfo.addressText || baseInfo.deliveryAddress || baseInfo.detailAddress || receiverInfo.addressText || receiverInfo.detailAddress || data.delivery_address,
-    user_remark: data.userRemark || data.user_remark || baseInfo.userRemark || baseInfo.remark,
-    express_name: deliveryInfo.expressName || deliveryInfo.company || deliveryInfo.shippingName || data.express_name || data.expressName,
-    express_no: deliveryInfo.expressNo || deliveryInfo.trackingNo || deliveryInfo.invoiceNo || data.express_no || data.trackingNo || data.invoice_no,
+    consignee: cleanEmptyBackendText(baseInfo.consignee || baseInfo.receiverName || receiverInfo.consignee || receiverInfo.receiverName || data.consignee, ""),
+    mobile: cleanEmptyBackendText(baseInfo.mobile || baseInfo.receiverMobile || receiverInfo.mobile || receiverInfo.receiverMobile || data.mobile, ""),
+    delivery_address: cleanEmptyBackendText(baseInfo.addressText || baseInfo.deliveryAddress || baseInfo.detailAddress || receiverInfo.addressText || receiverInfo.detailAddress || data.delivery_address, ""),
+    user_remark: cleanEmptyBackendText(data.userRemark || data.user_remark || baseInfo.userRemark || baseInfo.remark, ""),
+    express_name: cleanEmptyBackendText(deliveryInfo.expressName || deliveryInfo.company || deliveryInfo.shippingName || data.express_name || data.expressName, ""),
+    express_no: cleanEmptyBackendText(deliveryInfo.expressNo || deliveryInfo.trackingNo || deliveryInfo.invoiceNo || data.express_no || data.trackingNo || data.invoice_no, ""),
     selffetch_shop: baseInfo.selffetchShop || data.selffetch_shop || {},
     pickup_code: baseInfo.pickupCode || data.verifyInfo?.pickupCode || data.pickup_code,
     verification_status: baseInfo.verificationStatus || data.verifyInfo?.verificationStatus || data.verification_status,
@@ -343,18 +400,72 @@ function normalizeOrderPreview(data = {}) {
   const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {};
   const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {};
   const pointsAccount = data.pointsAccount || data.points_account || {};
+  const goodsAmount = firstDefined(amountInfo.goodsAmount, amountInfo.goods_amount, data.goodsAmount, data.goods_amount, data.totalGoodsAmount, data.total_goods_amount, data.total_goods_price, 0);
+  const freightAmount = firstDefined(amountInfo.freightAmount, amountInfo.freight_amount, data.freightAmount, data.freight_amount, data.shippingAmount, data.shipping_amount, data.shipping_price, 0);
+  const payAmount = firstDefined(amountInfo.payAmount, amountInfo.pay_amount, data.payAmount, data.pay_amount, data.orderAmount, data.order_amount, data.actualAmount, data.actual_amount, 0);
+  const explicitDiscountAmount = firstDefined(
+    amountInfo.couponDiscountAmount,
+    amountInfo.coupon_discount_amount,
+    amountInfo.discountAmount,
+    amountInfo.discount_amount,
+    amountInfo.discountPrice,
+    amountInfo.discount_price,
+    amountInfo.reduceAmount,
+    amountInfo.reduce_amount,
+    amountInfo.couponAmount,
+    amountInfo.coupon_amount,
+    data.couponDiscountAmount,
+    data.coupon_discount_amount,
+    data.discountAmount,
+    data.discount_amount,
+    data.discountPrice,
+    data.discount_price,
+    data.reduceAmount,
+    data.reduce_amount,
+    data.couponAmount,
+    data.coupon_amount,
+    data.promotionAmount,
+    data.promotion_amount,
+    couponInfo.discountAmount,
+    couponInfo.discount_amount,
+    couponInfo.couponDiscountAmount,
+    couponInfo.coupon_discount_amount,
+    0
+  );
+  const inferredDiscountAmount = Math.max(numberValue(goodsAmount) + numberValue(freightAmount) - numberValue(payAmount), 0);
+  const discountAmount = numberValue(explicitDiscountAmount) > 0 ? explicitDiscountAmount : inferredDiscountAmount;
   const pointsDeductAmount = firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integralAmount, data.integral_amount, data.integralDeductAmount, data.integral_deduct_amount, data.maxPointsDeductAmount, data.max_points_deduct_amount, data.maxDeductAmount, data.max_deduct_amount, amountInfo.pointsDeductAmount, amountInfo.points_deduct_amount, amountInfo.integralAmount, amountInfo.integral_amount, pointsInfo.pointsDeductAmount, pointsInfo.points_deduct_amount, pointsInfo.integralAmount, pointsInfo.integral_amount, pointsInfo.maxPointsDeductAmount, pointsInfo.max_points_deduct_amount, pointsInfo.maxDeductAmount, pointsInfo.max_deduct_amount, 0);
   const pointsAmount = firstDefined(data.pointsAmount, data.points_amount, data.usedPoints, data.used_points, data.integralNum, data.integral_num, data.deductPoints, data.deduct_points, data.maxUsablePoints, data.max_usable_points, amountInfo.pointsAmount, amountInfo.points_amount, amountInfo.usedPoints, amountInfo.used_points, amountInfo.integralNum, amountInfo.integral_num, pointsInfo.pointsAmount, pointsInfo.points_amount, pointsInfo.usedPoints, pointsInfo.used_points, pointsInfo.integralNum, pointsInfo.integral_num, pointsInfo.maxUsablePoints, pointsInfo.max_usable_points, 0);
   const pointsEnabled = firstDefined(data.integralSwitch, data.integral_switch, data.pointsEnabled, data.points_enabled, data.supportPoints, data.support_points, data.canUsePoints, data.can_use_points, pointsInfo.integralSwitch, pointsInfo.integral_switch, pointsInfo.pointsEnabled, pointsInfo.points_enabled, pointsInfo.supportPoints, pointsInfo.support_points, pointsInfo.canUsePoints, pointsInfo.can_use_points);
   const userIntegral = firstDefined(data.userIntegral, data.user_integral, data.availablePoints, data.available_points, data.points, pointsAccount.availablePoints, pointsAccount.available_points, pointsAccount.points, pointsInfo.userIntegral, pointsInfo.user_integral, pointsInfo.availablePoints, pointsInfo.available_points, pointsInfo.points, 0);
-  const selectedCouponId = firstDefined(data.couponId, data.coupon_id, data.selectedCouponId, data.selected_coupon_id, data.usedCouponId, data.used_coupon_id);
+  const selectedCouponId = firstDefined(
+    data.couponId,
+    data.coupon_id,
+    data.selectedCouponId,
+    data.selected_coupon_id,
+    data.usedCouponId,
+    data.used_coupon_id,
+    data.userCouponId,
+    data.user_coupon_id,
+    Array.isArray(data.couponIds) ? data.couponIds[0] : '',
+    Array.isArray(data.coupon_ids) ? data.coupon_ids[0] : '',
+    amountInfo.couponId,
+    amountInfo.coupon_id,
+    couponInfo.couponId,
+    couponInfo.coupon_id,
+    couponInfo.selectedCouponId,
+    couponInfo.selected_coupon_id
+  );
   return {
     ...data,
     address: normalizePreviewAddress(data),
     shop_orders: data.shopOrders || data.shop_orders || [],
     goods_lists: goodsLists,
-    total_goods_price: firstDefined(amountInfo.goodsAmount, amountInfo.goods_amount, data.goodsAmount, data.total_goods_price, 0),
-    discount_amount: firstDefined(amountInfo.discountAmount, amountInfo.discount_amount, data.discountAmount, data.discount_amount, 0),
+    total_goods_price: goodsAmount,
+    discount_amount: discountAmount,
+    discountAmount,
+    coupon_discount_amount: discountAmount,
+    couponDiscountAmount: discountAmount,
     points_deduct_amount: pointsDeductAmount,
     pointsDeductAmount,
     maxDeductAmount: pointsDeductAmount,
@@ -363,14 +474,15 @@ function normalizeOrderPreview(data = {}) {
     pointsAmount,
     integral_amount: pointsDeductAmount,
     integral_num: pointsAmount,
-    shipping_price: firstDefined(amountInfo.freightAmount, amountInfo.freight_amount, data.freightAmount, data.shipping_price, 0),
-    order_amount: firstDefined(amountInfo.payAmount, amountInfo.pay_amount, data.payAmount, data.pay_amount, data.order_amount, 0),
+    shipping_price: freightAmount,
+    order_amount: payAmount,
     integral_switch: pointsEnabled ?? (Number(pointsDeductAmount) > 0 || Number(pointsAmount) > 0),
     integral_limit: data.integralLimit ?? data.integral_limit ?? pointsInfo.integralLimit ?? pointsInfo.integral_limit ?? 0,
     integral_config: data.integralConfig ?? data.integral_config ?? pointsInfo.integralConfig ?? pointsInfo.integral_config ?? 1,
     integral_desc: data.integralDesc || data.integral_desc || pointsInfo.integralDesc || pointsInfo.integral_desc || '可使用积分抵扣订单金额',
     user_integral: userIntegral,
     coupon_id: selectedCouponId || '',
+    couponId: selectedCouponId || '',
     usableCoupon: usableCoupons,
     usable_coupon: usableCoupons,
     usable: usableCoupons,
@@ -420,15 +532,28 @@ export async function orderBuy(data) {
   const payload = compactPayload({
     submitToken: data.submitToken || data.submit_token || data.orderInfo?.submitToken || latestSubmitToken || '',
     source: data.source || (isCartOrder ? 'CART' : 'BUY_NOW'),
+    orderChannel: data.orderChannel || data.order_channel || '',
+    order_channel: data.order_channel || data.orderChannel || '',
+    goodsSource: data.goodsSource || data.goods_source || '',
+    goods_source: data.goods_source || data.goodsSource || '',
+    is1688: data.is1688 ?? data.is_1688,
+    is_1688: data.is_1688 ?? data.is1688,
     cartItemIds,
     skuId: isCartOrder ? undefined : data.skuId || data.item_id || goodsList[0]?.skuId || goodsList[0]?.item_id || goodsList[0]?.id,
     quantity: isCartOrder ? undefined : data.quantity || data.goods_num || goodsList[0]?.quantity || goodsList[0]?.num,
     addressId: data.addressId || data.address_id || '',
-    couponIds: data.couponIds || (data.coupon_id ? [data.coupon_id] : []),
+    couponIds: data.noCoupon || data.no_coupon ? [] : (data.couponIds || (data.coupon_id ? [data.coupon_id] : [])),
+    coupon_ids: data.noCoupon || data.no_coupon ? [] : (data.coupon_ids || data.couponIds || (data.coupon_id ? [data.coupon_id] : [])),
+    noCoupon: data.noCoupon || data.no_coupon,
+    no_coupon: data.no_coupon || data.noCoupon,
     deliveryType: data.deliveryType || data.delivery_type,
     delivery_type: data.delivery_type || data.deliveryType,
     selffetchShopId: data.selffetchShopId || data.selffetch_shop_id || data.store_id,
     selffetch_shop_id: data.selffetch_shop_id || data.selffetchShopId || data.store_id,
+    pickupLatitude: data.pickupLatitude || data.pickup_latitude,
+    pickupLongitude: data.pickupLongitude || data.pickup_longitude,
+    pickupAddress: data.pickupAddress || data.pickup_address,
+    pickupName: data.pickupName || data.pickup_name,
     consignee: data.consignee,
     mobile: data.mobile,
     ...pointsPayload,
@@ -521,7 +646,10 @@ export function getOrderCoupon(data) {
     skuId: isCartOrder ? undefined : data?.skuId || data?.item_id || goodsList[0]?.skuId || goodsList[0]?.item_id || goodsList[0]?.id,
     quantity: isCartOrder ? undefined : data?.quantity || data?.goods_num || goodsList[0]?.quantity || goodsList[0]?.num,
     addressId: data?.addressId || data?.address_id || '',
-    couponIds: data?.couponIds || (data?.coupon_id ? [data.coupon_id] : []),
+    couponIds: data?.noCoupon || data?.no_coupon ? [] : (data?.couponIds || (data?.coupon_id ? [data.coupon_id] : [])),
+    coupon_ids: data?.noCoupon || data?.no_coupon ? [] : (data?.coupon_ids || data?.couponIds || (data?.coupon_id ? [data.coupon_id] : [])),
+    noCoupon: data?.noCoupon || data?.no_coupon,
+    no_coupon: data?.no_coupon || data?.noCoupon,
     ...pointsPayload,
     remark: data?.remark || '',
     idempotentKey: data?.idempotentKey || `order-preview-${Date.now()}`
