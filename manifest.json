@@ -176,7 +176,7 @@
         "requiredPrivateInfos" : [ "getLocation", "chooseLocation", "chooseAddress" ],
         "permission" : {
             "scope.userLocation" : {
-                "desc" : "你的位置信息将用于门店定位、地图选点、自提地址确认和配送范围判断"
+                "desc" : "用于门店定位、地图选点、自提和配送判断"
             }
         }
     },

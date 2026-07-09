@@ -17,7 +17,7 @@
             <view class="license-approved__row"><text>商家名称</text><text>{{ form.merchantName || '-' }}</text></view>
             <view class="license-approved__row"><text>联系电话</text><text>{{ form.contactMobile || '-' }}</text></view>
             <view class="license-approved__row"><text>联系邮箱</text><text>{{ form.email || '-' }}</text></view>
-            <view class="license-approved__desc">{{ form.remark || '暂无网店说明' }}</view>
+            <view class="license-approved__desc" v-if="form.remark">{{ form.remark }}</view>
         </view>
         <view class="license-card" v-if="!isApproved">
             <view class="license-item">
@@ -40,7 +40,7 @@
                 <view class="license-desc__count">{{ form.remark.length }}/200</view>
             </view>
         </view>
-        <view class="license-btn" :class="{ 'license-btn--disabled': submitting }" @tap="submitApply">{{ submitting ? '提交中...' : submitButtonText }}</view>
+        <view v-if="!isApproved" class="license-btn" :class="{ 'license-btn--disabled': submitting }" @tap="submitApply">{{ submitting ? '提交中...' : submitButtonText }}</view>
     </view>
 </template>
 

@@ -95,37 +95,40 @@
                         </view>
                     </view>
 
-                    <view class="divider"></view>
-                    <view class="shop-row">
-                        <image v-if="shopLogo" class="shop-logo" :src="shopLogo" mode="aspectFill"></image>
-                        <view v-else class="shop-logo"></view>
-                        <text class="shop-name">{{ shopName }}</text>
-                    </view>
-                    <view class="divider"></view>
-
-                    <view v-for="(item, index) in goodsLists" :key="index" class="goods-row">
-                        <custom-image
-                            class="goods-image"
-                            width="160rpx"
-                            height="160rpx"
-                            radius="8rpx"
-                            lazy-load
-                            :src="goodsImage(item)"
-                        ></custom-image>
-                        <view class="goods-info">
-                            <view class="goods-name line1">{{ item.goods_name || item.name }}</view>
-                            <view class="goods-spec">{{ item.spec_value_str || item.spec_value }}</view>
-                            <view class="goods-price">
-                                <price-format
-                                    :weight="500"
-                                    :subscript-size="26"
-                                    :first-size="37"
-                                    :second-size="26"
-                                    :price="item.original_price || item.goods_price"
-                                ></price-format>
+                    <view v-for="shop in shopGroups" :key="shop.key" class="shop-block">
+                        <view class="divider"></view>
+                        <view class="shop-row">
+                            <image v-if="shop.logo" class="shop-logo" :src="shop.logo" mode="aspectFill"></image>
+                            <view v-else class="shop-logo"></view>
+                            <text class="shop-name">{{ shop.name }}</text>
+                        </view>
+                        <view v-for="(item, index) in shop.items" :key="goodsKey(item, index)" class="shop-goods-wrap">
+                            <view class="divider"></view>
+                            <view class="goods-row">
+                                <custom-image
+                                    class="goods-image"
+                                    width="160rpx"
+                                    height="160rpx"
+                                    radius="8rpx"
+                                    lazy-load
+                                    :src="goodsImage(item)"
+                                ></custom-image>
+                                <view class="goods-info">
+                                    <view class="goods-name line1">{{ item.goods_name || item.name }}</view>
+                                    <view class="goods-spec">{{ item.spec_value_str || item.spec_value }}</view>
+                                    <view class="goods-price">
+                                        <price-format
+                                            :weight="500"
+                                            :subscript-size="26"
+                                            :first-size="37"
+                                            :second-size="26"
+                                            :price="goodsDisplayPrice(item)"
+                                        ></price-format>
+                                    </view>
+                                </view>
+                                <text class="goods-num">X{{ item.goods_num || item.num || 1 }}</text>
                             </view>
                         </view>
-                        <text class="goods-num">X{{ item.goods_num || item.num || 1 }}</text>
                     </view>
 
                     <view class="divider"></view>
@@ -259,17 +262,6 @@
                 <scroll-view class="coupon-scroll" scroll-y>
                     <view class="coupon-obj">
                         <view
-                            v-if="couponTabsIndex === 0"
-                            class="coupon-none row-between"
-                            @tap="clearPendingCoupon"
-                        >
-                            <view>
-                                <view class="bold md mb10">不使用优惠券</view>
-                                <view class="xxs lighter">本次订单不抵扣优惠券</view>
-                            </view>
-                            <view :class="['coupon-check', !pendingCouponId ? 'coupon-check--active' : '']"></view>
-                        </view>
-                        <view
                             v-for="(item, index) in currentCouponList"
                             :key="couponKey(item)"
                             class="coupon-card"
@@ -298,7 +290,6 @@
                                     >{{ couponButtonText(item) }}</view>
                                 </view>
                             </view>
-                            <view class="coupon-tips xs" v-if="item.tips">{{ localizeCouponText(item.tips) }}</view>
                         </view>
                     </view>
                     <view v-if="!currentCouponList.length" class="coupon-empty column-center">
@@ -373,12 +364,47 @@ export default {
             return this.addressTabsList[this.addressTabsIndex] || this.addressTabsList[0] || { id: 1, sign: 'express', name: '快递配送' }
         },
         shopName() {
-            const firstGoods = this.goodsLists[0] || {}
-            return firstGoods.shop_name || firstGoods.store_name || this.orderInfo.shop_name || '店铺名称'
+            return this.shopGroups[0] ? this.shopGroups[0].name : '商城自营'
         },
         shopLogo() {
-            const firstGoods = this.goodsLists[0] || {}
-            return this.resolveOrderImage(firstGoods.shop_logo || firstGoods.shopLogo || firstGoods.shopLogoUrl || firstGoods.storeLogo || this.orderInfo.shop_logo || this.orderInfo.shopLogo || this.orderInfo.shopLogoUrl || this.orderInfo.storeLogo || '', 'avatar')
+            return this.shopGroups[0] ? this.shopGroups[0].logo : ''
+        },
+        shopGroups() {
+            const groups = []
+            const shopOrders = this.orderInfo.shopOrders || this.orderInfo.shop_orders || []
+            if (Array.isArray(shopOrders) && shopOrders.length) {
+                return shopOrders.map((shop, index) => {
+                    const items = shop.itemList || shop.items || shop.goodsList || shop.goods_lists || shop.order_goods || []
+                    const name = this.firstDefined(shop.shopName, shop.shop_name, shop.storeName, shop.store_name, shop.name, this.orderInfo.shopName, this.orderInfo.shop_name, '商城自营')
+                    const logo = this.resolveOrderImage(this.firstDefined(shop.shopLogo, shop.shop_logo, shop.logo, shop.logoUrl, shop.storeLogo, ''), 'avatar')
+                    return {
+                        key: String(this.firstDefined(shop.shopId, shop.shop_id, shop.id, `shop_${index}`)),
+                        name,
+                        logo,
+                        items: Array.isArray(items) && items.length ? items.map(this.normalizePreviewGoods) : this.goodsLists
+                    }
+                })
+            }
+            this.goodsLists.forEach((item, index) => {
+                const shopId = String(this.firstDefined(item.shop_id, item.shopId, item.store_id, item.storeId, this.orderInfo.shop_id, this.orderInfo.shopId, 'default'))
+                let group = groups.find((shop) => shop.key === shopId)
+                if (!group) {
+                    group = {
+                        key: shopId || `shop_${index}`,
+                        name: this.firstDefined(item.shop_name, item.shopName, item.store_name, item.storeName, this.orderInfo.shop_name, this.orderInfo.shopName, '商城自营'),
+                        logo: this.resolveOrderImage(this.firstDefined(item.shop_logo, item.shopLogo, item.shopLogoUrl, item.storeLogo, this.orderInfo.shop_logo, this.orderInfo.shopLogo, ''), 'avatar'),
+                        items: []
+                    }
+                    groups.push(group)
+                }
+                group.items.push(item)
+            })
+            return groups.length ? groups : [{
+                key: 'default',
+                name: this.firstDefined(this.orderInfo.shop_name, this.orderInfo.shopName, '商城自营'),
+                logo: this.resolveOrderImage(this.firstDefined(this.orderInfo.shop_logo, this.orderInfo.shopLogo, ''), 'avatar'),
+                items: this.goodsLists
+            }]
         },
         freightText() {
             if (this.currentDelivery.sign === 'store') {
@@ -488,19 +514,47 @@ export default {
             const data = this.orderInfo || {}
             return data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
         },
+        hasBackendPointsDeductAmount() {
+            const data = this.orderInfo || {}
+            const pointsInfo = this.normalizedPointsInfo
+            const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
+            return this.firstDefined(
+                pointsInfo.pointsDeductAmount,
+                pointsInfo.points_deduct_amount,
+                pointsInfo.deductAmount,
+                pointsInfo.deduct_amount,
+                amountInfo.pointsDeductAmount,
+                amountInfo.points_deduct_amount,
+                amountInfo.integralAmount,
+                amountInfo.integral_amount,
+                data.pointsDeductAmount,
+                data.points_deduct_amount,
+                data.integralAmount,
+                data.integral_amount,
+                ''
+            ) !== ''
+        },
         integralText() {
             const userIntegral = this.userIntegral
+            if (!this.pointsFeatureEnabled) return '当前订单暂不支持'
+            if (userIntegral <= 0) return '暂无可用积分'
+            if (!this.hasBackendPointsDeductAmount && this.pointsDeductAmount <= 0) return '待计算抵扣额'
             if (!this.canUseIntegral) return `${userIntegral}积分，不满足抵扣条件`
             if (this.useIntegral && this.pointsDeductAmount > 0) return `已使用${this.pointsAmount || userIntegral}积分`
             if (this.pointsDeductAmount > 0) return `可抵¥${this.pointsDeductAmount.toFixed(2)}`
             return `${userIntegral}积分可用`
         },
         pointsHelpText() {
-            if (!this.canUseIntegral) return '当前订单暂不可用'
+            if (!this.pointsFeatureEnabled) return '当前订单暂不可用'
+            if (!this.hasBackendPointsDeductAmount && this.userIntegral > 0) return '后端未返回本单积分抵扣额'
+            if (!this.canUseIntegral) return '未满足积分抵扣条件'
             if (this.pointsDeductAmount > 0) return `勾选后应付金额减少¥${this.pointsDeductAmount.toFixed(2)}`
             return '勾选后将按订单规则试算抵扣'
         },
         showIntegralRow() {
+            return true
+        },
+        pointsFeatureEnabled() {
             const switchValue = this.firstDefined(
                 this.orderInfo.integral_switch,
                 this.orderInfo.integralSwitch,
@@ -511,14 +565,13 @@ export default {
                 this.orderInfo.canUsePoints,
                 this.orderInfo.can_use_points
             )
-            const hasPointsData = this.userIntegral > 0 || this.pointsDeductAmount > 0 || this.pointsAmount > 0
-            if ((switchValue === false || switchValue === 0 || switchValue === '0') && !hasPointsData) return false
+            if (switchValue === false || switchValue === 0 || switchValue === '0') return false
+            if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) return false
             return true
         },
         canUseIntegral() {
-            if (!this.showIntegralRow) return false
-            if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) return false
-            return (this.userIntegral > 0 || this.pointsDeductAmount > 0 || this.pointsAmount > 0) && this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
+            if (!this.pointsFeatureEnabled) return false
+            return this.userIntegral > 0 && this.pointsDeductAmount > 0 && this.hasBackendPointsDeductAmount && this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
         },
         userIntegral() {
             const data = this.orderInfo || {}
@@ -587,12 +640,7 @@ export default {
             const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
             const backendAmount = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsDeductAmount', 'points_deduct_amount', 'deductAmount', 'deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxIntegralDeductAmount', 'max_integral_deduct_amount', 'maxDeductAmount', 'max_deduct_amount'])
             if (backendAmount > 0) return backendAmount
-            const goodsAmount = this.moneyValue(this.orderInfo.total_goods_price || this.orderInfo.goodsAmount)
-            const shippingPrice = this.currentDelivery.sign === 'store' ? 0 : this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount)
-            const fallbackBaseAmount = goodsAmount > 0
-                ? Math.max(goodsAmount + shippingPrice - this.effectiveDiscountAmount, 0)
-                : this.moneyValue(this.orderInfo.order_amount || this.orderInfo.pay_amount || this.orderInfo.payAmount)
-            return Math.min(this.userIntegral * 0.008, fallbackBaseAmount)
+            return 0
         },
         pointsSettleTip() {
             if (this.useIntegral && this.pointsAmount > 0) {
@@ -705,6 +753,22 @@ export default {
         goodsImage(item = {}) {
             return this.resolveOrderImage(item.image_str || item.image || item.imageUrl || item.goodsImageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage || item.picUrl, 'goods')
         },
+        goodsDisplayPrice(item = {}) {
+            return this.firstDefined(
+                item.goods_price,
+                item.goodsPrice,
+                item.sale_price,
+                item.salePrice,
+                item.price,
+                item.min_price,
+                item.minPrice,
+                item.payAmount,
+                item.amount,
+                item.original_price,
+                item.originalPrice,
+                0
+            )
+        },
         pickNumber(source = {}, keys = []) {
             for (const key of keys) {
                 const value = Number(source[key])
@@ -723,6 +787,72 @@ export default {
             if (value === undefined || value === null) return ''
             const text = String(value)
             return text === 'NaN' || text === 'undefined' || text === 'null' ? '' : text
+        },
+        getPointsDiagnostics() {
+            const data = this.orderInfo || {}
+            const pointsInfo = this.normalizedPointsInfo || {}
+            const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
+            const limit = Number(this.firstDefined(
+                data.integral_limit,
+                data.integralLimit,
+                pointsInfo.integralLimit,
+                pointsInfo.integral_limit,
+                pointsInfo.minUsePoints,
+                pointsInfo.min_use_points,
+                0
+            ) || 0)
+            const rawFields = {
+                integral_switch: data.integral_switch,
+                integralSwitch: data.integralSwitch,
+                integral_config: data.integral_config,
+                pointsEnabled: data.pointsEnabled,
+                supportPoints: data.supportPoints,
+                canUsePoints: data.canUsePoints,
+                pointsInfo,
+                amountInfo
+            }
+            const reasons = []
+            if (!this.pointsFeatureEnabled) {
+                reasons.push('订单预览返回 integral_switch/integral_config/pointsEnabled/supportPoints/canUsePoints 为关闭状态或未支持')
+            }
+            if (this.userIntegral <= 0) {
+                reasons.push('用户可用积分为 0，orderInfo、pointsInfo 和积分账户兜底接口都没有返回可用积分')
+            }
+            if (!this.hasBackendPointsDeductAmount) {
+                reasons.push('订单预览没有返回本单可抵扣金额字段：pointsDeductAmount、deductAmount、integral_amount 或 integralDeductAmount')
+            }
+            if (this.hasBackendPointsDeductAmount && this.pointsDeductAmount <= 0) {
+                reasons.push('订单预览返回了积分抵扣字段，但金额为 0，本单不可抵扣')
+            }
+            if (limit > this.userIntegral) {
+                reasons.push(`用户积分 ${this.userIntegral} 未达到使用门槛 ${limit}`)
+            }
+            return {
+                canUse: this.canUseIntegral,
+                reason: reasons[0] || '',
+                reasons,
+                userIntegral: this.userIntegral,
+                pointsAmount: this.pointsAmount,
+                pointsDeductAmount: this.pointsDeductAmount,
+                hasBackendPointsDeductAmount: this.hasBackendPointsDeductAmount,
+                integralLimit: limit,
+                rawFields
+            }
+        },
+        logPointsDiagnostics(context = 'unknown') {
+            const diagnostics = this.getPointsDiagnostics()
+            console.log('[confirm_order][points]', {
+                context,
+                canUse: diagnostics.canUse,
+                reasons: diagnostics.reasons.length ? diagnostics.reasons : ['积分抵扣条件满足'],
+                userIntegral: diagnostics.userIntegral,
+                pointsAmount: diagnostics.pointsAmount,
+                pointsDeductAmount: diagnostics.pointsDeductAmount,
+                hasBackendPointsDeductAmount: diagnostics.hasBackendPointsDeductAmount,
+                integralLimit: diagnostics.integralLimit,
+                rawFields: diagnostics.rawFields
+            })
+            return diagnostics
         },
         async loadPointsFallback() {
             try {
@@ -938,16 +1068,42 @@ export default {
             const original = this.goods[index] || this.goods.find(goods => String(goods.item_id || goods.skuId || goods.id || '') === String(item.item_id || item.skuId || item.sku_id || item.id || '')) || {}
             const image = this.goodsImage(item) || this.goodsImage(original)
             const shopLogo = this.resolveOrderImage(item.shop_logo || item.shopLogo || item.shopLogoUrl || item.storeLogo || original.shop_logo || original.shopLogo || original.shopLogoUrl || original.storeLogo, 'avatar')
+            const salePrice = this.goodsDisplayPrice({ ...original, ...item })
+            const originalPrice = this.firstDefined(
+                item.original_price,
+                item.originalPrice,
+                item.market_price,
+                item.marketPrice,
+                item.linePrice,
+                original.original_price,
+                original.originalPrice,
+                original.market_price,
+                original.marketPrice,
+                original.linePrice,
+                salePrice
+            )
             return {
                 ...original,
                 ...item,
                 image,
                 image_str: item.image_str || image,
+                goods_price: salePrice,
+                goodsPrice: salePrice,
+                price: this.firstDefined(item.price, original.price, salePrice),
+                sale_price: this.firstDefined(item.sale_price, original.sale_price, salePrice),
+                salePrice: this.firstDefined(item.salePrice, original.salePrice, salePrice),
+                original_price: originalPrice,
+                originalPrice,
                 shop_logo: shopLogo,
                 shopLogo,
-                shop_name: item.shop_name || item.shopName || original.shop_name || original.shopName || this.orderInfo.shop_name || '',
-                shopName: item.shopName || item.shop_name || original.shopName || original.shop_name || this.orderInfo.shopName || ''
+                shop_id: item.shop_id || item.shopId || item.store_id || item.storeId || original.shop_id || original.shopId || original.store_id || original.storeId || this.orderInfo.shop_id || this.orderInfo.shopId || '',
+                shopId: item.shopId || item.shop_id || item.storeId || item.store_id || original.shopId || original.shop_id || original.storeId || original.store_id || this.orderInfo.shopId || this.orderInfo.shop_id || '',
+                shop_name: item.shop_name || item.shopName || item.store_name || item.storeName || original.shop_name || original.shopName || original.store_name || original.storeName || this.orderInfo.shop_name || this.orderInfo.shopName || '商城自营',
+                shopName: item.shopName || item.shop_name || item.storeName || item.store_name || original.shopName || original.shop_name || original.storeName || original.store_name || this.orderInfo.shopName || this.orderInfo.shop_name || '商城自营'
             }
+        },
+        goodsKey(item = {}, index = 0) {
+            return this.firstDefined(item.item_id, item.itemId, item.goods_id, item.goodsId, item.skuId, item.sku_id, item.id, `goods_${index}`)
         },
         normalizeStoreInfo(info = {}) {
             const id = info.id || info.shop_id || info.shopId || info.selffetch_shop_id || info.selffetchShopId || ''
@@ -1072,14 +1228,9 @@ export default {
             }
         },
         changeIntegral() {
-            if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) {
-                return this.$toast({ title: '当前订单暂不支持积分抵扣' })
-            }
-            if (this.userIntegral <= 0) {
-                return this.$toast({ title: '暂无可用积分' })
-            }
-            if (Number(this.orderInfo.integral_limit || 0) > this.userIntegral) {
-                return this.$toast({ title: '未满足积分使用条件' })
+            const diagnostics = this.logPointsDiagnostics(this.useIntegral ? '关闭积分抵扣' : '开启积分抵扣')
+            if (!this.useIntegral && !diagnostics.canUse) {
+                return this.$toast({ title: diagnostics.reason || '当前订单暂不支持积分抵扣' })
             }
             this.useIntegral = this.useIntegral ? 0 : 1
             this.$nextTick(() => this.handleOrderMethods('info'))
@@ -1251,8 +1402,10 @@ export default {
                     }
                 }
                 this.orderInfo = data
-                this.goodsLists = (data.goods_lists || []).map(this.normalizePreviewGoods)
+                const previewGoods = data.goods_lists || data.order_goods || data.itemList || data.items || []
+                this.goodsLists = (previewGoods.length ? previewGoods : this.goods).map(this.normalizePreviewGoods)
                 this.syncDiscountData(data)
+                this.logPointsDiagnostics('订单预览返回')
                 if (this.ensureDefaultCoupon()) {
                     this.$nextTick(() => this.handleOrderMethods('info'))
                     return
@@ -2066,14 +2219,6 @@ page {
     background: #f6f6f6;
 }
 
-.coupon-none {
-    margin: 20rpx 0;
-    padding: 28rpx 26rpx;
-    border-radius: 16rpx;
-    background: #ffffff;
-    box-sizing: border-box;
-}
-
 .coupon-obj {
     padding: 20rpx 24rpx;
 }
@@ -2153,10 +2298,6 @@ page {
     border-right: 4rpx solid #ffffff;
     border-bottom: 4rpx solid #ffffff;
     transform: rotate(45deg);
-}
-
-.coupon-tips {
-    padding: 14rpx 20rpx;
 }
 
 .coupon-empty {

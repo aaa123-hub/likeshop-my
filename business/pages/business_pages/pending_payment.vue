@@ -40,24 +40,33 @@
                         mode="scaleToFill"
                     ></image>
                 </view>
-                <view class="divider"></view>
-                <view class="shop-row">
-                    <view class="shop-logo"></view>
-                    <text class="shop-name">{{ shopNameText }}</text>
-                </view>
-                <view class="divider"></view>
-                <view class="goods-row">
-                    <view class="goods-image"></view>
-                    <view class="goods-info">
-                        <text class="goods-name">{{ goodsNameText }}</text>
-                        <text class="goods-spec">{{ goodsSpecText }}</text>
-                        <view class="goods-price">
-                            <text class="price-symbol">¥</text>
-                            <text class="price-main">{{ order.priceMain || '0' }}</text>
-                            <text class="price-decimal">{{ order.priceDecimal || '.00' }}</text>
+                <view v-for="(shop, shopIndex) in shopGroups" :key="shop.key" class="shop-block">
+                    <view class="divider"></view>
+                    <view class="shop-row">
+                        <view class="shop-logo"></view>
+                        <text class="shop-name">{{ shop.name }}</text>
+                    </view>
+                    <view
+                        v-for="(item, itemIndex) in shop.items"
+                        :key="goodsKey(item, itemIndex)"
+                        class="shop-goods-wrap"
+                    >
+                        <view class="divider"></view>
+                        <view class="goods-row">
+                            <image v-if="goodsImage(item)" class="goods-image" :src="goodsImage(item)" mode="aspectFill"></image>
+                            <view v-else class="goods-image"></view>
+                            <view class="goods-info">
+                                <text class="goods-name">{{ goodsDisplayName(item) }}</text>
+                                <text v-if="goodsDisplaySpec(item)" class="goods-spec">{{ goodsDisplaySpec(item) }}</text>
+                                <view class="goods-price">
+                                    <text class="price-symbol">¥</text>
+                                    <text class="price-main">{{ splitAmount(goodsDisplayPrice(item)).main }}</text>
+                                    <text class="price-decimal">{{ splitAmount(goodsDisplayPrice(item)).decimal }}</text>
+                                </view>
+                            </view>
+                            <text class="goods-num">X{{ goodsDisplayNum(item) }}</text>
                         </view>
                     </view>
-                    <text class="goods-num">X1</text>
                 </view>
                 <view class="divider"></view>
                 <view class="summary-row freight-row">
@@ -94,7 +103,7 @@
                     </view>
                 </view>
                 <view class="divider"></view>
-                <view class="summary-row points-row">
+                <view class="summary-row points-row" :class="{ 'points-row--disabled': !pointsInfo.enabled }">
                     <view class="points-copy">
                         <text>积分抵扣</text>
                         <text class="points-desc">{{ pointsSummaryText }}</text>
@@ -166,13 +175,6 @@
                     <view :class="['coupon-tab', couponTabsIndex === 1 ? 'is-active' : '']" @tap="couponTabsIndex = 1">不可用({{ unusableCoupon.length }})</view>
                 </view>
                 <scroll-view class="coupon-scroll" scroll-y>
-                    <view v-if="couponTabsIndex === 0" class="coupon-none" @tap="clearPendingCoupon">
-                        <view>
-                            <view class="coupon-name">不使用优惠券</view>
-                            <view class="coupon-desc">本次付款不抵扣优惠券</view>
-                        </view>
-                        <view :class="['coupon-check', !pendingCouponId ? 'coupon-check--active' : '']"></view>
-                    </view>
                     <view
                         v-for="(item, index) in currentCouponList"
                         :key="couponKey(item)"
@@ -187,7 +189,6 @@
                             <view class="coupon-name">{{ couponName(item) }}</view>
                             <view class="coupon-desc">{{ couponConditionText(item) }}</view>
                             <view class="coupon-desc">{{ couponTimeText(item) }}</view>
-                            <view v-if="item.tips" class="coupon-desc">{{ safeText(item.tips) }}</view>
                         </view>
                         <view
                             v-if="couponTabsIndex === 0"
@@ -276,6 +277,49 @@ export default {
             const order = this.order || {}
             return this.safeText(order.shopName || order.shop_name, '店铺信息')
         },
+        goodsList() {
+            const order = this.order || {}
+            return order.order_goods || order.goods_lists || order.itemList || order.items || []
+        },
+        shopGroups() {
+            const order = this.order || {}
+            const rawShopOrders = order.shopOrders || order.shop_orders || []
+            if (Array.isArray(rawShopOrders) && rawShopOrders.length) {
+                return rawShopOrders.map((shop, index) => {
+                    const items = shop.itemList || shop.items || shop.goodsList || shop.goods_lists || shop.order_goods || []
+                    return {
+                        key: this.firstDefined(shop.shopId, shop.shop_id, shop.id, `shop_${index}`),
+                        name: this.safeText(this.firstDefined(shop.shopName, shop.shop_name, shop.name, shop.storeName, shop.store_name, this.shopNameText), '店铺信息'),
+                        items: Array.isArray(items) && items.length ? items : this.goodsList
+                    }
+                })
+            }
+            const groups = []
+            this.goodsList.forEach((item, index) => {
+                const shopId = this.firstDefined(item.shop_id, item.shopId, item.store_id, item.storeId, order.shop_id, order.shopId, 'default')
+                let group = groups.find((shop) => shop.key === String(shopId))
+                if (!group) {
+                    group = {
+                        key: String(shopId || `shop_${index}`),
+                        name: this.safeText(this.firstDefined(item.shop_name, item.shopName, item.store_name, item.storeName, order.shop_name, order.shopName), '店铺信息'),
+                        items: []
+                    }
+                    groups.push(group)
+                }
+                group.items.push(item)
+            })
+            if (groups.length) return groups
+            return [{
+                key: 'default',
+                name: this.shopNameText,
+                items: [{
+                    goods_name: this.goodsNameText,
+                    spec_value_str: this.goodsSpecText,
+                    goods_price: this.firstDefined(order.goods_price, order.goodsPrice, order.price, order.payAmount, order.order_amount, 0),
+                    goods_num: this.firstDefined(order.goods_num, order.goodsNum, order.num, 1)
+                }]
+            }]
+        },
         goodsNameText() {
             const order = this.order || {}
             const firstGoods = (order.order_goods || order.goods_lists || [])[0] || {}
@@ -292,85 +336,213 @@ export default {
         pointsInfo() {
             const order = this.order || {}
             const pointsInfo = this.normalizedPointsInfo
-            const amountInfo = order.amountInfo || order.amount_info || order.settlementAmount || order.settlement_amount || {}
+            const baseInfo = order.baseInfo || order.base_info || {}
+            const orderInfo = order.orderInfo || order.order_info || {}
+            const amountInfo = order.amountInfo || order.amount_info || order.settlementAmount || order.settlement_amount || baseInfo.amountInfo || baseInfo.amount_info || orderInfo.amountInfo || orderInfo.amount_info || {}
+            const pointsAccount = order.pointsAccount || order.points_account || order.userPoints || order.user_points || baseInfo.pointsAccount || baseInfo.points_account || orderInfo.pointsAccount || orderInfo.points_account || {}
+            const enabledValue = this.firstDefined(
+                order.integralSwitch,
+                order.integral_switch,
+                order.pointsEnabled,
+                order.points_enabled,
+                order.supportPoints,
+                order.support_points,
+                order.canUsePoints,
+                order.can_use_points,
+                baseInfo.integralSwitch,
+                baseInfo.integral_switch,
+                orderInfo.integralSwitch,
+                orderInfo.integral_switch,
+                pointsInfo.integralSwitch,
+                pointsInfo.integral_switch,
+                pointsInfo.pointsEnabled,
+                pointsInfo.points_enabled,
+                pointsInfo.supportPoints,
+                pointsInfo.support_points,
+                pointsInfo.canUsePoints,
+                pointsInfo.can_use_points,
+                ''
+            )
+            const available = this.numberValue(this.firstDefined(
+                order.user_integral,
+                order.userIntegral,
+                order.availablePoints,
+                order.available_points,
+                order.availableIntegral,
+                order.available_integral,
+                order.points,
+                order.totalPoints,
+                order.total_points,
+                order.integral,
+                baseInfo.user_integral,
+                baseInfo.userIntegral,
+                baseInfo.availablePoints,
+                baseInfo.available_points,
+                baseInfo.integral,
+                orderInfo.user_integral,
+                orderInfo.userIntegral,
+                orderInfo.availablePoints,
+                orderInfo.available_points,
+                orderInfo.integral,
+                pointsAccount.availablePoints,
+                pointsAccount.available_points,
+                pointsAccount.availableIntegral,
+                pointsAccount.available_integral,
+                pointsAccount.points,
+                pointsAccount.integral,
+                pointsInfo.userIntegral,
+                pointsInfo.user_integral,
+                pointsInfo.available,
+                pointsInfo.availablePoints,
+                pointsInfo.available_points,
+                pointsInfo.availableIntegral,
+                pointsInfo.available_integral,
+                pointsInfo.points,
+                pointsInfo.integral,
+                0
+            ))
+            const used = this.numberValue(this.firstDefined(
+                order.pointsAmount,
+                order.points_amount,
+                order.usedPoints,
+                order.used_points,
+                order.integralNum,
+                order.integral_num,
+                order.maxUsablePoints,
+                order.max_usable_points,
+                order.maxUsableIntegral,
+                order.max_usable_integral,
+                order.usablePoints,
+                order.usable_points,
+                order.usableIntegral,
+                order.usable_integral,
+                baseInfo.pointsAmount,
+                baseInfo.points_amount,
+                baseInfo.usedPoints,
+                baseInfo.used_points,
+                baseInfo.integralNum,
+                baseInfo.integral_num,
+                orderInfo.pointsAmount,
+                orderInfo.points_amount,
+                orderInfo.usedPoints,
+                orderInfo.used_points,
+                orderInfo.integralNum,
+                orderInfo.integral_num,
+                amountInfo.pointsAmount,
+                amountInfo.points_amount,
+                amountInfo.integralNum,
+                amountInfo.integral_num,
+                pointsInfo.pointsAmount,
+                pointsInfo.points_amount,
+                pointsInfo.used,
+                pointsInfo.usedPoints,
+                pointsInfo.used_points,
+                pointsInfo.integralNum,
+                pointsInfo.integral_num,
+                pointsInfo.maxUsablePoints,
+                pointsInfo.max_usable_points,
+                pointsInfo.usablePoints,
+                pointsInfo.usable_points,
+                0
+            ))
+            const deductAmount = this.numberValue(this.firstDefined(
+                order.pointsDeductAmount,
+                order.points_deduct_amount,
+                order.integralAmount,
+                order.integral_amount,
+                order.integralDeductAmount,
+                order.integral_deduct_amount,
+                order.maxPointsDeductAmount,
+                order.max_points_deduct_amount,
+                order.maxIntegralDeductAmount,
+                order.max_integral_deduct_amount,
+                order.maxDeductAmount,
+                order.max_deduct_amount,
+                baseInfo.pointsDeductAmount,
+                baseInfo.points_deduct_amount,
+                baseInfo.integralAmount,
+                baseInfo.integral_amount,
+                baseInfo.integralDeductAmount,
+                baseInfo.integral_deduct_amount,
+                orderInfo.pointsDeductAmount,
+                orderInfo.points_deduct_amount,
+                orderInfo.integralAmount,
+                orderInfo.integral_amount,
+                orderInfo.integralDeductAmount,
+                orderInfo.integral_deduct_amount,
+                amountInfo.pointsDeductAmount,
+                amountInfo.points_deduct_amount,
+                amountInfo.integralAmount,
+                amountInfo.integral_amount,
+                amountInfo.integralDeductAmount,
+                amountInfo.integral_deduct_amount,
+                amountInfo.maxDeductAmount,
+                amountInfo.max_deduct_amount,
+                pointsInfo.pointsDeductAmount,
+                pointsInfo.points_deduct_amount,
+                pointsInfo.deductAmount,
+                pointsInfo.deduct_amount,
+                pointsInfo.integralAmount,
+                pointsInfo.integral_amount,
+                pointsInfo.integralDeductAmount,
+                pointsInfo.integral_deduct_amount,
+                pointsInfo.maxDeductAmount,
+                pointsInfo.max_deduct_amount,
+                0
+            ))
+            const give = this.numberValue(this.firstDefined(
+                order.order_give_integral,
+                order.giveIntegral,
+                order.give_integral,
+                order.rewardPoints,
+                order.reward_points,
+                baseInfo.order_give_integral,
+                baseInfo.giveIntegral,
+                baseInfo.give_integral,
+                orderInfo.order_give_integral,
+                orderInfo.giveIntegral,
+                orderInfo.give_integral,
+                pointsInfo.giveIntegral,
+                pointsInfo.give_integral,
+                pointsInfo.rewardPoints,
+                pointsInfo.reward_points,
+                0
+            ))
+            const hasAnyData = Boolean(
+                available > 0
+                || used > 0
+                || deductAmount > 0
+                || give > 0
+                || enabledValue !== ''
+                || Object.keys(pointsInfo || {}).length
+            )
+            const enabled = this.boolValue(enabledValue, available > 0 || used > 0 || deductAmount > 0)
             return {
-                available: this.numberValue(this.firstDefined(
-                    order.user_integral,
-                    order.userIntegral,
-                    order.availablePoints,
-                    order.available_points,
-                    order.points,
-                    order.totalPoints,
-                    order.total_points,
-                    pointsInfo.userIntegral,
-                    pointsInfo.user_integral,
-                    pointsInfo.available,
-                    pointsInfo.availablePoints,
-                    pointsInfo.available_points,
-                    pointsInfo.points,
-                    0
-                )),
-                used: this.numberValue(this.firstDefined(
-                    order.pointsAmount,
-                    order.points_amount,
-                    order.usedPoints,
-                    order.used_points,
-                    order.integralNum,
-                    order.integral_num,
-                    amountInfo.pointsAmount,
-                    amountInfo.points_amount,
-                    amountInfo.integralNum,
-                    amountInfo.integral_num,
-                    pointsInfo.pointsAmount,
-                    pointsInfo.points_amount,
-                    pointsInfo.used,
-                    pointsInfo.usedPoints,
-                    pointsInfo.used_points,
-                    pointsInfo.integralNum,
-                    pointsInfo.integral_num,
-                    0
-                )),
-                deductAmount: this.numberValue(this.firstDefined(
-                    order.pointsDeductAmount,
-                    order.points_deduct_amount,
-                    order.integralAmount,
-                    order.integral_amount,
-                    order.integralDeductAmount,
-                    order.integral_deduct_amount,
-                    amountInfo.pointsDeductAmount,
-                    amountInfo.points_deduct_amount,
-                    amountInfo.integralAmount,
-                    amountInfo.integral_amount,
-                    pointsInfo.pointsDeductAmount,
-                    pointsInfo.points_deduct_amount,
-                    pointsInfo.deductAmount,
-                    pointsInfo.deduct_amount,
-                    pointsInfo.integralAmount,
-                    pointsInfo.integral_amount,
-                    0
-                )),
-                give: this.numberValue(this.firstDefined(
-                    order.order_give_integral,
-                    order.giveIntegral,
-                    order.give_integral,
-                    order.rewardPoints,
-                    order.reward_points,
-                    pointsInfo.giveIntegral,
-                    pointsInfo.give_integral,
-                    pointsInfo.rewardPoints,
-                    pointsInfo.reward_points,
-                    0
-                ))
+                available,
+                used,
+                deductAmount,
+                give,
+                enabled,
+                hasAnyData
             }
         },
+        shouldUsePoints() {
+            return this.pointsInfo.enabled && (this.pointsInfo.used > 0 || this.pointsInfo.deductAmount > 0)
+        },
         pointsSummaryText() {
+            if (!this.pointsInfo.enabled) return '当前订单暂不支持积分抵扣'
+            if (this.pointsInfo.deductAmount > 0 && this.pointsInfo.used > 0) return `已用${this.pointsInfo.used}积分抵扣¥${this.formatAmount(this.pointsInfo.deductAmount)}`
             if (this.pointsInfo.deductAmount > 0) return `已抵扣¥${this.formatAmount(this.pointsInfo.deductAmount)}`
-            if (this.pointsInfo.available > 0) return '当前订单可查看积分抵扣'
+            if (this.pointsInfo.used > 0) return `已使用${this.pointsInfo.used}积分`
+            if (this.pointsInfo.available > 0) return '有可用积分，待后端返回本单抵扣额'
+            if (!this.pointsInfo.hasAnyData) return '订单详情未返回积分抵扣数据'
             return '暂无可用积分抵扣'
         },
         normalizedPointsInfo() {
             const order = this.order || {}
-            return order.pointsInfo || order.points_info || order.integralInfo || order.integral_info || order.pointsConfig || order.points_config || {}
+            const baseInfo = order.baseInfo || order.base_info || {}
+            const orderInfo = order.orderInfo || order.order_info || {}
+            return order.pointsInfo || order.points_info || order.integralInfo || order.integral_info || order.pointsConfig || order.points_config || baseInfo.pointsInfo || baseInfo.points_info || baseInfo.integralInfo || baseInfo.integral_info || orderInfo.pointsInfo || orderInfo.points_info || orderInfo.integralInfo || orderInfo.integral_info || {}
         },
         selectedCoupon() {
             if (!this.couponId) return null
@@ -457,6 +629,15 @@ export default {
             const number = Number(value)
             return Number.isNaN(number) ? 0 : number
         },
+        boolValue(value, fallback = false) {
+            if (value === undefined || value === null || value === '') return fallback
+            if (typeof value === 'boolean') return value
+            if (typeof value === 'number') return value !== 0
+            const normalized = String(value).trim().toUpperCase()
+            if (['0', 'FALSE', 'NO', 'N', 'OFF', 'DISABLED'].includes(normalized)) return false
+            if (['1', 'TRUE', 'YES', 'Y', 'ON', 'ENABLED'].includes(normalized)) return true
+            return fallback
+        },
         formatAmount(value) {
             return this.numberValue(value).toFixed(2)
         },
@@ -466,6 +647,24 @@ export default {
                 main: parts[0] || '0',
                 decimal: `.${parts[1] || '00'}`
             }
+        },
+        goodsKey(item = {}, index = 0) {
+            return this.firstDefined(item.item_id, item.itemId, item.goods_id, item.goodsId, item.skuId, item.sku_id, item.id, `goods_${index}`)
+        },
+        goodsImage(item = {}) {
+            return this.firstDefined(item.image, item.image_str, item.goods_image, item.goodsImage, item.pic, item.cover, item.imageUrl, item.image_url, '')
+        },
+        goodsDisplayName(item = {}) {
+            return this.safeText(this.firstDefined(item.goods_name, item.goodsName, item.name, item.title, this.goodsNameText), '商品信息')
+        },
+        goodsDisplaySpec(item = {}) {
+            return this.safeText(this.firstDefined(item.spec_value_str, item.specValueStr, item.spec_value, item.specValue, item.skuValue, item.sku_value, item.spec, ''))
+        },
+        goodsDisplayPrice(item = {}) {
+            return this.numberValue(this.firstDefined(item.original_price, item.originalPrice, item.goods_price, item.goodsPrice, item.price, item.sellPrice, item.sell_price, item.amount, 0))
+        },
+        goodsDisplayNum(item = {}) {
+            return this.numberValue(this.firstDefined(item.goods_num, item.goodsNum, item.num, item.quantity, item.count, 1)) || 1
         },
         async initOrder(options = {}) {
             const encoded = this.firstDefined(options.order, options.data, options.detail)
@@ -873,7 +1072,7 @@ export default {
             const query = [`from=order`, `order_id=${encodeURIComponent(orderId)}`]
             if (this.couponId) query.push(`coupon_id=${encodeURIComponent(this.couponId)}`)
             if (this.couponManuallyCleared) query.push('no_coupon=1')
-            if (this.pointsInfo.used > 0 || this.pointsInfo.deductAmount > 0) {
+            if (this.shouldUsePoints) {
                 query.push('use_integral=1')
                 query.push(`points_amount=${encodeURIComponent(this.pointsInfo.used)}`)
                 query.push(`points_deduct_amount=${encodeURIComponent(this.pointsInfo.deductAmount)}`)
@@ -1236,6 +1435,10 @@ page {
     background: linear-gradient(90deg, #ffffff 0%, #fff8f1 100%);
 }
 
+.points-row--disabled {
+    background: #ffffff;
+}
+
 .points-copy {
     display: flex;
     flex-direction: column;
@@ -1261,11 +1464,22 @@ page {
     box-sizing: border-box;
 }
 
+.points-row--disabled .points-value {
+    border-color: #eeeeee;
+    background: #f7f7f7;
+}
+
 .points-num {
     font-size: 28rpx;
     font-weight: 600;
     line-height: 28rpx;
     color: #ff7417;
+}
+
+.points-row--disabled .points-num,
+.points-row--disabled .points-unit,
+.points-row--disabled .points-desc {
+    color: #999999;
 }
 
 .points-unit {
@@ -1440,7 +1654,6 @@ page {
     margin-top: 22rpx;
 }
 
-.coupon-none,
 .coupon-card {
     display: flex;
     align-items: center;

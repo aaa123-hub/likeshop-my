@@ -48,6 +48,8 @@
 <script>
 import { getAutoReceivePoints, setAutoReceivePoints } from '@/api/user'
 
+const AUTO_POINTS_CACHE_KEY = 'auto_receive_points_settings'
+
 export default {
     data() {
         return {
@@ -58,6 +60,7 @@ export default {
         }
     },
     onLoad() {
+        this.loadCachedSettings()
         this.loadSettings()
     },
     methods: {
@@ -78,16 +81,92 @@ export default {
             if (text === 'false' || text === 'no' || text === 'off') return false
             return fallback
         },
+        currentSettings() {
+            return {
+                onlinePay: Boolean(this.onlinePay),
+                onlineReceive: Boolean(this.onlineReceive),
+                offlinePay: Boolean(this.offlinePay)
+            }
+        },
+        buildSettingsPayload(settings = this.currentSettings()) {
+            const enabled = settings.onlinePay || settings.onlineReceive || settings.offlinePay
+            return {
+                onlinePay: settings.onlinePay,
+                online_pay: settings.onlinePay,
+                onlineAfterPay: settings.onlinePay,
+                online_after_pay: settings.onlinePay,
+                onlineReceive: settings.onlineReceive,
+                online_receive: settings.onlineReceive,
+                onlineAfterReceive: settings.onlineReceive,
+                online_after_receive: settings.onlineReceive,
+                offlinePay: settings.offlinePay,
+                offline_pay: settings.offlinePay,
+                offlineAfterPay: settings.offlinePay,
+                offline_after_pay: settings.offlinePay,
+                autoReceiveFlag: enabled,
+                auto_receive_flag: enabled,
+                enabled,
+                value: enabled
+            }
+        },
+        normalizeSettings(raw = {}, fallback = this.currentSettings()) {
+            const data = raw.settings || raw.config || raw.autoReceive || raw.auto_receive || raw
+            const hasOnlinePay = data.onlinePay !== undefined || data.online_pay !== undefined || data.onlineAfterPay !== undefined || data.online_after_pay !== undefined
+            const hasOnlineReceive = data.onlineReceive !== undefined || data.online_receive !== undefined || data.onlineAfterReceive !== undefined || data.online_after_receive !== undefined
+            const hasOfflinePay = data.offlinePay !== undefined || data.offline_pay !== undefined || data.offlineAfterPay !== undefined || data.offline_after_pay !== undefined
+            const autoReceiveFlag = this.parseSwitchValue(data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? data.enabled, true)
+            return {
+                onlinePay: hasOnlinePay
+                    ? this.parseSwitchValue(data.onlinePay ?? data.online_pay ?? data.onlineAfterPay ?? data.online_after_pay, fallback.onlinePay)
+                    : fallback.onlinePay,
+                onlineReceive: hasOnlineReceive
+                    ? this.parseSwitchValue(data.onlineReceive ?? data.online_receive ?? data.onlineAfterReceive ?? data.online_after_receive, fallback.onlineReceive)
+                    : fallback.onlineReceive,
+                offlinePay: hasOfflinePay
+                    ? this.parseSwitchValue(data.offlinePay ?? data.offline_pay ?? data.offlineAfterPay ?? data.offline_after_pay, fallback.offlinePay)
+                    : fallback.offlinePay,
+                hasDetailedFields: hasOnlinePay || hasOnlineReceive || hasOfflinePay,
+                autoReceiveFlag
+            }
+        },
+        applySettings(settings = {}) {
+            this.onlinePay = Boolean(settings.onlinePay)
+            this.onlineReceive = Boolean(settings.onlineReceive)
+            this.offlinePay = Boolean(settings.offlinePay)
+        },
+        loadCachedSettings() {
+            try {
+                const cache = uni.getStorageSync(AUTO_POINTS_CACHE_KEY)
+                if (!cache) return
+                this.applySettings(this.normalizeSettings(cache, this.currentSettings()))
+            } catch (error) {}
+        },
+        saveCachedSettings(settings = this.currentSettings()) {
+            try {
+                uni.setStorageSync(AUTO_POINTS_CACHE_KEY, {
+                    ...this.buildSettingsPayload(settings),
+                    updatedAt: Date.now()
+                })
+            } catch (error) {}
+        },
         async loadSettings() {
             try {
                 const res = await getAutoReceivePoints()
                 if (res.code != 1) return
-                const raw = res.data || {}
-                const data = raw.settings || raw.config || raw.autoReceive || raw.auto_receive || raw
-                const autoReceiveFlag = this.parseSwitchValue(data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? data.enabled, true)
-                this.onlinePay = this.parseSwitchValue(data.onlinePay ?? data.online_pay ?? data.onlineAfterPay ?? data.online_after_pay, autoReceiveFlag)
-                this.onlineReceive = this.parseSwitchValue(data.onlineReceive ?? data.online_receive ?? data.onlineAfterReceive ?? data.online_after_receive, false)
-                this.offlinePay = this.parseSwitchValue(data.offlinePay ?? data.offline_pay ?? data.offlineAfterPay ?? data.offline_after_pay, autoReceiveFlag)
+                const fallback = this.currentSettings()
+                const settings = this.normalizeSettings(res.data || {}, fallback)
+                if (settings.hasDetailedFields) {
+                    this.applySettings(settings)
+                    this.saveCachedSettings(settings)
+                    return
+                }
+                if (!uni.getStorageSync(AUTO_POINTS_CACHE_KEY)) {
+                    this.applySettings({
+                        onlinePay: settings.autoReceiveFlag,
+                        onlineReceive: false,
+                        offlinePay: settings.autoReceiveFlag
+                    })
+                }
             } catch (error) {
                 console.warn('load auto receive points failed', error)
             }
@@ -96,16 +175,15 @@ export default {
             if (this.saving) return
             this.saving = true
             try {
-                const res = await setAutoReceivePoints({
-                    onlinePay: this.onlinePay,
-                    online_pay: this.onlinePay,
-                    onlineReceive: this.onlineReceive,
-                    online_receive: this.onlineReceive,
-                    offlinePay: this.offlinePay,
-                    offline_pay: this.offlinePay,
-                    autoReceiveFlag: this.onlinePay || this.onlineReceive || this.offlinePay
-                })
+                const settings = this.currentSettings()
+                const res = await setAutoReceivePoints(this.buildSettingsPayload(settings))
                 if (res.code == 1) {
+                    this.saveCachedSettings(settings)
+                    const responseSettings = this.normalizeSettings(res.data || {}, settings)
+                    if (responseSettings.hasDetailedFields) {
+                        this.applySettings(responseSettings)
+                        this.saveCachedSettings(responseSettings)
+                    }
                     uni.showToast({ title: '保存成功', icon: 'success' })
                     return
                 }

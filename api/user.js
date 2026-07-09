@@ -809,14 +809,17 @@ export function getAfterSaleList(params) {
     }).then((res) => {
         const normalized = normalizePageResponse(res, normalizeAfterSaleItem)
         const type = params?.type
-        if (normalized.code != 1 || !type || type === 'normal') return normalized
+        if (normalized.code != 1 || !type) return normalized
         const statusGroups = {
+            normal: [],
             apply: [0, 1, 2],
             finish: [4, 5, 6]
         }
         const allowed = statusGroups[type]
         if (!allowed) return normalized
-        const list = (normalized.data.list || []).filter((item) => allowed.includes(Number(item.status)))
+        const list = type === 'normal'
+            ? (normalized.data.list || []).filter((item) => Number(item.after_sale?.able_apply ?? item.able_apply ?? 0) === 1 && !item.after_sale?.after_sale_id)
+            : (normalized.data.list || []).filter((item) => allowed.includes(Number(item.status)))
         return {
             ...normalized,
             data: {
@@ -1299,12 +1302,20 @@ export function setAutoReceivePoints(data) {
     return request.post('miniapp/points/settings/auto-receive', {
         autoReceiveFlag: data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true,
         auto_receive_flag: data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true,
+        enabled: data.enabled ?? data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? true,
+        value: data.value ?? data.autoReceiveFlag ?? data.auto_receive_flag ?? true,
         onlinePay: data.onlinePay ?? data.online_pay,
         online_pay: data.onlinePay ?? data.online_pay,
+        onlineAfterPay: data.onlineAfterPay ?? data.online_after_pay ?? data.onlinePay ?? data.online_pay,
+        online_after_pay: data.onlineAfterPay ?? data.online_after_pay ?? data.onlinePay ?? data.online_pay,
         onlineReceive: data.onlineReceive ?? data.online_receive,
         online_receive: data.onlineReceive ?? data.online_receive,
+        onlineAfterReceive: data.onlineAfterReceive ?? data.online_after_receive ?? data.onlineReceive ?? data.online_receive,
+        online_after_receive: data.onlineAfterReceive ?? data.online_after_receive ?? data.onlineReceive ?? data.online_receive,
         offlinePay: data.offlinePay ?? data.offline_pay,
-        offline_pay: data.offlinePay ?? data.offline_pay
+        offline_pay: data.offlinePay ?? data.offline_pay,
+        offlineAfterPay: data.offlineAfterPay ?? data.offline_after_pay ?? data.offlinePay ?? data.offline_pay,
+        offline_after_pay: data.offlineAfterPay ?? data.offline_after_pay ?? data.offlinePay ?? data.offline_pay
     })
 }
 
@@ -1473,14 +1484,39 @@ export function getMerchantQualificationStatus(params = {}) {
 }
 
 function normalizeRoleApplication(data = {}) {
-    const status = String(data.applicationStatus || data.application_status || data.auditStatus || data.audit_status || data.status || '').toUpperCase()
+    const explicitApplicationStatus = data.applicationStatus || data.application_status || data.auditStatus || data.audit_status || ''
+    const rawStatus = String(explicitApplicationStatus || data.status || '').toUpperCase()
     const auditRemark = data.auditRemark || data.audit_remark || data.auditMessage || data.audit_message || data.rejectReason || data.reject_reason || data.reason || ''
     const payStatus = String(data.payStatus || data.pay_status || data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase()
+    const paidStatuses = ['PAID', 'SUCCESS', 'SUCCEEDED', 'FINISHED', 'COMPLETED', 'WAIVED', 'FREE']
+    const unpaidStatuses = ['UNPAID', 'WAIT_PAY', 'PENDING_PAY', 'NOT_PAID', 'PAYING']
+    const approvedStatuses = ['APPROVED', 'PASS', 'PASSED']
+    const rejectedStatuses = ['REJECTED', 'REJECT', 'REFUSED', 'FAIL', 'FAILED']
+    const pendingAuditStatuses = ['PENDING_AUDIT', 'WAIT_AUDIT', 'AUDITING', 'PENDING_REVIEW', 'WAIT_REVIEW', 'REVIEWING']
+    const pendingDepositStatuses = ['PENDING_DEPOSIT', 'WAIT_DEPOSIT', 'PENDING_PAY', 'WAIT_PAY']
+    const depositNo = data.depositNo || data.deposit_no || data.bondNo || data.bond_no || data.marginNo || data.margin_no || ''
+    const depositAmount = data.depositAmount ?? data.deposit_amount ?? data.bondAmount ?? data.bond_amount ?? data.marginAmount ?? data.margin_amount ?? ''
+    let status = rawStatus
+    if (approvedStatuses.includes(rawStatus)) {
+        status = 'APPROVED'
+    } else if (!explicitApplicationStatus && paidStatuses.includes(rawStatus)) {
+        status = 'PENDING_AUDIT'
+    } else if (rejectedStatuses.includes(rawStatus)) {
+        status = 'REJECTED'
+    } else if (pendingAuditStatuses.includes(rawStatus)) {
+        status = 'PENDING_AUDIT'
+    } else if (paidStatuses.includes(payStatus) && (!rawStatus || pendingDepositStatuses.includes(rawStatus))) {
+        status = 'PENDING_AUDIT'
+    } else if (pendingDepositStatuses.includes(rawStatus) || (depositNo && (payStatus === '' || unpaidStatuses.includes(payStatus)))) {
+        status = 'PENDING_DEPOSIT'
+    }
     return {
         ...data,
         applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || data.id || '',
-        depositNo: data.depositNo || data.deposit_no || data.bondNo || data.bond_no || data.marginNo || data.margin_no || '',
+        depositNo,
         roleCode: normalizeRoleCode(data.roleCode || data.role_code || data.role || ''),
+        rawApplicationStatus: rawStatus,
+        raw_application_status: rawStatus,
         applicationStatus: status,
         auditStatus: status,
         auditRemark,
@@ -1502,7 +1538,7 @@ function normalizeRoleApplication(data = {}) {
         promoterCode: data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || data.invite_code || data.distributionCode || data.distribution_code || '',
         backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || '',
         materialUrls: data.materialUrls || data.material_urls || [],
-        depositAmount: data.depositAmount ?? data.deposit_amount ?? data.bondAmount ?? data.bond_amount ?? data.marginAmount ?? data.margin_amount ?? '',
+        depositAmount,
         payStatus,
         depositStatus: payStatus,
         refundStatus: data.refundStatus || data.refund_status || '',
@@ -1587,7 +1623,7 @@ export function getRoleApplications(params = {}) {
         }, {})
         const applications = list.map((item) => {
             const deposit = depositsByApplicationNo[item.applicationNo]
-            return deposit ? { ...item, ...deposit, applicationStatus: item.applicationStatus, auditStatus: item.auditStatus } : item
+            return deposit ? normalizeRoleApplication({ ...item, ...deposit, applicationStatus: item.applicationStatus, auditStatus: item.auditStatus }) : item
         })
         return {
             ...res,

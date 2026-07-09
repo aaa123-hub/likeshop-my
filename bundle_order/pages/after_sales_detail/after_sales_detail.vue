@@ -85,12 +85,12 @@
 					</view>
 				</view>
 			</view>
-			<view class="btn-group fixed bg-white row-end" v-show="lists.status != 6">
-				<view class="mr20 btn br60" @tap="showDialog">撤销申请</view>
-				<view class="mr20 btn br60" @tap="goRefund" v-show="lists.status == 4 || lists.status == 1">重新申请</view>
+			<view class="btn-group fixed bg-white row-end" v-if="actionButtonsVisible">
+				<view class="btn br60 btn--plain" v-if="canCancelApply" @tap="showDialog">撤销申请</view>
+				<view class="btn br60 btn--primary" @tap="goRefund" v-show="canReapply">重新申请</view>
 				<navigator hover-class="none"
-					:url="'/bundle_order/pages/input_express_info/input_express_info?id=' + lists.id" class="mr20 btn br60"
-					v-show="lists.status == 2">填写快递单号</navigator>
+					:url="'/bundle_order/pages/input_express_info/input_express_info?id=' + lists.id" class="btn br60 btn--primary"
+					v-show="canInputExpress">填写快递单号</navigator>
 				<view class="btn br60" v-show="false">平台退款</view>
 			</view>
 		</view>
@@ -286,6 +286,21 @@ trottle,
 			detailGoods() {
 				const goods = this.lists.order_goods || this.lists.goods_lists || {}
 				return Array.isArray(goods) ? goods[0] || {} : goods
+			},
+			normalizedStatus() {
+				return String(this.lists.status || this.lists.status_text || '').toUpperCase()
+			},
+			canCancelApply() {
+				return ['0', '1', 'APPLIED', 'PENDING', 'PROCESSING', 'PENDING_REVIEW', 'WAIT_AUDIT'].includes(this.normalizedStatus)
+			},
+			canReapply() {
+				return ['4', 'REJECTED', 'REJECT', 'FAILED'].includes(this.normalizedStatus)
+			},
+			canInputExpress() {
+				return ['2', '3', 'APPROVED', 'RETURNING'].includes(this.normalizedStatus)
+			},
+			actionButtonsVisible() {
+				return this.canCancelApply || this.canReapply || this.canInputExpress
 			}
 		}
 	};
@@ -344,6 +359,10 @@ trottle,
 		}
 
 		.btn-group {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: 20rpx;
 			padding: 0rpx 24rpx env(safe-area-inset-bottom);
 			position: fixed;
 			left: 0;
@@ -353,11 +372,29 @@ trottle,
 			box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.04);
 
 			.btn {
+				display: flex;
+				align-items: center;
+				justify-content: center;
 				height: 58rpx;
 				padding: 0 34rpx;
 				border: 1px solid #dddddd;
 				color: #444;
 				background: #fff;
+				font-size: 26rpx;
+				line-height: 58rpx;
+				box-sizing: border-box;
+			}
+
+			.btn--primary {
+				border-color: #ff2c3c;
+				color: #ffffff;
+				background: #ff2c3c;
+			}
+
+			.btn--plain {
+				border-color: #ffb8bf;
+				color: #ff2c3c;
+				background: #fff5f6;
 			}
 		}
 

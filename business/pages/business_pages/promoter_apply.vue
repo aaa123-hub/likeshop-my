@@ -2,27 +2,13 @@
     <view class="promoter-page">
         <navbar title="角色申请" :background="{ background: '#ffffff' }" title-color="#222222"></navbar>
         <view class="header">
-            <view class="title">角色申请</view>
+            <view class="title-row">
+                <view class="title">角色申请</view>
+                <view class="header-tags">
+                    <view class="header-tag" v-for="item in headerRoleTags" :key="item.roleCode">{{ roleLabel(item.roleCode) }}</view>
+                </view>
+            </view>
             <view class="subtitle">实名通过后选择角色，提交必要资料等待审核</view>
-        </view>
-
-        <view class="role-card" v-if="displayCurrentRoles.length">
-            <view class="card-head">
-                <view>
-                    <view class="card-title">当前角色</view>
-                    <view class="card-subtitle">{{ currentRoleSummary }}</view>
-                </view>
-                <view class="card-count">{{ roleCardCountText }}</view>
-            </view>
-            <view class="role-list role-list--compact">
-                <view
-                    class="role-tag"
-                    v-for="item in displayCurrentRoles"
-                    :key="item.roleCode"
-                >
-                    <text class="role-chip__name">{{ roleLabel(item.roleCode) }}</text>
-                </view>
-            </view>
         </view>
 
         <view class="kyc-gate" v-if="!isKycApproved">
@@ -87,14 +73,25 @@
 
         <view class="form-card" v-if="shouldShowForm">
             <view class="form-title">{{ currentApplication ? '重新提交资料' : '提交申请资料' }}</view>
-            <view class="form-item">
-                <text class="label">申请角色</text>
-                <picker :range="rolePickerRange" range-key="label" :value="rolePickerIndex" @change="onRoleChange">
-                    <view class="picker-value picker-value--select">
-                        <text>{{ selectedRoleLabel }}</text>
-                        <text class="picker-arrow"></text>
+            <view class="role-select">
+                <view class="role-select__head">
+                    <text class="role-select__title">申请角色</text>
+                    <text class="role-select__current">当前选择：{{ selectedRoleLabel }}</text>
+                </view>
+                <view class="role-select__grid">
+                    <view
+                        v-for="item in rolePickerRange"
+                        :key="item.value"
+                        :class="['role-select__option', normalizeRoleCode(item.value) === selectedRoleCode ? 'role-select__option--active' : '']"
+                        @tap="onRoleCardTap(item)"
+                    >
+                        <view>
+                            <view class="role-select__name">{{ item.label }}</view>
+                            <view class="role-select__desc">{{ roleOptionDesc(item.value) }}</view>
+                        </view>
+                        <view class="role-select__check"></view>
                     </view>
-                </picker>
+                </view>
             </view>
             <view class="form-item">
                 <text class="label">姓名</text>
@@ -127,21 +124,6 @@
             <view class="form-item">
                 <text class="label">确认密码</text>
                 <input v-model="form.confirmPassword" password placeholder="请再次输入密码" />
-            </view>
-            <view class="form-item" v-if="needsRegion">
-                <text class="label">管辖区域</text>
-                <picker
-                    mode="multiSelector"
-                    :range="regionMultiArray"
-                    :value="regionMultiIndex"
-                    @columnchange="onRegionColumnChange"
-                    @change="onRegionPickerChange"
-                >
-                    <view class="picker-value picker-value--select">
-                        <text>{{ regionText || '请选择省-市-区县' }}</text>
-                        <text class="picker-arrow"></text>
-                    </view>
-                </picker>
             </view>
             <view class="form-item form-item--textarea">
                 <text class="label">申请说明</text>
@@ -180,7 +162,6 @@ import { applyRoleApplication, getKycStatus, getRoleApplications, getRoles } fro
 import { prepay } from '@/api/app'
 import { wxpay } from '@/utils/pay'
 import { localizeBackendText, normalizeBackendCode, normalizeKycStatus } from '@/utils/backend-text'
-const CHINA_REGIONS = require('@/bundle_shared_components/components/pick-regions/regions.json')
 
 const roleOptions = [
     { label: '推广者', value: 'PROMOTER' },
@@ -202,9 +183,6 @@ export default {
             roleIndex: 0,
             roles: [],
             applications: [],
-            regionMultiIndex: [0, 0, 0],
-            regionCityList: (CHINA_REGIONS[0] && CHINA_REGIONS[0].child) || [],
-            regionDistrictList: (CHINA_REGIONS[0] && CHINA_REGIONS[0].child && CHINA_REGIONS[0].child[0] && CHINA_REGIONS[0].child[0].child) || [],
             certTypes: [
                 { label: '身份证', value: 'ID_CARD' },
                 { label: '营业执照', value: 'BUSINESS_LICENSE' }
@@ -221,9 +199,6 @@ export default {
                 username: '',
                 password: '',
                 confirmPassword: '',
-                provinceCode: '',
-                cityCode: '',
-                districtCode: '',
                 remark: '',
                 materialUrlsText: '',
                 agreementAccepted: false
@@ -265,6 +240,16 @@ export default {
             if (tags.length) return tags
             return [{ roleCode: 'USER', roleName: '普通用户' }]
         },
+        headerRoleTags() {
+            const tags = [{ roleCode: 'MERCHANT', roleName: '商家' }]
+            this.currentRoles.forEach((item) => {
+                const code = this.normalizeRoleCode(item.roleCode)
+                if (code && code !== 'MERCHANT' && code !== 'USER' && !tags.some((tag) => this.normalizeRoleCode(tag.roleCode) === code)) {
+                    tags.push({ ...item, roleCode: code })
+                }
+            })
+            return tags
+        },
         selectableRoleOptions() {
             return this.roleOptions.map((item) => ({
                 ...item,
@@ -287,28 +272,12 @@ export default {
         rolePickerRange() {
             return this.normalizedRoleOptions.length ? this.normalizedRoleOptions : roleOptions.map((item) => ({ ...item }))
         },
-        rolePickerIndex() {
-            const index = this.rolePickerRange.findIndex((item) => this.normalizeRoleCode(item.value) === this.selectedRoleCode)
-            return index === -1 ? 0 : index
-        },
-        roleCardCountText() {
-            const count = this.displayCurrentRoles.length
-            return count > 1 ? `${count}个身份` : '当前身份'
-        },
         selectedRoleCode() {
             const item = this.roleOptions[this.roleIndex] || this.roleOptions[0] || {}
             return this.normalizeRoleCode(item.value || 'PROMOTER')
         },
         selectedRoleLabel() {
             return this.roleLabel(this.selectedRoleCode)
-        },
-        selectedRoleOption() {
-            const item = this.rolePickerRange[this.rolePickerIndex] || this.rolePickerRange[0] || roleOptions[0] || {}
-            return item
-        },
-        currentRoleSummary() {
-            const labels = this.displayCurrentRoles.map((item) => this.roleLabel(item.roleCode)).filter(Boolean)
-            return labels.length ? labels.join(' / ') : '普通用户'
         },
         isMerchantRole() {
             const info = this.userInfo || {}
@@ -356,19 +325,6 @@ export default {
             if (this.kycGateTitle === '实名审核中') return '实名审核通过后可申请角色。'
             if (this.kycGateTitle === '实名未通过') return '请重新提交实名资料后再申请角色。'
             return '角色申请会使用实名通过后的姓名、证件和照片。'
-        },
-        needsRegion() {
-            return ['AGENT', 'SUBSIDIARY'].includes(this.selectedRoleCode)
-        },
-        regionMultiArray() {
-            return [
-                CHINA_REGIONS.map((item) => item.name),
-                this.regionCityList.map((item) => item.name),
-                this.regionDistrictList.map((item) => item.name)
-            ]
-        },
-        regionText() {
-            return [this.form.provinceName, this.form.cityName, this.form.districtName].filter(Boolean).join(' / ')
         },
         roleDepositAmount() {
             const role = this.roleOptions[this.roleIndex] || {}
@@ -441,7 +397,6 @@ export default {
             return [
                 { label: '申请人', value: item.applicantName },
                 { label: '手机号', value: item.mobile },
-                { label: '申请区域', value: this.areaText(item) },
                 { label: '推广码', value: item.inviteCode || item.promoterCode || this.promoterInviteCode },
                 { label: '押金金额', value: this.moneyText(item.depositAmount) },
                 { label: '押金状态', value: this.depositStatusLabel(item.depositStatus) },
@@ -484,13 +439,7 @@ export default {
                 return [{ type: 'reapply', label: '重新申请', primary: true }]
             }
             if (status === 'deposit') {
-                return [
-                    { type: 'deposit', label: '去缴押金', primary: true },
-                    { type: 'refresh', label: '刷新状态', primary: false }
-                ]
-            }
-            if (status === 'pending') {
-                return [{ type: 'refresh', label: '刷新审核状态', primary: false }]
+                return [{ type: 'deposit', label: '去缴押金', primary: true }]
             }
             return []
         }
@@ -546,11 +495,40 @@ export default {
                 const res = await getRoleApplications()
                 if (res.code == 1) {
                     const data = res.data || {}
-                    this.applications = data.applications || data.list || []
+                    this.applications = (data.applications || data.list || []).map((item) => this.normalizeApplicationState(item))
                 }
             } catch (error) {
                 uni.showToast({ title: '获取申请记录失败', icon: 'none' })
             }
+        },
+        normalizeApplicationState(item = {}) {
+            const status = normalizeBackendCode(item.applicationStatus || item.auditStatus || item.status)
+            const payStatus = normalizeBackendCode(item.payStatus || item.depositStatus || item.pay_status || item.deposit_status)
+            if ((status === '' || status === 'PENDING_DEPOSIT' || status === 'WAIT_PAY' || status === 'PENDING_PAY') && ['PAID', 'SUCCESS', 'WAIVED', 'FREE'].includes(payStatus)) {
+                return {
+                    ...item,
+                    rawApplicationStatus: item.rawApplicationStatus || item.raw_application_status || status,
+                    raw_application_status: item.rawApplicationStatus || item.raw_application_status || status,
+                    applicationStatus: 'PENDING_AUDIT',
+                    auditStatus: 'PENDING_AUDIT',
+                    depositStatus: payStatus,
+                    payStatus
+                }
+            }
+            return item
+        },
+        markDepositPaidPendingAudit(application = this.currentApplication || {}) {
+            const code = this.normalizeRoleCode(application.roleCode || application.role_code || this.selectedRoleCode)
+            const existedIndex = this.applications.findIndex((item) => this.normalizeRoleCode(item.roleCode || item.role_code || item.role) === code)
+            if (existedIndex === -1) return
+            const next = this.normalizeApplicationState({
+                ...this.applications[existedIndex],
+                ...application,
+                roleCode: code,
+                payStatus: 'PAID',
+                depositStatus: 'PAID'
+            })
+            this.$set(this.applications, existedIndex, next)
         },
         syncSelectedRole() {
             const roleCode = (this.currentRoles[0] && this.currentRoles[0].roleCode) || (this.applyRoleApplications[0] && this.applyRoleApplications[0].roleCode)
@@ -614,11 +592,10 @@ export default {
                 this.showApplyForm = false
             }
         },
-        onRoleChange(event) {
-            const pickerIndex = Number(event.detail.value || 0)
-            const selected = this.rolePickerRange[pickerIndex] || this.rolePickerRange[0] || {}
-            const roleIndex = this.roleOptions.findIndex((item) => this.normalizeRoleCode(item.value) === this.normalizeRoleCode(selected.value))
-            this.roleIndex = roleIndex === -1 ? 0 : roleIndex
+        onRoleCardTap(item = {}) {
+            const roleIndex = this.roleOptions.findIndex((role) => this.normalizeRoleCode(role.value) === this.normalizeRoleCode(item.value))
+            if (roleIndex === -1) return
+            this.roleIndex = roleIndex
             this.prefillForm(this.currentApplication || {})
         },
         startApply() {
@@ -666,7 +643,7 @@ export default {
             const normalized = normalizeBackendCode(status)
             if (['PENDING_DEPOSIT'].includes(normalized)) return 'deposit'
             if (['PENDING_AUDIT', 'WAIT_AUDIT', 'AUDITING'].includes(normalized)) return 'pending'
-            if (['APPROVED', 'PASS', 'PASSED', 'SUCCESS', 'REALNAME_VERIFIED'].includes(normalized)) return 'approved'
+            if (['APPROVED', 'PASS', 'PASSED', 'REALNAME_VERIFIED'].includes(normalized)) return 'approved'
             if (['REJECTED', 'REJECT', 'FAILED'].includes(normalized)) return 'rejected'
             if (['CANCELLED'].includes(normalized)) return 'cancelled'
             return 'default'
@@ -685,7 +662,7 @@ export default {
                 REJECT: '已拒绝',
                 CANCELLED: '已取消',
                 AUDITING: '待审核',
-                SUCCESS: '已通过',
+                SUCCESS: '待审核',
                 FAILED: '已拒绝'
             }
             return map[normalized] || localizeBackendText(status, '未申请')
@@ -704,6 +681,15 @@ export default {
             }
             return map[normalized] || localizeBackendText(status, '')
         },
+        roleOptionDesc(roleCode) {
+            const map = {
+                PROMOTER: '适合推广获客和邀请分销',
+                AGENT: '适合区域渠道和门店拓展',
+                SUBSIDIARY: '适合直营网点和下级管理',
+                HQ: '适合总部统一运营管理'
+            }
+            return map[this.normalizeRoleCode(roleCode)] || '提交资料后等待平台审核'
+        },
         applicationAuditRemark(item = {}) {
             const raw = item.auditRemark || item.audit_remark || item.rejectReasonMessage || item.reject_reason_message || item.rejectReasonCode || item.reject_reason_code || item.remark || ''
             return localizeBackendText(raw, '')
@@ -712,21 +698,10 @@ export default {
             if (value === '' || value === null || value === undefined) return ''
             return `¥${value}`
         },
-        areaText(item = {}) {
-            const province = item.provinceName || item.provinceCode || ''
-            const city = item.cityName || item.cityCode || ''
-            const district = item.districtName || item.districtCode || ''
-            return [province, city, district].filter(Boolean).join(' / ')
-        },
         async handleStatusAction(type) {
             if (type === 'reapply') {
                 this.prefillForm(this.currentApplication || {})
                 this.showApplyForm = true
-                return
-            }
-            if (type === 'refresh') {
-                this.loadPageData()
-                uni.showToast({ title: '状态已刷新', icon: 'none' })
                 return
             }
             if (type === 'deposit') {
@@ -758,6 +733,7 @@ export default {
             }
             if (['PAID', 'SUCCESS', 'WAIVED'].includes(String(application.payStatus || application.depositStatus || '').toUpperCase())) {
                 uni.showToast({ title: '押金已缴纳', icon: 'none' })
+                this.markDepositPaidPendingAudit(application)
                 await this.loadPageData()
                 return
             }
@@ -779,6 +755,7 @@ export default {
                 }
                 if (data && data.payStatus === 'SUCCESS') {
                     uni.showToast({ title: '押金已缴纳', icon: 'success' })
+                    this.markDepositPaidPendingAudit(application)
                     await this.loadPageData()
                     return
                 }
@@ -786,6 +763,7 @@ export default {
                 const payResult = await wxpay(payInfo || {})
                 if (payResult === 'success') {
                     uni.showToast({ title: '支付成功', icon: 'success' })
+                    this.markDepositPaidPendingAudit(application)
                 } else {
                     uni.showToast({ title: '支付未完成', icon: 'none' })
                 }
@@ -804,81 +782,10 @@ export default {
             this.form.username = application.username || this.form.username
             this.form.businessLicenseUrl = application.businessLicenseUrl || application.business_license_url || this.form.businessLicenseUrl
             this.applyKycToForm()
-            this.form.provinceCode = application.provinceCode || this.form.provinceCode
-            this.form.provinceName = application.provinceName || this.form.provinceName
-            this.form.cityCode = application.cityCode || this.form.cityCode
-            this.form.cityName = application.cityName || this.form.cityName
-            this.form.districtCode = application.districtCode || this.form.districtCode
-            this.form.districtName = application.districtName || this.form.districtName
             this.form.remark = application.remark || this.form.remark
             this.form.materialUrlsText = Array.isArray(application.materialUrls) ? application.materialUrls.join('\n') : (application.materialUrls || this.form.materialUrlsText)
             this.form.password = ''
             this.form.confirmPassword = ''
-            this.syncRegionPickerIndex()
-        },
-        normalizeRegionChildren(item = {}) {
-            return Array.isArray(item.child) && item.child.length ? item.child : [item]
-        },
-        updateRegionColumns(provinceIndex = this.regionMultiIndex[0], cityIndex = this.regionMultiIndex[1]) {
-            const province = CHINA_REGIONS[provinceIndex] || CHINA_REGIONS[0] || {}
-            const cities = this.normalizeRegionChildren(province)
-            const city = cities[cityIndex] || cities[0] || {}
-            const districts = this.normalizeRegionChildren(city)
-            this.regionCityList = cities
-            this.regionDistrictList = districts
-            this.regionMultiIndex = [
-                Math.min(provinceIndex, Math.max(CHINA_REGIONS.length - 1, 0)),
-                Math.min(cityIndex, Math.max(cities.length - 1, 0)),
-                Math.min(this.regionMultiIndex[2] || 0, Math.max(districts.length - 1, 0))
-            ]
-        },
-        onRegionColumnChange(event) {
-            const column = Number(event.detail.column || 0)
-            const value = Number(event.detail.value || 0)
-            const nextIndex = this.regionMultiIndex.slice()
-            nextIndex[column] = value
-            if (column === 0) {
-                nextIndex[1] = 0
-                nextIndex[2] = 0
-            } else if (column === 1) {
-                nextIndex[2] = 0
-            }
-            this.regionMultiIndex = nextIndex
-            this.updateRegionColumns(nextIndex[0], nextIndex[1])
-        },
-        onRegionPickerChange(event) {
-            const [provinceIndex = 0, cityIndex = 0, districtIndex = 0] = event.detail.value || []
-            this.regionMultiIndex = [provinceIndex, cityIndex, districtIndex]
-            this.updateRegionColumns(provinceIndex, cityIndex)
-            this.onRegionChange([
-                CHINA_REGIONS[this.regionMultiIndex[0]] || {},
-                this.regionCityList[this.regionMultiIndex[1]] || {},
-                this.regionDistrictList[this.regionMultiIndex[2]] || {}
-            ])
-        },
-        syncRegionPickerIndex() {
-            const provinceCode = String(this.form.provinceCode || '')
-            const cityCode = String(this.form.cityCode || '')
-            const districtCode = String(this.form.districtCode || '')
-            if (!provinceCode && !cityCode && !districtCode) return
-            const provinceIndex = Math.max(CHINA_REGIONS.findIndex((item) => String(item.value || item.code) === provinceCode || item.name === this.form.provinceName), 0)
-            const province = CHINA_REGIONS[provinceIndex] || CHINA_REGIONS[0] || {}
-            const cities = this.normalizeRegionChildren(province)
-            const cityIndex = Math.max(cities.findIndex((item) => String(item.value || item.code) === cityCode || item.name === this.form.cityName), 0)
-            const city = cities[cityIndex] || cities[0] || {}
-            const districts = this.normalizeRegionChildren(city)
-            const districtIndex = Math.max(districts.findIndex((item) => String(item.value || item.code) === districtCode || item.name === this.form.districtName), 0)
-            this.regionMultiIndex = [provinceIndex, cityIndex, districtIndex]
-            this.updateRegionColumns(provinceIndex, cityIndex)
-        },
-        onRegionChange(region = []) {
-            const [province = {}, city = {}, district = {}] = region
-            this.form.provinceCode = province.value || province.code || ''
-            this.form.provinceName = province.name || province.label || ''
-            this.form.cityCode = city.value || city.code || ''
-            this.form.cityName = city.name || city.label || ''
-            this.form.districtCode = district.value || district.code || ''
-            this.form.districtName = district.name || district.label || ''
         },
         validateForm() {
             if (!this.isKycApproved) {
@@ -907,10 +814,6 @@ export default {
             }
             if (this.form.password !== this.form.confirmPassword) {
                 uni.showToast({ title: '两次密码输入不一致', icon: 'none' })
-                return false
-            }
-            if (this.needsRegion && (!this.form.provinceCode || !this.form.cityCode || !this.form.districtCode)) {
-                uni.showToast({ title: '请选择管辖省市区', icon: 'none' })
                 return false
             }
             return true
@@ -1006,7 +909,10 @@ export default {
 <style lang="scss">
 .promoter-page { min-height: 100vh; padding: 24rpx 24rpx 48rpx; background: linear-gradient(180deg, #eef7ff 0%, #f6f7fb 360rpx, #f6f7fb 100%); box-sizing: border-box; }
 .header { padding: 34rpx 30rpx; border-radius: 28rpx; color: #ffffff; background: linear-gradient(135deg, #176bff 0%, #18c59f 100%); box-shadow: 0 18rpx 42rpx rgba(22, 136, 255, .2); }
+.title-row { display: flex; align-items: center; gap: 16rpx; min-width: 0; }
 .title { font-size: 40rpx; font-weight: 700; line-height: 56rpx; }
+.header-tags { display: flex; flex-wrap: wrap; gap: 10rpx; min-width: 0; }
+.header-tag { height: 40rpx; padding: 0 16rpx; border-radius: 20rpx; color: #ffffff; background: rgba(255, 255, 255, .18); border: 1rpx solid rgba(255, 255, 255, .32); font-size: 22rpx; line-height: 40rpx; }
 .subtitle { margin-top: 10rpx; color: rgba(255, 255, 255, .88); font-size: 25rpx; line-height: 36rpx; }
 .role-card, .status-card, .focus-card, .info-card, .action-card, .form-card, .history, .empty-state { margin-top: 22rpx; padding: 26rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 12rpx 34rpx rgba(31, 58, 94, .08); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
@@ -1065,14 +971,24 @@ export default {
 .action-btn--plain { color: #1688ff; background: #eef7ff; }
 .form-card { padding: 30rpx; }
 .form-title { margin-bottom: 20rpx; color: #222222; font-size: 32rpx; font-weight: 700; }
+.role-select { margin-bottom: 20rpx; padding: 22rpx; border-radius: 20rpx; background: linear-gradient(180deg, #f7fbff, #ffffff); border: 1rpx solid #e1efff; box-sizing: border-box; }
+.role-select__head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.role-select__title { color: #222222; font-size: 29rpx; font-weight: 700; }
+.role-select__current { flex: none; color: #1688ff; font-size: 24rpx; }
+.role-select__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16rpx; margin-top: 18rpx; }
+.role-select__option { position: relative; min-height: 136rpx; padding: 20rpx 18rpx; border-radius: 18rpx; border: 2rpx solid #e5ebf2; background: #ffffff; box-sizing: border-box; overflow: hidden; }
+.role-select__option--active { border-color: #1688ff; background: linear-gradient(135deg, #eef7ff, #ffffff); box-shadow: 0 10rpx 24rpx rgba(22, 136, 255, .14); }
+.role-select__name { color: #222222; font-size: 28rpx; font-weight: 700; line-height: 40rpx; }
+.role-select__desc { margin-top: 8rpx; color: #7a8594; font-size: 22rpx; line-height: 32rpx; }
+.role-select__check { position: absolute; right: 16rpx; top: 16rpx; width: 30rpx; height: 30rpx; border-radius: 50%; border: 2rpx solid #d6dee9; background: #ffffff; box-sizing: border-box; }
+.role-select__option--active .role-select__check { border-color: #1688ff; background: #1688ff; }
+.role-select__option--active .role-select__check::after { content: ''; position: absolute; left: 8rpx; top: 4rpx; width: 9rpx; height: 15rpx; border-right: 3rpx solid #ffffff; border-bottom: 3rpx solid #ffffff; transform: rotate(45deg); }
 .form-item { display: flex; align-items: center; min-height: 96rpx; margin-top: 16rpx; padding: 18rpx 20rpx; border: 1rpx solid #edf1f6; border-radius: 18rpx; background: #f8fafc; box-sizing: border-box; }
 .form-item:first-of-type { margin-top: 0; }
 .form-item--textarea { align-items: flex-start; padding-top: 22rpx; }
 .label { flex: none; width: 160rpx; color: #465366; font-size: 27rpx; font-weight: 500; line-height: 40rpx; }
 input, textarea, .picker-value { flex: 1; min-width: 0; color: #1f2937; font-size: 28rpx; }
 input, .picker-value { min-height: 62rpx; line-height: 62rpx; text-align: right; }
-.picker-value--select { display: flex; align-items: center; justify-content: flex-end; min-height: 64rpx; padding: 0 20rpx; border: 1rpx solid #cfe3ff; border-radius: 16rpx; background: #ffffff; color: #1677ff; box-sizing: border-box; }
-.picker-arrow { flex: none; width: 14rpx; height: 14rpx; margin-left: 16rpx; border-right: 3rpx solid #1677ff; border-bottom: 3rpx solid #1677ff; transform: rotate(45deg) translateY(-3rpx); }
 textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ffffff; line-height: 40rpx; box-sizing: border-box; text-align: left; }
 .kyc-material { margin-top: 24rpx; padding: 24rpx; border-radius: 20rpx; background: #f8fafc; border: 1rpx solid #edf1f6; }
 .kyc-material__title { color: #333333; font-size: 28rpx; font-weight: 600; }

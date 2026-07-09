@@ -796,13 +796,13 @@ export default {
       return text.split(/[,，、]/).map(item => map[item.toUpperCase()] || item).join('、')
     },
     hasAfterSale(item = {}) {
-      return Boolean(item.after_sale_id || item.afterSaleId || item.refundNo || item.refund_no || item.after_sale || item.afterSale || item.refund_info || item.refundInfo)
+      return Boolean(item.after_sale_id || item.afterSaleId || item.refundNo || item.refund_no || item.after_sale || item.afterSale || item.refund_info || item.refundInfo || this.afterStatusText(item) || (this.orderDetail.refund_info && Object.keys(this.orderDetail.refund_info).length))
     },
     afterStatusText(item = {}) {
       return this.formatRefundStatusText(this.pickValue(item, ['after_status_desc', 'afterStatusDesc', 'refundStatusText', 'status_text']) || this.pickValue(item.after_sale || item.afterSale || {}, ['desc', 'statusText', 'status_text', 'status']) || this.pickValue(item.refund_info || item.refundInfo || {}, ['statusText', 'status_text', 'status']))
     },
     canApplyRefund(item = {}) {
-      return Boolean(item.refund_btn) && !this.hasAfterSale(item) && !this.afterStatusText(item)
+      return Boolean(item.refund_btn) && !this.hasAfterSale(item)
     },
   },
   computed: {
@@ -1053,9 +1053,15 @@ export default {
 }
 
 .after-status {
-  margin-right: 18rpx;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: #fff7e8;
   color: #f1790e;
   font-size: 24rpx;
+  line-height: 44rpx;
 }
 
 .goods-action-btn {
@@ -1129,6 +1135,10 @@ export default {
 }
 
 .order-details .order-info .item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
   min-height: 56rpx;
   padding: 14rpx 26rpx;
   box-sizing: border-box;
@@ -1146,6 +1156,7 @@ export default {
   flex: 1;
   min-width: 0;
   line-height: 38rpx;
+  text-align: right;
   word-break: break-all;
 }
 
@@ -1193,7 +1204,11 @@ export default {
   color: #606a78;
 }
 
-.order-details .price > view {
+.order-details .price > .row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
   min-height: 64rpx;
   padding: 0 26rpx;
   color: #606266;

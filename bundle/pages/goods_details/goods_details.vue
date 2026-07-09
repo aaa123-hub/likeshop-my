@@ -1127,6 +1127,33 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					goodsNum: sku.goodsNum || sku.goods_num || sku.quantity || 1
 				};
 			},
+			resolveCheckoutPrice(detail = this.checkedGoods) {
+				const sku = detail || {};
+				const salePrice = this.normalizePrice(
+					sku.price
+					?? sku.goods_price
+					?? sku.goodsPrice
+					?? sku.sale_price
+					?? sku.salePrice
+					?? sku.min_price
+					?? sku.minPrice
+					?? (this.goodsType == 2 ? this.displayTeamPrice : this.displayMinPrice)
+				);
+				const marketPrice = this.normalizePrice(
+					sku.original_price
+					?? sku.originalPrice
+					?? sku.market_price
+					?? sku.marketPrice
+					?? sku.linePrice
+					?? this.marketDisplayText
+					?? salePrice,
+					salePrice
+				);
+				return {
+					salePrice,
+					marketPrice
+				};
+			},
 			isSameSku(item = {}, skuId) {
 				if (!skuId) return false;
 				return [item.item_id, item.sku_id, item.skuId, item.id, item.itemSkuId].some(value => String(value || '') === String(skuId));
@@ -1340,6 +1367,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					goodsType,
 					team
 				} = this;
+				const checkoutPrice = this.resolveCheckoutPrice(skuDetail);
 				let goods = [{
 					item_id: itemId,
 					skuId: itemId,
@@ -1348,6 +1376,15 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					name: this.goodsDetail.name,
 					image: skuDetail.image || skuDetail.imageUrl || skuDetail.skuImage || skuDetail.skuImageUrl || this.goodsDetail.image || this.previewImages[0] || '',
 					image_str: skuDetail.image || skuDetail.imageUrl || skuDetail.skuImage || skuDetail.skuImageUrl || this.goodsDetail.image || this.previewImages[0] || '',
+					goods_price: checkoutPrice.salePrice,
+					goodsPrice: checkoutPrice.salePrice,
+					price: checkoutPrice.salePrice,
+					sale_price: checkoutPrice.salePrice,
+					salePrice: checkoutPrice.salePrice,
+					original_price: checkoutPrice.marketPrice,
+					originalPrice: checkoutPrice.marketPrice,
+					market_price: checkoutPrice.marketPrice,
+					marketPrice: checkoutPrice.marketPrice,
 					shop_id: this.goodsDetail.shop_id || this.goodsDetail.shopId || this.goodsDetail.shop?.shopId || '',
 					shop_name: this.shareShopName,
 					shop_logo: this.shareShopLogo,

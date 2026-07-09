@@ -3,7 +3,7 @@
     <view>
       <view class="sale-list" v-if="type == 'normal'">
         <view
-          v-for="(items, index) in lists"
+          v-for="(items, index) in normalApplyList"
           :key="index"
           class="sale-item bg-white"
         >
@@ -113,23 +113,25 @@
                   </view>
                   <view class="nr">x{{ item.goods_num }}</view>
                 </view>
-                <view class="row-between mt20">
-                  <view>
-                    <price-format
-                      :firstSize="26"
-                      :price="items.after_sale.refund_price"
-                      weight="600"
-                      :showSubscript="true"
-                      color="red"
-                    />
-                  </view>
-                  <view class="nr">退款金额</view>
-                </view>
               </view>
             </view>
             <view class="sale-status mt20 row">
               <view class="nr" style="font-weight: bold">申请状态</view>
               <view class="nr ml20">{{ items.after_sale.desc }}</view>
+            </view>
+            <view class="sale-meta mt20">
+              <view class="sale-meta-row" v-if="items.after_sale.after_sale_id">
+                <text>售后编号</text>
+                <text>{{ items.after_sale.after_sale_id }}</text>
+              </view>
+              <view class="sale-meta-row" v-if="items.refund_reason">
+                <text>退款原因</text>
+                <text>{{ items.refund_reason }}</text>
+              </view>
+              <view class="sale-meta-row" v-if="items.refund_remark">
+                <text>备注说明</text>
+                <text>{{ items.refund_remark }}</text>
+              </view>
             </view>
           </navigator>
           <view class="sale-footer row-end">
@@ -214,6 +216,20 @@
             <view class="sale-status mt20 row">
               <view class="nr" style="font-weight: bold">申请状态</view>
               <view class="nr ml20">{{ items.after_sale.desc }}</view>
+            </view>
+            <view class="sale-meta mt20">
+              <view class="sale-meta-row" v-if="items.after_sale.after_sale_id">
+                <text>售后编号</text>
+                <text>{{ items.after_sale.after_sale_id }}</text>
+              </view>
+              <view class="sale-meta-row" v-if="items.refund_reason">
+                <text>退款原因</text>
+                <text>{{ items.refund_reason }}</text>
+              </view>
+              <view class="sale-meta-row" v-if="items.refund_remark">
+                <text>备注说明</text>
+                <text>{{ items.refund_remark }}</text>
+              </view>
             </view>
           </view>
         </navigator>
@@ -306,6 +322,30 @@ export default {
   destroyed: function () {
     uni.$off("refreshsale");
   },
+  computed: {
+    normalApplyList() {
+      return (this.lists || []).map((order) => {
+        const goods = (order.order_goods || []).filter((item) => {
+          const afterSale = item.after_sale || item.afterSale || item.refund_info || item.refundInfo || {}
+          return !(
+            item.after_sale_id
+            || item.afterSaleId
+            || item.refundNo
+            || item.after_status_desc
+            || item.refundStatusText
+            || afterSale.after_sale_id
+            || afterSale.afterSaleId
+            || afterSale.refundNo
+            || afterSale.status
+            || afterSale.statusText
+            || afterSale.status_text
+          )
+        })
+        const ableApply = Number(order.after_sale?.able_apply ?? order.able_apply ?? 0) === 1
+        return ableApply && goods.length ? { ...order, order_goods: goods } : null
+      }).filter(Boolean)
+    }
+  },
   methods: {
     cancelApplyFun() {
       cancelApply({
@@ -392,6 +432,33 @@ export default {
         background-color: #f8f8f8;
         border-radius: 14rpx;
         color: #333;
+      }
+
+      .sale-meta {
+        padding: 16rpx 20rpx;
+        border-radius: 14rpx;
+        background: #f7faff;
+      }
+
+      .sale-meta-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20rpx;
+        color: #667085;
+        font-size: 24rpx;
+        line-height: 36rpx;
+      }
+
+      .sale-meta-row + .sale-meta-row {
+        margin-top: 8rpx;
+      }
+
+      .sale-meta-row text:last-child {
+        flex: 1;
+        min-width: 0;
+        color: #303133;
+        text-align: right;
+        word-break: break-all;
       }
     }
 

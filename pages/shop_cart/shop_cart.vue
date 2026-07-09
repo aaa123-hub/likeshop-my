@@ -473,6 +473,17 @@ export default {
             cart_id: item.cart_id,
             cartItemId: item.cart_id,
             item_id: item.item_id,
+            skuId: item.sku_id || item.skuId || item.item_id,
+            goods_id: item.goods_id || item.goodsId,
+            goods_name: item.goods_name || item.name,
+            name: item.name || item.goods_name,
+            image: item.image || item.img,
+            goods_price: item.price || item.goods_price,
+            spec_value_str: item.spec_value_str,
+            shop_id: item.shop_id || item.shopId,
+            shopId: item.shopId || item.shop_id,
+            shop_name: item.shop_name || item.shopName,
+            shopName: item.shopName || item.shop_name,
             num: item.goods_num,
           });
         }

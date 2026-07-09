@@ -5,7 +5,7 @@
                 <view class="kyc-back-arrow"></view>
             </view>
             <text class="kyc-title">用户KYC</text>
-            <text class="kyc-subtitle">{{ statusSubtitle }}</text>
+            <text class="kyc-subtitle">{{ heroSubtitle }}</text>
             <image class="kyc-hero-img" :src="kycAssets.heroIllustration" mode="aspectFit"></image>
         </view>
 
@@ -15,7 +15,7 @@
                 <view :class="['status-box', 'status-box--' + statusType]">
                     <view>
                         <view class="status-title">{{ statusText }}</view>
-                        <view class="status-desc">{{ statusSubtitle }}</view>
+                        <view class="status-desc" v-if="statusType !== 'approved'">{{ statusSubtitle }}</view>
                         <view class="status-desc" v-if="statusMessage">{{ statusMessage }}</view>
                         <view class="status-desc" v-if="statusInfo.lastSubmitTime">提交时间：{{ statusInfo.lastSubmitTime }}</view>
                     </view>
@@ -52,7 +52,6 @@
                 </view>
 
                 <button v-if="canSubmit" class="submit-btn" :loading="submitting" @tap="submit">{{ submitText }}</button>
-                <button v-else class="submit-btn submit-btn--plain" @tap="refreshStatus">刷新状态</button>
             </template>
         </view>
     </view>
@@ -109,6 +108,10 @@ export default {
             if (this.statusType === 'approved') return '实名资料已认证通过'
             if (this.statusType === 'rejected') return '请按驳回原因重新提交'
             return '当前账号未提交实名认证，请填写资料后提交'
+        },
+        heroSubtitle() {
+            if (this.statusType === 'approved') return '实名信息已通过平台审核'
+            return this.statusSubtitle
         },
         statusMessage() {
             const raw = this.statusInfo.rejectReasonMessage || this.statusInfo.reject_reason_message || this.statusInfo.rejectReasonCode || this.statusInfo.reject_reason_code || this.statusInfo.auditMessage || this.statusInfo.audit_message || ''
