@@ -263,9 +263,11 @@
                     <view class="coupon-obj">
                         <view
                             v-for="(item, index) in currentCouponList"
-                            :key="couponKey(item)"
+                            :key="couponStableKey(item, index)"
                             class="coupon-card"
-                            @tap="handleCouponCardTap(item, index)"
+                            :data-coupon-index="index"
+                            :data-coupon-key="couponStableKey(item, index)"
+                            @tap="handleCouponCardTapByEvent"
                         >
                             <view class="coupon-item row">
                                 <view class="price white column-center">
@@ -281,12 +283,16 @@
                                     <view
                                         v-if="couponTabsIndex === 0"
                                         :class="['coupon-check', isCouponPendingSelected(item) ? 'coupon-check--active' : '']"
-                                        @tap.stop="toggleCoupon(item, index)"
+                                        :data-coupon-index="index"
+                                        :data-coupon-key="couponStableKey(item, index)"
+                                        @tap.stop="toggleCouponByEvent"
                                     ></view>
                                     <view
                                         v-if="couponTabsIndex === 1"
                                         :class="['coupon-receive-btn', couponButtonDisabled(item) ? 'coupon-receive-btn--disabled' : '']"
-                                        @tap.stop="receiveCoupon(item)"
+                                        :data-coupon-index="index"
+                                        :data-coupon-key="couponStableKey(item, index)"
+                                        @tap.stop="receiveCouponByEvent"
                                     >{{ couponButtonText(item) }}</view>
                                 </view>
                             </view>
@@ -978,6 +984,9 @@ export default {
             const coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
             return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.couponTemplateNo || item.coupon_template_no || template.couponId || template.coupon_id || template.templateId || template.template_id || template.couponTemplateId || template.coupon_template_id || template.couponTplId || template.coupon_tpl_id || template.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.couponTplId || coupon.coupon_tpl_id || coupon.id || item.id || item.userCouponId || ''
         },
+        couponStableKey(item = {}, index = 0) {
+            return String(this.couponKey(item) || `${this.couponTabsIndex}-${index}`)
+        },
         couponApplyId(item = {}) {
             return this.couponApplyIds(item)[0] || ''
         },
@@ -1038,6 +1047,16 @@ export default {
             const number = Number(index)
             if (Number.isNaN(number)) return {}
             return this.currentCouponList[number] || {}
+        },
+        resolveCouponFromEvent(event = {}) {
+            const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+            const index = Number(dataset.couponIndex ?? dataset.coupon_index)
+            const key = String(dataset.couponKey || dataset.coupon_key || '')
+            if (!Number.isNaN(index) && this.currentCouponList[index]) {
+                const item = this.currentCouponList[index]
+                if (!key || this.couponStableKey(item, index) === key) return item
+            }
+            return this.currentCouponList.find((item, itemIndex) => this.couponStableKey(item, itemIndex) === key) || {}
         },
         couponReceivePayload(item = {}) {
             const id = this.couponKey(item)
@@ -1258,9 +1277,17 @@ export default {
             this.pendingCouponCandidateIds = this.selectedCouponCandidateIds.slice()
             this.showCoupon = true
         },
+        handleCouponCardTapByEvent(event = {}) {
+            const item = this.resolveCouponFromEvent(event)
+            return this.handleCouponCardTap(item)
+        },
         handleCouponCardTap(item, index) {
             if (this.couponTabsIndex === 1) return this.receiveCoupon(item)
             this.toggleCoupon(item, index)
+        },
+        toggleCouponByEvent(event = {}) {
+            const item = this.resolveCouponFromEvent(event)
+            return this.toggleCoupon(item)
         },
         toggleCoupon(item = {}, index) {
             if (!item || !Object.keys(item).length) item = this.couponItemAt(index)
@@ -1284,7 +1311,14 @@ export default {
             this.pendingCouponCache = null
             this.pendingCouponCandidateIds = []
         },
+        receiveCouponByEvent(event = {}) {
+            const item = this.resolveCouponFromEvent(event)
+            return this.receiveCoupon(item)
+        },
         async receiveCoupon(item = {}) {
+            if (!item || typeof item !== 'object' || !Object.keys(item).length) {
+                return uni.showToast({ title: '优惠券信息异常', icon: 'none' })
+            }
             const id = this.couponKey(item)
             if (item.is_get || item.isGet) return
             if (!id || this.receivingCouponId) return

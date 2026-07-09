@@ -44,7 +44,7 @@
             <view class="banner-wrap" v-if="bannerList.length">
                 <swiper class="banner-swiper" autoplay circular :interval="3000" :duration="300" indicator-dots indicator-color="rgba(255,255,255,.45)" indicator-active-color="#ffffff">
                     <swiper-item v-for="(item, index) in bannerList" :key="index">
-                        <image class="banner-image" :src="item.image" mode="aspectFill" @tap="handleBannerTap(item)"></image>
+                        <image class="banner-image" :src="item.image" mode="aspectFill"></image>
                     </swiper-item>
                 </swiper>
             </view>

@@ -177,9 +177,11 @@
                 <scroll-view class="coupon-scroll" scroll-y>
                     <view
                         v-for="(item, index) in currentCouponList"
-                        :key="couponKey(item)"
+                        :key="couponStableKey(item, index)"
                         :class="['coupon-card', couponTabsIndex === 1 ? 'coupon-card--disabled' : '']"
-                        @tap="toggleCoupon(item, index)"
+                        :data-coupon-index="index"
+                        :data-coupon-key="couponStableKey(item, index)"
+                        @tap="toggleCouponByEvent"
                     >
                         <view class="coupon-price">
                             <text class="coupon-symbol">¥</text>
@@ -193,7 +195,9 @@
                         <view
                             v-if="couponTabsIndex === 0"
                             :class="['coupon-check', isCouponPendingSelected(item) ? 'coupon-check--active' : '']"
-                            @tap.stop="toggleCoupon(item, index)"
+                            :data-coupon-index="index"
+                            :data-coupon-key="couponStableKey(item, index)"
+                            @tap.stop="toggleCouponByEvent"
                         ></view>
                     </view>
                     <view v-if="!currentCouponList.length" class="coupon-empty">暂无优惠券</view>
@@ -806,6 +810,9 @@ export default {
             const coupon = item.coupon || item.couponInfo || item.coupon_info || {}
             return this.firstDefined(item.coupon_id, item.couponId, item.userCouponId, item.user_coupon_id, item.templateId, item.template_id, item.couponTemplateId, item.coupon_template_id, item.couponTplId, item.coupon_tpl_id, template.id, template.couponId, template.coupon_id, template.templateId, template.template_id, coupon.couponId, coupon.coupon_id, coupon.userCouponId, coupon.user_coupon_id, coupon.id, item.id, '')
         },
+        couponStableKey(item = {}, index = 0) {
+            return String(this.couponKey(item) || `${this.couponTabsIndex}-${index}`)
+        },
         couponApplyIds(item = {}) {
             const coupon = item.coupon || item.couponInfo || item.coupon_info || {}
             return [
@@ -848,10 +855,24 @@ export default {
         couponItemAt(index) {
             return this.currentCouponList[Number(index)] || {}
         },
+        resolveCouponFromEvent(event = {}) {
+            const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+            const index = Number(dataset.couponIndex ?? dataset.coupon_index)
+            const key = String(dataset.couponKey || dataset.coupon_key || '')
+            if (!Number.isNaN(index) && this.currentCouponList[index]) {
+                const item = this.currentCouponList[index]
+                if (!key || this.couponStableKey(item, index) === key) return item
+            }
+            return this.currentCouponList.find((item, itemIndex) => this.couponStableKey(item, itemIndex) === key) || {}
+        },
         selectableCouponIds(item = {}) {
             const ids = this.couponApplyIds(item)
             const compareIds = this.couponCompareIds(item)
             return ids.length ? ids : compareIds
+        },
+        toggleCouponByEvent(event = {}) {
+            const item = this.resolveCouponFromEvent(event)
+            return this.toggleCoupon(item)
         },
         toggleCoupon(item = {}, index) {
             if (!item || !Object.keys(item).length) item = this.couponItemAt(index)

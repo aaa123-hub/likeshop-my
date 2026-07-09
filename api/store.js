@@ -91,6 +91,16 @@ function firstDefined() {
     return undefined
 }
 
+function boolValue(value, fallback) {
+    if (value === undefined || value === null || value === '') return fallback
+    if (value === true || value === 1 || value === '1') return true
+    if (value === false || value === 0 || value === '0') return false
+    var text = String(value).toUpperCase()
+    if (['TRUE', 'YES', 'Y'].includes(text)) return true
+    if (['FALSE', 'NO', 'N'].includes(text)) return false
+    return Boolean(value)
+}
+
 function couponTypeText(item) {
     var type = String(item.coupon_type || item.couponType || item.typeText || item.type || '').toUpperCase()
     var map = {
@@ -116,6 +126,9 @@ function normalizeCouponItem(item = {}) {
     var coupon = item.coupon || item.couponInfo || item.coupon_info || item.couponDTO || item.coupon_dto || {}
     var amount = firstDefined(item.money, item.amount, item.discountAmount, item.discount_amount, item.discountValue, item.discount_value, item.couponAmount, item.coupon_amount, item.reduceAmount, item.reduce_amount, item.deductAmount, item.deduct_amount, item.faceValue, item.face_value, item.value, coupon.money, coupon.amount, coupon.discountAmount, coupon.discount_amount, 0)
     var couponId = item.couponId || item.coupon_id || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.couponTemplateNo || item.coupon_template_no || couponTemplate.couponId || couponTemplate.coupon_id || couponTemplate.templateId || couponTemplate.template_id || couponTemplate.couponTemplateId || couponTemplate.coupon_template_id || couponTemplate.couponTplId || couponTemplate.coupon_tpl_id || couponTemplate.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.couponTplId || coupon.coupon_tpl_id || coupon.id || item.id
+    var receiveStatus = String(firstDefined(item.receiveStatus, item.receive_status, item.status, '')).toUpperCase()
+    var isReceived = boolValue(item.is_get, false) || boolValue(item.isGet, false) || boolValue(item.received, false) || boolValue(item.hasReceived, false) || boolValue(item.has_received, false) || item.userCouponId || item.user_coupon_id || receiveStatus === 'RECEIVED' || receiveStatus === 'CLAIMED'
+    var canReceive = firstDefined(item.canReceive, item.can_receive, item.receivable, item.can_get, item.canGet, '')
     return Object.assign({}, item, {
         id: item.id || couponId || item.userCouponId,
         coupon_id: couponId || item.userCouponId,
@@ -129,7 +142,13 @@ function normalizeCouponItem(item = {}) {
         ownerType: ownerType,
         owner_type: ownerType,
         subsidyEligible: subsidyEligible,
-        subsidy_eligible: subsidyEligible
+        subsidy_eligible: subsidyEligible,
+        receiveStatus: receiveStatus,
+        receive_status: receiveStatus,
+        is_get: isReceived ? 1 : 0,
+        isGet: Boolean(isReceived),
+        canReceive: boolValue(canReceive, !isReceived),
+        can_receive: boolValue(canReceive, !isReceived)
     })
 }
 

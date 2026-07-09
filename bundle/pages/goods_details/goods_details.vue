@@ -158,12 +158,13 @@
 					<view class="option-row__coupon-action">领取</view>
 				</view>
 				<view v-if="showGoodsCouponEntry && showGoodsPointsEntry" class="option-panel__line option-panel__line--thin"></view>
-				<view v-if="showGoodsPointsEntry" class="option-row option-row--benefit">
+				<view v-if="showGoodsPointsEntry" class="option-row option-row--benefit" @tap="showGoodsPoints = true">
 					<view class="option-row__benefit-icon">积</view>
 					<view class="option-row__coupon-content">
 						<view class="option-row__coupon-title">积分</view>
 						<view class="option-row__benefit-text line1">{{ optionPointsBenefit.text }}</view>
 					</view>
+					<view class="option-row__more"></view>
 				</view>
 			</view>
 			<view v-if="visibleMarketingBenefits.length" class="marketing-panel bg-white mt20">
@@ -380,14 +381,16 @@
 			</view>
 			<view v-if="showGoodsCoupon">
 				<view class="coupon-tabs">
-					<view class="coupon-tab is-active">可领取优惠券 ({{ goodsCoupons.length }})</view>
+					<view :class="['coupon-tab', goodsCouponTabIndex === 0 ? 'is-active' : '']" @tap="goodsCouponTabIndex = 0">可领取优惠券 ({{ claimableGoodsCoupons.length }})</view>
+					<view :class="['coupon-tab', goodsCouponTabIndex === 1 ? 'is-active' : '']" @tap="goodsCouponTabIndex = 1">已领取优惠券 ({{ receivedGoodsCoupons.length }})</view>
 				</view>
 				<scroll-view class="coupon-scroll" scroll-y>
 					<view class="coupon-obj">
 						<view
-							v-for="item in goodsCoupons"
-							:key="couponKey(item)"
+							v-for="(item, index) in currentGoodsCouponList"
+							:key="couponKey(item) || `goods-coupon-${goodsCouponTabIndex}-${index}`"
 							class="coupon-card"
+							:class="{'coupon-card--received': goodsCouponTabIndex === 1}"
 						>
 							<view class="coupon-item row">
 								<view class="price white column-center">
@@ -400,19 +403,39 @@
 										<view class="xxs lighter mb10">{{ couponTypeText(item) }}</view>
 										<view class="xxs lighter">{{ couponTimeText(item) }}</view>
 									</view>
-									<view :class="['coupon-receive-btn', couponButtonDisabled(item) ? 'coupon-receive-btn--disabled' : '']" @tap.stop="receiveGoodsCoupon(item)">{{ couponButtonText(item) }}</view>
+									<view
+										v-if="goodsCouponTabIndex === 0"
+										:class="['coupon-receive-btn', couponButtonDisabled(item) ? 'coupon-receive-btn--disabled' : '']"
+										:data-coupon-index="index"
+										:data-coupon-key="couponStableKey(item, index, 'claimable')"
+										data-coupon-list="claimable"
+										@tap.stop="receiveGoodsCouponByEvent"
+									>{{ couponButtonText(item) }}</view>
+									<view v-else class="coupon-receive-btn coupon-receive-btn--disabled">已领取</view>
 								</view>
 							</view>
 							<view class="coupon-tips xs" v-if="item.tips">{{ localizeCouponText(item.tips) }}</view>
 						</view>
 					</view>
-					<view v-if="!goodsCoupons.length" class="coupon-empty column-center">
+					<view v-if="!currentGoodsCouponList.length" class="coupon-empty column-center">
 						<text class="muted">暂无优惠券</text>
 					</view>
 				</scroll-view>
 				<view class="column-center">
 					<view class="coupon-confirm bg-primary white row-center br60 mb10 lg" @tap="showGoodsCoupon = false">确定</view>
 				</view>
+			</view>
+		</u-popup>
+		<u-popup v-model="showGoodsPoints" border-radius="14" mode="bottom" closeable>
+			<view class="pop-title row-between">
+				<view class="title">积分说明</view>
+			</view>
+			<view class="points-pop">
+				<view v-for="item in pointsBenefitRows" :key="item.label" class="points-pop__row">
+					<view class="points-pop__label">{{ item.label }}</view>
+					<view class="points-pop__value">{{ item.value }}</view>
+				</view>
+				<view class="points-pop__confirm bg-primary white row-center br60 lg" @tap="showGoodsPoints = false">确定</view>
 			</view>
 		</u-popup>
 		<canvas canvas-id="goodsShareCanvas" id="goodsShareCanvas" class="share-canvas"></canvas>
@@ -503,6 +526,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				isNull: false,
 				showSpec: false,
 				showGoodsCoupon: false,
+				goodsCouponTabIndex: 0,
+				showGoodsPoints: false,
 				showShareBtn: false,
 				shareQrcode: '',
 				shareQrcodeIsImage: false,
@@ -532,6 +557,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				groupRecords: [],
 				fetchingDetail: false,
 				receivingCouponId: '',
+				receivedCouponIds: [],
 				shareCloseIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
 				shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
 				shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png'
@@ -558,10 +584,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				this.id = options.id;
 			}
 			this.targetSkuId = options.skuId || options.itemId || options.item_id || '';
+			this.loadReceivedCouponCache();
 			this.refreshCartNum();
 		},
 		onShow() {
 			if (!this.id) return;
+			this.loadReceivedCouponCache();
 			this.getGoodsDetailFun();
 			this.refreshCartNum();
 		},
@@ -1015,9 +1043,32 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			couponKey(item = {}) {
 				return this.findCouponId(item)
 			},
+			couponStableKey(item = {}, index = 0, prefix = 'coupon') {
+				return String(this.couponKey(item) || this.couponReceiveId(item) || `${prefix}-${index}`)
+			},
 			couponReceiveId(item = {}) {
 				const template = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
 				return item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.templateId || item.template_id || template.couponTemplateId || template.coupon_template_id || template.couponTplId || template.coupon_tpl_id || template.templateId || template.template_id || template.id || item.couponId || item.coupon_id || this.couponKey(item)
+			},
+			goodsCouponCacheKey() {
+				const userId = this.userInfo.id || this.userInfo.userId || this.userInfo.user_id || 'guest'
+				return `goods_received_coupons_${userId}_${this.id || 'unknown'}`
+			},
+			loadReceivedCouponCache() {
+				const value = uni.getStorageSync(this.goodsCouponCacheKey())
+				this.receivedCouponIds = Array.isArray(value) ? value.map(item => String(item)) : []
+			},
+			saveReceivedCouponCache(id) {
+				if (!id) return
+				const ids = new Set(this.receivedCouponIds.map(item => String(item)))
+				ids.add(String(id))
+				const list = Array.from(ids)
+				this.receivedCouponIds = list
+				uni.setStorageSync(this.goodsCouponCacheKey(), list)
+			},
+			isCouponReceivedLocally(item = {}) {
+				const ids = [this.couponKey(item), this.couponReceiveId(item)].filter(Boolean).map(value => String(value))
+				return ids.some(id => this.receivedCouponIds.includes(id))
 			},
 			couponReceivePayload(item = {}) {
 				const id = this.couponKey(item)
@@ -1043,14 +1094,48 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				}
 			},
 			couponButtonText(item = {}) {
-				if (item.is_get || item.isGet) return '已领取'
+				if (item.is_get || item.isGet || this.isCouponReceivedLocally(item)) return '已领取'
 				if (!this.couponReceiveId(item)) return '暂不可领'
 				return this.receivingCouponId == this.couponReceiveId(item) ? '领取中' : '领取'
 			},
 			couponButtonDisabled(item = {}) {
-				return Boolean(item.is_get || item.isGet || !this.couponReceiveId(item) || this.receivingCouponId == this.couponReceiveId(item))
+				return Boolean(item.is_get || item.isGet || this.isCouponReceivedLocally(item) || !this.couponReceiveId(item) || this.receivingCouponId == this.couponReceiveId(item))
+			},
+			resolveCouponFromEvent(event = {}) {
+				const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+				const listName = dataset.couponList || dataset.coupon_list || 'claimable'
+				const index = Number(dataset.couponIndex ?? dataset.coupon_index)
+				const key = String(dataset.couponKey || dataset.coupon_key || '')
+				const list = listName === 'received' ? this.receivedGoodsCoupons : this.claimableGoodsCoupons
+				if (!Number.isNaN(index) && list[index]) {
+					const item = list[index]
+					if (!key || this.couponStableKey(item, index, listName) === key) return item
+				}
+				return list.find((item, itemIndex) => this.couponStableKey(item, itemIndex, listName) === key) || {}
+			},
+			markCouponReceived(target = {}) {
+				if (!target || typeof target !== 'object') return
+				this.$set(target, 'is_get', 1)
+				this.$set(target, 'isGet', 1)
+				const targetKey = this.couponKey(target) || this.couponReceiveId(target)
+				if (!targetKey) return
+				this.goodsCoupons.forEach(item => {
+					const itemKey = this.couponKey(item) || this.couponReceiveId(item)
+					if (String(itemKey) === String(targetKey)) {
+						this.$set(item, 'is_get', 1)
+						this.$set(item, 'isGet', 1)
+					}
+				})
+			},
+			receiveGoodsCouponByEvent(event = {}) {
+				const item = this.resolveCouponFromEvent(event)
+				return this.receiveGoodsCoupon(item)
 			},
 			receiveGoodsCoupon(item = {}) {
+				if (!item || typeof item !== 'object' || !Object.keys(item).length) {
+					console.log('receiveGoodsCoupon empty item', item)
+					return uni.showToast({ title: '优惠券信息异常', icon: 'none' })
+				}
 				if (item.is_get || item.isGet) return
 				if (!this.isLogin) return toLogin()
 				if (this.receivingCouponId) return
@@ -1059,10 +1144,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				this.receivingCouponId = id || `pending-${Date.now()}`
 				getCoupon(id, this.couponReceivePayload(item)).then(res => {
 					if (res.code == 1) {
-						this.$set(item, 'is_get', 1)
-						this.$set(item, 'isGet', 1)
+						this.saveReceivedCouponCache(id)
+						this.markCouponReceived(item)
+						this.goodsCouponTabIndex = 1
 						uni.showToast({ title: '领取成功', icon: 'success' })
-						this.getGoodsDetailFun()
 						return
 					}
 					uni.showToast({ title: res.msg || '领取失败', icon: 'none' })
@@ -1389,6 +1474,15 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					shop_name: this.shareShopName,
 					shop_logo: this.shareShopLogo,
 					shopLogo: this.shareShopLogo,
+					pointsEnabled: this.pointsSwitchEnabled,
+					points_enabled: this.pointsSwitchEnabled,
+					pointsAmount: this.pointsBenefitData.points,
+					points_amount: this.pointsBenefitData.points,
+					pointsDeductAmount: this.pointsBenefitData.amount,
+					points_deduct_amount: this.pointsBenefitData.amount,
+					giveIntegral: this.pointsBenefitData.giveIntegral,
+					give_integral: this.pointsBenefitData.giveIntegral,
+					order_give_integral: this.pointsBenefitData.giveIntegral,
 					spec_value_str: skuDetail.spec_value_str || skuDetail.skuName || skuDetail.name || this.selectedSpecText,
 					quantity,
 					num: quantity
@@ -1613,28 +1707,54 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					if (seen[key]) return false
 					seen[key] = true
 					return true
+				}).map(item => {
+					if (!this.isCouponReceivedLocally(item)) return item
+					return {
+						...item,
+						is_get: 1,
+						isGet: 1
+					}
 				})
 			},
+			claimableGoodsCoupons() {
+				return this.goodsCoupons.filter(item => !(item.is_get || item.isGet))
+			},
+			receivedGoodsCoupons() {
+				return this.goodsCoupons.filter(item => item.is_get || item.isGet)
+			},
+			currentGoodsCouponList() {
+				return this.goodsCouponTabIndex === 1 ? this.receivedGoodsCoupons : this.claimableGoodsCoupons
+			},
 			goodsCouponSummary() {
-				return this.goodsCoupons.slice(0, 2).map(item => this.formatCouponBenefit(item)).join('、') || '点击查看可领取优惠券'
+				if (this.claimableGoodsCoupons.length) return this.claimableGoodsCoupons.slice(0, 2).map(item => this.formatCouponBenefit(item)).join('、')
+				if (this.receivedGoodsCoupons.length) return `已领取${this.receivedGoodsCoupons.length}张优惠券`
+				return '点击查看可领取优惠券'
 			},
 			showGoodsCouponEntry() {
-				return false
+				return this.goodsCoupons.length > 0
 			},
 			showGoodsPointsEntry() {
-				return false
+				return this.showPointsBenefit || this.pointsSwitchEnabled
 			},
 			pointsMarketingConfig() {
 				const detail = this.goodsDetail || {}
 				const pointsInfo = detail.pointsInfo || detail.points_info || detail.integralInfo || detail.integral_info || {}
 				return Object.assign({}, detail.marketingConfig || detail.marketing_config || detail.pointsMarketing || detail.pointsConfig || {}, pointsInfo)
 			},
+			pointsSwitchExplicitlyDisabled() {
+				const detail = this.goodsDetail || {}
+				const marketing = this.pointsMarketingConfig
+				const switchValue = this.firstDefined(marketing.integralSwitch, marketing.integral_switch, marketing.pointsEnabled, marketing.points_enabled, marketing.supportPoints, marketing.support_points, marketing.canUsePoints, marketing.can_use_points, detail.integralSwitch, detail.integral_switch, detail.pointsEnabled, detail.points_enabled)
+				return switchValue === false || switchValue === 0 || switchValue === '0'
+			},
 			pointsSwitchEnabled() {
 				const detail = this.goodsDetail || {}
 				const marketing = this.pointsMarketingConfig
 				const switchValue = this.firstDefined(marketing.integralSwitch, marketing.integral_switch, marketing.pointsEnabled, marketing.points_enabled, marketing.supportPoints, marketing.support_points, marketing.canUsePoints, marketing.can_use_points, detail.integralSwitch, detail.integral_switch, detail.pointsEnabled, detail.points_enabled)
 				if (switchValue === false || switchValue === 0 || switchValue === '0') return false
-				return switchValue === true || switchValue === 1 || switchValue === '1'
+				if (switchValue === true || switchValue === 1 || switchValue === '1') return true
+				const data = this.pointsBenefitData
+				return data.amount > 0 || data.points > 0 || data.giveIntegral > 0
 			},
 			pointsBenefitData() {
 				const detail = this.goodsDetail || {}
@@ -1646,15 +1766,25 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			},
 			showPointsBenefit() {
 				const data = this.pointsBenefitData
-				return this.pointsSwitchEnabled && (data.amount > 0 || data.points > 0 || data.giveIntegral > 0)
+				if (this.pointsSwitchExplicitlyDisabled) return false
+				return data.amount > 0 || data.points > 0 || data.giveIntegral > 0
 			},
 			pointsBenefitText() {
-				if (!this.showPointsBenefit) return ''
+				if (!this.showPointsBenefit && !this.pointsSwitchEnabled) return ''
 				const { amount, points, giveIntegral } = this.pointsBenefitData
 				const texts = []
 				if (giveIntegral > 0) texts.push(`下单可得${giveIntegral}积分`)
 				if (amount > 0) texts.push(`${points > 0 ? `${points}积分` : '积分'}最多可抵¥${amount.toFixed(2)}`)
-				return texts.join('，')
+				return texts.join('，') || '确认订单页按当前订单规则计算可用积分'
+			},
+			pointsBenefitRows() {
+				const { amount, points, giveIntegral } = this.pointsBenefitData
+				const rows = []
+				if (giveIntegral > 0) rows.push({ label: '下单奖励', value: `预计可得${giveIntegral}积分` })
+				if (amount > 0 || points > 0) rows.push({ label: '积分抵扣', value: amount > 0 ? `${points > 0 ? `${points}积分` : '可用积分'}最多可抵¥${amount.toFixed(2)}` : `最多可使用${points}积分` })
+				if (!rows.length) rows.push({ label: '积分规则', value: '确认订单页按当前订单规则计算可用积分' })
+				rows.push({ label: '使用说明', value: '最终可用积分和抵扣金额以下单页结算结果为准' })
+				return rows
 			},
             marketingBenefits() {
                 const detail = this.goodsDetail || {}
@@ -1676,7 +1806,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
                         text: activities.slice(0, 3).map(item => `${sourceText(item)}-${item.activityName || item.name || item.title || '营销活动'}`).join('、')
                     })
                 }
-                if (this.showPointsBenefit) {
+                if (this.showPointsBenefit || this.pointsSwitchEnabled) {
                     list.push({
                         key: 'points',
                         tag: '积分',
@@ -2290,6 +2420,16 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			color: #ffffff;
 		}
 
+		.option-row__more {
+			flex: none;
+			width: 14rpx;
+			height: 14rpx;
+			margin-left: 18rpx;
+			border-top: 2rpx solid #b9bec8;
+			border-right: 2rpx solid #b9bec8;
+			transform: rotate(45deg);
+		}
+
 		.option-row--tags {
 			align-items: flex-start;
 			margin-top: 18rpx;
@@ -2396,6 +2536,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			content: '';
 		}
 
+		.coupon-tab--muted {
+			color: #909399;
+			font-size: 25rpx;
+		}
+
 		.coupon-scroll {
 			height: 640rpx;
 			background: #f6f6f6;
@@ -2408,6 +2553,17 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.coupon-card {
 			margin-bottom: 20rpx;
 			background: #ffffff;
+		}
+
+		.coupon-card--received {
+			opacity: .78;
+		}
+
+		.coupon-section-title {
+			margin: 4rpx 0 18rpx;
+			color: #606266;
+			font-size: 26rpx;
+			font-weight: 600;
 		}
 
 		.coupon-item {
@@ -2466,6 +2622,38 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			width: 710rpx;
 			height: 74rpx;
 			margin-top: 12rpx;
+		}
+
+		.points-pop {
+			padding: 10rpx 30rpx 30rpx;
+			background: #ffffff;
+		}
+
+		.points-pop__row {
+			display: flex;
+			align-items: flex-start;
+			padding: 24rpx 0;
+			border-bottom: 1rpx solid #f1f2f5;
+		}
+
+		.points-pop__label {
+			flex: none;
+			width: 150rpx;
+			color: #606266;
+			font-size: 26rpx;
+			line-height: 38rpx;
+		}
+
+		.points-pop__value {
+			flex: 1;
+			color: #222222;
+			font-size: 26rpx;
+			line-height: 38rpx;
+		}
+
+		.points-pop__confirm {
+			height: 74rpx;
+			margin-top: 28rpx;
 		}
 
 		.option-row__tags {

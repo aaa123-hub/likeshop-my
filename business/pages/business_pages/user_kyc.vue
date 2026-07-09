@@ -15,7 +15,7 @@
                 <view :class="['status-box', 'status-box--' + statusType]">
                     <view>
                         <view class="status-title">{{ statusText }}</view>
-                        <view class="status-desc" v-if="statusType !== 'approved'">{{ statusSubtitle }}</view>
+                        <view class="status-desc">{{ statusSubtitle }}</view>
                         <view class="status-desc" v-if="statusMessage">{{ statusMessage }}</view>
                         <view class="status-desc" v-if="statusInfo.lastSubmitTime">提交时间：{{ statusInfo.lastSubmitTime }}</view>
                     </view>
@@ -39,12 +39,12 @@
 
                 <view class="photo-title">证件照片</view>
                 <view class="photo-list">
-                    <view class="photo-box" :style="{ backgroundImage: `url(${kycAssets.photoFrontBg})` }" @tap="chooseImage('certFrontUrl')">
-                        <image v-if="form.certFrontUrl" class="photo-img" :src="form.certFrontUrl" mode="aspectFill"></image>
+                    <view :class="['photo-box', form.certFrontUrl ? 'photo-box--filled' : '']" :style="{ backgroundImage: form.certFrontUrl ? '' : `url(${kycAssets.photoFrontBg})` }" @tap="chooseImage('certFrontUrl')">
+                        <image v-if="form.certFrontUrl" class="photo-img" :src="form.certFrontUrl" mode="aspectFit"></image>
                         <image v-else class="photo-placeholder-icon" :src="kycAssets.uploadIcon" mode="aspectFit"></image>
                     </view>
-                    <view class="photo-box" :style="{ backgroundImage: `url(${kycAssets.photoBackBg})` }" @tap="chooseImage('certBackUrl')">
-                        <image v-if="form.certBackUrl" class="photo-img" :src="form.certBackUrl" mode="aspectFill"></image>
+                    <view :class="['photo-box', form.certBackUrl ? 'photo-box--filled' : '']" :style="{ backgroundImage: form.certBackUrl ? '' : `url(${kycAssets.photoBackBg})` }" @tap="chooseImage('certBackUrl')">
+                        <image v-if="form.certBackUrl" class="photo-img" :src="form.certBackUrl" mode="aspectFit"></image>
                         <view v-else class="photo-plus-wrap">
                             <image class="photo-plus-icon" :src="kycAssets.plusIcon" mode="aspectFit"></image>
                         </view>
@@ -247,11 +247,12 @@ export default {
 .placeholder { color: #bfbfbf; }
 .line { height: 1rpx; background: #eeeeee; }
 .photo-title { margin-top: 30rpx; color: #222222; font-size: 28rpx; font-weight: 500; line-height: 28rpx; }
-.photo-list { display: flex; justify-content: space-between; width: 648rpx; max-width: 100%; margin-top: 24rpx; }
-.photo-box { flex: none; width: 301rpx; height: 192rpx; border-radius: 0; background-repeat: no-repeat; background-position: center; background-size: 100% 100%; overflow: hidden; }
-.photo-img { width: 100%; height: 100%; }
-.photo-placeholder-icon { display: block; width: 69rpx; height: 69rpx; margin: 62rpx auto 0; }
-.photo-plus-wrap { display: flex; align-items: center; justify-content: center; width: 67rpx; height: 67rpx; margin: 64rpx auto 0; border-radius: 50%; background: #037dfa; }
+.photo-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24rpx; max-width: 100%; margin-top: 24rpx; }
+.photo-box { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 301 / 192; min-height: 176rpx; border-radius: 12rpx; background-repeat: no-repeat; background-position: center; background-size: 100% 100%; overflow: hidden; box-sizing: border-box; }
+.photo-box--filled { border: 1rpx solid #e5e9f0; background: #f8fafc; }
+.photo-img { display: block; width: 100%; height: 100%; }
+.photo-placeholder-icon { display: block; width: 69rpx; height: 69rpx; margin: 0; }
+.photo-plus-wrap { display: flex; align-items: center; justify-content: center; width: 67rpx; height: 67rpx; margin: 0; border-radius: 50%; background: #037dfa; }
 .photo-plus-icon { width: 30rpx; height: 29rpx; }
 .submit-btn { display: flex; align-items: center; justify-content: center; width: 582rpx; max-width: 100%; height: 81rpx; margin: 56rpx auto 0; border-radius: 40rpx; color: #ffffff; background: #037dfa; font-size: 28rpx; font-weight: 500; line-height: 81rpx; }
 .submit-btn--plain { color: #037dfa; background: #edf7ff; }

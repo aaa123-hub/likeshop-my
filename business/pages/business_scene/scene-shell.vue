@@ -63,12 +63,12 @@
 
                         <view class="user-kyc-page__section-title">证件照片</view>
                         <view class="user-kyc-page__photo-row">
-                            <view class="user-kyc-page__photo-card user-kyc-page__photo-card--front" @tap="chooseKycImage('front')">
-                                <image class="user-kyc-page__photo-image" :src="kycForm.certFrontPreview || left_icon" mode="aspectFill"></image>
+                            <view :class="['user-kyc-page__photo-card', 'user-kyc-page__photo-card--front', kycForm.certFrontPreview ? 'is-filled' : '']" @tap="chooseKycImage('front')">
+                                <image class="user-kyc-page__photo-image" :src="kycForm.certFrontPreview || left_icon" mode="aspectFit"></image>
                                 <image v-if="!kycForm.certFrontPreview" class="user-kyc-page__photo-add" :src="icon_conter" mode="aspectFit"></image>
                             </view>
-                            <view class="user-kyc-page__photo-card user-kyc-page__photo-card--back" @tap="chooseKycImage('back')">
-                                <image class="user-kyc-page__photo-image" :src="kycForm.certBackPreview || right_icon" mode="aspectFill"></image>
+                            <view :class="['user-kyc-page__photo-card', 'user-kyc-page__photo-card--back', kycForm.certBackPreview ? 'is-filled' : '']" @tap="chooseKycImage('back')">
+                                <image class="user-kyc-page__photo-image" :src="kycForm.certBackPreview || right_icon" mode="aspectFit"></image>
                                 <image v-if="!kycForm.certBackPreview" class="user-kyc-page__photo-add" :src="icon_conter" mode="aspectFit"></image>
                             </view>
                         </view>
@@ -81,7 +81,7 @@
                             <view :class="['user-kyc-page__contract-status', contractSigned ? 'is-signed' : '']">{{ contractSigned ? '已签署' : '去签署' }}</view>
                         </view>
 
-                        <view :class="['user-kyc-page__submit', kycSubmitting || !canEditKyc ? 'is-disabled' : '']" @tap="submitKycForm">{{ kycSubmitText }}</view>
+                        <view v-if="canShowKycSubmit" :class="['user-kyc-page__submit', kycSubmitting || !canEditKyc ? 'is-disabled' : '']" @tap="submitKycForm">{{ kycSubmitText }}</view>
                         </template>
                     </view>
                 </view>
@@ -679,7 +679,12 @@
                                     <view class="recent-visits-name">{{ item.name }}</view>
                                     <view class="recent-visits-time">{{ item.time }} 访问过的商家</view>
                                 </view>
-                                <view :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']" @tap.stop="toggleRecentVisitSubscribe(item)">
+                                <view
+                                    :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']"
+                                    :data-visit-index="index"
+                                    :data-shop-id="item.shopId || item.shop_id || item.id"
+                                    @tap.stop="toggleRecentVisitSubscribeByEvent"
+                                >
                                     {{ item.subscribed ? '已订阅' : '+订阅' }}
                                 </view>
                             </view>
@@ -1448,6 +1453,9 @@ export default {
             const status = normalizeKycStatus(this.kycStatusInfo.kycStatus || this.kycStatusInfo.kyc_status || '')
             return !status || status === 'NOT_SUBMITTED' || status === 'REJECTED' || status === 'FAILED'
         },
+        canShowKycSubmit() {
+            return this.canEditKyc || this.kycSubmitting
+        },
         kycSubmitText() {
             if (this.kycSubmitting) return '提交中...'
             if (!this.canEditKyc) return this.kycStatusText || '已提交'
@@ -1930,6 +1938,20 @@ export default {
             const shopId = item.shopId || item.shop_id || item.id || ''
             if (!shopId) return
             this.goPage(`/business/pages/business_pages/store_detail?shopId=${shopId}`)
+        },
+        resolveRecentVisitFromEvent(event = {}) {
+            const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+            const index = Number(dataset.visitIndex ?? dataset.visit_index)
+            const shopId = String(dataset.shopId || dataset.shop_id || '')
+            if (!Number.isNaN(index) && this.recentVisitItems[index]) {
+                const item = this.recentVisitItems[index]
+                const itemShopId = item.shopId || item.shop_id || item.id || ''
+                if (!shopId || String(itemShopId) === shopId) return item
+            }
+            return this.recentVisitItems.find((item) => String(item.shopId || item.shop_id || item.id || '') === shopId) || {}
+        },
+        toggleRecentVisitSubscribeByEvent(event = {}) {
+            return this.toggleRecentVisitSubscribe(this.resolveRecentVisitFromEvent(event))
         },
         toggleRecentVisitSubscribe(item = {}) {
             const shopId = item.shopId || item.shop_id || item.id || ''
@@ -6035,13 +6057,22 @@ export default {
     flex: 1;
     min-width: 0;
     width: auto;
-    height: 214rpx;
+    aspect-ratio: 301 / 192;
+    height: auto;
+    min-height: 190rpx;
     overflow: hidden;
     border-radius: 18rpx;
     background: linear-gradient(135deg, #eff4fb 0%, #f8f9fd 52%, #eef4ff 100%);
 }
 
+.user-kyc-page__photo-card.is-filled {
+    border: 1rpx solid #e5e9f0;
+    background: #f8fafc;
+    box-sizing: border-box;
+}
+
 .user-kyc-page__photo-image {
+    display: block;
     width: 100%;
     height: 100%;
 }

@@ -1249,6 +1249,9 @@ function extractList(payload = {}) {
     if (Array.isArray(payload.rows)) return payload.rows
     if (Array.isArray(payload.content)) return payload.content
     if (payload.page && typeof payload.page === 'object') return extractList(payload.page)
+    if (payload.application && typeof payload.application === 'object') return [payload.application]
+    if (payload.currentApplication && typeof payload.currentApplication === 'object') return [payload.currentApplication]
+    if (payload.current_application && typeof payload.current_application === 'object') return [payload.current_application]
     return []
 }
 
@@ -1325,9 +1328,9 @@ export function getAutoReceivePoints() {
 
 function normalizeKycStatus(status, data = {}) {
     const normalized = String(status || '').toUpperCase()
-    const approved = ['APPROVED']
-    const pending = ['PENDING_AUDIT']
-    const rejected = ['REJECTED']
+    const approved = ['APPROVED', 'PASS', 'PASSED', 'SUCCESS', 'CERTIFIED', 'VERIFIED', 'AUTHENTICATED', 'REALNAME_VERIFIED']
+    const pending = ['PENDING_AUDIT', 'WAIT_AUDIT', 'AUDITING', 'PENDING_REVIEW', 'WAIT_REVIEW', 'REVIEWING', 'PENDING']
+    const rejected = ['REJECTED', 'REJECT', 'REFUSED', 'FAILED', 'FAIL']
     const empty = ['NOT_SUBMITTED', 'UNSUBMITTED', 'NONE', 'NO_AUTH', 'UNAUTHENTICATED', 'UNVERIFIED', 'NOT_AUTHENTICATED', 'NOT_VERIFIED']
     if (approved.includes(normalized)) return 'APPROVED'
     if (pending.includes(normalized)) return 'PENDING_AUDIT'
@@ -1337,14 +1340,14 @@ function normalizeKycStatus(status, data = {}) {
 }
 
 function normalizeKycPayload(data = {}) {
-    const rawStatus = firstDefined(data.kycStatus, data.kyc_status)
+    const rawStatus = firstDefined(data.kycStatus, data.kyc_status, data.auditStatus, data.audit_status, data.realnameStatus, data.realname_status, data.realNameStatus, data.real_name_status, data.status)
     const nextAction = firstDefined(data.nextAction, data.next_action, '')
     const status = normalizeKycStatus(rawStatus, data)
-    const realName = firstDefined(data.realName, data.real_name, data.realNameMask, data.real_name_mask, '')
-    const certNo = firstDefined(data.certNo, data.cert_no, data.certNoMask, data.cert_no_mask, '')
-    const certType = firstDefined(data.certType, data.cert_type, 'ID_CARD')
-    const certFrontUrl = firstDefined(data.certFrontUrl, data.cert_front_url, '')
-    const certBackUrl = firstDefined(data.certBackUrl, data.cert_back_url, '')
+    const realName = firstDefined(data.realName, data.real_name, data.realNameMask, data.real_name_mask, data.name, data.applicantName, data.applicant_name, '')
+    const certNo = firstDefined(data.certNo, data.cert_no, data.certNoMask, data.cert_no_mask, data.idCardNo, data.id_card_no, data.idNo, data.id_no, data.cardNo, data.card_no, '')
+    const certType = firstDefined(data.certType, data.cert_type, data.idType, data.id_type, 'ID_CARD')
+    const certFrontUrl = firstDefined(data.certFrontUrl, data.cert_front_url, data.frontUrl, data.front_url, data.idCardFrontUrl, data.id_card_front_url, data.idcardFrontUrl, data.idcard_front_url, data.frontImage, data.front_image, '')
+    const certBackUrl = firstDefined(data.certBackUrl, data.cert_back_url, data.backUrl, data.back_url, data.idCardBackUrl, data.id_card_back_url, data.idcardBackUrl, data.idcard_back_url, data.backImage, data.back_image, '')
     const auditMessage = firstDefined(data.auditMessage, data.audit_message, data.message, '')
     const rejectReasonCode = firstDefined(data.rejectReasonCode, data.reject_reason_code, '')
     const rejectReasonMessage = firstDefined(data.rejectReasonMessage, data.reject_reason_message, data.rejectReason, data.reject_reason, '')
@@ -1484,10 +1487,10 @@ export function getMerchantQualificationStatus(params = {}) {
 }
 
 function normalizeRoleApplication(data = {}) {
-    const explicitApplicationStatus = data.applicationStatus || data.application_status || data.auditStatus || data.audit_status || ''
+    const explicitApplicationStatus = data.applicationStatus || data.application_status || data.auditStatus || data.audit_status || data.reviewStatus || data.review_status || data.applyStatus || data.apply_status || ''
     const rawStatus = String(explicitApplicationStatus || data.status || '').toUpperCase()
     const auditRemark = data.auditRemark || data.audit_remark || data.auditMessage || data.audit_message || data.rejectReason || data.reject_reason || data.reason || ''
-    const payStatus = String(data.payStatus || data.pay_status || data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase()
+    const payStatus = String(data.payStatus || data.pay_status || data.paymentStatus || data.payment_status || data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase()
     const paidStatuses = ['PAID', 'SUCCESS', 'SUCCEEDED', 'FINISHED', 'COMPLETED', 'WAIVED', 'FREE']
     const unpaidStatuses = ['UNPAID', 'WAIT_PAY', 'PENDING_PAY', 'NOT_PAID', 'PAYING']
     const approvedStatuses = ['APPROVED', 'PASS', 'PASSED']
@@ -1512,8 +1515,8 @@ function normalizeRoleApplication(data = {}) {
     }
     return {
         ...data,
-        applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || data.id || '',
-        depositNo,
+        applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || data.applicationId || data.application_id || data.id || '',
+        depositNo: depositNo || data.depositPayOrderNo || data.deposit_pay_order_no || data.depositBizOrderNo || data.deposit_biz_order_no || '',
         roleCode: normalizeRoleCode(data.roleCode || data.role_code || data.role || ''),
         rawApplicationStatus: rawStatus,
         raw_application_status: rawStatus,
@@ -1538,6 +1541,8 @@ function normalizeRoleApplication(data = {}) {
         promoterCode: data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || data.invite_code || data.distributionCode || data.distribution_code || '',
         backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || '',
         materialUrls: data.materialUrls || data.material_urls || [],
+        depositPayOrderNo: data.depositPayOrderNo || data.deposit_pay_order_no || data.payOrderNo || data.pay_order_no || '',
+        depositBizOrderNo: data.depositBizOrderNo || data.deposit_biz_order_no || data.bizOrderNo || data.biz_order_no || depositNo || '',
         depositAmount,
         payStatus,
         depositStatus: payStatus,

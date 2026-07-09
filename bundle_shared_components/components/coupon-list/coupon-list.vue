@@ -14,7 +14,13 @@
                 <view class="coupon-time">{{item.use_time_tips || '有效期以实际使用规则为准'}}</view>
                 <view class="coupon-type">{{item.coupon_type || item.use_condition}}</view>
             </view>
-            <button type="primary" :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')" @tap="onHandle(item)">
+            <button
+                type="primary"
+                :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')"
+                :data-coupon-index="index"
+                :data-coupon-key="couponStableKey(item, index)"
+                @tap="onHandleByEvent"
+            >
                 {{item.is_get && btnType == 3 ? '已领取' : getBtn}}
             </button>
             <image v-if="item.is_get" class="receive" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_receive.png"></image>
@@ -107,6 +113,7 @@ export default {
   },
   methods: {
     onHandle(item) {
+      if (!item || typeof item !== 'object' || !Object.keys(item).length) return this.$toast({title: '优惠券信息异常'})
       this.id = this.couponKey(item);
       if (this.btnType == 3 && item && item.is_get) return
       const {
@@ -132,6 +139,25 @@ export default {
           this.getCouponFun();
           break;
       }
+    },
+
+    couponStableKey(item = {}, index = 0) {
+      return String(this.couponKey(item) || `coupon-${index}`)
+    },
+
+    resolveCouponFromEvent(event = {}) {
+      const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+      const index = Number(dataset.couponIndex ?? dataset.coupon_index)
+      const key = String(dataset.couponKey || dataset.coupon_key || '')
+      if (!Number.isNaN(index) && this.list[index]) {
+        const item = this.list[index]
+        if (!key || this.couponStableKey(item, index) === key) return item
+      }
+      return this.list.find((item, itemIndex) => this.couponStableKey(item, itemIndex) === key) || {}
+    },
+
+    onHandleByEvent(event = {}) {
+      return this.onHandle(this.resolveCouponFromEvent(event))
     },
 
     onShowTips(index) {
