@@ -6,17 +6,21 @@
             <view class="subtitle">实名通过后选择角色，提交必要资料等待审核</view>
         </view>
 
-        <view class="role-card" v-if="currentRoles.length">
+        <view class="role-card" v-if="displayCurrentRoles.length">
             <view class="card-head">
                 <view>
                     <view class="card-title">当前角色</view>
+                    <view class="card-subtitle">{{ currentRoleSummary }}</view>
                 </view>
-                <view class="card-count">{{ currentRoles.length }}个</view>
+                <view class="card-count">{{ roleCardCountText }}</view>
             </view>
-            <view class="role-list">
-                <view :class="['role-chip', normalizeRoleCode(item.roleCode) === selectedRoleCode ? 'role-chip--active' : '']" v-for="item in currentRoles" :key="item.roleCode" @tap="selectRole(item.roleCode)">
+            <view class="role-list role-list--compact">
+                <view
+                    class="role-tag"
+                    v-for="item in displayCurrentRoles"
+                    :key="item.roleCode"
+                >
                     <text class="role-chip__name">{{ roleLabel(item.roleCode) }}</text>
-                    <text class="role-chip__meta" v-if="item.areaName">{{ item.areaName }}</text>
                 </view>
             </view>
         </view>
@@ -85,7 +89,7 @@
             <view class="form-title">{{ currentApplication ? '重新提交资料' : '提交申请资料' }}</view>
             <view class="form-item">
                 <text class="label">申请角色</text>
-                <picker :range="roleOptions" range-key="label" :value="roleIndex" @change="onRoleChange">
+                <picker :range="rolePickerRange" range-key="label" :value="rolePickerIndex" @change="onRoleChange">
                     <view class="picker-value picker-value--select">
                         <text>{{ selectedRoleLabel }}</text>
                         <text class="picker-arrow"></text>
@@ -146,8 +150,8 @@
             <view class="kyc-material">
                 <view class="kyc-material__title">实名材料</view>
                 <view class="kyc-material__photos">
-                    <image v-if="form.certFrontUrl" class="kyc-material__photo" :src="form.certFrontUrl" mode="aspectFill"></image>
-                    <image v-if="form.certBackUrl" class="kyc-material__photo" :src="form.certBackUrl" mode="aspectFill"></image>
+                    <image v-if="form.certFrontUrl" class="kyc-material__photo" :src="form.certFrontUrl" mode="aspectFit"></image>
+                    <image v-if="form.certBackUrl" class="kyc-material__photo" :src="form.certBackUrl" mode="aspectFit"></image>
                 </view>
             </view>
         </view>
@@ -239,27 +243,99 @@ export default {
             return this.currentRoles.find((item) => this.normalizeRoleCode(item.roleCode) === this.selectedRoleCode) || null
         },
         currentRoles() {
-            const roles = this.roles.length ? this.roles : this.applications.filter((item) => this.statusType(item.applicationStatus) === 'approved')
+            const approvedApplications = this.applications.filter((item) => this.statusType(item.applicationStatus || item.auditStatus || item.status) === 'approved')
+            const roles = this.roles.length ? this.roles : approvedApplications
             return roles
+                .filter((item) => {
+                    const status = item.applicationStatus || item.auditStatus || item.status
+                    return !status || this.statusType(status) === 'approved'
+                })
                 .map((item) => this.withPromoterCode({ ...item, roleCode: this.normalizeRoleCode(item.roleCode || item.role_code || item.role) }))
                 .filter((item) => APPLY_ROLE_CODES.includes(this.normalizeRoleCode(item.roleCode)))
         },
-        applyRoleApplications() {
-            return this.applications.filter(item => APPLY_ROLE_CODES.includes(this.normalizeRoleCode(item.roleCode)))
+        displayCurrentRoles() {
+            const tags = []
+            if (this.isMerchantRole) tags.push({ roleCode: 'MERCHANT', roleName: '商家' })
+            this.currentRoles.forEach((item) => {
+                const code = this.normalizeRoleCode(item.roleCode)
+                if (!tags.some((tag) => this.normalizeRoleCode(tag.roleCode) === code)) {
+                    tags.push(item)
+                }
+            })
+            if (tags.length) return tags
+            return [{ roleCode: 'USER', roleName: '普通用户' }]
         },
-        hasApplyRoleRecord() {
-            return this.currentRoles.length > 0 || this.applyRoleApplications.length > 0
+        selectableRoleOptions() {
+            return this.roleOptions.map((item) => ({
+                ...item,
+                label: this.roleLabel(item.value)
+            }))
         },
-        promoterInviteCode() {
-            return this.userInfo.promoter_code || this.userInfo.promoterCode || this.userInfo.distribution_code || this.userInfo.distributionCode || this.inviteCode || ''
+        normalizedRoleOptions() {
+            const seen = {}
+            return this.selectableRoleOptions.filter((item) => {
+                const code = this.normalizeRoleCode(item.value)
+                if (!APPLY_ROLE_CODES.includes(code) || seen[code]) return false
+                seen[code] = true
+                return true
+            }).map((item) => ({
+                ...item,
+                value: this.normalizeRoleCode(item.value),
+                label: this.roleLabel(item.value)
+            }))
+        },
+        rolePickerRange() {
+            return this.normalizedRoleOptions.length ? this.normalizedRoleOptions : roleOptions.map((item) => ({ ...item }))
+        },
+        rolePickerIndex() {
+            const index = this.rolePickerRange.findIndex((item) => this.normalizeRoleCode(item.value) === this.selectedRoleCode)
+            return index === -1 ? 0 : index
+        },
+        roleCardCountText() {
+            const count = this.displayCurrentRoles.length
+            return count > 1 ? `${count}个身份` : '当前身份'
         },
         selectedRoleCode() {
             const item = this.roleOptions[this.roleIndex] || this.roleOptions[0] || {}
-            return item.value || 'PROMOTER'
+            return this.normalizeRoleCode(item.value || 'PROMOTER')
         },
         selectedRoleLabel() {
-            const item = this.roleOptions[this.roleIndex] || this.roleOptions[0] || {}
-            return item.label || '推广者'
+            return this.roleLabel(this.selectedRoleCode)
+        },
+        selectedRoleOption() {
+            const item = this.rolePickerRange[this.rolePickerIndex] || this.rolePickerRange[0] || roleOptions[0] || {}
+            return item
+        },
+        currentRoleSummary() {
+            const labels = this.displayCurrentRoles.map((item) => this.roleLabel(item.roleCode)).filter(Boolean)
+            return labels.length ? labels.join(' / ') : '普通用户'
+        },
+        isMerchantRole() {
+            const info = this.userInfo || {}
+            const rawRoles = [
+                info.roleCode,
+                info.role_code,
+                info.role,
+                info.userRole,
+                info.user_role,
+                info.identity,
+                info.identityType,
+                info.identity_type
+            ]
+            const roleList = []
+                .concat(Array.isArray(info.roles) ? info.roles : [])
+                .concat(Array.isArray(this.roles) ? this.roles : [])
+            const roleCodeList = roleList.map((item) => this.normalizeRoleCode(item.roleCode || item.role_code || item.role || item.code || item.value || item))
+            const hasMerchantCode = rawRoles.concat(roleCodeList).some((code) => this.normalizeRoleCode(code) === 'MERCHANT')
+            return Boolean(
+                hasMerchantCode
+                || info.isMerchant
+                || info.is_merchant
+                || info.merchantId
+                || info.merchant_id
+                || info.shopId
+                || info.shop_id
+            )
         },
         currentCertTypeLabel() {
             const item = this.certTypes[this.certTypeIndex] || this.certTypes[0] || {}
@@ -303,6 +379,15 @@ export default {
             const value = role.depositAmount ?? config[this.selectedRoleCode] ?? config[this.normalizeRoleCode(role.value)] ?? ''
             return value === undefined || value === null ? '' : value
         },
+        applyRoleApplications() {
+            return this.applications.filter(item => APPLY_ROLE_CODES.includes(this.normalizeRoleCode(item.roleCode)))
+        },
+        hasApplyRoleRecord() {
+            return this.currentRoles.length > 0 || this.applyRoleApplications.length > 0
+        },
+        promoterInviteCode() {
+            return this.userInfo.promoter_code || this.userInfo.promoterCode || this.userInfo.distribution_code || this.userInfo.distributionCode || this.inviteCode || ''
+        },
         requiresPrepayDeposit() {
             return APPLY_ROLE_CODES.includes(this.selectedRoleCode)
         },
@@ -318,7 +403,7 @@ export default {
             if (this.currentStatusType === 'approved') return '当前角色已生效，可查看对应角色能力和入口。'
             const descMap = {
                 deposit: '资料已提交，请按平台要求完成押金缴纳。',
-                pending: '申请正在审核中，请保持手机号畅通。',
+                pending: '押金已完成，申请待平台管理员审核，通过后推广者角色才会正式生效。',
                 approved: '审核已通过，角色已开通。',
                 rejected: '申请未通过，请根据审核意见调整后重新提交。',
                 cancelled: '该申请已取消，如需继续可重新提交资料。'
@@ -369,13 +454,15 @@ export default {
             return this.applicationInfo.filter((item) => item.value)
         },
         shouldShowForm() {
-            return this.isKycApproved && this.currentStatusType !== 'approved' && (!this.currentApplication || this.showApplyForm)
+            if (!this.isKycApproved || this.currentStatusType === 'approved') return false
+            if (!this.currentApplication && !this.hasApplyRoleRecord) return true
+            return !this.currentApplication || this.showApplyForm
         },
         showFirstApplyEntry() {
-            return this.isKycApproved && !this.showApplyForm && !this.hasApplyRoleRecord && !this.currentApplication
+            return false
         },
         showReapplyEntry() {
-            return this.isKycApproved && !this.showApplyForm && this.hasApplyRoleRecord
+            return this.isKycApproved && !this.showApplyForm && this.hasApplyRoleRecord && !this.currentApplication
         },
         currentActionDesc() {
             if (this.currentStatusType === 'approved') return '当前角色已开通，可使用后端返回的角色信息。'
@@ -512,6 +599,14 @@ export default {
                 promoterCode: code
             }
         },
+        isApplyRole(roleCode) {
+            return APPLY_ROLE_CODES.includes(this.normalizeRoleCode(roleCode))
+        },
+        selectDisplayRole(item = {}) {
+            const code = this.normalizeRoleCode(item.roleCode || item.role_code || item.role)
+            if (!this.isApplyRole(code)) return
+            this.selectRole(code)
+        },
         selectRole(roleCode) {
             const index = this.roleOptions.findIndex((item) => item.value === this.normalizeRoleCode(roleCode))
             if (index !== -1) {
@@ -520,7 +615,10 @@ export default {
             }
         },
         onRoleChange(event) {
-            this.roleIndex = Number(event.detail.value || 0)
+            const pickerIndex = Number(event.detail.value || 0)
+            const selected = this.rolePickerRange[pickerIndex] || this.rolePickerRange[0] || {}
+            const roleIndex = this.roleOptions.findIndex((item) => this.normalizeRoleCode(item.value) === this.normalizeRoleCode(selected.value))
+            this.roleIndex = roleIndex === -1 ? 0 : roleIndex
             this.prefillForm(this.currentApplication || {})
         },
         startApply() {
@@ -537,6 +635,15 @@ export default {
         },
         roleLabel(roleCode) {
             const code = this.normalizeRoleCode(roleCode)
+            const map = {
+                MERCHANT: '商家',
+                USER: '普通用户',
+                PROMOTER: '推广者',
+                AGENT: '区域代理',
+                SUBSIDIARY: '子公司',
+                HQ: '总部'
+            }
+            if (map[code]) return map[code]
             const role = roleOptions.find((item) => item.value === code)
             if (role) return role.label
             const currentRole = this.currentRoles.find((item) => this.normalizeRoleCode(item.roleCode) === code)
@@ -858,6 +965,7 @@ export default {
                 })
                 if (res.code == 1) {
                     uni.showToast({ title: '申请已提交', icon: 'success' })
+                    this.upsertPendingAuditApplication(roleCode, depositInfo)
                     this.showApplyForm = false
                     await this.loadPageData()
                 } else {
@@ -872,6 +980,24 @@ export default {
             } finally {
                 this.submitting = false
             }
+        },
+        upsertPendingAuditApplication(roleCode, depositInfo = {}) {
+            const code = this.normalizeRoleCode(roleCode)
+            const existedIndex = this.applications.findIndex((item) => this.normalizeRoleCode(item.roleCode) === code)
+            const next = {
+                ...(existedIndex === -1 ? {} : this.applications[existedIndex]),
+                ...this.form,
+                ...depositInfo,
+                roleCode: code,
+                applicationStatus: 'PENDING_AUDIT',
+                auditStatus: 'PENDING_AUDIT',
+                depositStatus: depositInfo.depositPayOrderNo || depositInfo.depositBizOrderNo ? 'PAID' : '',
+                payStatus: depositInfo.depositPayOrderNo || depositInfo.depositBizOrderNo ? 'PAID' : '',
+                depositAmount: this.roleDepositAmount,
+                appliedAt: new Date().toISOString()
+            }
+            if (existedIndex === -1) this.applications.unshift(next)
+            else this.$set(this.applications, existedIndex, next)
         }
     }
 }
@@ -890,6 +1016,7 @@ export default {
 .role-list { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 18rpx; }
 .role-chip { min-width: 150rpx; padding: 16rpx 20rpx; border-radius: 20rpx; border: 1rpx solid #e6eaf0; background: #f7f9fc; box-sizing: border-box; }
 .role-chip--active { border-color: #1688ff; background: #eef7ff; }
+.role-chip--readonly { border-color: #e7ebf0; background: #f9fafc; }
 .role-chip__name { display: block; color: #222222; font-size: 27rpx; font-weight: 600; }
 .role-chip__meta { display: block; margin-top: 6rpx; color: #888888; font-size: 22rpx; }
 .empty-state { text-align: center; }
@@ -936,19 +1063,21 @@ export default {
 .action-btn { flex: 1; height: 76rpx; line-height: 76rpx; border-radius: 38rpx; font-size: 28rpx; }
 .action-btn--primary { color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); box-shadow: 0 10rpx 22rpx rgba(22, 136, 255, .18); }
 .action-btn--plain { color: #1688ff; background: #eef7ff; }
-.form-title { color: #222222; font-size: 30rpx; font-weight: 600; }
-.form-item { display: flex; align-items: center; min-height: 92rpx; border-bottom: 1rpx solid #f0f1f3; }
-.form-item:last-child { border-bottom: 0; }
-.form-item--textarea { align-items: flex-start; padding-top: 26rpx; }
-.label { flex: none; width: 160rpx; color: #333333; font-size: 28rpx; }
-input, textarea, .picker-value { flex: 1; min-width: 0; color: #222222; font-size: 28rpx; }
-.picker-value--select { display: flex; align-items: center; justify-content: space-between; min-height: 64rpx; padding: 0 22rpx; border: 1rpx solid #cfe3ff; border-radius: 16rpx; background: #f4f9ff; color: #1677ff; box-sizing: border-box; }
+.form-card { padding: 30rpx; }
+.form-title { margin-bottom: 20rpx; color: #222222; font-size: 32rpx; font-weight: 700; }
+.form-item { display: flex; align-items: center; min-height: 96rpx; margin-top: 16rpx; padding: 18rpx 20rpx; border: 1rpx solid #edf1f6; border-radius: 18rpx; background: #f8fafc; box-sizing: border-box; }
+.form-item:first-of-type { margin-top: 0; }
+.form-item--textarea { align-items: flex-start; padding-top: 22rpx; }
+.label { flex: none; width: 160rpx; color: #465366; font-size: 27rpx; font-weight: 500; line-height: 40rpx; }
+input, textarea, .picker-value { flex: 1; min-width: 0; color: #1f2937; font-size: 28rpx; }
+input, .picker-value { min-height: 62rpx; line-height: 62rpx; text-align: right; }
+.picker-value--select { display: flex; align-items: center; justify-content: flex-end; min-height: 64rpx; padding: 0 20rpx; border: 1rpx solid #cfe3ff; border-radius: 16rpx; background: #ffffff; color: #1677ff; box-sizing: border-box; }
 .picker-arrow { flex: none; width: 14rpx; height: 14rpx; margin-left: 16rpx; border-right: 3rpx solid #1677ff; border-bottom: 3rpx solid #1677ff; transform: rotate(45deg) translateY(-3rpx); }
-textarea { height: 150rpx; line-height: 40rpx; }
-.kyc-material { margin-top: 24rpx; padding: 22rpx; border-radius: 18rpx; background: #f7f9fc; }
+textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ffffff; line-height: 40rpx; box-sizing: border-box; text-align: left; }
+.kyc-material { margin-top: 24rpx; padding: 24rpx; border-radius: 20rpx; background: #f8fafc; border: 1rpx solid #edf1f6; }
 .kyc-material__title { color: #333333; font-size: 28rpx; font-weight: 600; }
-.kyc-material__photos { display: flex; gap: 18rpx; margin-top: 18rpx; }
-.kyc-material__photo { width: 200rpx; height: 128rpx; border-radius: 12rpx; background: #edf1f6; }
+.kyc-material__photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18rpx; margin-top: 18rpx; }
+.kyc-material__photo { width: 100%; height: 180rpx; border-radius: 14rpx; background: #edf1f6; }
 .agreement-row { display: flex; align-items: center; gap: 14rpx; margin-top: 22rpx; color: #666666; font-size: 24rpx; line-height: 34rpx; }
 .submit-btn { margin-top: 30rpx; height: 88rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); border-radius: 44rpx; font-size: 30rpx; box-shadow: 0 14rpx 28rpx rgba(22, 136, 255, .22); }
 .history-title { margin-bottom: 16rpx; color: #222222; font-size: 30rpx; font-weight: 600; }

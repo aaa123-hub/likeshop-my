@@ -30,6 +30,10 @@
         </view>
 
         <view class="entry-list">
+            <view class="entry-item" v-if="roleCode === 'MERCHANT'" @tap="goMerchantVerify">
+                <text>扫码核销订单</text>
+                <text class="entry-arrow">></text>
+            </view>
             <view class="entry-item" @tap="goLedger">
                 <text>积分收入明细</text>
                 <text class="entry-arrow">›</text>
@@ -179,6 +183,10 @@ export default {
         },
         goMerchantCashier() {
             uni.navigateTo({ url: '/business/pages/business_pages/face_pay' })
+        },
+        goMerchantVerify() {
+            const merchantId = this.workbench.merchantId || this.userInfo.merchantId || this.userInfo.merchant_id || ''
+            uni.navigateTo({ url: `/business/pages/business_pages/merchant_verify${merchantId ? `?merchantId=${merchantId}` : ''}` })
         }
     }
 }

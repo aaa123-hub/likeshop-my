@@ -29,15 +29,17 @@ export { client };
 
 //节流
 export const trottle = (func, time = 1000, context) => {
-  let previous = new Date(0).getTime();
-  return function (...args) {
-    let now = new Date().getTime();
-    if (now - previous > time) {
-      func.apply(context, args);
-      previous = now;
-    }
+    let previous = new Date(0).getTime();
+    let result;
+    return function (...args) {
+      let now = new Date().getTime();
+      if (now - previous > time) {
+        result = func.apply(context, args);
+        previous = now;
+      }
+      return result;
+    };
   };
-};
 
 //判断是否为微信环境
 export function isWeixinClient() {

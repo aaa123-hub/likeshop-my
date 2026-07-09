@@ -145,7 +145,10 @@ import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 		},
 		watch: {
 			showshare(val) {
-				if (val) this.prepareQrcode()
+				if (val) {
+					uni.showToast({ title: '商品二维码功能已下线', icon: 'none' })
+					this.showshare = false
+				}
 			},
 			showPoster() {}
 		},

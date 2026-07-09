@@ -251,12 +251,16 @@ function isLoginExpiredResponse(code, message = "", statusCode) {
   return normalizedCode === "-1";
 }
 
+function isMissingStaticResourceResponse(code, message = "") {
+  return String(code || "").toUpperCase() === "A0108"
+    && /no static resource/i.test(String(message || ""));
+}
+
 function reloginAfterAuthExpired() {
   if (!reloginPromise) {
     store.commit("LOGOUT");
     //#ifdef MP-WEIXIN
-    wxMnpLogin();
-    reloginPromise = new Promise((resolve) => setTimeout(resolve, 1500)).finally(() => {
+    reloginPromise = Promise.resolve(wxMnpLogin()).finally(() => {
       reloginPromise = null;
     });
     // #endif
@@ -267,6 +271,25 @@ function reloginAfterAuthExpired() {
     // #endif
   }
   return reloginPromise;
+}
+
+function canRetryAfterRelogin(config = {}) {
+  return config && !config.__retriedAfterRelogin && !isAuthRequest(config.url || "");
+}
+
+async function retryAfterRelogin(config) {
+  await reloginAfterAuthExpired();
+  const token = Cache.get(TOKEN);
+  if (!token) return null;
+  return service.request({
+    ...config,
+    __retriedAfterRelogin: true,
+    header: {
+      ...(config.header || {}),
+      token,
+      Authorization: `Bearer ${token}`,
+    },
+  });
 }
 
 function handleLoginExpired(route, options) {
@@ -337,7 +360,13 @@ service.interceptors.response.use(
       const { code, show, msg, rawCode } = data;
       const { route, options } = currentPage();
       if (!isAuthRequest(response.config?.url || "") && isLoginExpiredResponse(rawCode || code, msg, response.statusCode || response.status)) {
+        if (canRetryAfterRelogin(response.config)) {
+          const retryResponse = await retryAfterRelogin(response.config);
+          if (retryResponse) return retryResponse;
+        }
         handleLoginExpired(route, options);
+        data.show = false;
+      } else if (isMissingStaticResourceResponse(rawCode || backendCode || code, msg)) {
         data.show = false;
       } else if (code == 0 && msg && show !== false) {
         uni.showToast({
@@ -356,7 +385,7 @@ service.interceptors.response.use(
 
     return Promise.resolve(response.data);
   },
-  (error) => {
+  async (error) => {
     if (error && error.__skipRequest) {
       return Promise.resolve(error.responseData);
     }
@@ -365,6 +394,10 @@ service.interceptors.response.use(
       const message = responseData.message || responseData.msg || "请求失败";
       const statusCode = error.response.statusCode || error.response.status;
       if (!isAuthRequest(error.config?.url || "") && isLoginExpiredResponse(responseData.code, message, statusCode)) {
+        if (canRetryAfterRelogin(error.config)) {
+          const retryResponse = await retryAfterRelogin(error.config);
+          if (retryResponse) return retryResponse;
+        }
         const { route, options } = currentPage();
         handleLoginExpired(route, options);
         return Promise.resolve({
@@ -375,15 +408,19 @@ service.interceptors.response.use(
           show: false,
         });
       }
-      uni.showToast({
-        title: message,
-        icon: "none",
-      });
+      const shouldShow = !isMissingStaticResourceResponse(responseData.code, message);
+      if (shouldShow) {
+        uni.showToast({
+          title: message,
+          icon: "none",
+        });
+      }
       return Promise.resolve({
         ...responseData,
         rawCode: responseData.code,
         code: 0,
         msg: message,
+        show: shouldShow,
       });
     }
     return Promise.reject(error);

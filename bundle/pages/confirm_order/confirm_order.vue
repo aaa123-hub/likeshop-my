@@ -270,10 +270,10 @@
                             <view :class="['coupon-check', !pendingCouponId ? 'coupon-check--active' : '']"></view>
                         </view>
                         <view
-                            v-for="item in currentCouponList"
+                            v-for="(item, index) in currentCouponList"
                             :key="couponKey(item)"
                             class="coupon-card"
-                            @tap="handleCouponCardTap(item)"
+                            @tap="handleCouponCardTap(item, index)"
                         >
                             <view class="coupon-item row">
                                 <view class="price white column-center">
@@ -289,7 +289,7 @@
                                     <view
                                         v-if="couponTabsIndex === 0"
                                         :class="['coupon-check', isCouponPendingSelected(item) ? 'coupon-check--active' : '']"
-                                        @tap.stop="toggleCoupon(item)"
+                                        @tap.stop="toggleCoupon(item, index)"
                                     ></view>
                                     <view
                                         v-if="couponTabsIndex === 1"
@@ -484,6 +484,10 @@ export default {
         activeCouponId() {
             return this.showCoupon ? this.pendingCouponId : this.couponId
         },
+        normalizedPointsInfo() {
+            const data = this.orderInfo || {}
+            return data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
+        },
         integralText() {
             const userIntegral = this.userIntegral
             if (!this.canUseIntegral) return `${userIntegral}积分，不满足抵扣条件`
@@ -518,7 +522,7 @@ export default {
         },
         userIntegral() {
             const data = this.orderInfo || {}
-            const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
+            const pointsInfo = this.normalizedPointsInfo
             const pointsAccount = data.pointsAccount || data.points_account || {}
             const fallback = this.pointsFallback || {}
             const totalPoints = this.firstDefined(
@@ -545,6 +549,7 @@ export default {
                 pointsAccount.integral,
                 pointsInfo.userIntegral,
                 pointsInfo.user_integral,
+                pointsInfo.available,
                 pointsInfo.availablePoints,
                 pointsInfo.available_points,
                 pointsInfo.availableIntegral,
@@ -569,18 +574,18 @@ export default {
         },
         pointsAmount() {
             const data = this.orderInfo || {}
-            const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
+            const pointsInfo = this.normalizedPointsInfo
             const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
-            const backendPoints = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsAmount', 'points_amount', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points', 'maxUsableIntegral', 'max_usable_integral', 'usablePoints', 'usable_points', 'usableIntegral', 'usable_integral'])
+            const backendPoints = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsAmount', 'points_amount', 'used', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points', 'maxUsableIntegral', 'max_usable_integral', 'usablePoints', 'usable_points', 'usableIntegral', 'usable_integral'])
             if (backendPoints > 0) return backendPoints
             if (this.pointsDeductAmount > 0) return Math.min(this.userIntegral, Math.ceil(this.pointsDeductAmount / 0.008))
             return 0
         },
         pointsDeductAmount() {
             const data = this.orderInfo || {}
-            const pointsInfo = data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || data.pointsConfig || data.points_config || {}
+            const pointsInfo = this.normalizedPointsInfo
             const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
-            const backendAmount = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsDeductAmount', 'points_deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxIntegralDeductAmount', 'max_integral_deduct_amount', 'maxDeductAmount', 'max_deduct_amount', 'deductAmount', 'deduct_amount'])
+            const backendAmount = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsDeductAmount', 'points_deduct_amount', 'deductAmount', 'deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxIntegralDeductAmount', 'max_integral_deduct_amount', 'maxDeductAmount', 'max_deduct_amount'])
             if (backendAmount > 0) return backendAmount
             const goodsAmount = this.moneyValue(this.orderInfo.total_goods_price || this.orderInfo.goodsAmount)
             const shippingPrice = this.currentDelivery.sign === 'store' ? 0 : this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount)
@@ -894,6 +899,16 @@ export default {
             if (!ids.length) return false
             return this.couponIdsIntersect(this.couponCompareIds(item), ids)
         },
+        selectableCouponIds(item = {}) {
+            const ids = this.couponApplyIds(item)
+            const compareIds = this.couponCompareIds(item)
+            return ids.length ? ids : compareIds
+        },
+        couponItemAt(index) {
+            const number = Number(index)
+            if (Number.isNaN(number)) return {}
+            return this.currentCouponList[number] || {}
+        },
         couponReceivePayload(item = {}) {
             const id = this.couponKey(item)
             const template = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
@@ -939,10 +954,13 @@ export default {
             const latitude = info.latitude ?? info.lat ?? info.location?.latitude ?? ''
             const longitude = info.longitude ?? info.lng ?? info.location?.longitude ?? ''
             const address = info.map_address || info.mapAddress || info.shop_address || info.address || info.detailAddress || info.detail_address || info.poiaddress || info.poiAddress || ''
+            const name = info.name || info.shop_name || info.shopName || info.storeName || address || '地图选点地址'
             return {
                 ...info,
                 id: id || (latitude && longitude ? `map_${latitude}_${longitude}` : ''),
-                name: address || info.name || info.shop_name || info.shopName || info.storeName || '地图选点地址',
+                name,
+                shop_name: info.shop_name || info.shopName || name,
+                shopName: info.shopName || info.shop_name || name,
                 map_address: address,
                 mapAddress: address,
                 shop_address: address,
@@ -957,6 +975,7 @@ export default {
             const store = this.normalizeStoreInfo(info)
             if (!store.id && !(store.latitude && store.longitude)) return
             this.storeInfo = store
+            uni.setStorageSync('selected_self_fetch_store', store)
             const storeIndex = this.addressTabsList.findIndex(item => item.sign === 'store')
             if (storeIndex !== -1) this.addressTabsIndex = storeIndex
         },
@@ -967,11 +986,90 @@ export default {
         onAddressExpress() {
             uni.navigateTo({ url: `/bundle/pages/user_address/user_address?type=${1}` })
         },
-        onAddressStore() {
-            const selected = this.storeInfo && (this.storeInfo.id || this.storeInfo.latitude || this.storeInfo.longitude)
-                ? `?selected=${encodeURIComponent(JSON.stringify(this.storeInfo))}`
-                : ''
-            uni.navigateTo({ url: `/bundle_misc/pages/store_list/store_list${selected}` })
+        async onAddressStore() {
+            const location = await this.getCurrentMapLocation()
+            const picked = await this.chooseStoreLocation(location)
+            if (picked) {
+                this.applySelectedStore(this.createMapStoreInfo(picked))
+                this.$nextTick(() => this.handleOrderMethods('info'))
+            }
+        },
+        callLocationApi(name, params = {}) {
+            return new Promise((resolve, reject) => {
+                const normalize = (result) => resolve(Array.isArray(result) ? result[1] : result)
+                // #ifdef MP-WEIXIN
+                const wxApi = typeof wx !== 'undefined' && wx && wx[name]
+                if (wxApi) {
+                    wxApi({ ...params, success: normalize, fail: reject, cancel: reject })
+                    return
+                }
+                // #endif
+                if (!uni || !uni[name]) {
+                    reject(new Error(`${name} is unavailable`))
+                    return
+                }
+                uni[name](params).then(normalize).catch(reject)
+            })
+        },
+        async getCurrentMapLocation() {
+            try {
+                return await this.callLocationApi('getLocation', { type: 'gcj02' })
+            } catch (error) {
+                return this.storeInfo && this.storeInfo.latitude && this.storeInfo.longitude
+                    ? { latitude: this.storeInfo.latitude, longitude: this.storeInfo.longitude }
+                    : {}
+            }
+        },
+        async chooseStoreLocation(location = {}) {
+            try {
+                const params = {}
+                if (location.latitude && location.longitude) {
+                    params.latitude = location.latitude
+                    params.longitude = location.longitude
+                }
+                return await this.callLocationApi('chooseLocation', params)
+            } catch (error) {
+                uni.showModal({
+                    title: '位置选择未完成',
+                    content: '需要授权位置或在地图中选择地址后才能作为自提地址。',
+                    confirmText: '去设置',
+                    cancelText: '取消',
+                    success: ({ confirm }) => {
+                        if (confirm) uni.openSetting && uni.openSetting()
+                    }
+                })
+                return null
+            }
+        },
+        createMapStoreInfo(res = {}) {
+            const latitude = res.latitude || ''
+            const longitude = res.longitude || ''
+            const id = latitude && longitude ? `map_${latitude}_${longitude}` : ''
+            const address = res.address || res.name || ''
+            const name = res.name || address || '地图选点地址'
+            return {
+                id,
+                shop_id: id,
+                shopId: id,
+                selffetch_shop_id: id,
+                selffetchShopId: id,
+                name,
+                shop_name: name,
+                shopName: name,
+                map_address: address,
+                mapAddress: address,
+                shop_address: address,
+                address,
+                detailAddress: address,
+                detail_address: address,
+                poiAddress: address,
+                poiaddress: address,
+                latitude,
+                longitude,
+                lat: latitude,
+                lng: longitude,
+                map_selected: true
+            }
         },
         changeIntegral() {
             if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) {
@@ -1009,27 +1107,26 @@ export default {
             this.pendingCouponCandidateIds = this.selectedCouponCandidateIds.slice()
             this.showCoupon = true
         },
-        handleCouponCardTap(item) {
+        handleCouponCardTap(item, index) {
             if (this.couponTabsIndex === 1) return this.receiveCoupon(item)
-            this.toggleCoupon(item)
+            this.toggleCoupon(item, index)
         },
-        toggleCoupon(item = {}) {
+        toggleCoupon(item = {}, index) {
+            if (!item || !Object.keys(item).length) item = this.couponItemAt(index)
+            if ((typeof item === 'number' || typeof item === 'string') && index === undefined) item = this.couponItemAt(item)
             if (this.couponTabsIndex !== 0) return
+            if (!item || !Object.keys(item).length) return
             if (this.isCouponPendingSelected(item)) {
-                this.pendingCouponId = ''
-                this.pendingCouponCache = null
-                this.pendingCouponCandidateIds = []
+                this.clearPendingCoupon()
                 return
             }
-            const id = this.couponApplyId(item)
-            if (!id) {
-                uni.showToast({ title: '优惠券缺少可用于下单的领取记录ID', icon: 'none' })
-                return
-            }
+            const ids = this.selectableCouponIds(item)
+            const id = ids[0] || ''
+            if (!id) return
             this.couponManuallyCleared = false
             this.pendingCouponId = id
             this.pendingCouponCache = item
-            this.pendingCouponCandidateIds = this.couponApplyIds(item)
+            this.pendingCouponCandidateIds = ids
         },
         clearPendingCoupon() {
             this.pendingCouponId = ''

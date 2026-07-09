@@ -2027,6 +2027,20 @@ export default {
             const currentPage = pages[pages.length - 1] || {}
             return currentPage.options || currentPage.$page?.options || {}
         },
+        normalizePageOptions(options = {}) {
+            const normalized = { ...options }
+            const scene = normalized.scene ? decodeURIComponent(String(normalized.scene)) : ''
+            if (scene) {
+                scene.split(/[&;]/).forEach((part) => {
+                    const [key, value] = part.split('=')
+                    if (key && value !== undefined && normalized[key] === undefined) {
+                        normalized[key] = value
+                    }
+                })
+            }
+            if (!normalized.shopId && normalized.shop_id) normalized.shopId = normalized.shop_id
+            return normalized
+        },
         appendShopId(url) {
             const shopId = this.storeDetailView.shopId
             if (!shopId) return url
@@ -2063,7 +2077,7 @@ export default {
             }
         },
         async loadStoreDetail() {
-            const options = this.getCurrentPageOptions()
+            const options = this.normalizePageOptions(this.getCurrentPageOptions())
             const shopId = options.shopId || options.shop_id || options.merchantShopId || options.merchant_shop_id || (this.scene === 'goods-qr' ? '' : options.id) || ''
             this.syncStoreDetailActiveTab()
             if (!shopId) {

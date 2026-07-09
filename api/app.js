@@ -298,10 +298,25 @@ export function opLogin(data) {
 export async function prepay(data = {}) {
   const openId = data.openId || data.openid || data.open_id || currentOpenId();
   const bizOrderNo = data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id;
+  const usePoints = Boolean(data.use_integral || data.usePoints);
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
     bizOrderNo,
     amount: firstDefined(data.amount, data.payAmount, data.order_amount),
+    couponId: data.noCoupon || data.no_coupon ? "" : firstDefined(data.couponId, data.coupon_id, data.userCouponId, data.user_coupon_id, ""),
+    coupon_id: data.noCoupon || data.no_coupon ? "" : firstDefined(data.coupon_id, data.couponId, data.user_coupon_id, data.userCouponId, ""),
+    couponIds: data.noCoupon || data.no_coupon ? [] : (data.couponIds || data.coupon_ids || (data.coupon_id || data.couponId ? [data.coupon_id || data.couponId] : [])),
+    coupon_ids: data.noCoupon || data.no_coupon ? [] : (data.coupon_ids || data.couponIds || (data.coupon_id || data.couponId ? [data.coupon_id || data.couponId] : [])),
+    noCoupon: Boolean(data.noCoupon || data.no_coupon),
+    no_coupon: Boolean(data.noCoupon || data.no_coupon),
+    usePoints,
+    use_integral: usePoints,
+    pointsAmount: usePoints ? Number(firstDefined(data.pointsAmount, data.points_amount, data.integral_num, 0)) : 0,
+    points_amount: usePoints ? Number(firstDefined(data.points_amount, data.pointsAmount, data.integral_num, 0)) : 0,
+    pointsDeductAmount: usePoints ? Number(firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integral_amount, 0)) : 0,
+    points_deduct_amount: usePoints ? Number(firstDefined(data.points_deduct_amount, data.pointsDeductAmount, data.integral_amount, 0)) : 0,
+    integral_num: usePoints ? Number(firstDefined(data.integral_num, data.pointsAmount, data.points_amount, 0)) : 0,
+    integral_amount: usePoints ? Number(firstDefined(data.integral_amount, data.pointsDeductAmount, data.points_deduct_amount, 0)) : 0,
     payScene: data.payScene || "MINIAPP",
     payMethod: "WECHAT_JSAPI",
     clientIp: data.clientIp || "127.0.0.1",
@@ -532,14 +547,20 @@ export function getPayway(params = {}) {
 function normalizeShareQrcodeResponse(res, fallbackPath = "") {
   const data = res && res.data ? res.data : {};
   const qrcodeInfo = data.qrcodeInfo || data.qrCodeInfo || data.qrcode_info || data.qr_code_info || {};
-  const qrCode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage
-    || qrcodeInfo.qr_code || qrcodeInfo.qrCode || qrcodeInfo.qrcode || qrcodeInfo.image || qrcodeInfo.urlImage;
+  const qrCode = data.qr_code || data.qrCode || data.qrcode || data.qrcodeUrl || data.qrcode_url
+    || data.qrCodeUrl || data.qr_code_url || data.posterUrl || data.poster_url || data.poster
+    || data.image || data.imageUrl || data.urlImage
+    || qrcodeInfo.qr_code || qrcodeInfo.qrCode || qrcodeInfo.qrcode || qrcodeInfo.qrcodeUrl || qrcodeInfo.qrcode_url
+    || qrcodeInfo.qrCodeUrl || qrcodeInfo.qr_code_url || qrcodeInfo.posterUrl || qrcodeInfo.poster_url
+    || qrcodeInfo.image || qrcodeInfo.imageUrl || qrcodeInfo.urlImage;
   return {
     ...(res || {}),
     code: qrCode || res?.code == 1 ? 1 : 0,
     data: {
       ...data,
-      qr_code: qrCode || "",
+      qr_code: qrCode ? resolveImage(qrCode, "goods") : "",
+      qrcodeUrl: qrCode ? resolveImage(qrCode, "goods") : "",
+      posterUrl: resolveImage(data.posterUrl || data.poster_url || data.poster || qrCode || "", "goods"),
       path: data.path || data.pagePath || fallbackPath,
     },
   };

@@ -113,6 +113,11 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				paywayList: [], // 支付方式列表
 				desiredPayway: '',
 				pageMode: '',
+				couponId: '',
+				noCoupon: false,
+				useIntegral: false,
+				pointsAmount: 0,
+				pointsDeductAmount: 0,
 
 				loadingSkeleton: true, // 骨架屏Loading
 				loadingPay: false, // 支付处理中Loading
@@ -221,6 +226,20 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				prepay({
 					from: this.from,
 					order_id: this.order_id,
+					coupon_id: this.noCoupon ? '' : this.couponId,
+					couponId: this.noCoupon ? '' : this.couponId,
+					couponIds: this.noCoupon || !this.couponId ? [] : [this.couponId],
+					coupon_ids: this.noCoupon || !this.couponId ? [] : [this.couponId],
+					noCoupon: this.noCoupon,
+					no_coupon: this.noCoupon,
+					use_integral: this.useIntegral,
+					usePoints: this.useIntegral,
+					pointsAmount: this.useIntegral ? this.pointsAmount : 0,
+					points_amount: this.useIntegral ? this.pointsAmount : 0,
+					pointsDeductAmount: this.useIntegral ? this.pointsDeductAmount : 0,
+					points_deduct_amount: this.useIntegral ? this.pointsDeductAmount : 0,
+					integral_num: this.useIntegral ? this.pointsAmount : 0,
+					integral_amount: this.useIntegral ? this.pointsDeductAmount : 0,
 					pay_way: 'WECHAT_JSAPI',
 					payMethod: 'WECHAT_JSAPI',
 					bizOrderNo: this.order_id,
@@ -325,6 +344,11 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				this.from = from
 				this.order_id = order_id
 				this.amount = Number(options.amount || 0)
+				this.couponId = options.coupon_id || options.couponId || ''
+				this.noCoupon = options.no_coupon === '1' || options.noCoupon === '1' || options.no_coupon === true || options.noCoupon === true
+				this.useIntegral = options.use_integral === '1' || options.usePoints === '1' || options.use_integral === true || options.usePoints === true
+				this.pointsAmount = Number(options.points_amount || options.pointsAmount || options.integral_num || 0)
+				this.pointsDeductAmount = Number(options.points_deduct_amount || options.pointsDeductAmount || options.integral_amount || 0)
 				this.initPageData()
 			} catch (err) {
 				uni.navigateBack()

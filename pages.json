@@ -295,14 +295,8 @@
 						"navigationStyle": "custom"
 					}
 				},
-				{
-					"path": "pages/store_list/store_list",
-					"style": {
-						"navigationBarTitleText": "门店自提"
-					}
-				},
-				{
-					"path": "pages/writeoff_order/writeoff_order",
+					{
+						"path": "pages/writeoff_order/writeoff_order",
 					"style": {
 						"navigationBarTitleText": "核销订单",
 						"enablePullDownRefresh": true
@@ -653,6 +647,13 @@
 					}
 				},
 				{
+					"path": "pages/business_pages/merchant_verify",
+					"style": {
+						"navigationBarTitleText": "商家核销",
+						"navigationStyle": "custom"
+					}
+				},
+				{
 					"path": "pages/business_pages/points_ledger",
 					"style": {
 						"navigationBarTitleText": "积分流水",
@@ -813,7 +814,7 @@
 		}
 	},
 	"optimization": {
-		"subPackages": true
+		"subPackages": false
 	},
 	"easycom": {
 		"autoscan": false,

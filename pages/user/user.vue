@@ -292,7 +292,7 @@ export default {
         roleStatusLabel(status) {
             const type = this.roleStatusType(status)
             if (type === 'approved') return '已通过'
-            if (type === 'pending') return '审核中'
+            if (type === 'pending') return '待审核'
             if (type === 'rejected') return '未通过'
             return '未申请'
         },
@@ -452,7 +452,7 @@ export default {
 .my-page__screen {
     position: relative;
     width: 100%;
-    min-height: calc(2168rpx + var(--page-safe-top));
+    min-height: calc(2008rpx + var(--page-safe-top));
     overflow: visible;
 }
 
@@ -789,6 +789,7 @@ export default {
     left: 47rpx;
     right: 47rpx;
     top: calc(var(--page-safe-top) + 299rpx);
+    z-index: 1;
     height: 157rpx;
 }
 
@@ -838,7 +839,8 @@ export default {
     position: absolute;
     left: 26rpx;
     right: 26rpx;
-    top: calc(var(--page-safe-top) + 474rpx);
+    top: calc(var(--page-safe-top) + 376rpx);
+    z-index: 2;
     height: 184rpx;
     border-radius: 24rpx;
     box-shadow: 0 16rpx 38rpx rgba(31, 122, 244, 0.12);
@@ -849,13 +851,14 @@ export default {
     position: absolute;
     left: 26rpx;
     right: 26rpx;
+    z-index: 3;
     background: rgba(255, 255, 255, 0.97);
     border-radius: 24rpx;
     box-shadow: 0 12rpx 30rpx rgba(28, 45, 90, 0.06);
 }
 
 .my-section--online {
-    top: calc(var(--page-safe-top) + 690rpx);
+    top: calc(var(--page-safe-top) + 584rpx);
     min-height: 213rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
@@ -866,22 +869,22 @@ export default {
 }
 
 .my-section--pair-1 {
-    top: calc(var(--page-safe-top) + 924rpx);
+    top: calc(var(--page-safe-top) + 821rpx);
 }
 
 .my-section--pair-2 {
-    top: calc(var(--page-safe-top) + 1158rpx);
+    top: calc(var(--page-safe-top) + 1058rpx);
 }
 
 .my-section--value {
-    top: calc(var(--page-safe-top) + 1392rpx);
+    top: calc(var(--page-safe-top) + 1295rpx);
     min-height: 237rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-section--feature {
-    top: calc(var(--page-safe-top) + 1651rpx);
+    top: calc(var(--page-safe-top) + 1556rpx);
     min-height: 322rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;

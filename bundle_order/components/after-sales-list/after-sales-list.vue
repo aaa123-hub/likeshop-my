@@ -315,6 +315,7 @@ export default {
           this.$toast({
             title: res.msg,
           });
+          this.confirmDialog = false;
           uni.$emit("refreshsale");
         }
       });

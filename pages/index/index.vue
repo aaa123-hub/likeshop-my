@@ -20,7 +20,7 @@
                 <view class="feature-card" @tap="openScan">
                     <view>
                         <view class="feature-title">扫一扫</view>
-                        <view class="feature-desc">扫码识别商品</view>
+                        <view class="feature-desc">扫描商家二维码</view>
                     </view>
                     <image class="feature-icon" :src="designAssets.homeNoticeIcon" mode="aspectFit"></image>
                 </view>
@@ -311,14 +311,68 @@ export default {
                 onlyFromCamera: false,
                 success: (res) => {
                     const result = res.result || res.path || ''
-                    if (result && /^\//.test(result)) {
-                        uni.navigateTo({ url: result })
+                    const route = this.resolveMerchantScanRoute(result)
+                    if (route) {
+                        this.goPage(route)
                         return
                     }
-                    uni.showToast({ title: result ? '扫码成功' : '未识别到内容', icon: result ? 'success' : 'none' })
+                    uni.showToast({ title: result ? '未识别到商家二维码' : '未识别到内容', icon: 'none' })
                 },
                 fail: () => uni.showToast({ title: '扫一扫未完成', icon: 'none' })
             })
+        },
+        resolveMerchantScanRoute(raw = '') {
+            const text = String(raw || '').trim()
+            if (!text) return ''
+            if (/^\/business\/pages\/business_pages\/store_detail/i.test(text)) return text
+            if (/^business\/pages\/business_pages\/store_detail/i.test(text)) return `/${text}`
+            const params = this.scanParamsFromText(text)
+            const shopId = this.firstScanValue(params, ['shopId', 'shop_id', 'merchantShopId', 'merchant_shop_id', 'storeId', 'store_id', 'merchantId', 'merchant_id', 'id'])
+            if (shopId) return `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(shopId)}`
+            const scene = this.firstScanValue(params, ['scene', 'qrScene', 'qr_scene'])
+            if (scene) {
+                const sceneParams = this.scanParamsFromText(decodeURIComponent(scene))
+                const sceneShopId = this.firstScanValue(sceneParams, ['shopId', 'shop_id', 'merchantShopId', 'merchant_shop_id', 'storeId', 'store_id', 'merchantId', 'merchant_id', 'id'])
+                if (sceneShopId) return `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(sceneShopId)}`
+            }
+            if (/^\d+$/.test(text)) return `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(text)}`
+            return ''
+        },
+        scanParamsFromText(text = '') {
+            const params = {}
+            const appendParams = (query = '') => {
+                String(query || '').split(/[&;]/).forEach((pair) => {
+                    if (!pair) return
+                    const index = pair.indexOf('=')
+                    if (index === -1) {
+                        params[pair] = params[pair] || ''
+                        return
+                    }
+                    const key = pair.slice(0, index)
+                    const value = pair.slice(index + 1)
+                    if (key) params[key] = value
+                })
+            }
+            const normalized = String(text || '').trim()
+            const queryIndex = normalized.indexOf('?')
+            if (queryIndex !== -1) appendParams(normalized.slice(queryIndex + 1))
+            else appendParams(normalized)
+            try {
+                const url = new URL(normalized)
+                appendParams(url.search ? url.search.slice(1) : '')
+                const pathMatch = url.pathname.match(/(?:shop|store|merchant)[/_-]?(\d+)/i)
+                if (pathMatch && !params.shopId) params.shopId = pathMatch[1]
+            } catch (error) {}
+            const compactMatch = normalized.match(/(?:shopId|shop_id|merchantShopId|merchant_shop_id|storeId|store_id|merchantId|merchant_id|id)[:=]([^&?#;/]+)/i)
+            if (compactMatch && !params.shopId) params.shopId = compactMatch[1]
+            return params
+        },
+        firstScanValue(source = {}, keys = []) {
+            for (const key of keys) {
+                const value = source[key]
+                if (value !== undefined && value !== null && value !== '') return decodeURIComponent(String(value))
+            }
+            return ''
         },
         normalizeQuickEntry(item = {}) {
             const code = String(item.code || '').toUpperCase()

@@ -733,6 +733,9 @@ export function getCartList() {
             var lists = list.map(normalizeCartItem)
             return Object.assign({}, res, { data: Object.assign({}, !Array.isArray(payload) ? payload : {}, { list: lists, lists, total_amount: valueOr(payload.total_amount, valueOr(payload.totalAmount, valueOr(payload.payAmount, lists.reduce(function(sum, item) { return sum + Number(item.price || 0) * Number(item.goods_num || 0) }, 0)))), cartCount: valueOr(payload.cartCount, valueOr(payload.count, lists.reduce(function(sum, item) { return sum + Number(item.goods_num || 0) }, 0))) }) })
         }
+        if (res.rawCode === 'A0108' || /No static resource|miniapp\/cart\/items/i.test(String(res.msg || res.message || ''))) {
+            return { code: 1, data: { list: [], lists: [], total_amount: 0, cartCount: 0 }, show: false }
+        }
         return res
     }).catch(function() { return { code: 1, data: { list: [], lists: [], total_amount: 0, cartCount: 0 } } })
 }

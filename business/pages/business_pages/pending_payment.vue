@@ -174,10 +174,10 @@
                         <view :class="['coupon-check', !pendingCouponId ? 'coupon-check--active' : '']"></view>
                     </view>
                     <view
-                        v-for="item in currentCouponList"
+                        v-for="(item, index) in currentCouponList"
                         :key="couponKey(item)"
                         :class="['coupon-card', couponTabsIndex === 1 ? 'coupon-card--disabled' : '']"
-                        @tap="toggleCoupon(item)"
+                        @tap="toggleCoupon(item, index)"
                     >
                         <view class="coupon-price">
                             <text class="coupon-symbol">¥</text>
@@ -192,7 +192,7 @@
                         <view
                             v-if="couponTabsIndex === 0"
                             :class="['coupon-check', isCouponPendingSelected(item) ? 'coupon-check--active' : '']"
-                            @tap.stop="toggleCoupon(item)"
+                            @tap.stop="toggleCoupon(item, index)"
                         ></view>
                     </view>
                     <view v-if="!currentCouponList.length" class="coupon-empty">暂无优惠券</view>
@@ -291,7 +291,7 @@ export default {
         },
         pointsInfo() {
             const order = this.order || {}
-            const pointsInfo = order.pointsInfo || order.points_info || order.integralInfo || order.integral_info || order.pointsConfig || order.points_config || {}
+            const pointsInfo = this.normalizedPointsInfo
             const amountInfo = order.amountInfo || order.amount_info || order.settlementAmount || order.settlement_amount || {}
             return {
                 available: this.numberValue(this.firstDefined(
@@ -304,6 +304,7 @@ export default {
                     order.total_points,
                     pointsInfo.userIntegral,
                     pointsInfo.user_integral,
+                    pointsInfo.available,
                     pointsInfo.availablePoints,
                     pointsInfo.available_points,
                     pointsInfo.points,
@@ -322,6 +323,9 @@ export default {
                     amountInfo.integral_num,
                     pointsInfo.pointsAmount,
                     pointsInfo.points_amount,
+                    pointsInfo.used,
+                    pointsInfo.usedPoints,
+                    pointsInfo.used_points,
                     pointsInfo.integralNum,
                     pointsInfo.integral_num,
                     0
@@ -339,6 +343,8 @@ export default {
                     amountInfo.integral_amount,
                     pointsInfo.pointsDeductAmount,
                     pointsInfo.points_deduct_amount,
+                    pointsInfo.deductAmount,
+                    pointsInfo.deduct_amount,
                     pointsInfo.integralAmount,
                     pointsInfo.integral_amount,
                     0
@@ -361,6 +367,10 @@ export default {
             if (this.pointsInfo.deductAmount > 0) return `已抵扣¥${this.formatAmount(this.pointsInfo.deductAmount)}`
             if (this.pointsInfo.available > 0) return '当前订单可查看积分抵扣'
             return '暂无可用积分抵扣'
+        },
+        normalizedPointsInfo() {
+            const order = this.order || {}
+            return order.pointsInfo || order.points_info || order.integralInfo || order.integral_info || order.pointsConfig || order.points_config || {}
         },
         selectedCoupon() {
             if (!this.couponId) return null
@@ -636,23 +646,30 @@ export default {
             if (!ids.length) return false
             return this.couponIdsIntersect(this.couponCompareIds(item), ids)
         },
-        toggleCoupon(item = {}) {
+        couponItemAt(index) {
+            return this.currentCouponList[Number(index)] || {}
+        },
+        selectableCouponIds(item = {}) {
+            const ids = this.couponApplyIds(item)
+            const compareIds = this.couponCompareIds(item)
+            return ids.length ? ids : compareIds
+        },
+        toggleCoupon(item = {}, index) {
+            if (!item || !Object.keys(item).length) item = this.couponItemAt(index)
+            if ((typeof item === 'number' || typeof item === 'string') && index === undefined) item = this.couponItemAt(item)
             if (this.couponTabsIndex !== 0) return
+            if (!item || !Object.keys(item).length) return
             if (this.isCouponPendingSelected(item)) {
-                this.pendingCouponId = ''
-                this.pendingCouponCache = null
-                this.pendingCouponCandidateIds = []
+                this.clearPendingCoupon()
                 return
             }
-            const id = this.couponApplyId(item)
-            if (!id) {
-                uni.showToast({ title: '优惠券参数异常', icon: 'none' })
-                return
-            }
+            const ids = this.selectableCouponIds(item)
+            const id = ids[0] || ''
+            if (!id) return
             this.couponManuallyCleared = false
             this.pendingCouponId = id
             this.pendingCouponCache = item
-            this.pendingCouponCandidateIds = this.couponApplyIds(item)
+            this.pendingCouponCandidateIds = ids
         },
         clearPendingCoupon() {
             this.pendingCouponId = ''
@@ -762,15 +779,89 @@ export default {
             if (this.isSelfFetchOrder) return this.openStoreLocationPicker()
             uni.navigateTo({ url: '/bundle/pages/user_address/user_address?type=1' })
         },
-        openStoreLocationPicker() {
+        async openStoreLocationPicker() {
+            const location = await this.getCurrentMapLocation()
+            const picked = await this.chooseStoreLocation(location)
+            if (picked) this.applySelectedStore(this.createMapStoreInfo(picked))
+        },
+        callLocationApi(name, params = {}) {
+            return new Promise((resolve, reject) => {
+                const normalize = (result) => resolve(Array.isArray(result) ? result[1] : result)
+                // #ifdef MP-WEIXIN
+                const wxApi = typeof wx !== 'undefined' && wx && wx[name]
+                if (wxApi) {
+                    wxApi({ ...params, success: normalize, fail: reject, cancel: reject })
+                    return
+                }
+                // #endif
+                if (!uni || !uni[name]) {
+                    reject(new Error(`${name} is unavailable`))
+                    return
+                }
+                uni[name](params).then(normalize).catch(reject)
+            })
+        },
+        async getCurrentMapLocation() {
             const store = this.pickStoreInfo()
-            const query = []
-            if (store && (store.id || store.latitude || store.longitude)) {
-                query.push(`selected=${encodeURIComponent(JSON.stringify(store))}`)
+            try {
+                return await this.callLocationApi('getLocation', { type: 'gcj02' })
+            } catch (error) {
+                return store && store.latitude && store.longitude
+                    ? { latitude: store.latitude, longitude: store.longitude }
+                    : {}
             }
-            const orderId = this.currentOrderId()
-            if (orderId) query.push(`order_id=${encodeURIComponent(orderId)}`)
-            uni.navigateTo({ url: `/bundle_misc/pages/store_list/store_list${query.length ? `?${query.join('&')}` : ''}` })
+        },
+        async chooseStoreLocation(location = {}) {
+            try {
+                const params = {}
+                if (location.latitude && location.longitude) {
+                    params.latitude = location.latitude
+                    params.longitude = location.longitude
+                }
+                return await this.callLocationApi('chooseLocation', params)
+            } catch (error) {
+                uni.showModal({
+                    title: '位置选择未完成',
+                    content: '需要授权位置或在地图中选择地址后才能作为自提地址。',
+                    confirmText: '去设置',
+                    cancelText: '取消',
+                    success: ({ confirm }) => {
+                        if (confirm) uni.openSetting && uni.openSetting()
+                    }
+                })
+                return null
+            }
+        },
+        createMapStoreInfo(res = {}) {
+            const latitude = res.latitude || ''
+            const longitude = res.longitude || ''
+            const id = latitude && longitude ? `map_${latitude}_${longitude}` : ''
+            const address = res.address || res.name || ''
+            const name = res.name || address || '地图选点地址'
+            return {
+                id,
+                shop_id: id,
+                shopId: id,
+                selffetch_shop_id: id,
+                selffetchShopId: id,
+                name,
+                shop_name: name,
+                shopName: name,
+                map_address: address,
+                mapAddress: address,
+                shop_address: address,
+                address,
+                detailAddress: address,
+                detail_address: address,
+                poiAddress: address,
+                poiaddress: address,
+                latitude,
+                longitude,
+                lat: latitude,
+                lng: longitude,
+                pending_order_id: this.currentOrderId(),
+                map_selected: true
+            }
         },
         handlePay() {
             const order = this.order || {}
@@ -782,6 +873,11 @@ export default {
             const query = [`from=order`, `order_id=${encodeURIComponent(orderId)}`]
             if (this.couponId) query.push(`coupon_id=${encodeURIComponent(this.couponId)}`)
             if (this.couponManuallyCleared) query.push('no_coupon=1')
+            if (this.pointsInfo.used > 0 || this.pointsInfo.deductAmount > 0) {
+                query.push('use_integral=1')
+                query.push(`points_amount=${encodeURIComponent(this.pointsInfo.used)}`)
+                query.push(`points_deduct_amount=${encodeURIComponent(this.pointsInfo.deductAmount)}`)
+            }
             uni.navigateTo({ url: `/bundle/pages/payment/payment?${query.join('&')}` })
         },
         setScreenSafeState() {

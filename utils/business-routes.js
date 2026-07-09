@@ -20,7 +20,6 @@ export const businessRoutes = {
     fiatBalance2: { name: "人民币余额2", url: "/business/pages/business_pages/fiat_balance_2" },
     pendingPayment: { name: "待付款", url: "/business/pages/business_pages/pending_payment" },
     storeQr: { name: "店铺二维码", url: "/business/pages/business_pages/store_qr" },
-    goodsQr: { name: "商品二维码", url: "/business/pages/business_pages/goods_qr" },
     storeGroup: { name: "店铺团购", url: "/business/pages/business_pages/store_group" },
     storeAlbum: { name: "店铺相册", url: "/business/pages/business_pages/store_album" },
     wallet: { name: "人民币余额", url: "/bundle_finance/pages/user_wallet/user_wallet" },
@@ -82,7 +81,6 @@ export const businessTabGroups = {
     businessRoutes.pages.storeAlbum,
     businessRoutes.pages.license,
     businessRoutes.pages.storeQr,
-    businessRoutes.pages.goodsQr,
     businessRoutes.pages.recentVisits,
   ],
   cart: [

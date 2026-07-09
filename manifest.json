@@ -5,14 +5,14 @@
     "versionName" : "3.0.3",
     "versionCode" : 100,
     "transformPx" : false,
-    /* 5+App特有相关 */
+    /* 5+ App 配置 */
     "app-plus" : {
         "usingComponents" : true,
         "nvueCompiler" : "uni-app",
-        "runtimeVersion" : "3.3.13", //指定版本
-        "compilerVersion" : "3.3.13", //指定版本
+        "runtimeVersion" : "3.3.13",
+        "compilerVersion" : "3.3.13",
         "compatible" : {
-            "ignoreVersion" : true //true表示忽略版本检查提示框，HBuilderX1.9.0及以上版本支持
+            "ignoreVersion" : true
         },
         "splashscreen" : {
             "alwaysShowBeforeRender" : true,
@@ -31,7 +31,6 @@
         },
         /* 应用发布信息 */
         "distribute" : {
-            /* android打包配置 */
             "android" : {
                 "permissions" : [
                     "<uses-feature android:name=\"android.hardware.camera\"/>",
@@ -56,7 +55,6 @@
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
                 ]
             },
-            /* ios打包配置 */
             "ios" : {
                 "capabilities" : {
                     "entitlements" : {
@@ -64,15 +62,14 @@
                     }
                 },
                 "privacyDescription" : {
-                    "NSPhotoLibraryUsageDescription" : "您可以设置头像、保存图片到相册，还可以上传图片",
-                    "NSPhotoLibraryAddUsageDescription" : "您可以设置头像、保存图片到相册，还可以上传图片",
-                    "NSCameraUsageDescription" : "您可以拍照设置头像、拍照上传图片",
-                    "NSUserTrackingUsageDescription" : "根据您的习惯为您推荐"
+                    "NSPhotoLibraryUsageDescription" : "用于设置头像、保存图片到相册以及上传图片凭证",
+                    "NSPhotoLibraryAddUsageDescription" : "用于保存分享码、海报和图片凭证到相册",
+                    "NSCameraUsageDescription" : "用于扫码核销、拍摄凭证和上传图片",
+                    "NSUserTrackingUsageDescription" : "用于根据使用习惯提供个性化服务"
                 },
                 "idfa" : true,
                 "dSYMs" : false
             },
-            /* SDK配置 */
             "sdkConfigs" : {
                 "oauth" : {
                     "weixin" : {
@@ -152,9 +149,7 @@
             "enable" : false
         }
     },
-    /* 快应用特有相关 */
     "quickapp" : {},
-    /* 小程序特有相关 */
     "mp-weixin" : {
         "appid" : "wx57414bbbd4e676a6",
         "lazyCodeLoading" : "requiredComponents",
@@ -165,44 +160,23 @@
         },
         "usingComponents" : true,
         "optimization" : {
-            "subPackages" : true
+            "subPackages" : false
         },
         "packOptions" : {
             "ignore" : [
-                {
-                    "value" : "static/lanhu/designs",
-                    "type" : "folder"
-                },
-                {
-                    "value" : "static/lanhu/slices",
-                    "type" : "folder"
-                },
-                {
-                    "value" : "static/lanhu/uploaded-assets.txt",
-                    "type" : "file"
-                },
-                {
-                    "value" : "static/lanhu/uploaded-assets-map.json",
-                    "type" : "file"
-                },
-                {
-                    "value" : "static/lanhu/LANHU_PAGE_MAP.md",
-                    "type" : "file"
-                },
-                {
-                    "value" : "static/lanhu/asset-rename-map.json",
-                    "type" : "file"
-                },
-                {
-                    "value" : "static/images",
-                    "type" : "folder"
-                }
+                { "value" : "static/lanhu/designs", "type" : "folder" },
+                { "value" : "static/lanhu/slices", "type" : "folder" },
+                { "value" : "static/lanhu/uploaded-assets.txt", "type" : "file" },
+                { "value" : "static/lanhu/uploaded-assets-map.json", "type" : "file" },
+                { "value" : "static/lanhu/LANHU_PAGE_MAP.md", "type" : "file" },
+                { "value" : "static/lanhu/asset-rename-map.json", "type" : "file" },
+                { "value" : "static/images", "type" : "folder" }
             ]
         },
-        "requiredPrivateInfos" : [ "getLocation", "chooseAddress" ],
+        "requiredPrivateInfos" : [ "getLocation", "chooseLocation", "chooseAddress" ],
         "permission" : {
             "scope.userLocation" : {
-                "desc" : "你的位置信息将用于小程序位置接口的效果展示"
+                "desc" : "你的位置信息将用于门店定位、地图选点、自提地址确认和配送范围判断"
             }
         }
     },
@@ -219,7 +193,7 @@
         "enable" : false
     },
     "h5" : {
-        "title" : "加载中",
+        "title" : "生源商城",
         "domain" : "https://shengyuan.store/mobile/",
         "router" : {
             "base" : "/mobile/",

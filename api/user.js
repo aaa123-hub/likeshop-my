@@ -334,6 +334,12 @@ function findRegionNameByCode(list, code) {
     return ''
 }
 
+function normalizeRegionName(value, code) {
+    const text = String(value || '')
+    if (text && !/^\d+$/.test(text)) return text
+    return findRegionNameByCode(area, code || value) || text
+}
+
 function normalizeAddress(item = {}) {
     const gender = item.sex ?? item.contactGender ?? item.receiverGender ?? item.contact_gender ?? item.receiver_gender ?? item.genderText ?? item.genderName ?? item.gender ?? ''
     const provinceCode = item.province_id || item.provinceCode || ''
@@ -345,9 +351,9 @@ function normalizeAddress(item = {}) {
         addressId: item.addressId || item.id,
         contact: item.contact || item.receiverName || item.receiver_name || '',
         telephone: item.telephone || item.mobile || item.phone || item.tel || '',
-        province: String(item.province || item.provinceName || findRegionNameByCode(area, provinceCode) || ''),
-        city: String(item.city || item.cityName || findRegionNameByCode(area, cityCode) || ''),
-        district: String(item.district || item.districtName || findRegionNameByCode(area, districtCode) || ''),
+        province: normalizeRegionName(item.provinceName || item.province, provinceCode),
+        city: normalizeRegionName(item.cityName || item.city, cityCode),
+        district: normalizeRegionName(item.districtName || item.district, districtCode),
         address: String(item.address || item.detailAddress || item.detail_address || ''),
         is_default: item.is_default ?? item.isDefault ?? 0,
         gender: normalizeAddressGenderText(gender),
@@ -536,6 +542,16 @@ export function getUser() {
             return {
                 ...res,
                 data: normalizeUserProfile(res.data || {})
+            }
+        }
+        const message = String(res.msg || res.message || '')
+        if (res.rawCode === 'A0108' || /No static resource|miniapp\/user\/profile/i.test(message)) {
+            const cached = Cache.get(USER_INFO) || {}
+            return {
+                ...res,
+                code: 1,
+                data: normalizeUserProfile(cached),
+                show: false
             }
         }
         return res
@@ -1354,9 +1370,9 @@ function normalizeKycPayload(data = {}) {
 function isKycNotSubmittedResponse(res = {}) {
     const code = String(firstDefined(res.rawCode, res.code, '')).toUpperCase()
     const message = String(res.msg || res.message || '').toLowerCase()
-    const knownCodes = ['NOT_SUBMITTED', 'UNSUBMITTED', 'NO_AUTH', 'UNAUTHENTICATED', 'UNVERIFIED', 'NOT_AUTHENTICATED', 'NOT_VERIFIED', 'KYC_NOT_SUBMITTED', 'KYC_NOT_FOUND', 'A0420', 'A0404']
+    const knownCodes = ['NOT_SUBMITTED', 'UNSUBMITTED', 'NO_AUTH', 'UNAUTHENTICATED', 'UNVERIFIED', 'NOT_AUTHENTICATED', 'NOT_VERIFIED', 'KYC_NOT_SUBMITTED', 'KYC_NOT_FOUND', 'A0108', 'A0420', 'A0404']
     return knownCodes.includes(code)
-        || /未实名|未认证|未提交|无实名|暂无实名|not[_\s-]?(submitted|verified|authenticated)|kyc[_\s-]?(not[_\s-]?found|not[_\s-]?submitted)/i.test(message)
+        || /No static resource|miniapp\/kyc\/status|未实名|未认证|未提交|无实名|暂无实名|not[_\s-]?(submitted|verified|authenticated)|kyc[_\s-]?(not[_\s-]?found|not[_\s-]?submitted)/i.test(message)
 }
 
 export function submitKyc(data) {

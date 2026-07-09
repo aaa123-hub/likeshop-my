@@ -72,7 +72,11 @@ import UPopup from '@/bundle_finance/components/uview-ui/components/u-popup/u-po
 		getUser
 	} from '@/api/user';
 
-	export default {
+export default {
+    onLoad() {
+        uni.showToast({ title: '礼品卡功能已下线', icon: 'none' })
+        setTimeout(() => uni.navigateBack({ delta: 1 }), 600)
+    },
 		data() {
 			return {
 				cardNo: '',
