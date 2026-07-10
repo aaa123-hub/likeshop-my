@@ -164,37 +164,42 @@
 
             <template v-else-if="scene === 'face-pay'">
                 <view class="face-pay-page">
-                    <view class="face-pay-tips">
-                        <view class="face-pay-tips__icon">
-                            <u-icon name="bell-fill" color="#ffb221" size="46"></u-icon>
+                    <view class="face-pay-hero">
+                        <view>
+                            <view class="face-pay-hero__title">核销线下订单</view>
+                            <view class="face-pay-hero__desc">仅支持已支付自提订单，请核对订单信息后操作。</view>
                         </view>
-                        <view class="face-pay-tips__text">请核对付款单号后完成付款</view>
+                        <view class="face-pay-hero__badge">自提核销</view>
                     </view>
-                    <view class="face-pay-shell">
-                        <view class="face-pay-shell__field">
-                            <text class="face-pay-shell__label">付款单号</text>
-                            <input v-model="facePayCode" class="face-pay-shell__input" placeholder="请输入付款单号" />
+                    <view class="face-pay-scan-card" @tap="scanFacePayCode">
+                        <view class="face-pay-scan-card__icon">
+                            <u-icon name="scan" color="#ffffff" size="66"></u-icon>
                         </view>
-                        <view class="face-pay-shell__scan" @tap="scanFacePayCode">
-                            <u-icon name="scan" color="#222222" size="54"></u-icon>
-                            <text>扫一扫</text>
-                        </view>
-                    </view>
-                    <view class="face-pay-calculator">
-                        <view class="face-pay-calculator__title">线下核销积分预览</view>
-                        <view class="face-pay-calc-row">
-                            <text>商品原价</text>
-                            <input v-model="facePayOriginalPrice" type="digit" placeholder="请输入金额" />
-                        </view>
-                        <view class="face-pay-calc-row">
-                            <text>让利比例</text>
-                            <input v-model="facePayBenefitRatio" type="digit" placeholder="例如 0.1" />
-                        </view>
-                        <view class="face-pay-calc-result">
-                            消费者预计可获得 <text>{{ facePayRewardPoints }}</text> 积分
+                        <view>
+                            <view class="face-pay-scan-card__title">扫码核销</view>
+                            <view class="face-pay-scan-card__desc">扫描用户订单详情中的核销二维码</view>
                         </view>
                     </view>
-                    <view class="face-pay-submit" @tap="submitFacePay">确认付款</view>
+                    <view class="face-pay-code-card" v-if="facePayCode">
+                        <view>
+                            <view class="face-pay-code-card__label">当前核销码</view>
+                            <view class="face-pay-code-card__value">{{ facePayCode }}</view>
+                            <view class="face-pay-code-card__sub" v-if="facePaySubOrderNo">子订单号：{{ facePaySubOrderNo }}</view>
+                        </view>
+                        <view class="face-pay-code-card__clear" @tap="clearFacePayForm">清空</view>
+                    </view>
+                    <view class="face-pay-form">
+                        <view class="face-pay-form__title">手动核销</view>
+                        <view class="face-pay-field">
+                            <text class="face-pay-field__label">核销码</text>
+                            <input v-model="facePayCode" class="face-pay-field__input" placeholder="请输入用户订单核销码" />
+                        </view>
+                        <view class="face-pay-field">
+                            <text class="face-pay-field__label">子订单号</text>
+                            <input v-model="facePaySubOrderNo" class="face-pay-field__input" placeholder="二维码未包含时可不填" />
+                        </view>
+                    </view>
+                    <view :class="['face-pay-submit', !facePayCode ? 'face-pay-submit--disabled' : '']" @tap="submitFacePay">{{ facePaySubmitting ? '核销中...' : '确认核销' }}</view>
                 </view>
             </template>
 
@@ -258,7 +263,7 @@
                     <view v-if="storeDetailActiveTab === 'detail'" class="store-detail-content-card">
                         <image class="store-detail-content-card__image" :src="storeDetailContentImage" mode="aspectFill"></image>
                         <view class="store-detail-content-card__fade"></view>
-                        <view class="store-detail-pay-btn" @tap="goPage(storeDetailPayUrl)">到店付款</view>
+                        <view class="store-detail-pay-btn" @tap="openStoreVerify">线下核销</view>
                     </view>
 
                     <view v-else-if="storeDetailActiveTab === 'group'" class="store-detail-group-list">
@@ -624,7 +629,7 @@
                     <image class="intro-card-page-bg" src="https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png" mode="scaleToFill"></image>
                     <view class="intro-card-topbar">
                         <view class="intro-card-back" @tap="goBack"></view>
-                        <view class="intro-card-title">联盟码</view>
+                        <view class="intro-card-title">推广码</view>
                     </view>
 
                     <view class="intro-card-panel">
@@ -638,21 +643,16 @@
                                     <image class="intro-card-copy" :src="introCardCopyIcon" mode="aspectFit" @tap="copyIntroCardText(introCardInfo.userNo)"></image>
                                 </view>
                                 <view class="intro-card-line intro-card-line--account">
-                                    <text class="intro-card-line__text">联盟码:{{ introCardInfo.code }}</text>
+                                    <text class="intro-card-line__text">推广码:{{ introCardInfo.code }}</text>
                                     <image class="intro-card-copy" :src="introCardCopyIconAlt" mode="aspectFit" @tap="copyIntroCardText(introCardInfo.code)"></image>
                                 </view>
                             </view>
                         </view>
-                        <image v-if="introCardInfo.qrImage" class="intro-card-qr" :src="introCardInfo.qrImage" mode="aspectFit"></image>
-                        <view v-else class="intro-card-qr intro-card-qr--code">
+                        <view class="intro-card-qr intro-card-qr--code">
                             <tki-qrcode cid="intro-card-qrcode" :val="introCardQrValue" :size="360" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
                         </view>
-                        <view class="intro-card-stats">
-                            <view v-for="item in introCardStats" :key="item.label" class="intro-card-stat">
-                                <view class="intro-card-stat__value">{{ item.value }}</view>
-                                <view class="intro-card-stat__label">{{ item.label }}</view>
-                            </view>
-                        </view>
+                        <view class="intro-card-tip">扫码绑定推广关系</view>
+                        <view class="intro-card-code-text">{{ introCardInfo.code }}</view>
                     </view>
                 </view>
             </template>
@@ -1102,11 +1102,13 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex'
 import TkiQrcode from '@/business/components/tki-qrcode/tki-qrcode.vue'
 import { getShopDetail, getShopGroupBuy, getStreetGoods, getStreetIndex } from '@/api/store'
 import { getRecentVisitShops, subscribeShop } from '@/api/app'
 import { version, baseURL, basePath } from '@/config/app'
-import { getAccountLog, getInviteInfo, getKycStatus, getPaymentRecords, scanOfflinePayment, submitFeedback, submitKyc } from '@/api/user'
+import { getAccountLog, getInviteInfo, getKycStatus, getPaymentRecords, getPromotionInviteCode, submitFeedback, submitKyc } from '@/api/user'
+import { merchantVerifyOrder } from '@/api/order'
 import { getDesignAsset, designAssetList } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { copy, uploadFile } from '@/utils/tools'
@@ -1154,8 +1156,8 @@ export default {
 			shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
 			shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png',
 			facePayCode: '',
-            facePayOriginalPrice: '',
-            facePayBenefitRatio: '',
+            facePaySubOrderNo: '',
+            facePaySubmitting: false,
 			feedbackHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/c860e9e880ac44709ba98fb0844390c9/17e52b5f7f7af0e92c09f57bd56f679e.png',
 			feedbackUploadIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/e5d8d8724ebd49afbb6a747ff66f8d09/feedback-upload-icon.png',
 			paymentRecordFilterIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png',
@@ -1192,7 +1194,9 @@ export default {
             aboutMenuItems: [
                 { title: '服务协议', url: '/bundle_user/pages/server_explan/server_explan?type=0' },
                 { title: '隐私政策', url: '/bundle_user/pages/server_explan/server_explan?type=1' },
-                { title: '售后保障', url: '/bundle_user/pages/server_explan/server_explan?type=2' },
+                { title: '平台服务协议', url: '/bundle_user/pages/server_explan/server_explan?type=3' },
+                { title: '入驻经营规范', url: '/bundle_user/pages/server_explan/server_explan?type=4' },
+                { title: '交易纠纷处理机制', url: '/bundle_user/pages/server_explan/server_explan?type=2' },
                 { title: '联系我们', action: 'contact' },
                 { title: '版本信息', action: 'version' }
             ],
@@ -1297,7 +1301,7 @@ export default {
                     buttonText: '提交'
                 },
                 'face-pay': {
-                    title: '面对面付款'
+                    title: '核销线下订单'
                 },
                 'store-detail': {
                     title: '店铺详情'
@@ -1380,7 +1384,7 @@ export default {
                     buttonText: '立即启用',
                     items: [
                         { title: '商家入驻', desc: '支持门店申请与资质审核。' },
-                        { title: '面对面支付', desc: '支持线下付款单号核销。' }
+                        { title: '线下订单核销', desc: '支持扫码核销已支付自提订单。' }
                     ]
                 },
                 'user-kyc': {
@@ -1395,6 +1399,7 @@ export default {
         }
     },
     computed: {
+        ...mapGetters(['userInfo']),
         isFullScene() {
             return this.scene === 'street' || this.scene === 'store-detail' || this.scene === 'store-qr' || this.scene === 'goods-qr' || this.scene === 'user-kyc' || this.scene === 'feedback' || this.scene === 'about-us' || this.scene === 'activity-center' || this.scene === 'intro-card' || this.scene === 'recent-visits'
         },
@@ -1462,37 +1467,41 @@ export default {
             return this.kycStatusClass === 'is-error' ? '重新提交' : '提交申请'
         },
         kycContractTitle() {
-            return '角色申请合同'
+            return '钥岫商城入驻经营者审核要求及经营规范'
         },
         kycContractSections() {
             return [
                 {
-                    title: '一、适用范围',
+                    title: '一、审核目标与基本原则',
                     paragraphs: [
-                        '本合同适用于申请成为商家、区级运营中心、市级子公司、推广者及居间服务角色的用户。申请人提交资料前，应完整阅读并理解本合同内容。',
-                        '申请成为商家需签署商家入驻合同并提交相关资料；申请成为运营中心或子公司需签署对应合同、提交相关资料并按平台规则缴纳保证金；申请成为推广者需签署推广者合同、提交相关资料并按平台规则缴纳保证金；涉及居间服务的，还需签署居间合同。'
+                        '真实主体：核验商家身份、营业执照、联系人、门店地址、收款账户及实际经营情况。',
+                        '合法经营：特殊行业应依法取得许可证、备案证明或其他资质。',
+                        '资料完整：商家展示信息、商品服务信息、价格活动、图片素材及售后规则应完整、准确、可追溯。',
+                        '风险分级：对餐饮食品、美容养生、医疗健康、教育培训、金融相关、特种服务等行业实行更高审核标准。',
+                        '动态管理：入驻不是一次性审核，平台有权定期或不定期复核商家资质和经营内容。'
                     ]
                 },
                 {
-                    title: '二、资料与审核',
+                    title: '二、入驻资料与审核流程',
                     paragraphs: [
-                        '申请人承诺提交的姓名、证件、资质、联系方式及其他资料真实、准确、完整、合法。平台有权对资料进行人工审核，并根据审核结果通过、驳回或要求补充资料。',
-                        '申请资料提交后进入审核流程，审核期间申请人应保持联系方式畅通。因资料不完整、不真实或不符合平台要求造成的审核延迟或失败，由申请人自行承担。'
+                        '入驻主体应提交营业执照、法人或经营者身份证明、联系人姓名与电话、门店照片、门店地址、营业时间、商品或服务资料、行业资质许可、收款结算资料及平台要求的承诺文件。',
+                        '平台将依次进行资料初审、行业风险识别、页面内容审核、签约确认、上线展示和动态复核。资料不完整的，平台可一次性告知补正；未签署或未确认平台规则的，不得上线经营。'
                     ]
                 },
                 {
-                    title: '三、保证金与权益',
+                    title: '三、经营规范',
                     paragraphs: [
-                        '如申请角色需要缴纳保证金，申请人应按平台页面、后台审核或另行通知的金额与方式缴纳。保证金用于保障申请角色在平台经营、推广、运营或服务过程中的履约责任。',
-                        '申请人申请退还押金或保证金时，平台将弹窗提醒：退款后，当前账号的权益、收益视为自动放弃。申请人确认退款申请即代表已知悉并同意该后果。',
-                        '押金或保证金支持无理由退款，提交申请后进入人工审核。退款到账时间、审核资料及处理方式以平台实际审核结果为准。'
+                        '商家应确保门店名称、地址、电话、营业时间、商品服务、价格、库存、有效期、预约规则、使用限制等信息真实、准确、及时更新。',
+                        '促销、优惠、积分抵扣、套餐、团购、扫码点餐等活动，应清晰说明使用条件、有效期限、不可用情形、退款规则和特别限制。',
+                        '商家不得发布违法违规商品、假冒伪劣商品、侵权商品、非法金融产品、博彩服务、传销相关内容、虚假医疗美容服务或其他平台禁止内容。',
+                        '商家不得超出订单履约和售后服务所必需的范围收集、使用、保存或对外提供消费者个人信息。'
                     ]
                 },
                 {
-                    title: '四、签署确认',
+                    title: '四、违规处理与签署确认',
                     paragraphs: [
-                        '申请人滑动阅读至合同底部并点击确认签署，即表示已充分阅读、理解并同意本合同全部条款，愿意按照平台规则提交申请并接受后续审核。',
-                        '如申请人不同意本合同任一条款，应立即停止签署和提交申请。'
+                        '对于资料不完整、虚假宣传、服务争议频发、伪造资质、违法商品、食品安全重大风险、侵权、骗补、恶意交易等情形，平台可采取提醒、限期补正、下架内容、限制活动、暂停推广、延迟结算、暂停店铺、终止合作、冻结相关款项、扣回权益、移送有关机关等处理措施。',
+                        '申请人滑动阅读至底部并点击确认签署，即表示已充分阅读、理解并同意《钥岫商城入驻经营者审核要求及经营规范》及平台相关规则，愿意按规则提交申请并接受后续审核。'
                     ]
                 }
             ]
@@ -1501,6 +1510,9 @@ export default {
             const shopBase = this.storeDetailData.shopBase || {}
             return {
                 shopId: shopBase.shopId || '',
+                merchantId: shopBase.merchantId || shopBase.merchant_id || this.storeDetailData.merchantId || this.storeDetailData.merchant_id || '',
+                ownerUserId: shopBase.ownerUserId || shopBase.owner_user_id || shopBase.userId || shopBase.user_id || this.storeDetailData.ownerUserId || this.storeDetailData.owner_user_id || this.storeDetailData.userId || this.storeDetailData.user_id || '',
+                inviteCode: shopBase.inviteCode || shopBase.invite_code || shopBase.promoterCode || shopBase.promoter_code || this.storeDetailData.inviteCode || this.storeDetailData.invite_code || this.storeDetailData.promoterCode || this.storeDetailData.promoter_code || '',
                 shopName: shopBase.shopName || '店铺信息待更新',
                 shopScore: this.formatStreetScore(shopBase.shopScore, '暂无评分'),
                 businessHours: shopBase.businessHours || '',
@@ -1620,19 +1632,22 @@ export default {
             }))
         },
         storeDetailPayUrl() {
-            return this.appendShopId('/business/pages/business_pages/face_pay')
+            return ''
         },
         introCardQrValue() {
             const code = this.introCardInfo.code && this.introCardInfo.code !== '--' ? this.introCardInfo.code : 'DEFAULT_ALLIANCE_CODE'
-            return `/business/pages/business_pages/intro_card?inviteCode=${encodeURIComponent(code)}`
+            const ownerUserId = this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || this.introCardInfo.userId || this.introCardInfo.user_id || ''
+            return JSON.stringify({
+                type: 'PROMOTION_QR',
+                scene: 'PROMOTION_QR',
+                inviteCode: code,
+                promoterUserId: ownerUserId,
+                ownerUserId,
+                roleCode: 'PROMOTER'
+            })
         },
         introCardStats() {
-            const info = this.introCardInfo || {}
-            return [
-                { label: '邀请人数', value: info.inviteCount || info.invite_count || info.order_count || 0 },
-                { label: '联盟收益', value: info.totalCommission || info.total_commission || '0.00' },
-                { label: '团队人数', value: info.teamCount || info.team_count || info.fansCount || info.fans_count || 0 }
-            ]
+            return []
         },
         filteredMerchantList() {
             const keyword = (this.listKeyword || '').trim().toLowerCase()
@@ -1642,11 +1657,9 @@ export default {
                 return name.includes(keyword)
             })
         },
-        facePayRewardPoints() {
-            const price = Number(this.facePayOriginalPrice || 0)
-            const ratio = Number(this.facePayBenefitRatio || 0)
-            if (Number.isNaN(price) || Number.isNaN(ratio) || price <= 0 || ratio <= 0) return '0'
-            return ((4 + 1) * ratio * price).toFixed(2)
+        merchantIdForVerify() {
+            const options = this.getCurrentPageOptions()
+            return options.merchantId || options.merchant_id || options.shopId || options.shop_id || this.storeDetailView.shopId || this.storeDetailData.merchantId || this.storeDetailData.merchant_id || this.userInfo.merchantId || this.userInfo.merchant_id || this.userInfo.shopId || this.userInfo.shop_id || ''
         }
     },
     watch: {
@@ -1674,6 +1687,7 @@ export default {
                 if (value === 'street-goods') return
                 if (value === 'store-detail' || value === 'store-group' || value === 'store-qr' || value === 'goods-qr') {
                     this.loadStoreDetail()
+                    this.loadIntroCard()
                 }
                 if (value === 'payment-record') {
                     this.loadPaymentRecords()
@@ -1883,11 +1897,62 @@ export default {
                 this.feedbackImages = []
             }
         },
+        parseVerifyCodePayload(raw = '') {
+            const text = String(raw || '').trim()
+            const result = { verifyCode: '', subOrderNo: '' }
+            if (!text) return result
+            const appendParams = (target, query = '') => {
+                String(query || '').split(/[&;]/).forEach((pair) => {
+                    if (!pair) return
+                    const index = pair.indexOf('=')
+                    if (index === -1) return
+                    const key = pair.slice(0, index)
+                    const value = pair.slice(index + 1)
+                    if (key) target[key] = decodeURIComponent(value || '')
+                })
+            }
+            const params = {}
+            const queryIndex = text.indexOf('?')
+            if (queryIndex !== -1) appendParams(params, text.slice(queryIndex + 1))
+            else appendParams(params, text)
+            try {
+                const url = new URL(text)
+                appendParams(params, url.search ? url.search.slice(1) : '')
+            } catch (error) {}
+            const scene = params.scene || params.qrScene || params.qr_scene || ''
+            if (scene) {
+                try {
+                    appendParams(params, decodeURIComponent(scene))
+                } catch (error) {}
+            }
+            result.verifyCode = params.verifyCode || params.verify_code || params.pickupCode || params.pickup_code || params.code || params.qrCode || params.qr_code || ''
+            result.subOrderNo = params.subOrderNo || params.sub_order_no || params.orderNo || params.order_no || params.orderSn || params.order_sn || params.bizOrderNo || params.biz_order_no || ''
+            if (!result.verifyCode) {
+                const matched = text.match(/(?:verifyCode|verify_code|pickupCode|pickup_code|code)[:=]([^&?#;/]+)/i)
+                result.verifyCode = matched ? decodeURIComponent(matched[1]) : ''
+            }
+            if (!result.subOrderNo) {
+                const matched = text.match(/(?:subOrderNo|sub_order_no|orderNo|order_no|orderSn|order_sn|bizOrderNo|biz_order_no)[:=]([^&?#;/]+)/i)
+                result.subOrderNo = matched ? decodeURIComponent(matched[1]) : ''
+            }
+            if (!result.verifyCode && /^[A-Za-z0-9_-]{4,64}$/.test(text)) result.verifyCode = text
+            return result
+        },
+        applyVerifyScanResult(raw = '') {
+            const payload = this.parseVerifyCodePayload(raw)
+            if (payload.verifyCode) this.facePayCode = payload.verifyCode
+            if (payload.subOrderNo) this.facePaySubOrderNo = payload.subOrderNo
+            if (!payload.verifyCode && raw) this.facePayCode = String(raw).trim()
+        },
+        clearFacePayForm() {
+            this.facePayCode = ''
+            this.facePaySubOrderNo = ''
+        },
         scanFacePayCode() {
             uni.scanCode({
                 onlyFromCamera: false,
                 success: (res) => {
-                    this.facePayCode = res.result || res.path || ''
+                    this.applyVerifyScanResult(res.result || res.path || '')
                     if (this.facePayCode) {
                         this.submitFacePay()
                     }
@@ -1898,34 +1963,61 @@ export default {
             })
         },
         async submitFacePay() {
-            const qrCode = (this.facePayCode || '').trim()
-            if (!qrCode) {
-                uni.showToast({ title: '请扫码或输入付款单号', icon: 'none' })
+            const verifyCode = (this.facePayCode || '').trim()
+            if (!verifyCode) {
+                uni.showToast({ title: '请扫码或输入核销码', icon: 'none' })
                 return
             }
-            const options = this.getCurrentPageOptions()
-            const res = await scanOfflinePayment({
-                shopId: options.shopId || options.shop_id || this.storeDetailView.shopId,
-                qrCode
-            })
-            if (res.code == 1) {
-                uni.showToast({ title: res.msg || '付款成功', icon: 'success' })
-                return
+            if (this.facePaySubmitting) return
+            this.facePaySubmitting = true
+            try {
+                const res = await merchantVerifyOrder({
+                    merchantId: this.merchantIdForVerify,
+                    subOrderNo: (this.facePaySubOrderNo || '').trim(),
+                    verifyCode,
+                    operatorId: this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || ''
+                })
+                if (res.code == 1) {
+                    uni.showToast({ title: res.msg || '核销成功', icon: 'success' })
+                    this.facePayCode = ''
+                    this.facePaySubOrderNo = ''
+                    return
+                }
+                uni.showToast({ title: res.msg || res.message || '核销失败', icon: 'none' })
+            } finally {
+                this.facePaySubmitting = false
             }
-            uni.showToast({ title: res.msg || '付款失败', icon: 'none' })
         },
         async loadIntroCard() {
             const res = await getInviteInfo()
-            if (res.code != 1) return
+            if (res.code != 1) {
+                await this.loadPromotionInviteCodeFallback()
+                return
+            }
             const data = res.data || {}
             this.introCardInfo = {
                 ...this.introCardInfo,
                 ...data,
                 nickname: data.nickname || data.nickName || data.userName || data.name || this.introCardInfo.nickname,
                 userNo: data.userNo || data.user_no || data.sn || data.userId || data.user_id || '--',
-                code: data.code || data.invite_code || data.allianceCode || '--',
+                code: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.code || data.allianceCode || '--',
                 avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar'),
                 qrImage: data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode ? resolveImage(data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode) : ''
+            }
+            await this.loadPromotionInviteCodeFallback()
+        },
+        async loadPromotionInviteCodeFallback() {
+            const res = await getPromotionInviteCode({ roleCode: 'PROMOTER', show: false }).catch(() => null)
+            if (!res || res.code != 1) return
+            const data = res.data || {}
+            const code = data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.code || ''
+            if (!code) return
+            this.introCardInfo = {
+                ...this.introCardInfo,
+                ...data,
+                code,
+                userNo: data.userNo || data.user_no || data.userId || data.user_id || this.introCardInfo.userNo,
+                qrImage: ''
             }
         },
         async loadRecentVisitShops() {
@@ -2067,6 +2159,10 @@ export default {
             const shopId = this.storeDetailView.shopId
             if (!shopId) return url
             return `${url}${url.includes('?') ? '&' : '?'}shopId=${shopId}`
+        },
+        openStoreVerify() {
+            const shopId = this.storeDetailView.shopId || this.getCurrentPageOptions().shopId || ''
+            this.goPage(`/business/pages/business_pages/face_pay${shopId ? `?shopId=${encodeURIComponent(shopId)}&merchantId=${encodeURIComponent(shopId)}` : ''}`)
         },
         syncStoreDetailActiveTab() {
             const options = this.getCurrentPageOptions()
@@ -2393,7 +2489,8 @@ export default {
         storeShareLink() {
             const options = this.getCurrentPageOptions()
             const shopId = options.shopId || options.shop_id || this.storeDetailView.shopId || ''
-            return shopId ? `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(shopId)}` : '/business/pages/business_pages/street'
+            if (!shopId) return '/business/pages/business_pages/street'
+            return `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(shopId)}`
         },
         goodsQrLink() {
             const options = this.getCurrentPageOptions()
@@ -3418,9 +3515,9 @@ export default {
     position: relative;
     z-index: 1;
     width: 650rpx;
-    min-height: 860rpx;
-    margin: 196rpx auto 0;
-    padding: 45rpx 36rpx 56rpx;
+    min-height: 820rpx;
+    margin: 156rpx auto 0;
+    padding: 45rpx 36rpx 50rpx;
     background: url('https://shengyuan.store/api/miniapp/files/miniapp/4a6ec42c3ad54de8a47300fb1a79d820/intro-card-panel-bg.png') no-repeat center top;
     background-size: 100% 100%;
     border-radius: 0;
@@ -3459,7 +3556,7 @@ export default {
 .intro-card-info {
     flex: 1;
     min-width: 0;
-    margin: 18rpx 0 0 33rpx;
+    margin: 14rpx 0 0 30rpx;
 }
 
 .intro-card-name {
@@ -3508,7 +3605,7 @@ export default {
     display: block;
     width: 372rpx;
     height: 372rpx;
-    margin: 156rpx auto 0;
+    margin: 118rpx auto 0;
     background: #ffffff;
     border-radius: 18rpx;
 }
@@ -3526,36 +3623,33 @@ export default {
     box-sizing: border-box;
 }
 
-.intro-card-stats {
+.intro-card-tip {
     position: relative;
     z-index: 1;
-    display: flex;
-    justify-content: space-between;
-    width: 540rpx;
-    margin: 28rpx auto 0;
-}
-
-.intro-card-stat {
-    width: 168rpx;
-    padding: 14rpx 8rpx;
-    text-align: center;
-    background: rgba(255, 255, 255, 0.82);
-    border-radius: 18rpx;
-    box-sizing: border-box;
-}
-
-.intro-card-stat__value {
-    color: #037dfa;
+    margin-top: 30rpx;
+    color: #ffffff;
     font-size: 28rpx;
-    font-weight: 700;
-    line-height: 36rpx;
+    font-weight: 600;
+    line-height: 38rpx;
+    text-align: center;
 }
 
-.intro-card-stat__label {
-    margin-top: 6rpx;
-    color: #666666;
-    font-size: 22rpx;
-    line-height: 30rpx;
+.intro-card-code-text {
+    position: relative;
+    z-index: 1;
+    max-width: 480rpx;
+    margin: 16rpx auto 0;
+    padding: 12rpx 22rpx;
+    color: #037dfa;
+    font-size: 26rpx;
+    line-height: 36rpx;
+    text-align: center;
+    background: rgba(255, 255, 255, .9);
+    border-radius: 999rpx;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
 }
 
 .recent-visits-page {
@@ -4147,15 +4241,58 @@ export default {
 }
 
 .face-pay-page {
-    padding-top: 14rpx;
+    min-height: 100vh;
+    padding: 24rpx;
+    background: linear-gradient(180deg, #eef7ff 0%, #f6f8fb 360rpx, #f6f8fb 100%);
+    box-sizing: border-box;
+}
+
+.face-pay-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20rpx;
+    padding: 34rpx 30rpx;
+    border-radius: 28rpx;
+    color: #ffffff;
+    background: linear-gradient(135deg, #155eef 0%, #12b981 100%);
+    box-shadow: 0 16rpx 38rpx rgba(23, 107, 255, .16);
+}
+
+.face-pay-hero__title {
+    font-size: 40rpx;
+    font-weight: 700;
+    line-height: 56rpx;
+}
+
+.face-pay-hero__desc {
+    margin-top: 10rpx;
+    font-size: 25rpx;
+    line-height: 36rpx;
+    opacity: .9;
+}
+
+.face-pay-hero__badge {
+    flex: none;
+    padding: 10rpx 18rpx;
+    border-radius: 999rpx;
+    color: #ffffff;
+    background: rgba(255, 255, 255, .18);
+    border: 1rpx solid rgba(255, 255, 255, .28);
+    font-size: 23rpx;
+    line-height: 30rpx;
 }
 
 .face-pay-tips {
     display: flex;
     align-items: center;
     min-height: 96rpx;
+    margin-top: 20rpx;
     padding: 14rpx 24rpx;
-    background: #ffebd8;
+    border-radius: 20rpx;
+    background: #fff7e8;
+    border: 1rpx solid #ffe0ad;
+    box-sizing: border-box;
 }
 
 .face-pay-tips__icon {
@@ -4176,116 +4313,156 @@ export default {
     line-height: 34rpx;
 }
 
-.face-pay-shell {
-    display: flex;
-    align-items: flex-start;
-    padding: 30rpx 24rpx 0;
-}
-
-.face-pay-shell__field {
-    flex: 1;
+.face-pay-scan-card {
     display: flex;
     align-items: center;
-    height: 88rpx;
-    padding: 0 24rpx;
-    margin-right: 24rpx;
-    background: #f3f6ff;
-    border: 1rpx solid #e8edf9;
-    border-radius: 16rpx;
+    gap: 22rpx;
+    margin-top: 20rpx;
+    padding: 30rpx 28rpx;
+    border-radius: 24rpx;
+    background: linear-gradient(135deg, #ffffff 0%, #f6fbff 100%);
+    border: 1rpx solid #dcecff;
+    box-shadow: 0 12rpx 30rpx rgba(21, 94, 239, .09);
 }
 
-.face-pay-shell__label {
+.face-pay-scan-card__icon {
     flex: none;
-    color: #222222;
-    font-size: 28rpx;
-    font-weight: 500;
-}
-
-.face-pay-shell__input {
-    flex: 1;
-    margin-left: 24rpx;
-    color: #222222;
-    font-size: 26rpx;
-}
-
-.face-pay-shell__scan {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    width: 66rpx;
+    justify-content: center;
+    width: 102rpx;
+    height: 102rpx;
+    border-radius: 28rpx;
+    background: linear-gradient(135deg, #176bff, #03a6ff);
+    box-shadow: 0 12rpx 24rpx rgba(23, 107, 255, .22);
+}
+
+.face-pay-scan-card__title {
     color: #222222;
-    font-size: 22rpx;
+    font-size: 32rpx;
+    font-weight: 700;
+    line-height: 44rpx;
+}
+
+.face-pay-scan-card__desc {
+    margin-top: 6rpx;
+    color: #7a8594;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.face-pay-code-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18rpx;
+    margin-top: 20rpx;
+    padding: 22rpx 24rpx;
+    border-radius: 22rpx;
+    background: #ffffff;
+    border: 1rpx solid #dff3ea;
+    box-shadow: 0 10rpx 28rpx rgba(31, 58, 94, .06);
+}
+
+.face-pay-code-card__label {
+    color: #667085;
+    font-size: 23rpx;
     line-height: 32rpx;
 }
 
-.face-pay-shell__scan text {
-    margin-top: 10rpx;
+.face-pay-code-card__value {
+    margin-top: 6rpx;
+    color: #111827;
+    font-size: 32rpx;
+    font-weight: 700;
+    line-height: 42rpx;
+    word-break: break-all;
 }
 
-.face-pay-calculator {
-    margin: 30rpx 24rpx 0;
-    padding: 26rpx 24rpx;
-    border-radius: 20rpx;
+.face-pay-code-card__sub {
+    margin-top: 4rpx;
+    color: #8a96a6;
+    font-size: 22rpx;
+    line-height: 30rpx;
+}
+
+.face-pay-code-card__clear {
+    flex: none;
+    height: 56rpx;
+    padding: 0 22rpx;
+    border-radius: 28rpx;
+    color: #0f766e;
+    background: #e9fbf5;
+    font-size: 24rpx;
+    line-height: 56rpx;
+}
+
+.face-pay-form {
+    margin-top: 20rpx;
+    padding: 28rpx 24rpx;
+    border-radius: 24rpx;
     background: #ffffff;
-    box-shadow: 0 10rpx 24rpx rgba(31, 122, 244, 0.08);
+    border: 1rpx solid #edf1f6;
+    box-shadow: 0 10rpx 28rpx rgba(31, 58, 94, .06);
+    box-sizing: border-box;
 }
 
-.face-pay-calculator__title {
+.face-pay-form__title {
     color: #222222;
     font-size: 30rpx;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 42rpx;
 }
 
-.face-pay-calc-row {
+.face-pay-field {
     display: flex;
     align-items: center;
-    min-height: 82rpx;
-    border-bottom: 1rpx solid #edf0f5;
-    color: #333333;
-    font-size: 26rpx;
+    min-height: 92rpx;
+    margin-top: 16rpx;
+    padding: 0 20rpx;
+    border-radius: 18rpx;
+    background: #f8fafc;
+    border: 1rpx solid #edf1f6;
+    box-sizing: border-box;
 }
 
-.face-pay-calc-row text {
+.face-pay-field__label {
     flex: none;
     width: 150rpx;
+    color: #465366;
+    font-size: 27rpx;
+    font-weight: 500;
 }
 
-.face-pay-calc-row input {
+.face-pay-field__input {
     flex: 1;
     min-width: 0;
-    color: #222222;
-    font-size: 26rpx;
+    color: #1f2937;
+    font-size: 28rpx;
     text-align: right;
-}
-
-.face-pay-calc-result {
-    margin-top: 22rpx;
-    padding: 18rpx 20rpx;
-    border-radius: 16rpx;
-    color: #5a6678;
-    background: #f3f8ff;
-    font-size: 25rpx;
-    line-height: 36rpx;
-}
-
-.face-pay-calc-result text {
-    color: #1f7af4;
-    font-size: 32rpx;
-    font-weight: 700;
 }
 
 .face-pay-submit {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 86rpx;
-    margin: 42rpx 24rpx 0;
+    height: 88rpx;
+    margin-top: 30rpx;
+    border-radius: 44rpx;
     color: #ffffff;
+    background: linear-gradient(135deg, #1688ff, #03a6ff);
     font-size: 30rpx;
     font-weight: 600;
-    background: #1f7af4;
-    border-radius: 43rpx;
+    box-shadow: 0 14rpx 28rpx rgba(22, 136, 255, .22);
+}
+
+.face-pay-submit--disabled {
+    background: #c9d4e5;
+    box-shadow: none;
+}
+
+.face-pay-submit:active {
+    opacity: .88;
 }
 
 .merchant-panel {

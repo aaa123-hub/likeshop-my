@@ -108,7 +108,8 @@ export default {
       fansSort: SortType.ASC,
       moneySort: SortType.NONE,
       orderSort: SortType.NONE,
-      fansObject: []
+      fansObject: [],
+      roleCode: 'PROMOTER'
     };
   },
 
@@ -120,7 +121,8 @@ export default {
   /**
    * 生命周期函数--监听页面加载
    */
-  onLoad: function (options) {
+  onLoad: function (options = {}) {
+    this.roleCode = this.normalizeRoleCode(options.roleCode || options.role || 'PROMOTER')
     this.getUserFansFun();
   },
 
@@ -157,6 +159,7 @@ export default {
         page,
       } = this;
       const inputData = {
+        roleCode: this.roleCode,
         type: active,
         keyword,
         fans: fansSort,
@@ -171,6 +174,11 @@ export default {
               this.loadingStatus = res.status
           }
       })
+    },
+    normalizeRoleCode(roleCode) {
+      const code = String(roleCode || '').toUpperCase()
+      const map = { HEADQUARTERS: 'HQ', OPERATION_CENTER: 'AGENT', AREA_AGENT: 'AGENT', COUNTY_AGENT: 'AGENT' }
+      return map[code] || code
     },
 
     // 清理状态

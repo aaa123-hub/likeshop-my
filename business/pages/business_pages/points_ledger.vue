@@ -104,7 +104,7 @@ export default {
                     return
                 }
                 const data = res.data || {}
-                const rows = (data.list || []).map(this.normalizeItem)
+                const rows = (data.list || []).map(this.normalizeItem).filter((item) => item.displayText || Number(item.change_amount) !== 0)
                 this.list = reset ? rows : this.list.concat(rows)
                 this.finished = rows.length < this.pageSize || data.hasNext === false
             } catch (error) {
@@ -121,7 +121,7 @@ export default {
             const areaName = item.areaName || item.area_name || item.districtName || item.district_name || '辖区'
             const merchantName = item.merchantName || item.merchant_name || item.shopName || item.shop_name || '商家'
             const orderNo = item.order_no || item.orderNo || item.bizOrderNo || item.biz_order_no || ''
-            let displayText = item.remark || item.type_desc || '积分变动'
+            let displayText = item.remark || item.type_desc || item.bizTypeDesc || item.biz_type_desc || item.title || '积分记录'
             if (['FAN_COMMISSION', 'PROMOTER_COMMISSION', 'INVITE_FAN_COMMISSION', 'PROMOTER_PROFIT', 'FAN_ORDER_COMMISSION'].includes(type)) {
                 displayText = `来自粉丝 [${fanName}] 线上消费提成`
             } else if (['AREA_COMMISSION', 'REGION_COMMISSION', 'AGENT_COMMISSION', 'SUBSIDIARY_COMMISSION', 'REGIONAL_PROFIT'].includes(type)) {
@@ -138,6 +138,7 @@ export default {
         },
         amountText(value) {
             const number = Number(value || 0)
+            if (number === 0) return '0 积分'
             return `${number >= 0 ? '+' : ''}${number} 积分`
         }
     }

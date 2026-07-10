@@ -42,11 +42,16 @@
         </view>
       </view>
       <view :hidden="!hiddenOpt">
-        <view class="refund-info row-between mt20">
+        <view class="existing-sale-tip" v-if="hasExistingAfterSale">
+          <view class="existing-sale-tip__title">该商品已提交售后申请</view>
+          <view class="existing-sale-tip__desc">{{ existingAfterSaleText }}</view>
+          <button v-if="existingAfterSaleId" size="sm" class="existing-sale-tip__btn" hover-class="none" @tap="showExistingAfterSale">查看售后进度</button>
+        </view>
+        <view class="refund-info row-between mt20" v-if="!hasExistingAfterSale">
           <view class="lable">数量</view>
           <view>{{ goods.goods_num }}</view>
         </view>
-        <view class="refund-info row-between">
+        <view class="refund-info row-between" v-if="!hasExistingAfterSale">
           <view class="lable">退款金额</view>
           <price-format
             color="#FF2C3C"
@@ -60,7 +65,7 @@
             :secondSize="28"
           />
         </view>
-        <view class="refund-info row-between" @tap="showPopup">
+        <view class="refund-info row-between" v-if="!hasExistingAfterSale" @tap="showPopup">
           <view class="lable">退款原因</view>
           <view class="row">
             <text :class="'nr ' + (reasonIndex == -1 ? 'muted' : 'normal')">{{
@@ -72,7 +77,7 @@
             ></image>
           </view>
         </view>
-        <view class="refund-info row">
+        <view class="refund-info row" v-if="!hasExistingAfterSale">
           <view class="label">备注说明</view>
           <textarea
             v-show="!showPop"
@@ -82,7 +87,7 @@
             name="textarea"
           ></textarea>
         </view>
-        <view class="upload bg-white">
+        <view class="upload bg-white" v-if="!hasExistingAfterSale">
           <view class="title row-between">
             <view>上传凭证</view>
             <view class="muted">（选填，最多可上传1张）</view>
@@ -96,7 +101,7 @@
             image-fit="aspectFill"
           />
         </view>
-        <button class="btn br60" type="primary" size="lg" @tap="onSubmit">
+        <button v-if="!hasExistingAfterSale" class="btn br60" type="primary" size="lg" @tap="onSubmit">
           申请退款
         </button>
       </view>
@@ -171,6 +176,7 @@ export default {
       reasonIndex: -1,
       fileList: [],
       remark: "",
+      existingAfterSale: null,
     };
   },
 
@@ -200,6 +206,35 @@ export default {
       this.showPop = false;
     },
 
+    cleanStatusText(value) {
+      const text = String(value || '').trim()
+      if (!text || ['none', 'null', 'undefined', 'nil', 'na', 'n/a', '-', '--'].includes(text.toLowerCase())) return ''
+      const map = {
+        APPLIED: '待商家处理',
+        APPLY: '待商家处理',
+        PENDING: '待商家处理',
+        PENDING_REVIEW: '待商家处理',
+        WAIT_AUDIT: '待商家处理',
+        WAIT_SELLER: '待商家处理',
+        WAIT_MERCHANT: '待商家处理',
+        PROCESSING: '处理中',
+        REFUNDING: '退款中',
+        IN_PROGRESS: '处理中',
+        APPROVED: '商家已同意',
+        RETURNING: '待买家退货',
+        WAIT_RETURN: '待买家退货',
+        REJECTED: '商家已拒绝',
+        CANCELLED: '已撤销',
+        CANCELED: '已撤销',
+        CLOSED: '已关闭',
+        REFUNDED: '退款成功',
+        REFUND_SUCCESS: '退款成功',
+        SUCCESS: '退款成功',
+        FAILED: '退款失败'
+      }
+      return map[text.toUpperCase()] || (/^[A-Z0-9_-]+$/.test(text) ? '售后处理中' : text)
+    },
+
     onlyRefund: function () {
       this.optTyle = refundOptType.ONLY_REFUND;
       this.hiddenOpt = true;
@@ -211,7 +246,7 @@ export default {
     },
 
     onSubmit() {
-      if (!this.afterSaleId && this.goods && (this.goods.after_sale_id || this.goods.after_status_desc)) {
+      if (!this.afterSaleId && this.hasExistingAfterSale) {
         this.showExistingAfterSale();
         return;
       }
@@ -313,7 +348,7 @@ export default {
       });
     },
     showExistingAfterSale(afterSaleId = '') {
-      const id = afterSaleId || this.goods.after_sale_id || this.afterSaleId;
+      const id = afterSaleId || this.existingAfterSaleId;
       uni.showToast({ title: '该订单正在退款/售后处理中，请勿重复申请', icon: 'none' });
       if (!id) return;
       setTimeout(() => {
@@ -351,13 +386,28 @@ export default {
           const data = res.data || {};
           this.goods = data.goods || {};
           this.reason = Array.isArray(data.reason) ? data.reason : [];
-          if (data.existingAfterSale || this.goods.after_sale_id || this.goods.after_status_desc) {
+          this.existingAfterSale = data.existingAfterSale ? {
+            afterSaleId: data.afterSaleId || this.goods.after_sale_id,
+            statusText: data.afterStatusText || this.goods.after_status_desc
+          } : null;
+          if (this.hasExistingAfterSale) {
             this.hiddenOpt = true;
           }
         }
       });
     },
   },
+  computed: {
+    hasExistingAfterSale() {
+      return Boolean(this.existingAfterSale || this.goods.after_sale_id || this.cleanStatusText(this.goods.after_status_desc))
+    },
+    existingAfterSaleId() {
+      return this.goods.after_sale_id || this.afterSaleId || this.existingAfterSale?.afterSaleId || ''
+    },
+    existingAfterSaleText() {
+      return this.cleanStatusText(this.goods.after_status_desc || this.existingAfterSale?.statusText) || '售后处理中，请勿重复申请'
+    }
+  }
 };
 </script>
 <style lang="scss">
@@ -394,6 +444,43 @@ export default {
 
 .border-line {
   border-bottom: 1px solid #f2f2f2;
+}
+
+.existing-sale-tip {
+  margin-top: 20rpx;
+  padding: 24rpx;
+  border-radius: 22rpx;
+  background: #fff7ed;
+  border: 1rpx solid #fed7aa;
+}
+
+.existing-sale-tip__title {
+  color: #9a3412;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+}
+
+.existing-sale-tip__desc {
+  margin-top: 8rpx;
+  color: #c2410c;
+  font-size: 24rpx;
+  line-height: 34rpx;
+}
+
+.existing-sale-tip__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56rpx;
+  margin-top: 18rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  color: #c2410c;
+  background: #ffffff;
+  border: 1rpx solid #fdba74;
+  font-size: 24rpx;
+  line-height: 56rpx;
 }
 
 .apply-refund {

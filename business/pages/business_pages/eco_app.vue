@@ -41,7 +41,7 @@ import { baseURL } from '@/config/app'
 
 const fallbackEcoApps = [
     { title: '商家入驻', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/4392f8a4a0d14d49ad384109e9862452/home-ecology-icon.png', entryText: '申请开通店铺', entryUrl: '/business/pages/business_pages/user_kyc' },
-    { title: '面对面付款', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png', entryText: '线下扫码支付', entryUrl: '/business/pages/business_pages/face_pay' },
+    { title: '核销订单', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png', entryText: '扫码核销自提订单', entryUrl: '/business/pages/business_pages/face_pay' },
     { title: '商街服务', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/b08d89d504054cc1a3dc29a229796c9f/user-ecology.png', entryText: '查看附近商家', entryUrl: '/pages/street/street' },
     { title: '客服反馈', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/a90fd6a6345f48dd9d6a0771c5ff6127/home-shortcut-message.png', entryText: '提交问题建议', entryUrl: '/business/pages/business_pages/feedback' }
 ]

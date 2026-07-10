@@ -356,6 +356,7 @@ service.interceptors.response.use(
         data.msg = backendMessage;
       }
       if (String(data.msg || '').toUpperCase() === 'SUCCESS') data.msg = '操作成功';
+      if (response.config?.show === false) data.show = false;
 
       const { code, show, msg, rawCode } = data;
       const { route, options } = currentPage();
@@ -408,7 +409,7 @@ service.interceptors.response.use(
           show: false,
         });
       }
-      const shouldShow = !isMissingStaticResourceResponse(responseData.code, message);
+      const shouldShow = error.config?.show === false ? false : !isMissingStaticResourceResponse(responseData.code, message);
       if (shouldShow) {
         uni.showToast({
           title: message,

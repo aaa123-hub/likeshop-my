@@ -30,7 +30,7 @@ export const businessRoutes = {
     activityExchange: { name: "活动兑换", url: "/business/pages/business_pages/activity_exchange" },
     activityCenter: { name: "活动中心", url: "/business/pages/business_pages/activity_center" },
     introCard: { name: "介绍名片", url: "/business/pages/business_pages/intro_card" },
-    facePay: { name: "面对面付款", url: "/business/pages/business_pages/face_pay" },
+    facePay: { name: "核销订单", url: "/business/pages/business_pages/face_pay" },
     recentVisits: { name: "最近访问", url: "/business/pages/business_pages/recent_visits" },
     license: { name: "商家资质", url: "/bundle_user/pages/license/license" },
     streetGoods: { name: "商街商品", url: "/business/pages/business_pages/street_goods" },
@@ -45,7 +45,6 @@ export const businessRoutes = {
     userOrder: { name: "我的订单", url: "/bundle_order/pages/user_order/user_order" },
     userKyc: { name: "用户KYC", url: "/business/pages/business_pages/user_kyc" },
     promoterApply: { name: "角色申请", url: "/business/pages/business_pages/promoter_apply" },
-    roleWorkbench: { name: "角色工作台", url: "/business/pages/business_pages/role_workbench" },
     pointsLedger: { name: "积分流水", url: "/business/pages/business_pages/points_ledger" },
     confirmOrder: {
       name: "确认订单",

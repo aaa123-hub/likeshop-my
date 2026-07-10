@@ -89,7 +89,19 @@ getOrderDetail
 			getOrderResultFun() {
 				getOrderDetail(this.id).then(res => {
 					if (res.code == 1) {
-						this.payInfo = res.data
+						this.payInfo = res.data || {}
+						return
+					}
+					this.payInfo = {
+						order_sn: this.id,
+						pay_way_text: '微信支付',
+						order_amount: 0
+					}
+				}).catch(() => {
+					this.payInfo = {
+						order_sn: this.id,
+						pay_way_text: '微信支付',
+						order_amount: 0
 					}
 				});
 			},

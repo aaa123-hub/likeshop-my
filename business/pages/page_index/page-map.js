@@ -13,7 +13,7 @@ export const pageDesignMap = [
     { id: 13, name: '关于我们', route: '/business/pages/business_pages/about_us', file: 'business/pages/business_pages/about_us.vue', type: 'scene' },
     { id: 14, name: '活动中心', route: '/business/pages/business_pages/activity_center', file: 'business/pages/business_pages/activity_center.vue', type: 'scene' },
     { id: 15, name: '介绍名片', route: '/business/pages/business_pages/intro_card', file: 'business/pages/business_pages/intro_card.vue', type: 'scene' },
-    { id: 16, name: '面对面付款', route: '/business/pages/business_pages/face_pay', file: 'business/pages/business_pages/face_pay.vue', type: 'scene' },
+    { id: 16, name: '核销订单', route: '/business/pages/business_pages/face_pay', file: 'business/pages/business_pages/face_pay.vue', type: 'scene' },
     { id: 17, name: '最近访问', route: '/business/pages/business_pages/recent_visits', file: 'business/pages/business_pages/recent_visits.vue', type: 'scene' },
     { id: 18, name: '商家资质', route: '/bundle_user/pages/license/license', file: 'bundle_user/pages/license/license.vue', type: 'business' },
     { id: 19, name: '商街-商品', route: '/business/pages/business_pages/street_goods', file: 'business/pages/business_pages/street_goods.vue', type: 'scene' },

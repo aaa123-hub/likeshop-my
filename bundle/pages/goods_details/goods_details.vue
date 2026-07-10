@@ -103,9 +103,9 @@
 						</view>
 					</view>
 					<view class="merchant-card__title">{{ goodsDetail.name }}</view>
-					<view v-if="goodsDetail.subtitle || goodsDetail.remark" class="merchant-card__desc line2">{{ goodsDetail.subtitle || goodsDetail.remark }}</view>
+					<view v-if="goodsDetail.subtitle || goodsDetail.remark" class="merchant-card__desc">{{ goodsDetail.subtitle || goodsDetail.remark }}</view>
 					<view v-if="goodsDisplayTags.length" class="merchant-card__tags">
-						<text v-for="tag in goodsDisplayTags" :key="tag" class="merchant-card__tag line1">{{ tag }}</text>
+						<text v-for="tag in goodsDisplayTags" :key="tag" class="merchant-card__tag">{{ tag }}</text>
 					</view>
 				</view>
 			</view>
@@ -181,38 +181,111 @@
 			</view>
 			<view class="evaluation bg-white mt20">
 				<navigator hover-class="none" :url="'/bundle_order/pages/all_comments/all_comments?id=' + goodsDetail.id" class="title row-between">
-					<view><text class="balck md mr10">商品评价({{ comment.total || 0 }})</text></view>
+					<view class="evaluation-title">
+						<text class="evaluation-title__main">商品评价({{ comment.total || 0 }})</text>
+						<text v-if="comment.percent" class="evaluation-title__rate">好评率 {{ comment.percent }}</text>
+					</view>
 					<view class="row">
 						<text class="lighter">查看全部</text>
 						<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 					</view>
 				</navigator>
-				<view class="con" v-if="comment.comment">
-					<view class="user-info row">
-						<image class="avatar mr20" :src="comment.avatar"></image>
-						<view class="user-name md mr10">{{ comment.nickname }}</view>
+				<view class="con" v-if="hasCommentContent">
+					<view class="user-info">
+						<view :class="['comment-avatar-wrap', comment.is_anonymous ? 'is-anonymous' : '']">
+							<image v-if="!comment.is_anonymous && comment.avatar" class="avatar" :src="resolveAvatar(comment.avatar)" mode="aspectFill"></image>
+							<text v-else class="comment-avatar-text">匿</text>
+						</view>
+						<view class="comment-user-main">
+							<view class="comment-user-row">
+								<view class="user-name line1">{{ comment.is_anonymous ? '匿名用户' : (comment.nickname || '匿名用户') }}</view>
+								<view v-if="comment.is_anonymous" class="comment-anonymous-tag">匿名</view>
+							</view>
+							<view class="comment-stars">
+								<text
+									v-for="star in 5"
+									:key="star"
+									:class="['comment-star', star <= commentScore(comment) ? 'is-active' : '']"
+								>★</text>
+								<text class="comment-score">{{ commentScore(comment) }}分</text>
+							</view>
+						</view>
 					</view>
-					<view class="muted xs mt10"><text class="mr20">{{ formatDisplayTime(comment.create_time) }}</text></view>
-					<view v-if="comment.comment" class="dec mt20">{{ comment.comment }}</view>
+					<view class="comment-meta" v-if="comment.create_time || displayCommentSpec(comment)">
+						<text>{{ formatDisplayTime(comment.create_time) || '刚刚' }}</text>
+						<text v-if="displayCommentSpec(comment)">{{ displayCommentSpec(comment) }}</text>
+					</view>
+					<view class="comment-tag-row" v-if="comment.tags && comment.tags.length">
+						<text v-for="(tag, index) in comment.tags" :key="index" class="comment-tag">{{ tag }}</text>
+					</view>
+					<view v-if="comment.comment" class="dec">{{ comment.comment }}</view>
+					<view v-else class="dec dec--empty">用户未填写文字评价</view>
+					<view class="comment-images" v-if="comment.image && comment.image.length">
+						<view
+							v-for="(img, index) in comment.image"
+							:key="index"
+							class="comment-image"
+							@tap="previewCommentImage(img, comment.image)"
+						>
+							<image :src="resolveGoodsImage(img)" mode="aspectFill"></image>
+						</view>
+					</view>
+					<view class="comment-append" v-if="comment.append_comment || (comment.append_image && comment.append_image.length)">
+						<view class="comment-append__title">
+							<text>追评</text>
+							<text v-if="comment.append_time" class="comment-append__time">{{ formatDisplayTime(comment.append_time) }}</text>
+						</view>
+						<view class="comment-append__text" v-if="comment.append_comment">{{ comment.append_comment }}</view>
+						<view class="comment-images comment-images--append" v-if="comment.append_image && comment.append_image.length">
+							<view
+								v-for="(img, index) in comment.append_image"
+								:key="index"
+								class="comment-image"
+								@tap="previewCommentImage(img, comment.append_image)"
+							>
+								<image :src="resolveGoodsImage(img)" mode="aspectFill"></image>
+							</view>
+						</view>
+					</view>
+					<view class="comment-score-tags" v-if="comment.description_comment || comment.service_comment || comment.express_comment">
+						<view v-if="comment.description_comment" class="comment-score-tag">描述相符 {{ comment.description_comment }}分</view>
+						<view v-if="comment.service_comment" class="comment-score-tag">服务态度 {{ comment.service_comment }}分</view>
+						<view v-if="comment.express_comment" class="comment-score-tag">配送服务 {{ comment.express_comment }}分</view>
+					</view>
+					<view class="comment-reply" v-if="comment.reply">
+						<view class="comment-reply__title">{{ comment.reply_user || '商家回复' }}</view>
+						<view class="comment-reply__text">{{ comment.reply }}</view>
+						<view class="comment-reply__time" v-if="comment.reply_time">{{ formatDisplayTime(comment.reply_time) }}</view>
+					</view>
+					<view class="comment-like" v-if="comment.like_count">赞 {{ comment.like_count }}</view>
 				</view>
 				<view class="con empty-state" v-else>暂无评价</view>
 			</view>
 
 			<view class="group-record bg-white mt20" v-if="groupRecords.length">
-				<view class="group-record__title">跟团记录</view>
+				<view class="group-record__head">
+					<view class="group-record__title">跟团记录</view>
+					<view class="group-record__summary">{{ groupFooterCount || groupRecords.length }}人已跟团</view>
+				</view>
 				<view v-for="(item, index) in groupRecords" :key="index" class="group-record__item">
 					<image v-if="item.avatar" class="group-record__avatar-image" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
-					<view v-else class="group-record__avatar"></view>
+					<view v-else class="group-record__avatar">{{ item.initial }}</view>
 					<view class="group-record__content">
 						<view class="group-record__name">{{ item.name }}</view>
 						<view class="group-record__time">{{ item.time ? formatDisplayTime(item.time) : '刚刚跟团' }}</view>
+						<view class="group-record__meta" v-if="item.statusText || item.needText">{{ item.statusText || item.needText }}</view>
 					</view>
-					<view class="group-record__plus">+{{ item.join || 1 }}</view>
+					<view class="group-record__side">
+						<view class="group-record__plus">+{{ item.join || 1 }}</view>
+						<view class="group-record__side-text">参团</view>
+					</view>
 				</view>
 			</view>
 
 			<view class="group-record bg-white mt20" v-else>
-				<view class="group-record__title">跟团记录</view>
+				<view class="group-record__head">
+					<view class="group-record__title">跟团记录</view>
+				</view>
 				<view class="group-record__empty">
 					<view class="group-record__empty-icon"></view>
 					<view>暂无跟团记录</view>
@@ -224,7 +297,7 @@
 				<view class="goods-extra__grid">
 					<view v-for="row in goodsInfoRows" :key="row.label" class="goods-extra__item">
 						<view class="goods-extra__label">{{ row.label }}</view>
-						<view class="goods-extra__value line1">{{ row.value }}</view>
+						<view class="goods-extra__value">{{ row.value }}</view>
 					</view>
 				</view>
 			</view>
@@ -470,8 +543,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	import {
 		getGoodsDetail,
-		addCart,
-		getCartNum as fetchCartNum
+		getCommentList,
+		addCart
 	} from '@/api/store';
 	import {
 		collectGoods,
@@ -585,13 +658,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			}
 			this.targetSkuId = options.skuId || options.itemId || options.item_id || '';
 			this.loadReceivedCouponCache();
-			this.refreshCartNum();
 		},
 		onShow() {
 			if (!this.id) return;
 			this.loadReceivedCouponCache();
 			this.getGoodsDetailFun();
-			this.refreshCartNum();
 		},
 		onPageScroll(e) {
 			const top = uni.upx2px(100)
@@ -603,14 +674,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		},
 		methods: {
 			...mapActions(['getCartNum']),
-			async refreshCartNum() {
-				try {
-					const cartRes = await fetchCartNum();
-					if (cartRes.code == 1) {
-						this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
-					}
-				} catch (error) {}
-			},
 			goodsShareLink() {
 				const inviteCode = this.userInfo.distribution_code || this.$store.getters.inviteCode || '';
 				const params = [`id=${encodeURIComponent(this.id || '')}`];
@@ -653,11 +716,29 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					}, 100);
 				});
 			},
+			commentScore(item = {}) {
+				const score = Number(item.goods_rate || item.goods_comment || item.score || 5)
+				if (!score || score < 1) return 5
+				return Math.max(1, Math.min(5, Math.round(score)))
+			},
+			displayCommentSpec(item = {}) {
+				const text = String(item.spec_value_str || '').trim()
+				if (!text || /^\d+$/.test(text)) return ''
+				return text
+			},
 			resolveAvatar(avatar) {
 				return resolveImage(avatar, 'avatar')
 			},
 			resolveGoodsImage(image) {
 				return resolveImage(image, 'goods')
+			},
+			previewCommentImage(current, urls = []) {
+				const imageUrls = (urls || []).filter(Boolean).map(image => this.resolveGoodsImage(image))
+				if (!imageUrls.length) return
+				uni.previewImage({
+					current: this.resolveGoodsImage(current),
+					urls: imageUrls
+				})
 			},
 			goShopDetail() {
 				const shopId = this.goodsDetail.shop_id || this.goodsDetail.shopId
@@ -1270,13 +1351,38 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					if (Array.isArray(item)) return records.concat(item);
 					if (item && typeof item === 'object') records.push(item);
 					return records;
-				}, []).map((item, index) => ({
-					id: item.id || item.found_id || item.foundId || index,
-					avatar: item.avatar || item.user_avatar || item.userAvatar || '',
-					name: item.nickname || item.user_name || item.userName || item.name || '匿名用户',
-					time: item.create_time || item.createTime || item.found_time || item.foundTime || '',
-					join: item.join || item.join_num || item.joinNum || 1
-				}));
+				}, []).map((item, index) => {
+					const name = item.nickname || item.user_name || item.userName || item.name || item.memberName || item.member_name || '匿名用户'
+					const people = Number(item.people_num || item.peopleNum || item.group_num || item.groupNum || this.team.people_num || this.team.peopleNum || 0)
+					const joined = Number(item.join || item.join_num || item.joinNum || item.joinedCount || item.joined_count || item.currentNum || item.current_num || 1)
+					const need = Number(item.need_num || item.needNum || item.lackNum || item.lack_num || item.leftNum || item.left_num || 0)
+					const statusText = item.status_text || item.statusText || item.team_status_text || item.teamStatusText || ''
+					return {
+						id: item.id || item.found_id || item.foundId || item.team_id || item.teamId || index,
+						avatar: item.avatar || item.user_avatar || item.userAvatar || item.headimgurl || '',
+						name,
+						initial: String(name).slice(0, 1),
+						time: item.create_time || item.createTime || item.found_time || item.foundTime || item.join_time || item.joinTime || '',
+						join: joined || 1,
+						people,
+						need,
+						needText: need > 0 ? `还差${need}人成团` : (people > joined ? `还差${people - joined}人成团` : ''),
+						statusText
+					}
+				});
+			},
+			async loadGoodsCommentFallback(goodsId) {
+				if (!goodsId || this.hasCommentContent) return;
+				try {
+					const res = await getCommentList({ goods_id: goodsId, page_no: 1, pageSize: 1 });
+					if (res.code != 1 || !res.data) return;
+					const first = (res.data.list || [])[0] || {};
+					if (!Object.keys(first).length && !res.data.total) return;
+					this.comment = Object.assign({}, this.comment, first, {
+						total: res.data.total || this.comment.total || 0,
+						percent: res.data.percent || this.comment.percent || ''
+					});
+				} catch (error) {}
 			},
 			toggleShopSubscribe() {
 				if (!this.isLogin) return toLogin();
@@ -1367,6 +1473,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					this.swiperList = Array.isArray(goods_image) && goods_image.length ? goods_image : [data.image].filter(Boolean);
 					this.activePreviewIndex = 0;
 					this.comment = comment || {};
+					this.loadGoodsCommentFallback(data.id || data.goods_id || data.spuId || this.id);
 					this.goodsLike = Array.isArray(like) ? like : [];
 					this.checkedGoods = this.getDefaultCheckedGoods(data.goods_item || []);
 					this.countTime = time;
@@ -1480,6 +1587,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					points_amount: this.pointsBenefitData.points,
 					pointsDeductAmount: this.pointsBenefitData.amount,
 					points_deduct_amount: this.pointsBenefitData.amount,
+					maxDeductAmount: this.pointsBenefitData.amount,
+					max_deduct_amount: this.pointsBenefitData.amount,
+					singleMaxDeductAmount: this.pointsBenefitData.amount,
+					single_max_deduct_amount: this.pointsBenefitData.amount,
 					giveIntegral: this.pointsBenefitData.giveIntegral,
 					give_integral: this.pointsBenefitData.giveIntegral,
 					order_give_integral: this.pointsBenefitData.giveIntegral,
@@ -1530,11 +1641,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					const cartCount = data?.cartCount ?? data?.count ?? data?.num ?? data?.total;
 					if (cartCount !== undefined && cartCount !== null) {
 						this.getCartNum(cartCount);
-					} else {
-						const cartRes = await fetchCartNum();
-						if (cartRes.code == 1) {
-							this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
-						}
 					}
 					this.$toast({ title: '已加入购物车', icon: 'success' });
 				}
@@ -1564,11 +1670,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					const cartCount = data?.cartCount ?? data?.count ?? data?.num ?? data?.total;
 					if (cartCount !== undefined && cartCount !== null) {
 						this.getCartNum(cartCount);
-					} else {
-						const cartRes = await fetchCartNum();
-						if (cartRes.code == 1) {
-							this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
-						}
 					}
 					this.$toast({
 						title: '已加入购物车',
@@ -1592,6 +1693,16 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		},
 		computed: {
 			...mapGetters(['cartNum', 'userInfo', 'isLogin']),
+			hasCommentContent() {
+				const item = this.comment || {}
+				return Boolean(
+					item.comment ||
+					(item.image && item.image.length) ||
+					item.reply ||
+					item.append_comment ||
+					(item.append_image && item.append_image.length)
+				)
+			},
 			btnText() {
 				const {
 					goodsType
@@ -1925,14 +2036,14 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.hero-stage {
 			position: relative;
-			height: 750rpx;
-			background: #eef4ff;
+			height: 720rpx;
+			background: #ffffff;
 		}
 
 		.goods-hero-swiper,
 		.goods-hero-image {
 			width: 100%;
-			height: 750rpx;
+			height: 720rpx;
 		}
 
 		.goods-hero-image {
@@ -1983,10 +2094,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			position: relative;
 			z-index: 2;
 			margin: -64rpx 26rpx 0;
-			padding: 0 14rpx 16rpx;
+			padding: 0 14rpx 18rpx;
 			background: #037dfa;
 			border-radius: 24rpx;
-			box-shadow: 0 -6rpx 14rpx rgba(128, 128, 128, 0.15);
+			box-shadow: 0 14rpx 32rpx rgba(31, 122, 244, 0.16);
 		}
 
 		.merchant-card__head {
@@ -2031,7 +2142,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.merchant-card__body {
-			padding: 26rpx 24rpx 28rpx;
+			padding: 28rpx 24rpx 30rpx;
 			background: #ffffff;
 			border-radius: 20rpx;
 		}
@@ -2132,10 +2243,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.merchant-card__title {
 			margin-top: 18rpx;
-			color: #222222;
-			font-size: 30rpx;
-			font-weight: 500;
-			line-height: 42rpx;
+			color: #172033;
+			font-size: 32rpx;
+			font-weight: 700;
+			line-height: 46rpx;
+			word-break: break-all;
 		}
 
 		.merchant-card__sales {
@@ -2148,7 +2260,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			margin-top: 10rpx;
 			color: #666666;
 			font-size: 24rpx;
-			line-height: 34rpx;
+			line-height: 36rpx;
+			word-break: break-all;
 		}
 
 		.merchant-card__tags {
@@ -2159,20 +2272,23 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.merchant-card__tag {
-			max-width: 180rpx;
-			padding: 0 12rpx;
+			max-width: 100%;
+			padding: 5rpx 12rpx;
 			color: #037dfa;
 			font-size: 22rpx;
-			line-height: 34rpx;
+			line-height: 30rpx;
 			border-radius: 18rpx;
 			background: #edf6ff;
 			box-sizing: border-box;
+			white-space: normal;
+			word-break: break-all;
 		}
 
 		.option-panel {
 			margin: 26rpx 26rpx 0;
 			padding: 18rpx 24rpx;
-			border-radius: 26rpx;
+			border-radius: 24rpx;
+			box-shadow: 0 10rpx 28rpx rgba(24, 44, 84, .05);
 		}
 
 		.goods-extra {
@@ -2191,7 +2307,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.goods-extra__grid {
 			display: grid;
-			grid-template-columns: 1fr 1fr;
+			grid-template-columns: repeat(auto-fit, minmax(260rpx, 1fr));
 			gap: 18rpx;
 			margin-top: 22rpx;
 		}
@@ -2208,6 +2324,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			color: #8b95a5;
 			font-size: 22rpx;
 			line-height: 30rpx;
+			word-break: break-all;
 		}
 
 		.goods-extra__value {
@@ -2216,6 +2333,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			font-size: 26rpx;
 			font-weight: 500;
 			line-height: 36rpx;
+			white-space: normal;
+			word-break: break-all;
 		}
 
 		.option-panel__style-head,
@@ -2808,21 +2927,277 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			margin: 24rpx 26rpx 0;
 			border-radius: 24rpx;
 			overflow: hidden;
+			box-shadow: 0 10rpx 28rpx rgba(24, 44, 84, .05);
 
 			.title {
-				height: 100rpx;
-				border-bottom: $solid-border;
-				padding: 0 24rpx;
+				min-height: 104rpx;
+				border-bottom: 1rpx solid #f0f2f5;
+				padding: 0 26rpx;
+			}
+
+			.evaluation-title {
+				display: flex;
+				align-items: baseline;
+				min-width: 0;
+			}
+
+			.evaluation-title__main {
+				color: #172033;
+				font-size: 30rpx;
+				font-weight: 800;
+				line-height: 42rpx;
+			}
+
+			.evaluation-title__rate {
+				margin-left: 14rpx;
+				color: #ff8a00;
+				font-size: 23rpx;
+				line-height: 32rpx;
 			}
 
 			.con {
-				padding: 30rpx 24rpx;
+				padding: 30rpx 26rpx;
+			}
+
+			.empty-state {
+				color: #98a2b3;
+				font-size: 26rpx;
+				text-align: center;
+				background: #ffffff;
+			}
+
+			.user-info {
+				display: flex;
+				align-items: flex-start;
+			}
+
+			.comment-avatar-wrap {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex: none;
+				width: 68rpx;
+				height: 68rpx;
+				border-radius: 50%;
+				background: #eef0f3;
+				overflow: hidden;
+			}
+
+			.comment-avatar-wrap.is-anonymous {
+				color: #ffffff;
+				background: linear-gradient(135deg, #9aa4b2 0%, #667085 100%);
 			}
 
 			.user-info .avatar {
-				width: 60rpx;
-				height: 60rpx;
+				flex: none;
+				width: 68rpx;
+				height: 68rpx;
 				border-radius: 50%;
+				background: #eef2f7;
+			}
+
+			.comment-avatar-text {
+				color: #ffffff;
+				font-size: 27rpx;
+				font-weight: 800;
+			}
+
+			.comment-user-main {
+				flex: 1;
+				min-width: 0;
+				margin-left: 18rpx;
+			}
+
+			.comment-user-row {
+				display: flex;
+				align-items: center;
+				margin-bottom: 6rpx;
+			}
+
+			.comment-stars {
+				display: flex;
+				align-items: center;
+			}
+
+			.comment-star {
+				width: 24rpx;
+				height: 24rpx;
+				margin-right: 4rpx;
+				color: #d0d5dd;
+				font-size: 24rpx;
+				line-height: 24rpx;
+			}
+
+			.comment-star.is-active {
+				color: #ffad1f;
+			}
+
+			.user-name {
+				flex: 1;
+				min-width: 0;
+				color: #172033;
+				font-size: 28rpx;
+				font-weight: 700;
+				line-height: 38rpx;
+			}
+
+			.comment-score {
+				flex: none;
+				margin-left: 10rpx;
+				color: #8a8f99;
+				font-size: 22rpx;
+				line-height: 26rpx;
+			}
+
+			.comment-anonymous-tag {
+				flex: none;
+				height: 32rpx;
+				margin-left: 12rpx;
+				padding: 0 12rpx;
+				border-radius: 999rpx;
+				color: #858b96;
+				font-size: 21rpx;
+				line-height: 32rpx;
+				background: #f4f4f5;
+			}
+
+			.comment-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10rpx 16rpx;
+				margin-top: 16rpx;
+				color: #8c8c8c;
+				font-size: 23rpx;
+				line-height: 32rpx;
+			}
+
+			.comment-tag-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10rpx;
+				margin-top: 16rpx;
+			}
+
+			.comment-tag {
+				max-width: 100%;
+				padding: 6rpx 14rpx;
+				border-radius: 999rpx;
+				color: #ff5000;
+				font-size: 22rpx;
+				line-height: 28rpx;
+				background: #fff3ea;
+				box-sizing: border-box;
+			}
+
+			.dec {
+				margin-top: 18rpx;
+				color: #30343b;
+				font-size: 28rpx;
+				line-height: 42rpx;
+				word-break: break-all;
+			}
+
+			.dec--empty {
+				color: #98a2b3;
+			}
+
+			.comment-images {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 10rpx;
+				margin-top: 18rpx;
+				max-width: 520rpx;
+			}
+
+			.comment-images--append {
+				margin-top: 14rpx;
+			}
+
+			.comment-image {
+				aspect-ratio: 1 / 1;
+				border-radius: 12rpx;
+				overflow: hidden;
+				background: #f2f4f7;
+
+				image {
+					width: 100%;
+					height: 100%;
+				}
+			}
+
+			.comment-reply {
+				margin-top: 18rpx;
+				padding: 18rpx 20rpx;
+				border-radius: 14rpx;
+				background: #f7f8fa;
+			}
+
+			.comment-append {
+				margin-top: 18rpx;
+				padding: 18rpx 20rpx;
+				border-radius: 14rpx;
+				background: #f7f8fa;
+			}
+
+			.comment-reply__title,
+			.comment-append__title {
+				color: #172033;
+				font-size: 25rpx;
+				font-weight: 700;
+				line-height: 34rpx;
+			}
+
+			.comment-append__title {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16rpx;
+			}
+
+			.comment-append__time,
+			.comment-reply__time {
+				color: #999999;
+				font-size: 22rpx;
+				font-weight: 400;
+				line-height: 30rpx;
+			}
+
+			.comment-reply__time {
+				margin-top: 8rpx;
+			}
+
+			.comment-reply__text,
+			.comment-append__text {
+				margin-top: 8rpx;
+				color: #475467;
+				font-size: 25rpx;
+				line-height: 38rpx;
+				word-break: break-all;
+			}
+
+			.comment-score-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 12rpx;
+				margin-top: 18rpx;
+			}
+
+			.comment-score-tag {
+				height: 42rpx;
+				padding: 0 16rpx;
+				border-radius: 999rpx;
+				color: #f97316;
+				font-size: 22rpx;
+				line-height: 42rpx;
+				background: #fff3e0;
+			}
+
+			.comment-like {
+				margin-top: 18rpx;
+				color: #98a2b3;
+				font-size: 23rpx;
+				line-height: 32rpx;
+				text-align: right;
 			}
 		}
 
@@ -2830,26 +3205,48 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			margin: 24rpx 26rpx 0;
 			border-radius: 24rpx;
 			overflow: hidden;
+			box-shadow: 0 10rpx 28rpx rgba(24, 44, 84, .05);
+		}
+
+		.group-record__head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 32rpx 28rpx 16rpx;
 		}
 
 		.group-record__title {
-			padding: 34rpx 28rpx 18rpx;
-			color: #222222;
+			color: #172033;
 			font-size: 30rpx;
-			font-weight: 500;
+			font-weight: 800;
+			line-height: 42rpx;
+		}
+
+		.group-record__summary {
+			color: #ff7a00;
+			font-size: 24rpx;
+			line-height: 34rpx;
 		}
 
 		.group-record__item {
 			display: flex;
 			align-items: center;
-			padding: 20rpx 26rpx 24rpx;
+			margin: 0 26rpx;
+			padding: 22rpx 0;
+			border-top: 1rpx solid #f0f2f5;
 		}
 
 		.group-record__avatar {
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			width: 80rpx;
 			height: 80rpx;
 			flex: none;
 			border-radius: 50%;
+			color: #2f6db6;
+			font-size: 28rpx;
+			font-weight: 800;
 			background: linear-gradient(135deg, #e8f2ff 0%, #c7defc 100%);
 		}
 
@@ -2874,25 +3271,51 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.group-record__content {
 			flex: 1;
+			min-width: 0;
 			padding-left: 18rpx;
 		}
 
 		.group-record__name {
-			color: #222222;
-			font-size: 24rpx;
-			font-weight: 500;
+			color: #172033;
+			font-size: 27rpx;
+			font-weight: 700;
+			line-height: 36rpx;
 		}
 
 		.group-record__time {
-			margin-top: 12rpx;
-			color: #999999;
-			font-size: 20rpx;
+			margin-top: 8rpx;
+			color: #8b95a5;
+			font-size: 23rpx;
+			line-height: 32rpx;
+		}
+
+		.group-record__meta {
+			margin-top: 6rpx;
+			color: #ff7a00;
+			font-size: 22rpx;
+			line-height: 30rpx;
+		}
+
+		.group-record__side {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			flex: none;
+			margin-left: 18rpx;
 		}
 
 		.group-record__plus {
-			color: #037dfa;
-			font-size: 26rpx;
-			font-weight: 500;
+			color: #1677ff;
+			font-size: 28rpx;
+			font-weight: 800;
+			line-height: 38rpx;
+		}
+
+		.group-record__side-text {
+			margin-top: 4rpx;
+			color: #98a2b3;
+			font-size: 21rpx;
+			line-height: 30rpx;
 		}
 
 		.group-record__empty {

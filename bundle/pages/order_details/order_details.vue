@@ -29,7 +29,7 @@ author: likeshop.cn.team
               自动关闭</view
             >
           </view>
-          <template v-if="orderDetail.delivery_type == 1">
+          <template v-if="isExpressOrder">
             <view class="item" v-if="isOrderStatus('PAID')">
               <view class="white lg mb10">等待商家发货</view>
               <view class="white sm">您的商品正在打包中，请耐心等待…</view>
@@ -48,14 +48,14 @@ author: likeshop.cn.team
             </view>
           </template>
 
-          <template v-if="orderDetail.delivery_type == 2">
+          <template v-if="isSelfFetchOrder">
             <view class="item" v-if="isOrderStatus('PAID')">
-              <view class="white lg mb10">待取货</view>
-              <view class="white sm">请前往指定门店取货</view>
+              <view class="white lg mb10">待核销</view>
+              <view class="white sm">请凭核销码到门店取货，商家核销后完成订单</view>
             </view>
             <view class="item" v-if="isOrderStatus('COMPLETED')">
-              <view class="white lg mb10">已完成</view>
-              <view class="white sm">交易已完成，感谢您的购买！</view>
+              <view class="white lg mb10">已核销</view>
+              <view class="white sm">自提订单已核销完成，感谢您的购买！</view>
             </view>
             <view class="item" v-if="isOrderStatus('CANCELLED')">
               <view class="white lg mb10">订单已关闭</view>
@@ -63,61 +63,8 @@ author: likeshop.cn.team
           </template>
         </view>
 
-        <!-- 快递配送 -->
-        <view
-          v-if="orderDetail.delivery_type == 1"
-          class="receiving-card contain"
-          @tap="onAddressExpress"
-        >
-          <image
-            class="icon-md mr20"
-            width="44"
-            height="44"
-            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png"
-            mode="scaleToFill"
-          />
-          <view class="receiving-content">
-            <view class="md black bold">
-              <text>{{ orderDetail.consignee }}</text>
-              <text class="ml10">{{ orderDetail.mobile }}</text>
-            </view>
-            <view class="xs black mt10">{{
-              orderDetail.delivery_address
-            }}</view>
-          </view>
-        </view>
-
-        <!-- 门店自提 -->
-        <view
-          v-if="orderDetail.delivery_type == 2"
-          class="receiving-card contain"
-        >
-          <image
-            class="icon-md mr20"
-            width="44"
-            height="44"
-            src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_address.png"
-            mode="scaleToFill"
-          />
-          <view class="receiving-content">
-            <text class="md black bold">{{
-              orderDetail.selffetch_shop.name
-            }}</text>
-            <text class="xs black mt10">{{
-              orderDetail.selffetch_shop.shop_address
-            }}</text>
-            <text class="xs muted mt10">
-              <text>营业时间：</text>
-              <text
-                >{{ orderDetail.selffetch_shop.business_start_time }} -
-                {{ orderDetail.selffetch_shop.business_end_time }}</text
-              >
-            </text>
-          </view>
-        </view>
-
         <!-- 扫码收货 -->
-        <view v-if="orderDetail.delivery_type == 2" class="contain receive">
+        <view v-if="isSelfFetchOrder && (showQRSelffetch || orderDetail.verification_status)" class="contain receive">
           <view v-if="orderDetail.verification_status" class="delivery--die">
             <image
               src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/delivery_die.png"
@@ -128,35 +75,30 @@ author: likeshop.cn.team
           </view>
 
           <view class="receive-qr" v-if="showQRSelffetch">
-            <text class="xs lighter">请凭二维码取货</text>
+            <text class="receive-qr__title">取货核销码</text>
+            <text class="receive-qr__desc">到店后请向商家出示二维码或提货码</text>
             <view
-              class="mt20 qr-contain"
+              class="qr-contain"
               :class="{ 'qr-contain--die': orderDetail.verification_status }"
               ref="qr-image"
             >
               <tki-qrcode
                 ref="qrcode"
                 :val="pickupQrValue"
-                :size="118"
+                :size="236"
                 :onval="true"
                 :load-make="true"
                 :show-loading="false"
               ></tki-qrcode>
             </view>
-            <view class="mt30 xs black qr-code"
+            <view class="qr-code"
               >提货码：{{ pickupQrValue }}</view
             >
           </view>
 
-          <view class="nr receive-info">
-            <view class="receive-info-item">
-              <text class="normal">提货人</text>
-              <text class="black">{{ orderDetail.consignee }}</text>
-            </view>
-            <view class="receive-info-item">
-              <text class="normal">联系方式</text>
-              <text class="black">{{ orderDetail.mobile }}</text>
-            </view>
+          <view v-else class="receive-done">
+            <view class="receive-done__title">已完成核销</view>
+            <view class="receive-done__desc">该自提订单已核销，无需重复出示取货码</view>
           </view>
         </view>
 
@@ -175,7 +117,7 @@ author: likeshop.cn.team
           </view>
           <view class="order-goods-list">
             <view v-for="(item, index) in orderGoodsList" :key="index" class="order-goods-item">
-              <view class="order-goods-main" @tap="toGoods(item.goods_id)">
+              <view class="order-goods-main" @tap="toGoods(item)">
                 <custom-image class="order-goods-image" width="168rpx" height="168rpx" radius="18rpx" mode="aspectFill" lazy-load :src="item.image_str || item.image"></custom-image>
                 <view class="order-goods-info">
                   <view class="order-goods-name line2">
@@ -192,10 +134,10 @@ author: likeshop.cn.team
               </view>
               <view class="order-goods-actions" v-if="item.comment_btn || canApplyRefund(item) || afterStatusText(item)">
                 <view class="after-status" v-if="afterStatusText(item)">{{ afterStatusText(item) }}</view>
-                <navigator hover-class="none" :url="'/bundle_order/pages/goods_reviews/goods_reviews?id=' + item.id" v-if="item.comment_btn">
+                <navigator hover-class="none" :url="'/bundle_order/pages/goods_reviews/goods_reviews?id=' + encodeURIComponent(refundItemId(item)) + '&order_id=' + encodeURIComponent(refundOrderId(item))" v-if="item.comment_btn">
                   <button size="xs" class="goods-action-btn" hover-class="none">评价晒图</button>
                 </navigator>
-                <navigator hover-class="none" :url="'/bundle_order/pages/apply_refund/apply_refund?order_id=' + item.order_id + '&item_id=' + item.item_id" v-if="canApplyRefund(item)">
+                <navigator hover-class="none" :url="refundUrl(item)" v-if="canApplyRefund(item)">
                   <button size="xs" class="goods-action-btn" hover-class="none">申请退款</button>
                 </navigator>
               </view>
@@ -204,13 +146,14 @@ author: likeshop.cn.team
         </view>
 
         <view class="price contain">
-          <view class="row-between" v-if="priceShow">
+          <view class="price-title">金额明细</view>
+          <view class="row-between">
             <view>商品总价</view>
             <view class="black">
               <price-format :price="orderDetail.goods_price"></price-format>
             </view>
           </view>
-          <view class="row-between" v-if="priceShow">
+          <view class="row-between">
             <view>运费</view>
             <view class="black"
               >+
@@ -218,7 +161,7 @@ author: likeshop.cn.team
             </view>
           </view>
           <view
-            v-if="orderDetail.discount_amount != 0 && priceShow"
+            v-if="orderDetail.discount_amount != 0"
             class="row-between"
           >
             <view>优惠券</view>
@@ -228,7 +171,7 @@ author: likeshop.cn.team
             </view>
           </view>
           <view
-            v-if="orderDetail.integral_amount != 0 && priceShow"
+            v-if="orderDetail.integral_amount != 0"
             class="row-between"
           >
             <view>积分抵扣</view>
@@ -249,31 +192,11 @@ author: likeshop.cn.team
               </price-format>
             </view>
           </view>
-          <view
-            class="row-center muted"
-            style="padding: 40rpx 0"
-            @tap="priceShow = !priceShow"
-          >
-            <view>
-              <text class="mr10" v-if="priceShow"> 收起 </text>
-              <text class="mr10" v-else> 查看更多 </text>
-
-              <u-icon name="arrow-up" v-if="priceShow" />
-              <u-icon name="arrow-down" v-else />
-            </view>
-          </view>
         </view>
         <view class="order-info contain">
           <view class="item row" style="align-items: flex-start">
             <view class="title">买家留言</view>
             <view class="black">{{ orderDetail.user_remark || "无" }}</view>
-          </view>
-        </view>
-        <view v-if="amountRows.length" class="order-info contain">
-          <view class="card-title">金额明细</view>
-          <view v-for="row in amountRows" :key="row.label" class="item row">
-            <view class="title">{{ row.label }}</view>
-            <view class="black">{{ row.value }}</view>
           </view>
         </view>
         <view v-if="deliveryRows.length" class="order-info contain">
@@ -327,7 +250,7 @@ author: likeshop.cn.team
           </view>
           <view class="item row">
             <view class="title">订单状态</view>
-            <view class="black order-status-text">{{ displayValue(formatOrderStatusText(orderDetail.order_status || orderDetail.order_status_desc)) }}</view>
+            <view class="black order-status-text">{{ displayValue(currentOrderStatusText) }}</view>
           </view>
           <view class="item row">
             <view class="title">支付状态</view>
@@ -366,8 +289,8 @@ author: likeshop.cn.team
           class="footer bg-white row fixed"
           v-if="
             orderDetail.cancel_btn ||
-            orderDetail.delivery_btn ||
-            orderDetail.take_btn ||
+            showDeliveryButton ||
+            showTakeButton ||
             orderDetail.del_btn ||
             orderDetail.pay_btn
           "
@@ -384,7 +307,7 @@ author: likeshop.cn.team
             </button>
           </view>
           <navigator
-            v-if="orderDetail.delivery_btn"
+            v-if="showDeliveryButton"
             hover-class="none"
             :url="
               '/bundle_order/pages/goods_logistics/goods_logistics?id=' +
@@ -395,7 +318,7 @@ author: likeshop.cn.team
               查看物流
             </button>
           </navigator>
-          <view v-if="orderDetail.take_btn" class="ml20">
+          <view v-if="showTakeButton" class="ml20">
             <button
               size="sm"
               class="footer-btn footer-btn--primary"
@@ -453,7 +376,7 @@ import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-c
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
 import UModal from '@/bundle/components/uview-ui/components/u-modal/u-modal.vue'
 import PriceFormat from '@/bundle/components/price-format/price-format.vue'
-import { cleanBackendText, cleanEmptyBackendText, isBackendCodeText } from '@/utils/backend-text'
+import { cleanBackendText, cleanEmptyBackendText, isBackendCodeText, isEmptyBackendText } from '@/utils/backend-text'
 
 export default {
   data() {
@@ -467,7 +390,6 @@ export default {
       showLoading: false,
       showOrderDialog: false,
       imageQR: "",
-      priceShow: false,
       didShowOnce: false,
     };
   },
@@ -522,15 +444,26 @@ export default {
       if (this.type === 1) res = await delOrderApi(this.orderDetail.id);
       if (this.type === 2) res = await confirmOrder(this.orderDetail.id);
       if (res && res.code == 1) {
+        if (this.type === 1) this.rememberDeletedOrder(this.orderDetail)
         this.showOrderDialog = false;
         this.$toast({ title: res.msg || '操作成功' });
         this.onRefresh();
       }
     },
 
-    toGoods(id) {
-      if (!id) return;
-      uni.navigateTo({ url: `/bundle/pages/goods_details/goods_details?id=${id}` });
+    toGoods(item) {
+      const goodsId = typeof item === 'object'
+        ? this.pickValue(item, ['goods_id', 'goodsId', 'spuId', 'spu_id', 'productId', 'product_id'])
+        : item;
+      if (!goodsId) {
+        uni.showToast({ title: '商品信息缺失', icon: 'none' });
+        return;
+      }
+      const skuId = typeof item === 'object'
+        ? this.pickValue(item, ['sku_id', 'skuId', 'item_id', 'itemId', 'order_item_id', 'orderItemId'])
+        : '';
+      const query = skuId ? `&skuId=${encodeURIComponent(skuId)}&itemId=${encodeURIComponent(skuId)}` : '';
+      uni.navigateTo({ url: `/bundle/pages/goods_details/goods_details?id=${encodeURIComponent(goodsId)}${query}` });
     },
 
     delOrder() {
@@ -538,6 +471,36 @@ export default {
       this.$nextTick(async () => {
         this.orderDialog();
       });
+    },
+    orderIdentityList(item = {}) {
+      return [
+        item.id,
+        item.orderNo,
+        item.order_no,
+        item.order_sn,
+        item.orderSn,
+        item.order_id,
+        item.orderId,
+        item.bizOrderNo,
+        item.biz_order_no,
+        item.subOrderNo,
+        item.sub_order_no
+      ].filter((value) => value !== undefined && value !== null && value !== '').map((value) => String(value))
+    },
+    rememberDeletedOrder(order = {}) {
+      const ids = uni.getStorageSync('ORDER_DELETED_IDS') || []
+      const values = this.orderIdentityList(order)
+      values.forEach((id) => {
+        if (!ids.includes(id)) ids.push(id)
+      })
+      uni.setStorageSync('ORDER_DELETED_IDS', ids.slice(-200))
+      uni.$emit('orderDeleted', {
+        orderId: order.id || order.order_id || order.orderNo || order.order_sn,
+        orderNo: order.orderNo || order.order_no || order.order_sn || order.id,
+        order_sn: order.order_sn,
+        bizOrderNo: order.bizOrderNo || order.biz_order_no,
+        subOrderNo: order.subOrderNo || order.sub_order_no
+      })
     },
     // 小程序确认收货
     comfirmReceive(transaction_id) {
@@ -662,7 +625,7 @@ export default {
           return res.data || {};
         })
         .then((data) => {
-          if (data.delivery_type === 2) {
+          if (this.isSelfFetchDeliveryType(data.delivery_type)) {
             // 提货码
             this.$nextTick(function () {
               const refQR = this.$refs["qrcode"];
@@ -674,9 +637,19 @@ export default {
     pickValue(source = {}, keys = []) {
       for (const key of keys) {
         const value = source && source[key];
-        if (value !== undefined && value !== null && value !== '') return value;
+        if (!isEmptyBackendText(value)) return value;
       }
       return '';
+    },
+    isOrderNoLikePickupCode(value) {
+      const text = String(value || '').trim();
+      if (!text) return false;
+      return [
+        this.orderDetail.order_sn,
+        this.orderDetail.orderNo,
+        this.orderDetail.order_no,
+        this.orderDetail.id
+      ].filter(Boolean).map(String).includes(text);
     },
     displayValue(value) {
       if (value === undefined || value === null || value === '') return '-';
@@ -719,8 +692,58 @@ export default {
       return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
     },
     formatDeliveryType(type) {
-      const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', PICKUP: '门店自提' };
+      const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', DELIVERY: '快递配送', LOGISTICS: '快递配送', PICKUP: '门店自提', SELF_FETCH: '门店自提', SELF_PICKUP: '门店自提', SELFFETCH: '门店自提' };
       return map[type] || cleanBackendText(type, '');
+    },
+    isSelfFetchDeliveryType(type) {
+      const value = String(type || '').toUpperCase()
+      return type === 2 || value === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(value)
+    },
+    isExpressDeliveryType(type) {
+      const value = String(type || '').toUpperCase()
+      return type === 1 || value === '1' || ['EXPRESS', 'DELIVERY', 'LOGISTICS', 'SHIP'].includes(value)
+    },
+    openMapLocation({ latitude, longitude, name, address }) {
+      const lat = Number(latitude)
+      const lng = Number(longitude)
+      console.log('[order_details][openLocation]', {
+        latitude,
+        longitude,
+        name,
+        address,
+        deliveryType: this.orderDetail.delivery_type,
+        receiverLatitude: this.orderDetail.receiver_latitude,
+        receiverLongitude: this.orderDetail.receiver_longitude,
+        selfFetchShop: this.selfFetchShop
+      })
+      if (Number.isNaN(lat) || Number.isNaN(lng) || !lat || !lng) {
+        uni.showToast({ title: '暂无可定位坐标', icon: 'none' })
+        return
+      }
+      uni.openLocation({
+        latitude: lat,
+        longitude: lng,
+        name: name || address || '订单地址',
+        address: address || name || '',
+        scale: 16
+      })
+    },
+    onAddressExpress() {
+      const receiver = this.orderDetail.receiverInfo || this.orderDetail.receiver_info || {}
+      this.openMapLocation({
+        latitude: this.pickValue(this.orderDetail, ['receiver_latitude', 'receiverLatitude', 'latitude', 'lat', 'mapLat', 'map_lat', 'addressLat', 'address_lat']) || this.pickValue(receiver, ['receiverLatitude', 'receiver_latitude', 'latitude', 'lat', 'mapLat', 'map_lat', 'addressLat', 'address_lat']),
+        longitude: this.pickValue(this.orderDetail, ['receiver_longitude', 'receiverLongitude', 'longitude', 'lng', 'lon', 'mapLng', 'map_lng', 'addressLng', 'address_lng']) || this.pickValue(receiver, ['receiverLongitude', 'receiver_longitude', 'longitude', 'lng', 'lon', 'mapLng', 'map_lng', 'addressLng', 'address_lng']),
+        name: this.orderDetail.consignee || '收货地址',
+        address: this.orderDetail.delivery_address
+      })
+    },
+    onAddressSelfFetch() {
+      this.openMapLocation({
+        latitude: this.pickValue(this.selfFetchShop, ['latitude', 'lat', 'shopLatitude', 'shop_latitude', 'mapLat', 'map_lat', 'pickupLatitude', 'pickup_latitude']),
+        longitude: this.pickValue(this.selfFetchShop, ['longitude', 'lng', 'lon', 'shopLongitude', 'shop_longitude', 'mapLng', 'map_lng', 'pickupLongitude', 'pickup_longitude']),
+        name: this.selfFetchShopName,
+        address: this.selfFetchShopAddress
+      })
     },
     formatPayStatus(status) {
       const map = { UNPAID: '未支付', WAIT_PAY: '未支付', PAID: '已支付', SUCCESS: '已支付', REFUNDED: '已退款', REFUND: '已退款', CLOSED: '已关闭', CANCELLED: '已关闭', CANCELED: '已关闭', 0: '未支付', 1: '已支付' };
@@ -740,6 +763,8 @@ export default {
       return mapped || (isBackendCodeText(text) ? '订单处理中' : cleanBackendText(status, ''));
     },
     formatRefundStatusText(status) {
+      const cleaned = cleanBackendText(status, '')
+      if (!cleaned) return ''
       const text = String(status || '')
       const map = {
         APPLIED: '待商家处理',
@@ -764,7 +789,7 @@ export default {
         5: '退款成功',
         6: '已撤销'
       }
-      return map[text.toUpperCase()] || map[status] || (isBackendCodeText(text) ? '售后处理中' : cleanBackendText(text, ''))
+      return map[text.toUpperCase()] || map[status] || (isBackendCodeText(text) ? '售后处理中' : cleaned)
     },
     formatRefundTypeText(type) {
       const text = String(type || '')
@@ -795,17 +820,116 @@ export default {
       }
       return text.split(/[,，、]/).map(item => map[item.toUpperCase()] || item).join('、')
     },
+    hasMeaningfulObject(value) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+      return Object.keys(value).some((key) => {
+        const item = value[key]
+        if (item === undefined || item === null || item === '') return false
+        if (typeof item === 'object') return this.hasMeaningfulObject(item)
+        return true
+      })
+    },
+    parseBoolean(value, fallback = false) {
+      if (value === undefined || value === null || value === '') return fallback
+      if (value === true || value === 1 || value === '1') return true
+      if (value === false || value === 0 || value === '0') return false
+      const text = String(value).trim().toUpperCase()
+      if (['TRUE', 'YES', 'Y', 'ENABLE', 'ENABLED'].includes(text)) return true
+      if (['FALSE', 'NO', 'N', 'DISABLE', 'DISABLED'].includes(text)) return false
+      return Boolean(value)
+    },
+    hasAfterSalePayload(value = {}) {
+      if (!value || typeof value !== 'object') return false
+      return Boolean(this.pickValue(value, [
+        'after_sale_id',
+        'afterSaleId',
+        'afterSaleNo',
+        'after_sale_no',
+        'refundNo',
+        'refund_no',
+        'refundId',
+        'refund_id',
+        'after_status',
+        'afterSaleStatus',
+        'after_sale_status',
+        'status',
+        'statusText',
+        'status_text',
+        'refundStatus',
+        'refund_status',
+        'refundStatusText',
+        'refund_status_text',
+        'desc'
+      ]))
+    },
     hasAfterSale(item = {}) {
-      return Boolean(item.after_sale_id || item.afterSaleId || item.refundNo || item.refund_no || item.after_sale || item.afterSale || item.refund_info || item.refundInfo || this.afterStatusText(item) || (this.orderDetail.refund_info && Object.keys(this.orderDetail.refund_info).length))
+      const afterSale = item.after_sale || item.afterSale || {}
+      const refundInfo = item.refund_info || item.refundInfo || {}
+      return Boolean(
+        item.after_sale_id ||
+        item.afterSaleId ||
+        item.refundNo ||
+        item.refund_no ||
+        item.refundId ||
+        item.refund_id ||
+        this.afterStatusText(item) ||
+        this.hasAfterSalePayload(afterSale) ||
+        this.hasAfterSalePayload(refundInfo)
+      )
     },
     afterStatusText(item = {}) {
-      return this.formatRefundStatusText(this.pickValue(item, ['after_status_desc', 'afterStatusDesc', 'refundStatusText', 'status_text']) || this.pickValue(item.after_sale || item.afterSale || {}, ['desc', 'statusText', 'status_text', 'status']) || this.pickValue(item.refund_info || item.refundInfo || {}, ['statusText', 'status_text', 'status']))
+      return this.formatRefundStatusText(this.pickValue(item, ['after_status_desc', 'afterStatusDesc', 'after_status', 'afterSaleStatus', 'after_sale_status', 'refundStatusText', 'refund_status_text', 'refundStatus', 'refund_status', 'status_text']) || this.pickValue(item.after_sale || item.afterSale || {}, ['desc', 'statusText', 'status_text', 'refundStatusText', 'refund_status_text', 'refundStatus', 'refund_status', 'afterSaleStatus', 'after_sale_status', 'status']) || this.pickValue(item.refund_info || item.refundInfo || {}, ['statusText', 'status_text', 'refundStatusText', 'refund_status_text', 'refundStatus', 'refund_status', 'afterSaleStatus', 'after_sale_status', 'status']))
+    },
+    canRefundByOrderStatus() {
+      const status = this.orderDetail.order_status
+      const value = String(status || '').toUpperCase()
+      return status === 1 || value === '1' || ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY'].includes(value)
+    },
+    orderAllowsRefund() {
+      const flag = this.pickValue(this.orderDetail, ['refund_btn', 'refundBtn', 'canRefund', 'can_refund', 'refundable'])
+      if (flag !== '') return this.parseBoolean(flag)
+      return this.canRefundByOrderStatus()
     },
     canApplyRefund(item = {}) {
-      return Boolean(item.refund_btn) && !this.hasAfterSale(item)
+      const flag = this.pickValue(item, ['refund_btn', 'refundBtn', 'canRefund', 'can_refund', 'refundable', 'order_can_refund'])
+      const itemAllowsRefund = flag === '' ? this.orderAllowsRefund() : this.parseBoolean(flag)
+      return itemAllowsRefund && !this.hasAfterSale(item) && Boolean(this.refundOrderId(item) && this.refundItemId(item))
+    },
+    refundOrderId(item = {}) {
+      return this.pickValue(item, ['order_id', 'orderId', 'orderNo', 'order_sn']) || this.pickValue(this.orderDetail, ['id', 'order_id', 'orderId', 'orderNo', 'order_sn'])
+    },
+    refundItemId(item = {}) {
+      return this.pickValue(item, ['item_id', 'itemId', 'order_item_id', 'orderItemId', 'id', 'sku_id', 'skuId'])
+    },
+    refundUrl(item = {}) {
+      return `/bundle_order/pages/apply_refund/apply_refund?order_id=${encodeURIComponent(this.refundOrderId(item))}&item_id=${encodeURIComponent(this.refundItemId(item))}`
     },
   },
   computed: {
+    isSelfFetchOrder() {
+      return this.isSelfFetchDeliveryType(this.orderDetail.delivery_type || this.orderDetail.deliveryType)
+    },
+    isExpressOrder() {
+      if (this.isSelfFetchOrder) return false
+      return this.isExpressDeliveryType(this.orderDetail.delivery_type || this.orderDetail.deliveryType) || !this.orderDetail.delivery_type
+    },
+    showDeliveryButton() {
+      return Boolean(this.orderDetail.delivery_btn && !this.isSelfFetchOrder)
+    },
+    showTakeButton() {
+      return Boolean(!this.isSelfFetchOrder && (this.orderDetail.take_btn || this.orderDetail.receivable))
+    },
+    currentOrderStatusText() {
+      const status = this.orderDetail.order_status || this.orderDetail.order_status_desc
+      const value = String(status || '').toUpperCase()
+      if (this.isSelfFetchOrder && ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', '1', '2'].includes(value)) {
+        return '待核销'
+      }
+      if (this.isSelfFetchOrder && ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(value)) {
+        return '已核销'
+      }
+      return this.formatOrderStatusText(status)
+    },
     orderGoodsList() {
       return this.orderDetail.order_goods || this.orderDetail.goods_lists || [];
     },
@@ -824,7 +948,7 @@ export default {
         this.orderDetail.team_status == 1 ? (result = true) : (result = false);
       }
 
-      return result && !!this.pickupQrValue;
+      return result && !!this.pickupQrValue && !this.orderDetail.verification_status;
     },
     isOrderStatus() {
       const statusMap = {
@@ -837,7 +961,36 @@ export default {
       return (status) => statusMap[status].includes(this.orderDetail.order_status);
     },
     pickupQrValue() {
-      return this.orderDetail.pickup_code || this.orderDetail.pickupCode || this.orderDetail.verifyCode || this.orderDetail.order_sn || this.orderDetail.orderNo || '';
+      const verify = this.orderDetail.verify_info || {};
+      const value = this.pickValue(verify, ['pickupCode', 'pickup_code', 'verifyCode', 'verify_code', 'code']) ||
+        this.orderDetail.pickup_code ||
+        this.orderDetail.pickupCode ||
+        this.orderDetail.verify_code ||
+        this.orderDetail.verifyCode ||
+        '';
+      return this.isOrderNoLikePickupCode(value) ? '' : value;
+    },
+    selfFetchShop() {
+      return this.orderDetail.selffetch_shop || this.orderDetail.selffetchShop || this.orderDetail.pickupShop || {}
+    },
+    selfFetchShopName() {
+      return this.pickValue(this.selfFetchShop, ['name', 'shopName', 'shop_name', 'storeName']) || this.orderDetail.shop_name || '自提门店'
+    },
+    selfFetchShopAddress() {
+      return this.pickValue(this.selfFetchShop, ['shop_address', 'address', 'detailAddress', 'detail_address']) || this.pickValue(this.orderDetail, ['pickupAddress', 'pickup_address']) || '-'
+    },
+    selfFetchBusinessTime() {
+      const time = this.joinText([
+        this.pickValue(this.selfFetchShop, ['business_start_time', 'businessStartTime', 'openStartTime']),
+        this.pickValue(this.selfFetchShop, ['business_end_time', 'businessEndTime', 'openEndTime'])
+      ], ' - ')
+      return time || '以门店实际营业时间为准'
+    },
+    selfFetchContactName() {
+      return this.orderDetail.consignee || this.pickValue(this.orderDetail, ['pickupContact', 'pickup_contact', 'receiverName']) || '-'
+    },
+    selfFetchContactMobile() {
+      return this.orderDetail.mobile || this.pickValue(this.orderDetail, ['pickupMobile', 'pickup_mobile', 'receiverMobile']) || '-'
     },
     amountRows() {
       return this.buildRows([
@@ -850,6 +1003,7 @@ export default {
       ]);
     },
     deliveryRows() {
+      if (!this.isExpressOrder) return [];
       return this.buildRows([
         ['配送方式', this.formatDeliveryType(this.orderDetail.delivery_type)],
         ['收货人', this.orderDetail.consignee],
@@ -861,19 +1015,20 @@ export default {
       ]);
     },
     selfFetchRows() {
-      const shop = this.orderDetail.selffetch_shop || {};
+      if (!this.isSelfFetchOrder) return [];
       return this.buildRows([
-        ['门店名称', this.pickValue(shop, ['name', 'shopName', 'shop_name'])],
-        ['门店地址', this.pickValue(shop, ['shop_address', 'address', 'detailAddress'])],
-        ['营业时间', this.joinText([this.pickValue(shop, ['business_start_time', 'businessStartTime']), this.pickValue(shop, ['business_end_time', 'businessEndTime'])], ' - ')],
-        ['门店电话', this.pickValue(shop, ['mobile', 'phone', 'contactMobile'])],
-        ['提货码', this.pickupQrValue],
-        ['提货状态', this.orderDetail.verification_status ? '已核销' : '待核销']
+        ['自提门店', this.selfFetchShopName],
+        ['自提地址', this.selfFetchShopAddress],
+        ['提货人', this.selfFetchContactName],
+        ['联系方式', this.selfFetchContactMobile],
+        ['营业时间', this.selfFetchBusinessTime],
+        ['自提方式', '到店出示核销码'],
+        ['门店电话', this.pickValue(this.selfFetchShop, ['mobile', 'phone', 'contactMobile'])]
       ]);
     },
     verifyRows() {
       const verify = this.orderDetail.verify_info || {};
-      if (this.orderDetail.delivery_type != 2 && !Object.keys(verify).length) return [];
+      if (!this.isSelfFetchOrder && !Object.keys(verify).length) return [];
       return this.buildRows([
         ['核销码', this.pickValue(verify, ['pickupCode', 'verifyCode', 'code']) || this.pickupQrValue],
         ['核销状态', this.orderDetail.verification_status ? '已核销' : '未核销'],
@@ -951,7 +1106,7 @@ export default {
 .order-details {
   position: relative;
   min-height: 100vh;
-  background: #f6f7fb;
+  background: #f5f7fb;
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
@@ -959,10 +1114,11 @@ export default {
   position: absolute;
   top: 0;
   width: 100%;
-  height: 300rpx;
-  background: linear-gradient(135deg, #1677ff 0%, #04befe 52%, #35d7a0 100%);
+  height: 340rpx;
+  background: linear-gradient(135deg, #1f7af4 0%, #18b6ff 54%, #21c58e 100%);
   z-index: 0;
 }
+
 
 .order-details .goods .status {
   height: 88rpx;
@@ -973,11 +1129,11 @@ export default {
 }
 
 .order-goods-list {
-  padding: 6rpx 0;
+  padding: 10rpx 0;
 }
 
 .order-goods-item {
-  padding: 22rpx 24rpx;
+  padding: 26rpx 26rpx;
 }
 
 .order-goods-item + .order-goods-item {
@@ -1001,7 +1157,7 @@ export default {
 }
 
 .order-goods-name {
-  color: #202124;
+  color: #172033;
   font-size: 28rpx;
   font-weight: 600;
   line-height: 40rpx;
@@ -1065,13 +1221,13 @@ export default {
 }
 
 .goods-action-btn {
-  height: 52rpx;
+  height: 56rpx;
   margin-left: 16rpx;
   padding: 0 24rpx;
-  color: #303133;
+  color: #1f2937;
   font-size: 24rpx;
   line-height: 52rpx;
-  border: 1rpx solid #dcdfe6;
+  border: 1rpx solid #d8dee8;
   border-radius: 999rpx;
   background: #ffffff;
 }
@@ -1083,25 +1239,29 @@ export default {
 .order-details .main {
   position: relative;
   z-index: 1;
-  padding-top: 12rpx;
+  padding-top: 18rpx;
 }
 
 .order-details .contain {
-  margin: 0 24rpx 22rpx;
-  border-radius: 24rpx;
+  margin: 0 24rpx 24rpx;
+  border-radius: 22rpx;
   background-color: #fff;
-  box-shadow: 0 12rpx 30rpx rgba(25, 31, 46, .06);
+  box-shadow: 0 10rpx 28rpx rgba(24, 44, 84, .06);
   overflow: hidden;
 }
 
 .order-details .header {
-  min-height: 176rpx;
-  padding: 42rpx 42rpx 30rpx;
+  min-height: 190rpx;
+  margin: 0 24rpx 24rpx;
+  padding: 42rpx 36rpx 34rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, .24);
   box-sizing: border-box;
 }
 
 .order-details .header .lg {
-  font-size: 38rpx;
+  font-size: 40rpx;
   font-weight: 700;
   line-height: 52rpx;
 }
@@ -1127,7 +1287,7 @@ export default {
 }
 
 .order-details .card-title {
-  padding: 22rpx 26rpx 12rpx;
+  padding: 24rpx 28rpx 14rpx;
   color: #202124;
   font-size: 30rpx;
   font-weight: 600;
@@ -1140,7 +1300,7 @@ export default {
   justify-content: space-between;
   gap: 24rpx;
   min-height: 56rpx;
-  padding: 14rpx 26rpx;
+  padding: 16rpx 28rpx;
   box-sizing: border-box;
   color: #606266;
   font-size: 26rpx;
@@ -1209,26 +1369,31 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 24rpx;
-  min-height: 64rpx;
-  padding: 0 26rpx;
+  min-height: 58rpx;
+  padding: 0 28rpx;
   color: #606266;
   font-size: 26rpx;
 }
 
 .order-details .price {
-  padding: 14rpx 0 10rpx;
+  padding: 26rpx 0 24rpx;
 }
 
-.order-details .price > view:last-child {
-  min-height: 86rpx;
+.price-title {
+  padding: 0 28rpx 14rpx;
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
 }
 
 .order-details .price .price-pay-row {
-  min-height: 112rpx;
-  margin: 10rpx 18rpx 0;
-  padding: 0 22rpx;
+  min-height: 98rpx;
+  margin: 18rpx 22rpx 0;
+  padding: 0 24rpx;
   color: #202124;
-  background: linear-gradient(135deg, #fff8f4 0%, #fff2f2 100%);
+  background: linear-gradient(135deg, #fff8f4 0%, #fff1f1 100%);
+  border: 1rpx solid #ffe1dc;
   border-radius: 20rpx;
   box-sizing: border-box;
 }
@@ -1255,7 +1420,7 @@ export default {
   left: 0;
   right: 0;
   z-index: 20;
-  min-height: 112rpx;
+  min-height: 116rpx;
   padding: 16rpx 24rpx calc(16rpx + constant(safe-area-inset-bottom));
   padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
@@ -1299,23 +1464,9 @@ export default {
   margin: 30rpx 26rpx 40rpx;
 }
 
-.receiving-card {
-  display: flex;
-  align-items: center;
-  min-height: 152rpx;
-  padding: 24rpx;
-  box-sizing: border-box;
-}
-
-.receiving-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
 .receive {
   position: relative;
-  padding-bottom: 10rpx;
+  padding: 26rpx 0 30rpx;
 }
 
 .delivery--die {
@@ -1329,7 +1480,21 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 430rpx;
+  min-height: 390rpx;
+}
+
+.receive-qr__title {
+  color: #172033;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+}
+
+.receive-qr__desc {
+  margin-top: 8rpx;
+  color: #7a8594;
+  font-size: 23rpx;
+  line-height: 32rpx;
 }
 
 .qr-contain {
@@ -1337,12 +1502,14 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 280rpx;
-  height: 280rpx;
+  width: 268rpx;
+  height: 268rpx;
+  margin-top: 22rpx;
   padding: 16rpx;
   border: 1rpx solid #edf0f5;
-  border-radius: 22rpx;
+  border-radius: 24rpx;
   background: #ffffff;
+  box-shadow: 0 10rpx 26rpx rgba(18, 24, 38, .06);
 }
 
 .qr-contain--die {
@@ -1362,24 +1529,31 @@ export default {
 }
 
 .qr-code {
-  padding: 8rpx 30rpx;
+  margin-top: 24rpx;
+  padding: 10rpx 30rpx;
   border-radius: 120rpx;
-  background-color: #f6f7fb;
+  color: #172033;
+  background-color: #f2f6fb;
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 
-.receive-info {
-  padding-left: 20rpx;
+.receive-done {
+  padding: 48rpx 30rpx;
+  text-align: center;
 }
 
-.receive-info-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 100rpx;
-  padding-right: 30rpx;
+.receive-done__title {
+  color: #10a66a;
+  font-size: 32rpx;
+  font-weight: 800;
+  line-height: 44rpx;
 }
 
-.receive-info-item:nth-child(n + 2) {
-  border-top: $dashed-border;
+.receive-done__desc {
+  margin-top: 10rpx;
+  color: #7a8594;
+  font-size: 24rpx;
+  line-height: 34rpx;
 }
 </style>

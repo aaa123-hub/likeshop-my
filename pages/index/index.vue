@@ -20,7 +20,7 @@
                 <view class="feature-card" @tap="openScan">
                     <view>
                         <view class="feature-title">扫一扫</view>
-                        <view class="feature-desc">扫描商家二维码</view>
+                        <view class="feature-desc">扫商家码或推广码</view>
                     </view>
                     <image class="feature-icon" :src="designAssets.homeNoticeIcon" mode="aspectFit"></image>
                 </view>
@@ -155,6 +155,7 @@ import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 import { guardRoute, isRouteEnabled } from '@/utils/feature-flags'
+import { inputInviteCode } from '@/api/user'
 
 const homeShortcutFallbackImages = {
     CATEGORY: 'https://shengyuan.store/api/miniapp/files/miniapp/7f63a1c5a2ee4078b3148915403d074f/home-shortcut-category.png',
@@ -309,14 +310,23 @@ export default {
         openScan() {
             uni.scanCode({
                 onlyFromCamera: false,
-                success: (res) => {
+                success: async (res) => {
                     const result = res.result || res.path || ''
                     const route = this.resolveMerchantScanRoute(result)
                     if (route) {
                         this.goPage(route)
                         return
                     }
-                    uni.showToast({ title: result ? '未识别到商家二维码' : '未识别到内容', icon: 'none' })
+                    const promotionPayload = this.resolvePromotionScanPayload(result)
+                    if (promotionPayload.inviteCode || promotionPayload.ownerUserId || promotionPayload.promoterUserId) {
+                        const bindRes = await inputInviteCode(promotionPayload).catch(() => null)
+                        uni.showToast({
+                            title: bindRes && bindRes.code == 1 ? (bindRes.msg || '吸粉成功') : ((bindRes && (bindRes.msg || bindRes.message)) || '吸粉失败'),
+                            icon: bindRes && bindRes.code == 1 ? 'success' : 'none'
+                        })
+                        return
+                    }
+                    uni.showToast({ title: result ? '未识别到商家码或推广码' : '未识别到内容', icon: 'none' })
                 },
                 fail: () => uni.showToast({ title: '扫一扫未完成', icon: 'none' })
             })
@@ -327,16 +337,66 @@ export default {
             if (/^\/business\/pages\/business_pages\/store_detail/i.test(text)) return text
             if (/^business\/pages\/business_pages\/store_detail/i.test(text)) return `/${text}`
             const params = this.scanParamsFromText(text)
-            const shopId = this.firstScanValue(params, ['shopId', 'shop_id', 'merchantShopId', 'merchant_shop_id', 'storeId', 'store_id', 'merchantId', 'merchant_id', 'id'])
+            const shopId = this.firstScanValue(params, ['shopId', 'shop_id', 'merchantShopId', 'merchant_shop_id', 'storeId', 'store_id', 'merchantId', 'merchant_id'])
             if (shopId) return `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(shopId)}`
             const scene = this.firstScanValue(params, ['scene', 'qrScene', 'qr_scene'])
             if (scene) {
                 const sceneParams = this.scanParamsFromText(decodeURIComponent(scene))
-                const sceneShopId = this.firstScanValue(sceneParams, ['shopId', 'shop_id', 'merchantShopId', 'merchant_shop_id', 'storeId', 'store_id', 'merchantId', 'merchant_id', 'id'])
+                const sceneShopId = this.firstScanValue(sceneParams, ['shopId', 'shop_id', 'merchantShopId', 'merchant_shop_id', 'storeId', 'store_id', 'merchantId', 'merchant_id'])
                 if (sceneShopId) return `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(sceneShopId)}`
             }
             if (/^\d+$/.test(text)) return `/business/pages/business_pages/store_detail?shopId=${encodeURIComponent(text)}`
             return ''
+        },
+        resolvePromotionScanPayload(raw = '') {
+            const text = String(raw || '').trim()
+            if (!text) return {}
+            const jsonPayload = this.tryParsePromotionJson(text)
+            if (jsonPayload) return this.buildPromotionBindPayload(jsonPayload, text)
+            const params = this.scanParamsFromText(text)
+            const scene = this.firstScanValue(params, ['scene', 'qrScene', 'qr_scene'])
+            const sceneParams = scene ? this.scanParamsFromText(decodeURIComponent(scene)) : {}
+            const inviteCode = this.firstScanValue(params, ['inviteCode', 'invite_code', 'promoterCode', 'promoter_code', 'promotionCode', 'promotion_code', 'code']) ||
+                this.firstScanValue(sceneParams, ['inviteCode', 'invite_code', 'promoterCode', 'promoter_code', 'promotionCode', 'promotion_code', 'code'])
+            const ownerUserId = this.firstScanValue(params, ['ownerUserId', 'owner_user_id', 'promoterUserId', 'promoter_user_id', 'inviterUserId', 'inviter_user_id', 'uid']) ||
+                this.firstScanValue(sceneParams, ['ownerUserId', 'owner_user_id', 'promoterUserId', 'promoter_user_id', 'inviterUserId', 'inviter_user_id', 'uid'])
+            if (!inviteCode && !ownerUserId) return {}
+            return this.buildPromotionBindPayload({
+                inviteCode,
+                ownerUserId,
+                promoterUserId: ownerUserId,
+                roleCode: 'PROMOTER',
+                scene: 'PROMOTION_QR'
+            }, text)
+        },
+        tryParsePromotionJson(text = '') {
+            try {
+                const data = JSON.parse(text)
+                const scene = String(data.type || data.scene || data.fanScene || data.fan_scene || '').toUpperCase()
+                if (!scene.includes('PROMOTION')) return null
+                return data
+            } catch (error) {
+                return null
+            }
+        },
+        buildPromotionBindPayload(source = {}, rawScene = '') {
+            const inviteCode = source.inviteCode || source.invite_code || source.promoterCode || source.promoter_code || source.promotionCode || source.promotion_code || source.code || ''
+            const ownerUserId = source.ownerUserId || source.owner_user_id || source.promoterUserId || source.promoter_user_id || source.inviterUserId || source.inviter_user_id || source.uid || ''
+            const userId = this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || ''
+            return {
+                userId,
+                fanUserId: userId,
+                inviteCode,
+                invite_code: inviteCode,
+                promoterUserId: ownerUserId,
+                promoter_user_id: ownerUserId,
+                ownerUserId,
+                owner_user_id: ownerUserId,
+                roleCode: source.roleCode || source.role_code || 'PROMOTER',
+                scene: source.scene || 'PROMOTION_QR',
+                rawScene,
+                fanScene: 'PROMOTION_QR'
+            }
         },
         scanParamsFromText(text = '') {
             const params = {}
@@ -363,7 +423,7 @@ export default {
                 const pathMatch = url.pathname.match(/(?:shop|store|merchant)[/_-]?(\d+)/i)
                 if (pathMatch && !params.shopId) params.shopId = pathMatch[1]
             } catch (error) {}
-            const compactMatch = normalized.match(/(?:shopId|shop_id|merchantShopId|merchant_shop_id|storeId|store_id|merchantId|merchant_id|id)[:=]([^&?#;/]+)/i)
+            const compactMatch = normalized.match(/(?:shopId|shop_id|merchantShopId|merchant_shop_id|storeId|store_id|merchantId|merchant_id)[:=]([^&?#;/]+)/i)
             if (compactMatch && !params.shopId) params.shopId = compactMatch[1]
             return params
         },
@@ -458,10 +518,10 @@ export default {
 .home-search__icon-line { position: absolute; right: 7rpx; bottom: 8rpx; width: 17rpx; height: 4rpx; background: currentColor; border-radius: 4rpx; transform: rotate(45deg); transform-origin: right center; }
 .home-content { padding: 20rpx 24rpx 0; }
 .feature-grid { display: flex; gap: 24rpx; justify-content: space-between; }
-.feature-card { display: flex; align-items: center; justify-content: space-between; flex: 1 1 0; height: 152rpx; padding: 0 26rpx 0 30rpx; border-radius: 16rpx; background: #ffffff; box-sizing: border-box; }
+.feature-card { display: flex; align-items: center; justify-content: space-between; flex: 1 1 0; min-width: 0; height: 152rpx; padding: 0 20rpx 0 26rpx; border-radius: 16rpx; background: #ffffff; box-sizing: border-box; }
 .feature-title { color: #222222; font-size: 32rpx; font-weight: 600; line-height: 44rpx; }
-.feature-desc { margin-top: 12rpx; color: #999999; font-size: 26rpx; line-height: 36rpx; }
-.feature-icon { width: 84rpx; height: 84rpx; }
+.feature-desc { max-width: 178rpx; margin-top: 12rpx; color: #999999; font-size: 23rpx; line-height: 32rpx; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feature-icon { flex: none; width: 76rpx; height: 76rpx; margin-left: 10rpx; }
 .promoter-card { display: flex; align-items: center; justify-content: space-between; margin-top: 22rpx; padding: 26rpx 28rpx; border-radius: 18rpx; background: linear-gradient(135deg, #fff7e6 0%, #ffffff 100%); border: 2rpx solid #ffe1a6; box-sizing: border-box; }
 .promoter-card__title { color: #222222; font-size: 32rpx; font-weight: 600; line-height: 44rpx; }
 .promoter-card__desc { margin-top: 8rpx; color: #7a5b1f; font-size: 24rpx; line-height: 34rpx; }

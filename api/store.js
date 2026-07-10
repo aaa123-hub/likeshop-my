@@ -40,6 +40,28 @@ function parseImageList(value) {
     return []
 }
 
+function parseTextList(value) {
+    if (!value) return []
+    if (Array.isArray(value)) {
+        return value.map(function(item) {
+            if (!item) return ''
+            if (typeof item === 'string') return item.trim()
+            return item.name || item.title || item.label || item.text || item.value || ''
+        }).filter(Boolean)
+    }
+    if (typeof value === 'string') {
+        try {
+            var parsed = JSON.parse(value)
+            if (Array.isArray(parsed)) return parseTextList(parsed)
+        } catch (e) {}
+        return value.split(/[,，|]/).map(function(item) { return item.trim() }).filter(Boolean)
+    }
+    if (typeof value === 'object') {
+        return Object.keys(value).map(function(key) { return value[key] || key }).filter(Boolean)
+    }
+    return []
+}
+
 function decodeHtmlEntities(value) {
     if (!value || typeof value !== 'string') return value || ''
     return value
@@ -160,6 +182,20 @@ function normalizeArrayPayload(value) {
     if (Array.isArray(value.records)) return value.records
     if (Array.isArray(value.rows)) return value.rows
     return []
+}
+
+function normalizeCommentScore(value, fallback = 5) {
+    var number = Number(value)
+    if (Number.isNaN(number) || number <= 0) return fallback
+    return Math.max(1, Math.min(5, Math.round(number)))
+}
+
+function normalizeCommentSpecText(value) {
+    var text = String(value || '').trim()
+    if (!text) return ''
+    if (/^\d+$/.test(text)) return ''
+    if (/^[A-Z0-9_-]{8,}$/i.test(text) && !/[一-龥/：:]/.test(text)) return ''
+    return text
 }
 function buildSpecValueId(spec, groupName, valueName, fallback) {
     return spec.id || spec.valueId || spec.value_id || groupName + '-' + (valueName || fallback)
@@ -426,18 +462,57 @@ function normalizeCartItem(item = {}) {
 }
 
 function normalizeCommentItem(item = {}) {
-    var images = parseImageList(item.image || item.images || item.imageUrls)
+    var user = item.user || item.member || item.customer || item.buyer || {}
+    var sku = item.sku || item.goodsSku || item.goods_sku || {}
+    var images = parseImageList(item.image || item.images || item.imageUrls || item.image_urls || item.pictures || item.pics || item.commentImages || item.comment_images)
+    var appendImages = parseImageList(item.appendImage || item.append_image || item.appendImages || item.append_images || item.additionalImages || item.additional_images)
+    var videos = parseImageList(item.video || item.videos || item.videoUrl || item.video_url || item.videoUrls || item.video_urls || item.commentVideo || item.comment_video || item.commentVideos || item.comment_videos)
+    var appendVideos = parseImageList(item.appendVideo || item.append_video || item.appendVideos || item.append_videos || item.additionalVideo || item.additional_video || item.additionalVideos || item.additional_videos)
+    var tags = parseTextList(item.tags || item.labels || item.commentTags || item.comment_tags || item.impressions || item.keyword || item.keywords)
+    var score = normalizeCommentScore(firstDefined(item.goods_comment, item.goodsComment, item.goods_rate, item.goodsRate, item.score, item.star, item.rating, item.productScore, item.product_score, item.description_comment, item.descriptionComment, 5))
+    var serviceScore = item.service_comment || item.serviceComment || item.serviceScore || item.service_score || item.serverRate || item.server_rate ? normalizeCommentScore(firstDefined(item.service_comment, item.serviceComment, item.serviceScore, item.service_score, item.serverRate, item.server_rate)) : ''
+    var expressScore = item.express_comment || item.expressComment || item.deliveryScore || item.delivery_score || item.logisticsScore || item.logistics_score ? normalizeCommentScore(firstDefined(item.express_comment, item.expressComment, item.deliveryScore, item.delivery_score, item.logisticsScore, item.logistics_score)) : ''
+    var descScore = item.description_comment || item.descriptionComment || item.descScore || item.desc_score || item.descriptionScore || item.description_score ? normalizeCommentScore(firstDefined(item.description_comment, item.descriptionComment, item.descScore, item.desc_score, item.descriptionScore, item.description_score)) : ''
+    var reply = item.reply || item.merchantReply || item.merchant_reply || item.replyContent || item.reply_content || item.shopReply || item.shop_reply || ''
+    var appendComment = item.append_comment || item.appendComment || item.additionalComment || item.additional_comment || item.followComment || item.follow_comment || ''
+    var anonymous = firstDefined(item.is_anonymous, item.isAnonymous, item.anonymous, item.anonymousFlag, item.anonymous_flag, 0)
+    var isAnonymous = anonymous === true || anonymous === 1 || anonymous === '1' || String(anonymous).toLowerCase() === 'true' || String(anonymous).toUpperCase() === 'Y'
+    var nickname = item.nickname || item.userName || item.user_name || item.memberName || item.member_name || user.nickname || user.name || user.userName || '匿名用户'
+    var specText = normalizeCommentSpecText(item.spec_value_str || item.specValueStr || item.skuName || item.sku_name || item.specValue || item.spec_value || sku.skuName || sku.name || '')
+    var merchant = item.merchant || item.shop || item.store || {}
     return Object.assign({}, item, {
-        id: item.id || item.commentId,
-        avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl, 'avatar'),
-        nickname: item.nickname || item.userName || item.memberName || '匿名用户',
-        goods_comment: item.goods_comment || item.score || item.star || item.rating || 5,
-        goods_rate: item.goods_rate || item.score || item.star || item.rating || 5,
-        create_time: item.create_time || item.createdAt || item.createTime || '',
-        spec_value_str: item.spec_value_str || item.skuName || item.specValue || '',
-        comment: item.comment || item.content || '',
-        image: images.length ? images : [resolveImage('', 'goods')],
-        reply: item.reply || item.merchantReply || item.replyContent || ''
+        id: item.id || item.commentId || item.comment_id || item.reviewId || item.review_id,
+        avatar: isAnonymous ? resolveImage('', 'avatar') : resolveImage(item.avatar || item.userAvatar || item.user_avatar || item.headimgurl || user.avatar || user.avatarUrl || user.headimgurl, 'avatar'),
+        nickname: isAnonymous ? '匿名用户' : nickname,
+        raw_nickname: nickname,
+        goods_comment: score,
+        goods_rate: score,
+        score: score,
+        service_comment: serviceScore,
+        express_comment: expressScore,
+        description_comment: descScore,
+        create_time: item.create_time || item.createdAt || item.createTime || item.commentTime || item.comment_time || item.evaluateTime || item.evaluate_time || '',
+        spec_value_str: specText,
+        goods_name: item.goods_name || item.goodsName || item.productName || item.product_name || '',
+        goods_image: resolveImage(item.goods_image || item.goodsImage || item.productImage || item.product_image || item.spuImage || item.spu_image || item.cover || sku.image || sku.imageUrl, 'goods'),
+        sku_code: item.sku_code || item.skuCode || sku.skuCode || sku.code || '',
+        comment: item.comment || item.content || item.reviewContent || item.review_content || item.evaluateContent || item.evaluate_content || '',
+        image: images.map(function(image) { return resolveImage(image, 'goods') }),
+        video: videos.map(function(video) { return resolveImage(video, 'common') }),
+        tags: tags,
+        append_comment: appendComment,
+        append_time: item.append_time || item.appendTime || item.additionalTime || item.additional_time || '',
+        append_image: appendImages.map(function(image) { return resolveImage(image, 'goods') }),
+        append_video: appendVideos.map(function(video) { return resolveImage(video, 'common') }),
+        reply: reply,
+        reply_time: item.reply_time || item.replyTime || item.merchantReplyTime || item.merchant_reply_time || '',
+        reply_user: item.reply_user || item.replyUser || item.replyName || item.reply_name || merchant.name || merchant.shopName || merchant.shop_name || '',
+        merchant_name: item.merchant_name || item.merchantName || item.shop_name || item.shopName || item.storeName || merchant.name || merchant.shopName || merchant.shop_name || '',
+        like_count: firstDefined(item.like_count, item.likeCount, item.praiseCount, item.praise_count, item.likes, ''),
+        browse_count: firstDefined(item.browse_count, item.browseCount, item.viewCount, item.view_count, item.readCount, item.read_count, ''),
+        comment_type: item.comment_type || item.commentType || item.type || '',
+        type_name: item.type_name || item.typeName || item.commentTypeName || item.comment_type_name || '',
+        is_anonymous: isAnonymous ? 1 : 0
     })
 }
 
@@ -446,26 +521,43 @@ function normalizeCommentSummary(summary = {}) {
     var normalizedFirst = normalizeCommentItem(first)
     return Object.assign({}, summary, {
         total: summary.total || summary.totalCount || summary.commentCount || summary.count || 0,
+        percent: summary.percent || summary.goodRate || summary.good_rate || summary.goodsRate || summary.goods_rate || summary.favorableRate || summary.favorable_rate || '',
         goods_rate: normalizedFirst.goods_rate,
+        score: normalizedFirst.score,
         avatar: normalizedFirst.avatar,
         nickname: normalizedFirst.nickname,
         create_time: normalizedFirst.create_time,
-        comment: normalizedFirst.comment || (typeof summary.comment === 'string' ? summary.comment : '')
+        spec_value_str: normalizedFirst.spec_value_str,
+        comment: normalizedFirst.comment || (typeof summary.comment === 'string' ? summary.comment : ''),
+        image: normalizedFirst.image,
+        service_comment: normalizedFirst.service_comment,
+        express_comment: normalizedFirst.express_comment,
+        description_comment: normalizedFirst.description_comment,
+        reply: normalizedFirst.reply,
+        reply_time: normalizedFirst.reply_time,
+        append_comment: normalizedFirst.append_comment,
+        append_time: normalizedFirst.append_time,
+        append_image: normalizedFirst.append_image,
+        like_count: normalizedFirst.like_count,
+        is_anonymous: normalizedFirst.is_anonymous
     })
 }
 
 function normalizeCommentPage(data = {}) {
-    var list = (data.list || data.items || data.rows || []).map(normalizeCommentItem)
-    var summary = data.summary || data.commentSummary || {}
+    var list = (data.list || data.records || data.items || data.rows || data.content || []).map(normalizeCommentItem)
+    var summary = data.summary || data.commentSummary || data.comment_summary || {}
+    var categories = data.comment || data.category || data.categories || data.commentTypes || data.comment_types || []
+    var total = firstDefined(data.total, data.totalCount, summary.total, summary.totalCount, list.length, 0)
+    if (!Array.isArray(categories)) categories = []
     return Object.assign({}, data, {
         list,
         lists: list,
         more: valueOr(data.hasNext, valueOr(data.more, false)),
         page_no: data.pageNo || data.page_no || 1,
         page_size: data.pageSize || data.page_size || list.length || 10,
-        total: data.total || list.length,
-        comment: data.comment || [],
-        percent: data.percent || summary.goodRate || summary.goodsRate || '100%'
+        total: total,
+        comment: Array.isArray(categories) ? categories : [],
+        percent: data.percent || data.goodRate || data.good_rate || summary.percent || summary.goodRate || summary.good_rate || summary.goodsRate || summary.goods_rate || '100%'
     })
 }
 
@@ -599,6 +691,9 @@ function normalizeShopDetail(data = {}) {
         detailImage: detail.detailImage || detail.detail_image || detail.detailCover || detail.introduceImage || detail.introImage ? resolveImage(detail.detailImage || detail.detail_image || detail.detailCover || detail.introduceImage || detail.introImage, 'goods') : '',
         shopBase: Object.assign({}, base, {
             shopId: base.shopId || base.id || base.shop_id || detail.shopId || detail.id || detail.shop_id || detail.merchantShopId || detail.merchant_shop_id || '',
+            merchantId: base.merchantId || base.merchant_id || detail.merchantId || detail.merchant_id || '',
+            ownerUserId: base.ownerUserId || base.owner_user_id || base.userId || base.user_id || detail.ownerUserId || detail.owner_user_id || detail.userId || detail.user_id || detail.promoterUserId || detail.promoter_user_id || '',
+            inviteCode: base.inviteCode || base.invite_code || base.promoterCode || base.promoter_code || base.promotionCode || base.promotion_code || detail.inviteCode || detail.invite_code || detail.promoterCode || detail.promoter_code || detail.promotionCode || detail.promotion_code || '',
             shopName: base.shopName || base.shop_name || base.storeName || base.store_name || base.name || detail.shopName || detail.storeName || '',
             shopLogo: resolveImage(logo),
             shopScore: valueOr(base.shopScore, valueOr(base.shop_score, valueOr(base.score, valueOr(base.star, '')))),
@@ -849,7 +944,18 @@ export function addCart(data) {
 }
 
 export function getCartNum(params) {
-    return request.get('miniapp/cart/items', { params })
+    return request.get('miniapp/cart/items', { params }).then(function(res) {
+        if (res.code == 1) {
+            var payload = res.data || {}
+            var list = Array.isArray(payload) ? payload : (payload.list || payload.items || payload.rows || [])
+            var count = valueOr(payload.cartCount, valueOr(payload.count, valueOr(payload.num, valueOr(payload.total, list.reduce(function(sum, item) { return sum + Number(item.quantity || item.goods_num || item.num || 0) }, 0)))))
+            return Object.assign({}, res, { data: Object.assign({}, !Array.isArray(payload) ? payload : {}, { cartCount: count, count }) })
+        }
+        if (res.rawCode === 'A0108' || /No static resource|miniapp\/cart\/items/i.test(String(res.msg || res.message || ''))) {
+            return { code: 1, data: { cartCount: 0, count: 0 }, show: false }
+        }
+        return res
+    }).catch(function() { return { code: 1, data: { cartCount: 0, count: 0 }, show: false } })
 }
 
 export function getHotGoods(data) {

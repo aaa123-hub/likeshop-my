@@ -22,7 +22,8 @@ export default {
     },
     data() {
         return {
-            show: false
+            show: false,
+            submitting: false
         }
     },
     computed: {
@@ -43,15 +44,26 @@ export default {
             this.show = false
         },
         async onConfirm() {
+            if (this.submitting) return
+            this.submitting = true
             let res = null
-            if (this.type === 0) res = await cancelOrder(this.orderId)
-            if (this.type === 1) res = await delOrder(this.orderId)
-            if (this.type === 2) res = await confirmOrder(this.orderId)
+            try {
+                if (this.type === 0) res = await cancelOrder(this.orderId)
+                if (this.type === 1) res = await delOrder(this.orderId)
+                if (this.type === 2) res = await confirmOrder(this.orderId)
 
-            if (res && res.code == 1) {
-                this.close()
-                this.$emit('refresh', { type: this.type, orderId: this.orderId })
-                this.$toast({ title: res.msg || '操作成功' })
+                if (res && res.code == 1) {
+                    this.close()
+                    this.$emit('refresh', { type: this.type, orderId: this.orderId })
+                    this.$toast({ title: res.msg || '操作成功' })
+                    return
+                }
+                this.$toast({ title: (res && res.msg) || '操作失败，请重试' })
+            } catch (error) {
+                console.error('[order-dialog] confirm failed:', error)
+                this.$toast({ title: '操作失败，请重试' })
+            } finally {
+                this.submitting = false
             }
         }
     }

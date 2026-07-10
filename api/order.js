@@ -1,16 +1,145 @@
 import request from "@/utils/request";
 import { resolveImage } from "@/utils/image-placeholder";
-import { cleanBackendText, cleanEmptyBackendText } from "@/utils/backend-text";
+import { cleanBackendText, cleanEmptyBackendText, isEmptyBackendText } from "@/utils/backend-text";
 
 let latestSubmitToken = "";
 
 function firstDefined(...values) {
-  return values.find((value) => value !== undefined && value !== null && value !== "");
+  return values.find((value) => !isEmptyBackendText(value));
 }
 
 function numberValue(value, fallback = 0) {
   const number = Number(firstDefined(value, fallback));
   return Number.isNaN(number) ? fallback : number;
+}
+
+function booleanValue(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  const text = String(value).trim().toUpperCase();
+  if (["TRUE", "YES", "Y", "ENABLE", "ENABLED"].includes(text)) return true;
+  if (["FALSE", "NO", "N", "DISABLE", "DISABLED"].includes(text)) return false;
+  return Boolean(value);
+}
+
+function pickAfterSaleId(source = {}) {
+  const value = firstDefined(
+    source.afterSaleId,
+    source.after_sale_id,
+    source.afterSaleNo,
+    source.after_sale_no,
+    source.refundNo,
+    source.refund_no,
+    source.refundId,
+    source.refund_id,
+    source.id
+  );
+  return value && !isBackendStatusOnlyId(source, value) ? value : "";
+}
+
+function pickAfterSaleStatus(source = {}) {
+  return firstDefined(
+    source.statusText,
+    source.status_text,
+    source.refundStatusText,
+    source.refund_status_text,
+    source.afterSaleStatusText,
+    source.after_sale_status_text,
+    source.desc,
+    source.refundStatus,
+    source.refund_status,
+    source.afterSaleStatus,
+    source.after_sale_status,
+    source.after_status,
+    source.status
+  );
+}
+
+function pickOrderItemId(source = {}) {
+  return firstDefined(
+    source.orderItemId,
+    source.order_item_id,
+    source.itemId,
+    source.item_id,
+    source.orderGoodsId,
+    source.order_goods_id,
+    source.id,
+    source.skuId,
+    source.sku_id
+  );
+}
+
+function collectAfterSaleRecords(data = {}) {
+  const sources = [
+    data.afterSales,
+    data.after_sales,
+    data.afterSaleList,
+    data.after_sale_list,
+    data.refundList,
+    data.refund_list,
+    data.refunds,
+    data.refundInfo,
+    data.refund_info,
+    data.afterSale,
+    data.after_sale
+  ];
+  return sources.reduce((list, source) => {
+    if (!source) return list;
+    if (Array.isArray(source)) return list.concat(source);
+    if (Array.isArray(source.list)) return list.concat(source.list);
+    if (Array.isArray(source.records)) return list.concat(source.records);
+    if (Array.isArray(source.items)) return list.concat(source.items);
+    return list.concat(source);
+  }, []);
+}
+
+function isBackendStatusOnlyId(source = {}, value) {
+  const text = String(value || '').toUpperCase();
+  if (!text) return false;
+  const statusLike = ['APPLIED', 'APPLY', 'PENDING', 'PENDING_REVIEW', 'WAIT_AUDIT', 'WAIT_SELLER', 'WAIT_MERCHANT', 'PROCESSING', 'REFUNDING', 'IN_PROGRESS', 'APPROVED', 'PASS', 'PASSED', 'MERCHANT_APPROVED', 'RETURNING', 'WAIT_RETURN', 'WAIT_BUYER_RETURN', 'REJECTED', 'REJECT', 'CANCELLED', 'CANCELED', 'CLOSED', 'REFUNDED', 'REFUND_SUCCESS', 'SUCCESS', 'FAILED'];
+  return source.id === value && statusLike.includes(text) && !source.afterSaleId && !source.after_sale_id && !source.refundNo && !source.refund_no && !source.refundId && !source.refund_id;
+}
+
+function matchAfterSaleRecord(item = {}, records = []) {
+  const itemIds = [
+    item.orderItemId,
+    item.order_item_id,
+    item.itemId,
+    item.item_id,
+    item.id,
+    item.skuId,
+    item.sku_id
+  ].filter((value) => value !== undefined && value !== null && value !== "").map(String);
+  return records.find((record = {}) => {
+    const goods = record.orderGoods || record.orderItem || record.item || record.goods || record.goodsInfo || {};
+    const recordItemIds = [
+      record.orderItemId,
+      record.order_item_id,
+      record.itemId,
+      record.item_id,
+      record.orderGoodsId,
+      record.order_goods_id,
+      record.goodsItemId,
+      record.goods_item_id,
+      record.item?.id,
+      record.item?.orderItemId,
+      record.orderItem?.id,
+      record.orderItem?.orderItemId,
+      record.goods?.id,
+      record.goods?.orderItemId,
+      pickOrderItemId(goods)
+    ].filter((value) => value !== undefined && value !== null && value !== "").map(String);
+    return recordItemIds.length && itemIds.some((id) => recordItemIds.includes(id));
+  }) || {};
+}
+
+function hasAfterSaleSignal(source = {}) {
+  return Boolean(pickAfterSaleId(source) || pickAfterSaleStatus(source));
+}
+
+function selectAfterSalePayload(...sources) {
+  return sources.find((source) => hasAfterSaleSignal(source || {})) || {};
 }
 
 function couponAmountValue(item = {}) {
@@ -74,7 +203,7 @@ function compactPayload(payload = {}) {
 }
 
 function buildPointsPayload(data = {}) {
-  const usePoints = Boolean(data.use_integral || data.usePoints);
+  const usePoints = Boolean(data.use_integral || data.useIntegral || data.usePoints || data.use_points);
   const pointsDeductAmount = usePoints ? numberValue(firstDefined(
     data.pointsDeductAmount,
     data.points_deduct_amount,
@@ -104,8 +233,12 @@ function buildPointsPayload(data = {}) {
     integral_amount: pointsDeductAmount,
     pointsAmount,
     points_amount: pointsAmount,
+    usedPoints: pointsAmount,
+    used_points: pointsAmount,
     integral_num: pointsAmount,
     usePoints,
+    use_points: usePoints,
+    useIntegral: usePoints,
     use_integral: usePoints
   };
 }
@@ -255,66 +388,119 @@ function normalizePointsFields(data = {}) {
     data.deduct_amount,
     data.pointsDeductAmount,
     data.points_deduct_amount,
+    data.usePointsAmount,
+    data.use_points_amount,
+    data.usablePointsAmount,
+    data.usable_points_amount,
+    data.maxUsableAmount,
+    data.max_usable_amount,
     data.integralAmount,
     data.integral_amount,
     data.integralDeductAmount,
     data.integral_deduct_amount,
-    data.maxPointsDeductAmount,
-    data.max_points_deduct_amount,
-    data.maxIntegralDeductAmount,
-    data.max_integral_deduct_amount,
-    data.maxDeductAmount,
-    data.max_deduct_amount,
     baseInfo.deductAmount,
     baseInfo.deduct_amount,
     baseInfo.pointsDeductAmount,
     baseInfo.points_deduct_amount,
+    baseInfo.usePointsAmount,
+    baseInfo.use_points_amount,
+    baseInfo.usablePointsAmount,
+    baseInfo.usable_points_amount,
+    baseInfo.maxUsableAmount,
+    baseInfo.max_usable_amount,
     baseInfo.integralAmount,
     baseInfo.integral_amount,
     baseInfo.integralDeductAmount,
     baseInfo.integral_deduct_amount,
-    baseInfo.maxPointsDeductAmount,
-    baseInfo.max_points_deduct_amount,
-    baseInfo.maxIntegralDeductAmount,
-    baseInfo.max_integral_deduct_amount,
-    baseInfo.maxDeductAmount,
-    baseInfo.max_deduct_amount,
     orderInfo.deductAmount,
     orderInfo.deduct_amount,
     orderInfo.pointsDeductAmount,
     orderInfo.points_deduct_amount,
+    orderInfo.usePointsAmount,
+    orderInfo.use_points_amount,
+    orderInfo.usablePointsAmount,
+    orderInfo.usable_points_amount,
+    orderInfo.maxUsableAmount,
+    orderInfo.max_usable_amount,
     orderInfo.integralAmount,
     orderInfo.integral_amount,
     orderInfo.integralDeductAmount,
     orderInfo.integral_deduct_amount,
-    orderInfo.maxPointsDeductAmount,
-    orderInfo.max_points_deduct_amount,
-    orderInfo.maxIntegralDeductAmount,
-    orderInfo.max_integral_deduct_amount,
-    orderInfo.maxDeductAmount,
-    orderInfo.max_deduct_amount,
     amountInfo.pointsDeductAmount,
     amountInfo.points_deduct_amount,
+    amountInfo.usePointsAmount,
+    amountInfo.use_points_amount,
+    amountInfo.usablePointsAmount,
+    amountInfo.usable_points_amount,
+    amountInfo.maxUsableAmount,
+    amountInfo.max_usable_amount,
     amountInfo.integralAmount,
     amountInfo.integral_amount,
     amountInfo.integralDeductAmount,
     amountInfo.integral_deduct_amount,
-    amountInfo.maxDeductAmount,
-    amountInfo.max_deduct_amount,
     pointsInfo.pointsDeductAmount,
     pointsInfo.points_deduct_amount,
+    pointsInfo.usePointsAmount,
+    pointsInfo.use_points_amount,
+    pointsInfo.usablePointsAmount,
+    pointsInfo.usable_points_amount,
+    pointsInfo.maxUsableAmount,
+    pointsInfo.max_usable_amount,
     pointsInfo.integralAmount,
     pointsInfo.integral_amount,
     pointsInfo.integralDeductAmount,
     pointsInfo.integral_deduct_amount,
+    pointsInfo.deductAmount,
+    pointsInfo.deduct_amount,
+    0
+  );
+  const maxDeductAmount = firstDefined(
+    data.maxDeductAmount,
+    data.max_deduct_amount,
+    data.maxUseAmount,
+    data.max_use_amount,
+    data.maxUsableAmount,
+    data.max_usable_amount,
+    data.maxPointsDeductAmount,
+    data.max_points_deduct_amount,
+    data.maxIntegralDeductAmount,
+    data.max_integral_deduct_amount,
+    baseInfo.maxDeductAmount,
+    baseInfo.max_deduct_amount,
+    baseInfo.maxUseAmount,
+    baseInfo.max_use_amount,
+    baseInfo.maxUsableAmount,
+    baseInfo.max_usable_amount,
+    baseInfo.maxPointsDeductAmount,
+    baseInfo.max_points_deduct_amount,
+    baseInfo.maxIntegralDeductAmount,
+    baseInfo.max_integral_deduct_amount,
+    orderInfo.maxDeductAmount,
+    orderInfo.max_deduct_amount,
+    orderInfo.maxUseAmount,
+    orderInfo.max_use_amount,
+    orderInfo.maxUsableAmount,
+    orderInfo.max_usable_amount,
+    orderInfo.maxPointsDeductAmount,
+    orderInfo.max_points_deduct_amount,
+    orderInfo.maxIntegralDeductAmount,
+    orderInfo.max_integral_deduct_amount,
+    amountInfo.maxDeductAmount,
+    amountInfo.max_deduct_amount,
+    amountInfo.maxUseAmount,
+    amountInfo.max_use_amount,
+    amountInfo.maxUsableAmount,
+    amountInfo.max_usable_amount,
+    pointsInfo.maxDeductAmount,
+    pointsInfo.max_deduct_amount,
+    pointsInfo.maxUseAmount,
+    pointsInfo.max_use_amount,
+    pointsInfo.maxUsableAmount,
+    pointsInfo.max_usable_amount,
     pointsInfo.maxPointsDeductAmount,
     pointsInfo.max_points_deduct_amount,
     pointsInfo.maxIntegralDeductAmount,
     pointsInfo.max_integral_deduct_amount,
-    pointsInfo.maxDeductAmount,
-    pointsInfo.max_deduct_amount,
-    pointsInfo.deductAmount,
-    pointsInfo.deduct_amount,
     0
   );
   const give = firstDefined(
@@ -393,6 +579,8 @@ function normalizePointsFields(data = {}) {
     points_deduct_amount: deductAmount,
     integralAmount: deductAmount,
     integral_amount: deductAmount,
+    maxDeductAmount,
+    max_deduct_amount: maxDeductAmount,
     give,
     give_integral: give,
     giveIntegral: give,
@@ -430,8 +618,8 @@ function normalizePointsFields(data = {}) {
     points_deduct_amount: deductAmount,
     integralAmount: deductAmount,
     integral_amount: deductAmount,
-    maxDeductAmount: deductAmount,
-    max_deduct_amount: deductAmount,
+    maxDeductAmount,
+    max_deduct_amount: maxDeductAmount,
     give_integral: give,
     giveIntegral: give,
     order_give_integral: give,
@@ -498,11 +686,15 @@ function normalizePreviewAddress(data = {}) {
 function normalizeOrderItem(item = {}) {
   const image = resolveImage(item.image || item.image_str || item.imageUrl || item.goodsImageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage || item.picUrl, "goods");
   const price = item.goods_price || item.goodsPrice || item.salePrice || item.unitPrice || item.price;
+  const count = numberValue(firstDefined(item.goods_num, item.quantity, item.num, 1), 1);
+  const itemAmount = numberValue(firstDefined(item.total_price, item.totalPrice, item.totalAmount, item.realAmount, item.payAmount, item.pay_amount, ""), 0);
+  const computedAmount = numberValue(price, 0) * count;
+  const totalPrice = itemAmount > 0 ? itemAmount : (computedAmount > 0 ? computedAmount : price);
   return {
     ...item,
     id: item.id || item.orderItemId || item.itemId || item.skuId,
     item_id: item.item_id || item.orderItemId || item.itemId || item.skuId,
-    goods_id: item.goods_id || item.spuId || item.goodsId,
+    goods_id: firstDefined(item.goods_id, item.goodsId, item.spuId, item.spu_id, item.productId, item.product_id, item.product_id_str, item.item?.goodsId, item.goods?.id),
     sku_id: item.sku_id || item.skuId,
     goods_name: item.goods_name || item.spuName || item.productName || item.goodsName || item.skuName || item.name,
     name: item.name || item.spuName || item.productName || item.goodsName || item.skuName,
@@ -513,11 +705,49 @@ function normalizeOrderItem(item = {}) {
     spec_value: item.spec_value || item.specValue || item.skuName || "",
     goods_num: item.goods_num || item.quantity || item.num,
     goods_price: price,
-    total_price: item.total_price || item.totalAmount || item.realAmount || price,
+    total_price: totalPrice,
+    totalPrice,
+    totalAmount: firstDefined(item.totalAmount, item.total_price, item.totalPrice, item.realAmount, totalPrice),
     original_price: item.original_price || item.originPrice || item.marketPrice || price,
     is_express: item.is_express ?? item.supportDelivery ?? true,
     is_selffetch: item.is_selffetch ?? item.supportPickup ?? true,
   };
+}
+
+function itemListAmountSum(list = []) {
+  const amount = list.reduce((sum, item = {}) => {
+    const count = numberValue(firstDefined(item.goods_num, item.quantity, item.num, 1), 1);
+    const price = numberValue(firstDefined(item.goods_price, item.goodsPrice, item.salePrice, item.unitPrice, item.price, ""), 0);
+    if (price > 0) return sum + (price * count);
+    const explicitAmount = numberValue(firstDefined(item.total_price, item.totalPrice, item.totalAmount, item.realAmount, ""), 0);
+    return explicitAmount > 0 ? sum + explicitAmount : sum;
+  }, 0);
+  return amount > 0 ? amount.toFixed(2) : "";
+}
+
+function pickShopAmount(data = {}, itemList = []) {
+  const amountInfo = data.amountInfo || data.amount_info || {};
+  const shopInfo = data.shopInfo || data.shop_info || data.storeInfo || data.store_info || {};
+  const explicitAmount = firstDefined(
+    data.shopAmount,
+    data.shop_amount,
+    data.shopPayAmount,
+    data.shop_pay_amount,
+    data.merchantPayAmount,
+    data.merchant_pay_amount,
+    data.storePayAmount,
+    data.store_pay_amount,
+    amountInfo.shopAmount,
+    amountInfo.shop_amount,
+    amountInfo.shopPayAmount,
+    amountInfo.shop_pay_amount,
+    shopInfo.shopAmount,
+    shopInfo.shop_amount,
+    shopInfo.payAmount,
+    shopInfo.pay_amount
+  );
+  if (!isEmptyBackendText(explicitAmount)) return explicitAmount;
+  return itemListAmountSum(itemList);
 }
 
 function formatOrderStatus(status) {
@@ -530,7 +760,7 @@ function formatOrderStatus(status) {
     PAID: "待发货",
     WAIT_SHIP: "待发货",
     WAIT_DELIVERY: "待发货",
-    SHIPPED: "待收货",
+    SHIPPED: "已发货",
     WAIT_RECEIVE: "待收货",
     DELIVERED: "待收货",
     COMPLETED: "已完成",
@@ -546,6 +776,7 @@ function formatOrderStatus(status) {
   return statusMap[normalized] || cleanBackendText(status, "") || "";
 }
 function formatRefundStatus(status) {
+  if (isEmptyBackendText(status)) return "";
   if (status === 0 || status === '0') return '待商家处理';
   if (status === 1 || status === '1') return '处理中';
   if (status === 2 || status === '2' || status === 3 || status === '3') return '商家已同意';
@@ -568,47 +799,194 @@ function formatRefundStatus(status) {
   };
   return map[String(status || '').toUpperCase()] || cleanBackendText(status, "") || "";
 }
+
+function isRefundingOrderStatus(status) {
+  const normalized = String(status || '').toUpperCase();
+  return ['REFUNDING', 'AFTER_SALE', 'AFTER_SALES', 'AFTERSALE', 'REFUND_APPLIED', 'REFUND_PROCESSING'].includes(normalized);
+}
+
+function normalizeDeliveryStatus(value) {
+  return String(value || '').trim().replace(/[\s-]+/g, '_').toUpperCase();
+}
+
+function isShippedStatusText(value) {
+  const text = cleanBackendText(value, "");
+  return Boolean(text && /(已发货|待收货|待签收|运输中|派送中|已揽收)/.test(text));
+}
+
+function isShippedDeliveryStatus(status) {
+  return ['SHIPPED', 'DELIVERED', 'IN_TRANSIT', 'WAIT_RECEIVE', 'RECEIVING', 'RECEIVED', 'SIGNED'].includes(normalizeDeliveryStatus(status)) || isShippedStatusText(status);
+}
+
+function isReceivableDeliveryStatus(status) {
+  return ['WAIT_RECEIVE', 'DELIVERED', 'RECEIVING'].includes(normalizeDeliveryStatus(status));
+}
+
+function hasShippingSignal(data = {}, baseInfo = {}, deliveryInfo = {}) {
+  return Boolean(
+    isShippedDeliveryStatus(data.deliveryStatus || data.delivery_status || baseInfo.deliveryStatus || baseInfo.delivery_status || deliveryInfo.deliveryStatus || deliveryInfo.delivery_status) ||
+    isShippedStatusText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc) ||
+    firstDefined(data.shippedAt, data.shippingTime, data.shipping_time, baseInfo.shippedAt, baseInfo.shippingTime, baseInfo.shipping_time, deliveryInfo.shippedAt, deliveryInfo.shippingTime, deliveryInfo.shipping_time) ||
+    firstDefined(data.expressNo, data.express_no, data.trackingNo, data.tracking_no, data.invoice_no, baseInfo.expressNo, baseInfo.express_no, baseInfo.trackingNo, baseInfo.tracking_no, baseInfo.invoice_no, deliveryInfo.expressNo, deliveryInfo.express_no, deliveryInfo.trackingNo, deliveryInfo.tracking_no, deliveryInfo.invoiceNo, deliveryInfo.invoice_no)
+  );
+}
+
+function isOrderNoLikePickupCode(value, data = {}, baseInfo = {}) {
+  const text = String(value || '').trim();
+  if (!text) return false;
+  const orderIds = [
+    data.orderNo,
+    data.order_no,
+    data.orderSn,
+    data.order_sn,
+    data.id,
+    baseInfo.orderNo,
+    baseInfo.order_no,
+    baseInfo.orderSn,
+    baseInfo.order_sn,
+    baseInfo.id
+  ].filter(Boolean).map(String);
+  return orderIds.includes(text);
+}
+
+function pickRealPickupCode(data = {}, baseInfo = {}, pickupInfo = {}) {
+  const verifyInfo = data.verifyInfo || data.verify_info || {};
+  const candidates = [
+    baseInfo.pickupCode,
+    baseInfo.pickup_code,
+    verifyInfo.pickupCode,
+    verifyInfo.pickup_code,
+    verifyInfo.verifyCode,
+    verifyInfo.verify_code,
+    verifyInfo.code,
+    pickupInfo.pickupCode,
+    pickupInfo.pickup_code,
+    pickupInfo.verifyCode,
+    pickupInfo.verify_code,
+    pickupInfo.code,
+    data.pickup_code,
+    data.pickupCode,
+    data.verifyCode,
+    data.verify_code
+  ];
+  return candidates.find((value) => value && !isOrderNoLikePickupCode(value, data, baseInfo)) || '';
+}
+
+function pickOrderAfterSalePayload(data = {}, baseInfo = {}) {
+  const refundInfo = data.refundInfo || data.refund_info || {};
+  const afterSale = data.afterSale || data.after_sale || {};
+  return selectAfterSalePayload(refundInfo, afterSale, {
+    refundNo: data.refundNo || data.refund_no || baseInfo.refundNo || baseInfo.refund_no,
+    refundStatus: data.refundStatus || data.refund_status || baseInfo.refundStatus || baseInfo.refund_status,
+    refundStatusText: data.refundStatusText || data.refund_status_text || baseInfo.refundStatusText || baseInfo.refund_status_text,
+    afterSaleStatus: data.afterSaleStatus || data.after_sale_status || baseInfo.afterSaleStatus || baseInfo.after_sale_status,
+    afterSaleStatusText: data.afterSaleStatusText || data.after_sale_status_text || baseInfo.afterSaleStatusText || baseInfo.after_sale_status_text,
+    status: isRefundingOrderStatus(data.orderStatus || data.order_status || data.status || baseInfo.orderStatus || baseInfo.order_status || baseInfo.status) ? 'REFUNDING' : ''
+  });
+}
+
 function normalizeOrderDetail(data = {}) {
   const baseInfo = data.baseInfo || data;
-  const amountInfo = data.amountInfo || {};
+  const amountInfo = data.amountInfo || data.amount_info || baseInfo.amountInfo || baseInfo.amount_info || {};
   const normalizedPoints = normalizePointsFields(data);
   const pointsInfo = normalizedPoints.pointsInfo || {};
   const deliveryInfo = data.deliveryInfo || data.delivery_info || data.logisticsInfo || data.logistics_info || {};
   const receiverInfo = data.receiverInfo || data.receiver_info || data.addressInfo || data.address_info || {};
   const shopInfo = data.shopInfo || data.shop_info || data.storeInfo || data.store_info || {};
+  const pickupInfo = data.pickupInfo || data.pickup_info || data.selffetchInfo || data.selffetch_info || data.selfFetchInfo || data.self_fetch_info || data.pickup || data.selfPickup || data.self_pickup || baseInfo.pickupInfo || baseInfo.pickup_info || {};
+  const selffetchShop = baseInfo.selffetchShop || data.selffetch_shop || data.selffetchShop || data.pickupShop || data.pickup_shop || data.storeInfo || data.store_info || pickupInfo.selffetchShop || pickupInfo.selffetch_shop || pickupInfo.pickupShop || pickupInfo.pickup_shop || pickupInfo.store || pickupInfo.shop || {};
+  const orderChannel = data.orderChannel || data.order_channel || baseInfo.orderChannel || baseInfo.order_channel || '';
+  const channelText = String(orderChannel || '').toUpperCase();
+  const deliveryType = baseInfo.deliveryType || data.delivery_type || data.deliveryType || pickupInfo.deliveryType || pickupInfo.delivery_type || (channelText === 'OFFLINE_PICKUP' ? 2 : '');
+  const normalizedDeliveryType = String(deliveryType || '').toUpperCase();
+  const isSelfFetch = deliveryType === 2 || normalizedDeliveryType === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(normalizedDeliveryType);
   const status = firstDefined(data.orderStatus, baseInfo.orderStatus, data.order_status, data.status);
   const normalizedStatus = String(status || '').toUpperCase();
-  const isWaitPay = ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID', '0'].includes(normalizedStatus) || status === 0;
-  const isWaitReceive = ['SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', '2'].includes(normalizedStatus) || status === 2;
-  const isFinished = ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(normalizedStatus) || status === 3;
-  const isClosed = ['CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER', '4'].includes(normalizedStatus) || status === 4;
-  const canRefund = Boolean(data.canRefund ?? data.refundable ?? data.can_refund ?? baseInfo.canRefund ?? baseInfo.refundable);
+  const payStatus = firstDefined(data.payStatus, baseInfo.payStatus, data.pay_status, data.paymentStatus, baseInfo.paymentStatus, data.payment_status, baseInfo.payment_status);
+  const normalizedPayStatus = String(payStatus || '').toUpperCase();
+  const payTime = firstDefined(baseInfo.paidAt, baseInfo.payTime, data.paidAt, data.pay_time, data.payTime, data.paid_at);
+  const isPaidByPayment = payStatus === 1 || payStatus === "1" || ["PAID", "PAYED", "SUCCESS", "PAID_SUCCESS", "PAY_SUCCESS"].includes(normalizedPayStatus) || Boolean(payTime);
+  const deliveryStatus = data.deliveryStatus || data.delivery_status || baseInfo.deliveryStatus || baseInfo.delivery_status || deliveryInfo.deliveryStatus || deliveryInfo.delivery_status;
+  const paidFallbackStatus = ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID', '0'].includes(normalizedStatus) || status === 0 ? 'PAID' : status;
+  const effectiveBaseStatus = isPaidByPayment ? paidFallbackStatus : status;
+  const effectiveBaseStatusText = String(effectiveBaseStatus || '').toUpperCase();
+  const effectiveStatus = ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', '1'].includes(effectiveBaseStatusText) && hasShippingSignal(data, baseInfo, deliveryInfo) ? 'SHIPPED' : effectiveBaseStatus;
+  const normalizedEffectiveStatus = String(effectiveStatus || '').toUpperCase();
+  const orderAfterSale = pickOrderAfterSalePayload(data, baseInfo);
+  const orderAfterSaleId = firstDefined(pickAfterSaleId(orderAfterSale), data.refundNo, data.refund_no, baseInfo.refundNo, baseInfo.refund_no);
+  const orderAfterSaleStatus = firstDefined(
+    pickAfterSaleStatus(orderAfterSale),
+    data.refundStatusText,
+    data.refund_status_text,
+    data.refundStatus,
+    data.refund_status,
+    baseInfo.refundStatusText,
+    baseInfo.refund_status_text,
+    baseInfo.refundStatus,
+    baseInfo.refund_status,
+    isRefundingOrderStatus(status) ? 'REFUNDING' : ''
+  );
+  const orderAfterSaleText = orderAfterSaleId || orderAfterSaleStatus ? (formatRefundStatus(orderAfterSaleStatus) || '售后处理中') : '';
+  const isAfterSaleOrder = Boolean(orderAfterSaleId || orderAfterSaleText || isRefundingOrderStatus(status));
+  const isWaitPay = ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID', '0'].includes(normalizedEffectiveStatus) || effectiveStatus === 0;
+  const isWaitShip = ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', '1'].includes(normalizedEffectiveStatus) || effectiveStatus === 1;
+  const isWaitReceive = ['WAIT_RECEIVE', 'DELIVERED', 'RECEIVING', '2'].includes(normalizedEffectiveStatus) || effectiveStatus === 2 || isReceivableDeliveryStatus(deliveryStatus);
+  const isShippedOnly = ['SHIPPED', 'IN_TRANSIT'].includes(normalizedEffectiveStatus) || hasShippingSignal(data, baseInfo, deliveryInfo);
+  const isFinished = ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(normalizedEffectiveStatus) || effectiveStatus === 3;
+  const isClosed = ['CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER', '4'].includes(normalizedEffectiveStatus) || effectiveStatus === 4;
+  const backendCanRefund = firstDefined(data.canRefund, data.refundable, data.can_refund, data.refund_btn, data.refundBtn, baseInfo.canRefund, baseInfo.refundable, baseInfo.can_refund, baseInfo.refund_btn, baseInfo.refundBtn);
+  const canRefund = !isAfterSaleOrder && booleanValue(backendCanRefund, isWaitShip);
   const shopOrders = data.shopOrders || data.shop_orders || [];
   const itemListSource = data.itemList || data.order_goods || data.goods_lists || data.items || (Array.isArray(shopOrders) ? flattenShopOrders(shopOrders) : []);
+  const afterSaleRecords = collectAfterSaleRecords(data);
   const itemList = itemListSource.map((item) => {
     const normalizedItem = normalizeOrderItem(item);
-    const afterSale = item.afterSale || item.after_sale || item.refundInfo || item.refund_info || {};
-    const afterSaleId = firstDefined(afterSale.afterSaleId, afterSale.after_sale_id, afterSale.refundNo, afterSale.id, item.afterSaleId, item.after_sale_id, item.refundNo, item.refund_no);
-    const afterStatus = firstDefined(afterSale.statusText, afterSale.status_text, afterSale.refundStatusText, afterSale.refund_status_text, afterSale.status, item.after_status_desc, item.afterStatusDesc, item.refundStatusText, item.refund_status_text, item.refundStatus, item.afterSaleStatus);
-    const afterStatusText = afterSaleId || afterStatus !== undefined ? formatRefundStatus(afterStatus) : '';
+    const matchedAfterSale = matchAfterSaleRecord(item, afterSaleRecords);
+    const afterSale = selectAfterSalePayload(item.afterSale, item.after_sale, item.refundInfo, item.refund_info, matchedAfterSale, orderAfterSale);
+    const afterSaleId = firstDefined(pickAfterSaleId(afterSale), item.afterSaleId, item.after_sale_id, item.refundNo, item.refund_no, item.refundId, item.refund_id, orderAfterSaleId);
+    const afterStatus = firstDefined(
+      pickAfterSaleStatus(afterSale),
+      item.after_status_desc,
+      item.afterStatusDesc,
+      item.after_status,
+      item.refundStatusText,
+      item.refund_status_text,
+      item.refundStatus,
+      item.refund_status,
+      item.afterSaleStatus,
+      item.after_sale_status,
+      orderAfterSaleStatus
+    );
+    const afterStatusText = afterSaleId ? (formatRefundStatus(afterStatus) || '售后处理中') : (afterStatus !== undefined ? formatRefundStatus(afterStatus) : '');
+    const itemRefundFlag = firstDefined(item.refund_btn, item.refundBtn, item.canRefund, item.can_refund, item.refundable);
     return {
       ...normalizedItem,
-      order_id: data.orderNo || baseInfo.orderNo || data.id,
+      order_id: firstDefined(item.order_id, item.orderId, item.orderNo, item.order_sn, data.orderNo, baseInfo.orderNo, data.id),
+      order_status: effectiveStatus,
+      raw_order_status: status,
+      delivery_status: deliveryStatus,
+      order_status_desc: effectiveStatus !== status ? formatOrderStatus(effectiveStatus) : (cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(effectiveStatus)),
+      order_can_refund: canRefund,
       after_sale_id: afterSaleId || '',
       after_status_desc: afterStatusText || '',
       refund_info: afterSale,
-      refund_btn: Boolean(canRefund || item.refund_btn || item.canRefund || item.refundable) && !afterSaleId && !afterStatusText
+      refund_btn: booleanValue(itemRefundFlag, canRefund) && !afterSaleId && !afterStatusText
     };
   });
+  const shopAmount = pickShopAmount(data, itemList);
   return {
     ...data,
     ...normalizedPoints,
     id: data.orderNo || baseInfo.orderNo || data.id,
     order_sn: data.orderNo || baseInfo.orderNo || baseInfo.orderSn || data.order_sn,
-    order_status: status,
-    order_status_desc: cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(data.orderStatus || baseInfo.orderStatus || data.order_status),
-    pay_status: data.payStatus || baseInfo.payStatus || data.pay_status || data.paymentStatus || baseInfo.paymentStatus,
+    order_status: effectiveStatus,
+    raw_order_status: status,
+    delivery_status: deliveryStatus,
+    order_status_desc: orderAfterSaleText || (effectiveStatus !== status ? formatOrderStatus(effectiveStatus) : (cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(effectiveStatus))),
+    pay_status: payStatus,
     order_amount: firstDefined(amountInfo.payAmount, data.payAmount, baseInfo.orderAmount, data.order_amount),
+    shop_amount: shopAmount,
+    shopAmount,
     goods_price: firstDefined(amountInfo.goodsAmount, data.goodsAmount, baseInfo.goodsAmount, data.goods_price),
     shipping_price: firstDefined(amountInfo.freightAmount, data.freightAmount, baseInfo.freightAmount, data.shipping_price),
     discount_amount: firstDefined(amountInfo.discountAmount, data.discountAmount, baseInfo.discountAmount, data.discount_amount),
@@ -631,33 +1009,48 @@ function normalizeOrderDetail(data = {}) {
     shop_logo: resolveImage(data.shopLogo || data.shop_logo || shopInfo.logo || shopInfo.shopLogo || '', 'goods'),
     goods_num: firstDefined(data.goodsNum, data.goods_num, data.totalNum, data.total_num, itemList.reduce((sum, item) => sum + Number(item.goods_num || 0), 0)),
     create_time: baseInfo.createdAt || baseInfo.createTime || data.createdAt || data.create_time,
-    pay_time: baseInfo.paidAt || baseInfo.payTime || data.paidAt || data.pay_time,
+    pay_time: payTime,
     shipping_time: baseInfo.shippedAt || baseInfo.shippingTime || data.shippedAt || data.shipping_time,
     confirm_take_time: baseInfo.confirmTime || data.confirm_take_time,
     cancel_time: baseInfo.cancelTime || data.cancel_time,
     order_cancel_time: baseInfo.expireTime || data.expireTime || data.order_cancel_time,
-    delivery_type: baseInfo.deliveryType || data.delivery_type || data.deliveryType,
+    delivery_type: deliveryType,
     order_type: baseInfo.orderType || data.order_type || 0,
-    consignee: cleanEmptyBackendText(baseInfo.consignee || baseInfo.receiverName || receiverInfo.consignee || receiverInfo.receiverName || data.consignee, ""),
-    mobile: cleanEmptyBackendText(baseInfo.mobile || baseInfo.receiverMobile || receiverInfo.mobile || receiverInfo.receiverMobile || data.mobile, ""),
+    consignee: cleanEmptyBackendText(baseInfo.consignee || baseInfo.receiverName || pickupInfo.consignee || pickupInfo.receiverName || pickupInfo.contact || pickupInfo.contactName || pickupInfo.contact_name || pickupInfo.pickupName || pickupInfo.pickup_name || receiverInfo.consignee || receiverInfo.receiverName || data.consignee, ""),
+    mobile: cleanEmptyBackendText(baseInfo.mobile || baseInfo.receiverMobile || pickupInfo.mobile || pickupInfo.receiverMobile || pickupInfo.telephone || pickupInfo.phone || pickupInfo.contactMobile || pickupInfo.contact_mobile || pickupInfo.pickupMobile || pickupInfo.pickup_mobile || receiverInfo.mobile || receiverInfo.receiverMobile || data.mobile, ""),
     delivery_address: cleanEmptyBackendText(baseInfo.addressText || baseInfo.deliveryAddress || baseInfo.detailAddress || receiverInfo.addressText || receiverInfo.detailAddress || data.delivery_address, ""),
+    receiver_latitude: firstDefined(baseInfo.receiverLatitude, baseInfo.receiver_latitude, baseInfo.latitude, baseInfo.lat, receiverInfo.receiverLatitude, receiverInfo.receiver_latitude, receiverInfo.latitude, receiverInfo.lat, receiverInfo.mapLat, receiverInfo.map_lat, receiverInfo.addressLat, receiverInfo.address_lat, data.receiverLatitude, data.receiver_latitude, data.latitude, data.lat, data.mapLat, data.map_lat, data.addressLat, data.address_lat, ''),
+    receiver_longitude: firstDefined(baseInfo.receiverLongitude, baseInfo.receiver_longitude, baseInfo.longitude, baseInfo.lng, baseInfo.lon, receiverInfo.receiverLongitude, receiverInfo.receiver_longitude, receiverInfo.longitude, receiverInfo.lng, receiverInfo.lon, receiverInfo.mapLng, receiverInfo.map_lng, receiverInfo.addressLng, receiverInfo.address_lng, data.receiverLongitude, data.receiver_longitude, data.longitude, data.lng, data.lon, data.mapLng, data.map_lng, data.addressLng, data.address_lng, ''),
     user_remark: cleanEmptyBackendText(data.userRemark || data.user_remark || baseInfo.userRemark || baseInfo.remark, ""),
     express_name: cleanEmptyBackendText(deliveryInfo.expressName || deliveryInfo.company || deliveryInfo.shippingName || data.express_name || data.expressName, ""),
     express_no: cleanEmptyBackendText(deliveryInfo.expressNo || deliveryInfo.trackingNo || deliveryInfo.invoiceNo || data.express_no || data.trackingNo || data.invoice_no, ""),
-    selffetch_shop: baseInfo.selffetchShop || data.selffetch_shop || {},
-    pickup_code: baseInfo.pickupCode || data.verifyInfo?.pickupCode || data.pickup_code,
+    selffetch_shop: {
+      ...selffetchShop,
+      name: selffetchShop.name || selffetchShop.shopName || selffetchShop.shop_name || selffetchShop.storeName || pickupInfo.pickupName || pickupInfo.pickup_name || data.pickupName || data.pickup_name || '',
+      shop_address: selffetchShop.shop_address || selffetchShop.address || selffetchShop.detailAddress || selffetchShop.detail_address || selffetchShop.addressText || selffetchShop.address_text || pickupInfo.pickupAddress || pickupInfo.pickup_address || pickupInfo.address || pickupInfo.addressText || pickupInfo.address_text || data.pickupAddress || data.pickup_address || '',
+      business_start_time: selffetchShop.business_start_time || selffetchShop.businessStartTime || selffetchShop.openStartTime || '',
+      business_end_time: selffetchShop.business_end_time || selffetchShop.businessEndTime || selffetchShop.openEndTime || '',
+      mobile: selffetchShop.mobile || selffetchShop.phone || selffetchShop.contactMobile || selffetchShop.contact_mobile || '',
+      latitude: firstDefined(selffetchShop.latitude, selffetchShop.lat, selffetchShop.shopLatitude, selffetchShop.shop_latitude, selffetchShop.mapLat, selffetchShop.map_lat, selffetchShop.pickupLatitude, selffetchShop.pickup_latitude, pickupInfo.pickupLatitude, pickupInfo.pickup_latitude, pickupInfo.latitude, pickupInfo.lat, pickupInfo.mapLat, pickupInfo.map_lat, data.pickupLatitude, data.pickup_latitude, data.latitude, data.lat, ''),
+      longitude: firstDefined(selffetchShop.longitude, selffetchShop.lng, selffetchShop.lon, selffetchShop.shopLongitude, selffetchShop.shop_longitude, selffetchShop.mapLng, selffetchShop.map_lng, selffetchShop.pickupLongitude, selffetchShop.pickup_longitude, pickupInfo.pickupLongitude, pickupInfo.pickup_longitude, pickupInfo.longitude, pickupInfo.lng, pickupInfo.lon, pickupInfo.mapLng, pickupInfo.map_lng, data.pickupLongitude, data.pickup_longitude, data.longitude, data.lng, data.lon, '')
+    },
+    pickup_code: pickRealPickupCode(data, baseInfo, pickupInfo),
     verification_status: baseInfo.verificationStatus || data.verifyInfo?.verificationStatus || data.verification_status,
     status_flow: data.statusFlow || data.status_flow || [],
-    refund_info: data.refundInfo || data.refund_info || {},
+    refund_info: orderAfterSale,
+    after_sale_id: orderAfterSaleId || '',
+    after_status_desc: orderAfterSaleText || '',
     verify_info: data.verifyInfo || data.verify_info || {},
     team: data.team || {},
-    cancel_btn: firstDefined(data.cancel_btn, data.cancelBtn, baseInfo.cancelBtn, isWaitPay),
-    delivery_btn: firstDefined(data.delivery_btn, data.deliveryBtn, baseInfo.deliveryBtn, isWaitReceive || isFinished),
-    take_btn: firstDefined(data.take_btn, data.takeBtn, baseInfo.takeBtn, isWaitReceive),
+    cancel_btn: !isAfterSaleOrder && firstDefined(data.cancel_btn, data.cancelBtn, baseInfo.cancelBtn, isWaitPay),
+    delivery_btn: !isSelfFetch && firstDefined(data.delivery_btn, data.deliveryBtn, baseInfo.deliveryBtn, isWaitReceive || isFinished || isShippedOnly),
+    take_btn: !isSelfFetch && firstDefined(data.take_btn, data.takeBtn, baseInfo.takeBtn, isWaitReceive),
+    receivable: !isSelfFetch && isWaitReceive,
+    can_confirm_receipt: !isSelfFetch && isWaitReceive,
     del_btn: firstDefined(data.del_btn, data.delBtn, baseInfo.delBtn, isClosed || isFinished),
     pay_btn: firstDefined(data.pay_btn, data.payBtn, baseInfo.payBtn, isWaitPay),
     comment_btn: firstDefined(data.comment_btn, data.commentBtn, baseInfo.commentBtn, isFinished),
-    pickup_btn: firstDefined(data.pickup_btn, data.pickupBtn, baseInfo.pickupBtn),
+    pickup_btn: !isAfterSaleOrder && firstDefined(data.pickup_btn, data.pickupBtn, baseInfo.pickupBtn, isSelfFetch && !isClosed),
     canRefund,
     refundable: canRefund,
     refund_btn: canRefund
@@ -667,6 +1060,7 @@ function normalizeOrderDetail(data = {}) {
 function normalizeOrderListItem(item = {}) {
   const detail = normalizeOrderDetail(item);
   const status = detail.order_status;
+  const listAmount = pickShopAmount(detail, detail.order_goods || detail.goods_lists || []);
   return {
     ...detail,
     id: detail.id || detail.orderNo || detail.order_sn,
@@ -683,6 +1077,90 @@ function normalizeOrderListItem(item = {}) {
     refundable: detail.refundable,
     order_goods: detail.order_goods,
     goods_lists: detail.goods_lists,
+    shop_amount: firstDefined(detail.shop_amount, detail.shopAmount, listAmount),
+    shopAmount: firstDefined(detail.shopAmount, detail.shop_amount, listAmount),
+  };
+}
+
+function normalizeTraceRow(item = {}) {
+  if (Array.isArray(item)) return item.filter(Boolean);
+  if (typeof item === "string") return [item];
+  const time = firstDefined(item.time, item.acceptTime, item.accept_time, item.createdAt, item.created_at, item.traceTime, item.trace_time);
+  const content = firstDefined(item.content, item.context, item.desc, item.description, item.statusText, item.status_text, item.message, item.remark);
+  const location = firstDefined(item.location, item.area, item.city);
+  return [time, content, location].filter(Boolean);
+}
+
+function normalizeOrderTraces(data = {}) {
+  const baseInfo = data.baseInfo || data;
+  const deliveryInfo = data.deliveryInfo || data.delivery_info || data.logisticsInfo || data.logistics_info || {};
+  const detail = normalizeOrderDetail(data);
+  const goods = (detail.order_goods || detail.goods_lists || [])[0] || {};
+  const receiverInfo = data.receiverInfo || data.receiver_info || data.addressInfo || data.address_info || {};
+  const traceSource = firstDefined(
+    deliveryInfo.traces,
+    deliveryInfo.traceList,
+    deliveryInfo.trace_list,
+    deliveryInfo.routes,
+    data.traces,
+    data.traceList,
+    data.trace_list,
+    data.logisticsTraces,
+    data.logistics_traces,
+    []
+  );
+  const traces = Array.isArray(traceSource) ? traceSource.map(normalizeTraceRow).filter((row) => row.length) : [];
+  const statusFlow = Array.isArray(detail.status_flow || data.statusFlow || data.status_flow) ? (detail.status_flow || data.statusFlow || data.status_flow) : [];
+  const paidFlow = statusFlow.find((item = {}) => /支付|付款|PAID/i.test(String(item.title || item.name || item.status || item.statusText || ""))) || {};
+  const shippedFlow = statusFlow.find((item = {}) => /发货|已发货|SHIPPED/i.test(String(item.title || item.name || item.status || item.statusText || ""))) || {};
+  const finishedFlow = statusFlow.find((item = {}) => /完成|签收|收货|COMPLETED|FINISH/i.test(String(item.title || item.name || item.status || item.statusText || ""))) || {};
+  const shippedTime = firstDefined(detail.shipping_time, shippedFlow.time, shippedFlow.createdAt, shippedFlow.created_at);
+  const payTime = firstDefined(detail.pay_time, paidFlow.time, paidFlow.createdAt, paidFlow.created_at);
+  const finishTime = firstDefined(detail.confirm_take_time, finishedFlow.time, finishedFlow.createdAt, finishedFlow.created_at);
+  const expressName = firstDefined(detail.express_name, detail.shipping_name, deliveryInfo.expressName, deliveryInfo.express_name, deliveryInfo.company, deliveryInfo.companyName, deliveryInfo.company_name, deliveryInfo.shippingName, deliveryInfo.shipping_name, deliveryInfo.logisticsCompany, deliveryInfo.logistics_company, "");
+  const expressNo = firstDefined(detail.express_no, detail.invoice_no, deliveryInfo.expressNo, deliveryInfo.express_no, deliveryInfo.trackingNo, deliveryInfo.tracking_no, deliveryInfo.invoiceNo, deliveryInfo.invoice_no, deliveryInfo.logisticsNo, deliveryInfo.logistics_no, deliveryInfo.deliveryNo, deliveryInfo.delivery_no, "");
+  const receiverName = firstDefined(detail.consignee, baseInfo.receiverName, baseInfo.receiver_name, receiverInfo.receiverName, receiverInfo.receiver_name, receiverInfo.consignee, "");
+  const receiverMobile = firstDefined(detail.mobile, baseInfo.receiverMobile, baseInfo.receiver_mobile, receiverInfo.receiverMobile, receiverInfo.receiver_mobile, receiverInfo.mobile, "");
+  const receiverAddress = firstDefined(detail.delivery_address, baseInfo.addressText, baseInfo.address_text, baseInfo.deliveryAddress, baseInfo.delivery_address, receiverInfo.addressText, receiverInfo.address_text, receiverInfo.fullAddress, receiverInfo.full_address, receiverInfo.detailAddress, receiverInfo.detail_address, "");
+
+  return {
+    shipment: {
+      title: "商家已发货",
+      tips: shippedTime || expressNo || isShippedDeliveryStatus(detail.delivery_status) ? "包裹已交给承运方" : "",
+      time: shippedTime || ""
+    },
+    buy: {
+      title: "订单已支付",
+      tips: payTime ? "买家已付款" : "",
+      time: payTime || ""
+    },
+    delivery: {
+      title: expressName || "物流运输中",
+      traces
+    },
+    finish: {
+      title: "确认收货",
+      tips: finishTime ? "订单已确认收货" : "",
+      time: finishTime || ""
+    },
+    order: {
+      image: goods.image || goods.goods_image || goods.goodsImage || detail.shop_logo || "",
+      count: detail.goods_num || (detail.order_goods || []).reduce((sum, item) => sum + Number(item.goods_num || 0), 0) || 1,
+      tips: detail.order_status_desc || formatOrderStatus(detail.order_status),
+      order_sn: detail.order_sn || detail.id || "",
+      shipping_name: expressName || "暂无物流公司",
+      invoice_no: expressNo || "暂无物流单号",
+      delivery_status: detail.delivery_status || "",
+      shipped_time: shippedTime || "",
+      pay_time: payTime || "",
+      finish_time: finishTime || ""
+    },
+    take: {
+      contacts: receiverName,
+      mobile: receiverMobile,
+      address: receiverAddress
+    },
+    raw: detail
   };
 }
 
@@ -736,7 +1214,8 @@ function flattenShopOrders(shopOrders = []) {
 }
 
 function normalizeOrderPreview(data = {}) {
-  const goodsLists = (data.goods_lists || data.itemList || data.items || flattenShopOrders(data.shopOrders || [])).map(normalizeOrderItem);
+  const shopOrders = data.shopOrders || data.shop_orders || [];
+  const goodsLists = (data.goods_lists || data.itemList || data.items || flattenShopOrders(shopOrders)).map(normalizeOrderItem);
   const couponInfo = data.couponInfo || data.coupon_info || data.couponSummary || data.coupon_summary || {};
   const usableCoupons = (data.availableCoupons || data.usableCoupons || data.usableCoupon || data.available_coupon || data.usable_coupon || data.usable || couponInfo.availableCoupons || couponInfo.usableCoupons || couponInfo.usableCoupon || couponInfo.usable || []).map(normalizeCouponItem);
   const unusableCoupons = (data.unavailableCoupons || data.unusableCoupons || data.unusableCoupon || data.unavailable_coupon || data.unusable_coupon || data.unusable || couponInfo.unavailableCoupons || couponInfo.unusableCoupons || couponInfo.unusableCoupon || couponInfo.unusable || []).map(normalizeCouponItem);
@@ -744,9 +1223,21 @@ function normalizeOrderPreview(data = {}) {
   const normalizedPoints = normalizePointsFields(data);
   const pointsInfo = normalizedPoints.pointsInfo || {};
   const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {};
-  const goodsAmount = firstDefined(amountInfo.goodsAmount, amountInfo.goods_amount, data.goodsAmount, data.goods_amount, data.totalGoodsAmount, data.total_goods_amount, data.total_goods_price, 0);
-  const freightAmount = firstDefined(amountInfo.freightAmount, amountInfo.freight_amount, data.freightAmount, data.freight_amount, data.shippingAmount, data.shipping_amount, data.shipping_price, 0);
-  const payAmount = firstDefined(amountInfo.payAmount, amountInfo.pay_amount, data.payAmount, data.pay_amount, data.orderAmount, data.order_amount, data.actualAmount, data.actual_amount, 0);
+  const shopAmountSum = (list = [], keys = []) => {
+    const amount = list.reduce((sum, shop = {}) => {
+      const value = firstDefined(...keys.map((key) => shop[key]));
+      return value === undefined || value === null || value === '' ? sum : sum + numberValue(value, 0);
+    }, 0);
+    return amount > 0 ? amount : '';
+  };
+  const itemAmountSum = goodsLists.reduce((sum, item = {}) => {
+    const count = numberValue(firstDefined(item.goods_num, item.quantity, item.num, 1), 1);
+    const price = numberValue(firstDefined(item.goods_price, item.goodsPrice, item.salePrice, item.price, 0), 0);
+    return sum + price * count;
+  }, 0);
+  const goodsAmount = firstDefined(amountInfo.goodsAmount, amountInfo.goods_amount, data.goodsAmount, data.goods_amount, data.totalGoodsAmount, data.total_goods_amount, data.total_goods_price, shopAmountSum(shopOrders, ['goodsAmount', 'goods_amount', 'totalGoodsAmount', 'total_goods_amount', 'goodsPrice', 'goods_price']), itemAmountSum, 0);
+  const freightAmount = firstDefined(amountInfo.freightAmount, amountInfo.freight_amount, data.freightAmount, data.freight_amount, data.shippingAmount, data.shipping_amount, data.shipping_price, shopAmountSum(shopOrders, ['freightAmount', 'freight_amount', 'shippingAmount', 'shipping_amount', 'shippingPrice', 'shipping_price']), 0);
+  const payAmount = firstDefined(amountInfo.payAmount, amountInfo.pay_amount, data.payAmount, data.pay_amount, data.orderAmount, data.order_amount, data.actualAmount, data.actual_amount, shopAmountSum(shopOrders, ['payAmount', 'pay_amount', 'orderAmount', 'order_amount', 'actualAmount', 'actual_amount']), 0);
   const explicitDiscountAmount = firstDefined(
     amountInfo.couponDiscountAmount,
     amountInfo.coupon_discount_amount,
@@ -800,7 +1291,8 @@ function normalizeOrderPreview(data = {}) {
     ...data,
     ...normalizedPoints,
     address: normalizePreviewAddress(data),
-    shop_orders: data.shopOrders || data.shop_orders || [],
+    shopOrders,
+    shop_orders: shopOrders,
     goods_lists: goodsLists,
     total_goods_price: goodsAmount,
     discount_amount: discountAmount,
@@ -892,9 +1384,17 @@ export async function orderBuy(data) {
     selffetchShopId: data.selffetchShopId || data.selffetch_shop_id || data.store_id,
     selffetch_shop_id: data.selffetch_shop_id || data.selffetchShopId || data.store_id,
     pickupLatitude: data.pickupLatitude || data.pickup_latitude,
+    pickup_latitude: data.pickup_latitude || data.pickupLatitude,
     pickupLongitude: data.pickupLongitude || data.pickup_longitude,
+    pickup_longitude: data.pickup_longitude || data.pickupLongitude,
     pickupAddress: data.pickupAddress || data.pickup_address,
+    pickup_address: data.pickup_address || data.pickupAddress,
     pickupName: data.pickupName || data.pickup_name,
+    pickup_name: data.pickup_name || data.pickupName,
+    pickupContact: data.pickupContact || data.pickup_contact,
+    pickup_contact: data.pickup_contact || data.pickupContact,
+    pickupMobile: data.pickupMobile || data.pickup_mobile,
+    pickup_mobile: data.pickup_mobile || data.pickupMobile,
     consignee: data.consignee,
     mobile: data.mobile,
     ...pointsPayload,
@@ -965,7 +1465,10 @@ export function cancelOrder(id) {
 
 //物流
 export function orderTraces(id) {
-  return request.get(`miniapp/orders/${id}`);
+  return request.get(`miniapp/orders/${id}`).then((res) => res.code == 1 ? {
+    ...res,
+    data: normalizeOrderTraces(res.data || {})
+  } : res);
 }
 
 //确认收货
@@ -1043,9 +1546,23 @@ export function getwechatSyncCheck(params) {
 // 商家核销自提订单
 export function merchantVerifyOrder(data = {}) {
   const subOrderNo = data.subOrderNo || data.sub_order_no || data.orderNo || data.order_no || data.id || ''
-  return request.post(`miniapp/merchant/orders/${subOrderNo}/verify`, {
+  const payload = {
     merchantId: data.merchantId || data.merchant_id,
     verifyCode: data.verifyCode || data.verify_code || data.code,
-    operatorId: data.operatorId || data.operator_id || data.userId || data.user_id
-  })
+    verify_code: data.verify_code || data.verifyCode || data.code,
+    pickupCode: data.pickupCode || data.pickup_code || data.verifyCode || data.verify_code || data.code,
+    pickup_code: data.pickup_code || data.pickupCode || data.verifyCode || data.verify_code || data.code,
+    operatorId: data.operatorId || data.operator_id || data.userId || data.user_id,
+    operator_id: data.operator_id || data.operatorId || data.userId || data.user_id
+  }
+  if (subOrderNo) {
+    return request.put(`miniapp/merchant/orders/${subOrderNo}/verify`, payload)
+      .then((res) => (res.rawCode === 'A0108' || /method/i.test(String(res.msg || res.message || '')))
+        ? request.get(`miniapp/merchant/orders/${subOrderNo}/verify`, { params: payload, show: false })
+        : res)
+  }
+  return request.put('miniapp/merchant/orders/verify', payload)
+    .then((res) => (res.rawCode === 'A0108' || /method/i.test(String(res.msg || res.message || '')))
+      ? request.get('miniapp/merchant/orders/verify', { params: payload, show: false })
+      : res)
 }

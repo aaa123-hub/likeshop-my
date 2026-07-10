@@ -1,5 +1,9 @@
 <template>
-    <view class="my-page">
+    <view :class="['my-page', {
+        'my-page--guest': !isLogin,
+        'my-page--no-offline': !isMerchantApproved,
+        'my-page--no-promotion': !showPromotionSection
+    }]">
         <image class="my-page__page-bg" :src="designAssets.myPageBg" mode="scaleToFill"></image>
         <view class="my-page__screen">
             <view class="my-page__top">
@@ -18,12 +22,15 @@
                     <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
                     <view class="my-page__member-id my-page__member-id--hint" v-else>{{ isLogin ? '完善昵称后，好友更容易识别你' : '登录体验更多功能' }}</view>
                     <view v-if="isLogin" class="my-page__identity-row">
-                        <view :class="['my-page__identity-pill', baseIdentityClass]">{{ baseIdentityLabel }}</view>
-                        <view v-if="roleSummaryText" class="my-page__identity-text">{{ roleSummaryText }}</view>
-                    </view>
-                    <view v-if="isLogin" class="my-page__role-badges">
                         <view
                             v-for="item in displayRoleBadges"
+                            :key="item.code"
+                            :class="['my-page__identity-pill', 'my-page__role-badge--' + item.code.toLowerCase()]"
+                        >{{ item.label }}</view>
+                    </view>
+                    <view v-if="isLogin && pendingRoleBadges.length" class="my-page__role-badges">
+                        <view
+                            v-for="item in pendingRoleBadges"
                             :key="item.code"
                             :class="['my-page__role-badge', 'my-page__role-badge--' + item.code.toLowerCase()]"
                         >{{ item.label }}</view>
@@ -69,7 +76,7 @@
                 </view>
             </view>
 
-            <view class="my-section my-section--pair my-section--pair-1">
+            <view class="my-section my-section--pair my-section--pair-1" v-if="isMerchantApproved">
                 <view class="my-section__head my-section__head--plain">
                     <text class="my-section__title">线下订单</text>
                 </view>
@@ -81,9 +88,9 @@
                 </view>
             </view>
 
-            <view class="my-section my-section--pair my-section--pair-2">
+            <view class="my-section my-section--pair my-section--pair-2" v-if="showPromotionSection">
                 <view class="my-section__head my-section__head--plain">
-                    <text class="my-section__title">我的联盟订单</text>
+                    <text class="my-section__title">我的推广</text>
                 </view>
                 <view class="my-pair-grid">
                     <view class="my-pair-item" v-for="item in allianceEntries" :key="item.name" @tap="openEntry(item)">
@@ -110,7 +117,7 @@
 
             <view class="my-section my-section--feature">
                 <view class="my-section__head my-section__head--plain">
-                    <text class="my-section__title">其他功能</text>
+                    <text class="my-section__title">其它功能</text>
                 </view>
                 <view class="my-feature-grid">
                     <view class="my-feature-item" v-for="item in featureEntries" :key="item.name" @tap="openEntry(item)">
@@ -157,7 +164,7 @@ import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
 import { getService } from '@/api/app'
-import { getMerchantQualificationStatus, getRoleApplications, getRoles } from '@/api/user'
+import { getMerchantQualificationStatus, getPromotionInviteCode, getRoleApplications, getRoles, inputInviteCode } from '@/api/user'
 
 export default {
     data() {
@@ -224,6 +231,10 @@ export default {
         },
         openEntry(item) {
             if (!this.isLogin) return toLogin()
+            if (item.action === 'scanFans') {
+                this.scanFansCode()
+                return
+            }
             if (item.action === 'service') {
                 this.openServiceModal()
                 return
@@ -279,7 +290,7 @@ export default {
         },
         normalizeRoleCode(roleCode) {
             const code = String(roleCode || '').toUpperCase()
-            const map = { HEADQUARTERS: 'HQ', OPERATION_CENTER: 'AGENT', AREA_AGENT: 'AGENT', COUNTY_AGENT: 'AGENT' }
+            const map = { HEADQUARTERS: 'HQ', OPERATION_CENTER: 'AGENT', AREA_AGENT: 'AGENT', COUNTY_AGENT: 'AGENT', BRANCH: 'SUBSIDIARY', COMPANY_BRANCH: 'SUBSIDIARY' }
             return map[code] || code
         },
         roleStatusType(status) {
@@ -295,6 +306,96 @@ export default {
             if (type === 'pending') return '待审核'
             if (type === 'rejected') return '未通过'
             return '未申请'
+        },
+        scanFansCode() {
+            uni.scanCode({
+                onlyFromCamera: false,
+                success: async (res) => {
+                    const raw = res.result || res.path || ''
+                    const payload = this.parseFansScanPayload(raw)
+                    if (!payload.inviteCode && !payload.promoterUserId && !payload.ownerMerchantId && !payload.ownerUserId) {
+                        uni.showToast({ title: '未识别到吸粉码', icon: 'none' })
+                        return
+                    }
+                    const bindPayload = await this.buildFansBindPayload(payload)
+                    console.log('[scanFans] payload', bindPayload)
+                    const bindRes = await inputInviteCode(bindPayload).catch(() => null)
+                    if (bindRes && bindRes.code == 1) {
+                        uni.showToast({ title: bindRes.msg || '绑定成功', icon: 'success' })
+                    } else {
+                        console.log('[scanFans] bind failed', bindRes)
+                        uni.showToast({ title: (bindRes && (bindRes.msg || bindRes.message)) || '绑定失败', icon: 'none' })
+                    }
+                },
+                fail: () => uni.showToast({ title: '扫码未完成', icon: 'none' })
+            })
+        },
+        parseFansScanPayload(raw = '') {
+            const text = String(raw || '').trim()
+            const params = this.parseQueryParams(text.includes('?') ? text.split('?').pop() : text)
+            const scene = params.scene ? decodeURIComponent(params.scene) : text
+            const sceneParams = this.parseQueryParams(scene)
+            const inviteCode = params.invite_code || params.inviteCode || params.allianceCode || params.alliance_code || params.promotionCode || params.promotion_code || params.code || sceneParams.invite_code || sceneParams.inviteCode || sceneParams.allianceCode || sceneParams.alliance_code || sceneParams.promotionCode || sceneParams.promotion_code || sceneParams.code || ''
+            const ownerMerchantId = params.ownerMerchantId || params.owner_merchant_id || params.inviterMerchantId || params.inviter_merchant_id || params.targetMerchantId || params.target_merchant_id || params.merchantId || params.merchant_id || params.shopId || params.shop_id || params.storeId || params.store_id || sceneParams.ownerMerchantId || sceneParams.owner_merchant_id || sceneParams.inviterMerchantId || sceneParams.inviter_merchant_id || sceneParams.targetMerchantId || sceneParams.target_merchant_id || sceneParams.merchantId || sceneParams.merchant_id || sceneParams.shopId || sceneParams.shop_id || sceneParams.storeId || sceneParams.store_id || ''
+            const ownerUserId = params.ownerUserId || params.owner_user_id || params.inviterUserId || params.inviter_user_id || params.promoterUserId || params.promoter_user_id || params.uid || sceneParams.ownerUserId || sceneParams.owner_user_id || sceneParams.inviterUserId || sceneParams.inviter_user_id || sceneParams.promoterUserId || sceneParams.promoter_user_id || sceneParams.uid || ''
+            const fanScene = params.fanScene || params.fan_scene || params.sceneType || params.scene_type || sceneParams.fanScene || sceneParams.fan_scene || sceneParams.sceneType || sceneParams.scene_type || (ownerMerchantId ? 'STORE_QR' : 'INTRO_CARD')
+            return {
+                inviteCode,
+                promoterUserId: ownerUserId,
+                ownerUserId,
+                roleCode: this.normalizeRoleCode(params.roleCode || params.role_code || params.role || sceneParams.roleCode || sceneParams.role_code || sceneParams.role || 'PROMOTER'),
+                ownerMerchantId,
+                fanScene,
+                scene: scene || text,
+                rawScene: text
+            }
+        },
+        parseQueryParams(text = '') {
+            const params = {}
+            String(text || '').split(/[&]/).forEach((pair) => {
+                const [key, value = ''] = pair.split('=')
+                if (!key) return
+                if (/^uid_\w+$/i.test(key)) {
+                    params.uid = key.replace(/^uid_/i, '')
+                    return
+                }
+                params[decodeURIComponent(key)] = decodeURIComponent(value)
+            })
+            return params
+        },
+        async buildFansBindPayload(payload = {}) {
+            const merchantId = this.currentMerchantId
+            const userId = this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || ''
+            const inviteCode = payload.inviteCode || await this.resolveFansInviteCode(payload)
+            return {
+                userId,
+                fanUserId: userId,
+                inviteCode,
+                promoterUserId: payload.promoterUserId,
+                ownerUserId: payload.ownerUserId,
+                roleCode: payload.roleCode || 'PROMOTER',
+                scene: payload.scene,
+                rawScene: payload.rawScene,
+                fanScene: payload.fanScene,
+                ownerMerchantId: payload.ownerMerchantId,
+                fanType: merchantId ? 'MERCHANT' : 'CONSUMER',
+                merchantId,
+                fanRoleCode: merchantId ? 'MERCHANT' : 'CONSUMER'
+            }
+        },
+        async resolveFansInviteCode(payload = {}) {
+            const ownerUserId = payload.ownerUserId || payload.promoterUserId || ''
+            if (!ownerUserId) return ''
+            const res = await getPromotionInviteCode({
+                userId: ownerUserId,
+                roleCode: payload.roleCode || 'PROMOTER',
+                show: false
+            }).catch(() => null)
+            if (res && res.code == 1) {
+                const data = res.data || {}
+                return data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.code || ''
+            }
+            return ''
         },
         contactService(item) {
             if (!item.value) {
@@ -324,29 +425,26 @@ export default {
         },
         offlineOrderEntries() {
             return [
-                { name: '现场付款', url: '/business/pages/business_pages/face_pay', image: designAssets.myOfflinePay },
+                { name: '核销订单', url: '/business/pages/business_pages/face_pay', image: designAssets.myOfflinePay },
                 { name: '付款记录', url: '/business/pages/business_pages/payment_record', image: designAssets.myPaymentRecord }
             ]
         },
         allianceEntries() {
             return [
-                { name: '联盟码', url: '/business/pages/business_pages/intro_card', image: designAssets.myAllianceCode },
-                { name: '订单记录', url: '/bundle_order/pages/user_order/user_order', image: designAssets.myAllianceRecord }
+                { name: '推广码', url: '/business/pages/business_pages/intro_card', image: designAssets.myAllianceCode }
             ]
         },
         valueEntries() {
             return [
                 { name: `我的积分\n${this.userInfo.user_integral || 0}`, url: '/bundle_misc/pages/user_sign/user_sign', image: designAssets.myOrderPoints },
                 { name: '待领取\n线上订单', url: businessRoutes.pages.autoPoints.url, image: designAssets.myValueOnline, badge: this.pendingPointsCount },
-                { name: '待领取\n线下订单', url: '/business/pages/business_pages/face_pay', image: designAssets.myValueOffline },
-                { name: '联盟订单', url: '/pages/street/street', image: designAssets.myValueAlliance, openType: 'switchTab' },
+                { name: '待核销\n自提订单', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myValueOffline },
                 { name: '领取积分\n设置', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints }
             ]
         },
         featureEntries() {
             return [
                 { name: 'KYC', url: businessRoutes.pages.userKyc.url, image: designAssets.myKyc },
-                { name: this.promoterEntryName, url: businessRoutes.pages.promoterApply.url, image: designAssets.myEcology },
                 { name: '收货地址', url: businessRoutes.pages.addressList.url, image: designAssets.myAddress },
                 { name: '反馈意见', url: businessRoutes.pages.feedback.url, image: designAssets.myFeedback },
                 { name: '生态应用', url: businessRoutes.pages.ecoApp.url, image: designAssets.myEcology },
@@ -379,9 +477,14 @@ export default {
             })
         },
         displayRoleBadges() {
-            const roles = this.approvedRoleEntries
-            if (roles.length) return roles.slice(0, 4)
-            if (this.activeRoleApplication) {
+            const badges = [{ code: this.isMerchantApproved ? 'MERCHANT' : 'NORMAL', label: this.baseIdentityLabel }]
+            this.approvedRoleEntries.forEach((item) => {
+                if (!badges.some((badge) => badge.code === item.code)) badges.push(item)
+            })
+            return badges.slice(0, 4)
+        },
+        pendingRoleBadges() {
+            if (!this.approvedRoleEntries.length && this.activeRoleApplication) {
                 const code = this.normalizeRoleCode(this.activeRoleApplication.roleCode || this.activeRoleApplication.role_code || this.activeRoleApplication.role)
                 return [{
                     code: code || 'pending',
@@ -396,35 +499,25 @@ export default {
                 return { ...item, code, label: this.roleLabel(code) }
             })
         },
-        promoterApplication() {
-            return this.roleApplications.find(item => String(item.roleCode || item.role_code || item.role || '').toUpperCase() === 'PROMOTER') || null
+        showPromotionSection() {
+            if (!this.isLogin) return false
+            return this.approvedRoleEntries.some(item => ['PROMOTER', 'AGENT', 'SUBSIDIARY'].includes(this.normalizeRoleCode(item.code || item.roleCode)))
         },
         activeRoleApplication() {
             return this.roleApplications.find(item => this.roleStatusType(item.applicationStatus || item.auditStatus || item.status) !== 'default') || null
-        },
-        roleSummaryText() {
-            if (this.approvedRoles.length) return `附加角色：${this.approvedRoles.map(item => this.roleLabel(item.roleCode || item.role_code || item.role)).join('、')}`
-            if (this.activeRoleApplication) return `${this.roleLabel(this.activeRoleApplication.roleCode || this.activeRoleApplication.role_code || this.activeRoleApplication.role)}${this.roleStatusLabel(this.activeRoleApplication.applicationStatus || this.activeRoleApplication.auditStatus || this.activeRoleApplication.status)}`
-            return ''
         },
         isMerchantApproved() {
             const status = String(this.merchantQualification.audit_status || this.merchantQualification.auditStatus || this.merchantQualification.status || this.userInfo.merchantStatus || this.userInfo.merchant_status || '').toUpperCase()
             const flag = this.userInfo.isMerchant || this.userInfo.is_merchant || this.userInfo.merchantId || this.userInfo.merchant_id
             return Boolean(flag) || ['APPROVED', 'PASS', 'PASSED', 'SUCCESS', 'REALNAME_VERIFIED'].includes(status)
         },
+        currentMerchantId() {
+            return this.merchantQualification.merchantId || this.merchantQualification.merchant_id || this.merchantQualification.id || this.userInfo.merchantId || this.userInfo.merchant_id || this.userInfo.shopId || this.userInfo.shop_id || ''
+        },
         baseIdentityLabel() {
             return this.isMerchantApproved ? '商家' : '普通用户'
         },
-        baseIdentityClass() {
-            return this.isMerchantApproved ? 'my-page__role-tag--merchant' : 'my-page__role-tag--normal'
-        },
-        roleStatusClass() {
-            if (this.approvedRoles.length) return 'my-page__role-tag--approved'
-            if (this.promoterApplication) return `my-page__role-tag--${this.roleStatusType(this.promoterApplication.applicationStatus || this.promoterApplication.auditStatus || this.promoterApplication.status)}`
-            return ''
-        },
         promoterEntryName() {
-            if (this.activeRoleApplication) return `角色${this.roleStatusLabel(this.activeRoleApplication.applicationStatus || this.activeRoleApplication.auditStatus || this.activeRoleApplication.status)}`
             return '角色申请'
         }
     }
@@ -454,6 +547,10 @@ export default {
     width: 100%;
     min-height: calc(2008rpx + var(--page-safe-top));
     overflow: visible;
+}
+
+.my-page--guest .my-page__screen {
+    min-height: calc(1480rpx + var(--page-safe-top));
 }
 
 .my-page__header-bg {
@@ -570,22 +667,6 @@ export default {
     white-space: nowrap;
 }
 
-.my-page__identity-text {
-    flex: 1;
-    min-width: 0;
-    color: #666666;
-    font-size: 22rpx;
-    line-height: 34rpx;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.my-page__role-tag--approved {
-    color: #037dfa;
-    background: rgba(3, 125, 250, 0.1);
-}
-
 .my-page__role-tag--pending {
     color: #d98200;
     background: rgba(255, 158, 31, 0.12);
@@ -621,16 +702,6 @@ export default {
 .my-page__role-badge--hq { color: #d98200; background: #fff6e6; }
 .my-page__role-badge--merchant { color: #b27135; background: #fff3e8; }
 .my-page__role-badge--normal { color: #667085; background: rgba(255, 255, 255, .78); }
-.my-page__role-tag--merchant {
-    color: #b27135;
-    background: #fff3e8;
-}
-
-.my-page__role-tag--normal {
-    color: #667085;
-    background: rgba(255, 255, 255, .78);
-}
-
 .service-modal {
     position: fixed;
     left: 0;
@@ -884,10 +955,58 @@ export default {
 }
 
 .my-section--feature {
-    top: calc(var(--page-safe-top) + 1556rpx);
-    min-height: 322rpx;
+    top: calc(var(--page-safe-top) + 1568rpx);
+    min-height: 237rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
+}
+
+.my-page--no-offline .my-section--pair-2 {
+    top: calc(var(--page-safe-top) + 821rpx);
+}
+
+.my-page--no-offline .my-section--value {
+    top: calc(var(--page-safe-top) + 1058rpx);
+}
+
+.my-page--no-offline .my-section--feature {
+    top: calc(var(--page-safe-top) + 1331rpx);
+}
+
+.my-page--no-promotion .my-section--value {
+    top: calc(var(--page-safe-top) + 1058rpx);
+}
+
+.my-page--no-promotion .my-section--feature {
+    top: calc(var(--page-safe-top) + 1331rpx);
+}
+
+.my-page--no-offline.my-page--no-promotion .my-section--value {
+    top: calc(var(--page-safe-top) + 821rpx);
+}
+
+.my-page--no-offline.my-page--no-promotion .my-section--feature {
+    top: calc(var(--page-safe-top) + 1094rpx);
+}
+
+.my-page--guest .my-page__merchant {
+    top: calc(var(--page-safe-top) + 270rpx);
+}
+
+.my-page--guest .my-page__strategy {
+    top: calc(var(--page-safe-top) + 347rpx);
+}
+
+.my-page--guest .my-section--online {
+    top: calc(var(--page-safe-top) + 555rpx);
+}
+
+.my-page--guest.my-page--no-offline.my-page--no-promotion .my-section--value {
+    top: calc(var(--page-safe-top) + 792rpx);
+}
+
+.my-page--guest.my-page--no-offline.my-page--no-promotion .my-section--feature {
+    top: calc(var(--page-safe-top) + 1065rpx);
 }
 
 .my-section__head {
@@ -1087,22 +1206,22 @@ export default {
     flex-direction: column;
     align-items: center;
     width: 20%;
-    margin-bottom: 32rpx;
+    margin-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-feature-icon {
-    width: 39rpx;
-    height: 39rpx;
+    width: 42rpx;
+    height: 42rpx;
 }
 
 .my-feature-text {
-    margin-top: 17rpx;
+    margin-top: 15rpx;
     color: rgba(34, 34, 34, 1);
     font-size: 22rpx;
     font-family: PingFangSC-Regular, sans-serif;
     font-weight: normal;
-    line-height: 22rpx;
+    line-height: 29rpx;
     text-align: center;
     width: 100%;
     white-space: nowrap;

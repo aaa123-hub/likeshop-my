@@ -113,6 +113,13 @@
                         <text class="points-unit">积分</text>
                     </view>
                 </view>
+                <template v-if="pointsInfo.enabled">
+                    <view class="divider"></view>
+                    <view class="summary-row">
+                        <text>最多抵扣</text>
+                        <text class="muted-text">{{ pointsInfo.maxDeductText }}</text>
+                    </view>
+                </template>
                 <template v-if="pointsInfo.deductAmount > 0">
                     <view class="divider"></view>
                     <view class="summary-row">
@@ -449,19 +456,13 @@ export default {
                 pointsInfo.usable_points,
                 0
             ))
-            const deductAmount = this.numberValue(this.firstDefined(
+            const backendDeductAmount = this.numberValue(this.firstDefined(
                 order.pointsDeductAmount,
                 order.points_deduct_amount,
                 order.integralAmount,
                 order.integral_amount,
                 order.integralDeductAmount,
                 order.integral_deduct_amount,
-                order.maxPointsDeductAmount,
-                order.max_points_deduct_amount,
-                order.maxIntegralDeductAmount,
-                order.max_integral_deduct_amount,
-                order.maxDeductAmount,
-                order.max_deduct_amount,
                 baseInfo.pointsDeductAmount,
                 baseInfo.points_deduct_amount,
                 baseInfo.integralAmount,
@@ -490,10 +491,41 @@ export default {
                 pointsInfo.integral_amount,
                 pointsInfo.integralDeductAmount,
                 pointsInfo.integral_deduct_amount,
-                pointsInfo.maxDeductAmount,
-                pointsInfo.max_deduct_amount,
                 0
             ))
+            const maxDeductAmount = this.numberValue(this.firstDefined(
+                order.maxDeductAmount,
+                order.max_deduct_amount,
+                order.maxPointsDeductAmount,
+                order.max_points_deduct_amount,
+                order.maxIntegralDeductAmount,
+                order.max_integral_deduct_amount,
+                baseInfo.maxDeductAmount,
+                baseInfo.max_deduct_amount,
+                orderInfo.maxDeductAmount,
+                orderInfo.max_deduct_amount,
+                amountInfo.maxDeductAmount,
+                amountInfo.max_deduct_amount,
+                pointsInfo.maxDeductAmount,
+                pointsInfo.max_deduct_amount,
+                pointsInfo.maxPointsDeductAmount,
+                pointsInfo.max_points_deduct_amount,
+                pointsInfo.maxIntegralDeductAmount,
+                pointsInfo.max_integral_deduct_amount,
+                0
+            ))
+            const exchangeRate = this.pointsExchangeRate(order, baseInfo, orderInfo, amountInfo, pointsInfo)
+            const byPoints = exchangeRate > 0 ? available * exchangeRate : 0
+            const deductCandidates = [
+                backendDeductAmount,
+                maxDeductAmount,
+                this.orderAmountBeforePoints,
+                byPoints
+            ].filter((value) => Number(value) > 0)
+            const deductAmount = deductCandidates.length ? Number(Math.min(...deductCandidates).toFixed(2)) : 0
+            const normalizedUsed = used > 0
+                ? Math.min(available || used, used)
+                : (deductAmount > 0 && exchangeRate > 0 ? Math.min(available, Math.ceil(deductAmount / exchangeRate)) : 0)
             const give = this.numberValue(this.firstDefined(
                 order.order_give_integral,
                 order.giveIntegral,
@@ -514,7 +546,7 @@ export default {
             ))
             const hasAnyData = Boolean(
                 available > 0
-                || used > 0
+                || normalizedUsed > 0
                 || deductAmount > 0
                 || give > 0
                 || enabledValue !== ''
@@ -523,8 +555,10 @@ export default {
             const enabled = this.boolValue(enabledValue, available > 0 || used > 0 || deductAmount > 0)
             return {
                 available,
-                used,
+                used: normalizedUsed,
                 deductAmount,
+                maxDeductAmount: maxDeductAmount > 0 ? Math.min(maxDeductAmount, this.orderAmountBeforePoints || maxDeductAmount) : 0,
+                maxDeductText: maxDeductAmount > 0 ? `¥${this.formatAmount(Math.min(maxDeductAmount, this.orderAmountBeforePoints || maxDeductAmount))}` : (exchangeRate > 0 && available > 0 ? `¥${this.formatAmount(deductAmount)}` : '后端未返回'),
                 give,
                 enabled,
                 hasAnyData
@@ -587,6 +621,22 @@ export default {
         currentCouponList() {
             return this.couponTabsIndex === 0 ? this.usableCoupon : this.unusableCoupon
         },
+        orderAmountBeforePoints() {
+            const order = this.order || {}
+            const amountInfo = order.amountInfo || order.amount_info || order.settlementAmount || order.settlement_amount || {}
+            const rawAmount = this.firstDefined(
+                order.payAmount,
+                order.pay_amount,
+                order.order_amount,
+                order.orderAmount,
+                amountInfo.payAmount,
+                amountInfo.pay_amount,
+                order.totalAmount,
+                order.total_amount,
+                0
+            )
+            return Math.max(this.numberValue(rawAmount) - this.effectiveDiscountAmount, 0)
+        },
         totalPayAmount() {
             const order = this.order || {}
             const amountInfo = order.amountInfo || order.amount_info || order.settlementAmount || order.settlement_amount || {}
@@ -644,6 +694,56 @@ export default {
         },
         formatAmount(value) {
             return this.numberValue(value).toFixed(2)
+        },
+        pointsExchangeRate(order = {}, baseInfo = {}, orderInfo = {}, amountInfo = {}, pointsInfo = {}) {
+            const raw = this.numberValue(this.firstDefined(
+                pointsInfo.exchangeAmount,
+                pointsInfo.exchange_amount,
+                pointsInfo.moneyPerPoint,
+                pointsInfo.money_per_point,
+                pointsInfo.amountPerPoint,
+                pointsInfo.amount_per_point,
+                pointsInfo.pointMoney,
+                pointsInfo.point_money,
+                pointsInfo.exchangeRate,
+                pointsInfo.exchange_rate,
+                pointsInfo.deductRate,
+                pointsInfo.deduct_rate,
+                pointsInfo.pointRate,
+                pointsInfo.point_rate,
+                pointsInfo.integralRate,
+                pointsInfo.integral_rate,
+                pointsInfo.integralRatio,
+                pointsInfo.integral_ratio,
+                pointsInfo.pointsRatio,
+                pointsInfo.points_ratio,
+                amountInfo.exchangeRate,
+                amountInfo.exchange_rate,
+                amountInfo.deductRate,
+                amountInfo.deduct_rate,
+                orderInfo.exchangeRate,
+                orderInfo.exchange_rate,
+                baseInfo.exchangeRate,
+                baseInfo.exchange_rate,
+                order.exchangeAmount,
+                order.exchange_amount,
+                order.moneyPerPoint,
+                order.money_per_point,
+                order.amountPerPoint,
+                order.amount_per_point,
+                order.exchangeRate,
+                order.exchange_rate,
+                order.deductRate,
+                order.deduct_rate,
+                order.integralRate,
+                order.integral_rate,
+                order.integralRatio,
+                order.integral_ratio,
+                0
+            ))
+            if (raw > 0 && raw <= 1) return raw
+            if (raw > 1) return 1 / raw
+            return 0
         },
         splitAmount(value) {
             const parts = this.formatAmount(value).split('.')

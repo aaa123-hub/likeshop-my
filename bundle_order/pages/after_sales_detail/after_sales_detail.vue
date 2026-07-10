@@ -132,6 +132,7 @@ import CustomImage from '@/components/custom-image/custom-image.vue'
 trottle,
 		copy
 	} from "@/utils/tools.js";
+	import { cleanBackendText, isBackendCodeText } from '@/utils/backend-text'
 
 	export default {
 		data() {
@@ -242,6 +243,8 @@ trottle,
 				});
 			},
 			refundStatusText(status) {
+				const cleaned = cleanBackendText(status, '')
+				if (!cleaned) return '售后处理中'
 				const text = String(status || '')
 				const map = {
 					APPLIED: '待商家处理',
@@ -264,7 +267,7 @@ trottle,
 					5: '退款成功',
 					6: '已撤销'
 				}
-				return map[text.toUpperCase()] || map[status] || (/^[A-Z0-9_-]+$/.test(text) ? '售后处理中' : text)
+				return map[text.toUpperCase()] || map[status] || (isBackendCodeText(text) ? '售后处理中' : cleaned)
 			},
 			refundReasonText(reason) {
 				const text = String(reason || '')

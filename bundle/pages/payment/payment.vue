@@ -10,9 +10,9 @@
 				<view class="face-pay-card">
 					<view class="face-pay-card__field">
 						<text class="face-pay-card__label">付款单号</text>
-						<input class="face-pay-card__input" placeholder="请输入付款单号" />
+						<input v-model="facePayCode" class="face-pay-card__input" placeholder="请输入付款码/付款单号" />
 					</view>
-					<view class="face-pay-card__scan">
+					<view class="face-pay-card__scan" @tap="scanFacePayCode">
 						<u-icon name="scan" color="#222222" size="52"></u-icon>
 						<text>扫一扫</text>
 					</view>
@@ -89,6 +89,9 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		queryPayment
 	} from '@/api/app'
 	import {
+		scanOfflinePayment
+	} from '@/api/user'
+	import {
 		wxpay
 	} from '@/utils/pay'
 
@@ -118,6 +121,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				useIntegral: false,
 				pointsAmount: 0,
 				pointsDeductAmount: 0,
+				facePayCode: '',
+				shopId: '',
 
 				loadingSkeleton: true, // 骨架屏Loading
 				loadingPay: false, // 支付处理中Loading
@@ -178,9 +183,58 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				if (code === 'A0101' || String(message || '').includes('CreatePayOrderCommand.openId')) return '缺少微信支付授权信息，请重新登录后再使用微信支付'
 				return message || '支付失败，请稍后重试'
 			},
+			normalizeFacePayCode(raw = '') {
+				const text = String(raw || '').trim()
+				if (!text) return ''
+				const params = {}
+				const appendParams = (query = '') => {
+					String(query || '').split(/[&;]/).forEach((pair) => {
+						if (!pair) return
+						const index = pair.indexOf('=')
+						if (index === -1) return
+						const key = pair.slice(0, index)
+						const value = pair.slice(index + 1)
+						if (key) params[key] = decodeURIComponent(value || '')
+					})
+				}
+				const queryIndex = text.indexOf('?')
+				if (queryIndex !== -1) appendParams(text.slice(queryIndex + 1))
+				else appendParams(text)
+				try {
+					const url = new URL(text)
+					appendParams(url.search ? url.search.slice(1) : '')
+				} catch (error) {}
+				if (params.scene || params.qrScene || params.qr_scene) {
+					try {
+						appendParams(decodeURIComponent(params.scene || params.qrScene || params.qr_scene))
+					} catch (error) {}
+				}
+				const keys = ['payOrderNo', 'pay_order_no', 'paymentNo', 'payment_no', 'paymentId', 'payment_id', 'orderNo', 'order_no', 'bizOrderNo', 'biz_order_no', 'code', 'qrCode', 'qr_code']
+				for (const key of keys) {
+					if (params[key]) return params[key]
+				}
+				const compactMatch = text.match(/(?:payOrderNo|pay_order_no|paymentNo|payment_no|orderNo|order_no|bizOrderNo|biz_order_no|code)[:=]([^&?#;/]+)/i)
+				return compactMatch ? decodeURIComponent(compactMatch[1]) : text
+			},
+			scanFacePayCode() {
+				uni.scanCode({
+					onlyFromCamera: false,
+					success: (res) => {
+						this.facePayCode = this.normalizeFacePayCode(res.result || res.path || '')
+					},
+					fail: () => this.$toast({ title: '扫一扫未完成' })
+				})
+			},
 
 			// 初始化页面数据
 			initPageData() {
+				if (this.isFacePay) {
+					this.loadingSkeleton = false
+					this.paywayList = [this.normalizePaywayItem({ id: 'WECHAT_JSAPI', name: '微信支付', pay_way: 'WECHAT_JSAPI', extra: '线下付款码支付' })]
+					this.payway = 'WECHAT_JSAPI'
+					this.isExpired = false
+					return
+				}
 				// 获取支付方式
 				getPayway({
 					from: this.from,
@@ -210,6 +264,10 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			// 预支付处理
 			handlePrepay() {
 				if (this.submitDisabled) return
+				if (this.isFacePay) {
+					this.submitFacePay()
+					return
+				}
 				if (!this.isFacePay && Number(this.amount || 0) <= 0) {
 					this.goPayResult(true)
 					return
@@ -268,6 +326,31 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					}, 500)
 				})
 			},
+			async submitFacePay() {
+				const qrCode = this.normalizeFacePayCode(this.facePayCode)
+				if (!qrCode) {
+					this.$toast({ title: '请扫码或输入付款单号' })
+					return
+				}
+				if (!this.shopId) {
+					this.$toast({ title: '缺少门店ID，请从门店详情进入付款' })
+					return
+				}
+				this.loadingPay = true
+				try {
+					const res = await scanOfflinePayment({ shopId: this.shopId, qrCode })
+					if (res.code == 1) {
+						this.$toast({ title: res.msg || '付款成功' })
+						this.goPayResult(true)
+					} else {
+						this.$toast({ title: res.msg || '付款失败' })
+					}
+				} catch (error) {
+					this.$toast({ title: '付款失败，请稍后重试' })
+				} finally {
+					this.loadingPay = false
+				}
+			},
 
 			// 微信支付
 			handleWechatPay(data) {
@@ -283,15 +366,16 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			// 支付后处理
 			async handPayResult(result) {
 				this.hasPayResult = true
-				if (result === 'success' && this.payOrderNo) {
-					const confirmed = await this.confirmPaymentResult()
-					if (!confirmed) return
-				}
 				switch (result) {
 					case 'success':
+						if (this.payOrderNo) await this.confirmPaymentResult()
+						this.rememberPaidOrder()
 						uni.$emit('payment', {
 							result: true,
-							order_id: this.order_id
+							order_id: this.order_id,
+							payOrderNo: this.payOrderNo,
+							pay_order_no: this.payOrderNo,
+							paid: true
 						});
 						break;
 					case 'fail':
@@ -306,11 +390,29 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			goPayResult(success) {
 				if (success && this.from === 'order' && this.order_id) {
 					uni.redirectTo({
-						url: `/bundle_user/pages/pay_result/pay_result?id=${this.order_id}`
+						url: `/bundle_user/pages/pay_result/pay_result?id=${this.order_id}&paid=1&payOrderNo=${encodeURIComponent(this.payOrderNo || '')}`,
+						fail: () => {
+							uni.redirectTo({
+								url: `/bundle_order/pages/user_order/user_order?type=delivery`
+							})
+						}
 					})
 					return
 				}
-				uni.navigateBack()
+				uni.navigateBack({
+					fail: () => {
+						uni.redirectTo({
+							url: '/bundle_order/pages/user_order/user_order'
+						})
+					}
+				})
+			},
+			rememberPaidOrder() {
+				const ids = (uni.getStorageSync('ORDER_PAID_IDS') || []).map((id) => String(id || '')).filter(Boolean)
+				;[this.order_id, this.payOrderNo].filter(Boolean).map(String).forEach((id) => {
+					if (!ids.includes(id)) ids.push(id)
+				})
+				uni.setStorageSync('ORDER_PAID_IDS', ids.slice(-200))
 			},
 			handleTimeout() {
 				this.stopCountdown()
@@ -322,12 +424,10 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					const res = await queryPayment({ payOrderNo: this.payOrderNo })
 					const status = String(res.data?.payStatus || res.data?.pay_status || '').toUpperCase()
 					if (res.code == 20001 || status === 'PAID' || status === 'SUCCESS') return true
-					this.$toast({ title: res.msg || '支付状态确认中，请稍后查看订单' })
-					uni.$emit('payment', { result: false, order_id: this.order_id })
+					console.warn('[payment] payment status is not synced yet:', res)
 					return false
 				} catch (error) {
-					this.$toast({ title: '支付状态确认失败，请稍后查看订单' })
-					uni.$emit('payment', { result: false, order_id: this.order_id })
+					console.warn('[payment] confirm payment result failed:', error)
 					return false
 				}
 			}
@@ -349,6 +449,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				this.useIntegral = options.use_integral === '1' || options.usePoints === '1' || options.use_integral === true || options.usePoints === true
 				this.pointsAmount = Number(options.points_amount || options.pointsAmount || options.integral_num || 0)
 				this.pointsDeductAmount = Number(options.points_deduct_amount || options.pointsDeductAmount || options.integral_amount || 0)
+				this.facePayCode = options.payOrderNo || options.pay_order_no || options.paymentNo || options.payment_no || options.code || ''
+				this.shopId = options.shopId || options.shop_id || ''
 				this.initPageData()
 			} catch (err) {
 				uni.navigateBack()
@@ -375,12 +477,13 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				return this.pageMode === 'facepay' || this.from === 'facepay'
 			},
 			submitDisabled() {
+				if (this.isFacePay) return this.loadingPay || this.loadingSkeleton || !this.payway
 				return this.loadingPay || this.loadingSkeleton || !this.payway || this.isExpired
 			},
 			submitText() {
 				if (this.isExpired) return '支付已超时'
 				if (!this.payway) return '暂无可用支付方式'
-				return '立即支付'
+				return this.isFacePay ? '确认付款' : '立即支付'
 			}
 		}
 	}

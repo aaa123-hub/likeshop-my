@@ -194,7 +194,7 @@
                             </view>
                             <view class="points-detail-item">
                                 <text class="points-detail-label">最多抵扣</text>
-                                <text class="points-detail-value">¥{{ pointsDeductAmount.toFixed(2) }}</text>
+                                <text class="points-detail-value">{{ maxPointsDeductText }}</text>
                             </view>
                             <view class="points-detail-item">
                                 <text class="points-detail-label">预计使用</text>
@@ -387,7 +387,7 @@ export default {
                         key: String(this.firstDefined(shop.shopId, shop.shop_id, shop.id, `shop_${index}`)),
                         name,
                         logo,
-                        items: Array.isArray(items) && items.length ? items.map(this.normalizePreviewGoods) : this.goodsLists
+                        items: Array.isArray(items) && items.length ? items.map(item => this.normalizePreviewGoods(item, -1)) : this.goodsLists
                     }
                 })
             }
@@ -447,20 +447,47 @@ export default {
             return this.currentPayAmount.toFixed(2)
         },
         currentPayAmount() {
+            const backendPayAmount = this.backendPayAmount
+            if (backendPayAmount >= 0) return backendPayAmount
             const orderAmount = this.orderAmountBeforeDiscount
             const baseAmount = Math.max(orderAmount - this.effectiveDiscountAmount, 0)
             if (!this.useIntegral || this.pointsDeductAmount <= 0) return baseAmount
-            const beforePoints = this.orderAmountBeforePoints
-            const deductedAmount = Math.max(beforePoints - this.pointsDeductAmount, 0)
-            const backendAppliedPoints = beforePoints > 0 && baseAmount <= deductedAmount + 0.009
-            return backendAppliedPoints ? baseAmount : Math.max(baseAmount - this.pointsDeductAmount, 0)
+            return Math.max(baseAmount - this.pointsDeductAmount, 0)
+        },
+        backendPayAmount() {
+            const data = this.orderInfo || {}
+            const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
+            const value = this.firstDefined(
+                amountInfo.payAmount,
+                amountInfo.pay_amount,
+                amountInfo.actualAmount,
+                amountInfo.actual_amount,
+                data.payAmount,
+                data.pay_amount,
+                data.order_amount,
+                data.orderAmount,
+                data.actualAmount,
+                data.actual_amount
+            )
+            if (value === undefined || value === null || value === '') return -1
+            if (!Object.keys(data).length) return -1
+            const amount = this.moneyValue(value)
+            return amount >= 0 ? amount : -1
         },
         orderAmountBeforeDiscount() {
-            const goodsAmount = this.moneyValue(this.orderInfo.total_goods_price || this.orderInfo.goodsAmount)
+            const goodsAmount = this.moneyValue(this.firstDefined(this.orderInfo.total_goods_price, this.orderInfo.goodsAmount, this.orderInfo.goods_amount, this.goodsListsAmount))
             const shippingPrice = this.currentDelivery.sign === 'store' ? 0 : this.moneyValue(this.orderInfo.shipping_price || this.orderInfo.freightAmount)
             if (goodsAmount > 0) return goodsAmount + shippingPrice
             const payAmount = this.moneyValue(this.orderInfo.order_amount || this.orderInfo.pay_amount || this.orderInfo.payAmount)
             return payAmount + this.effectiveDiscountAmount + (this.useIntegral ? this.pointsDeductAmount : 0)
+        },
+        goodsListsAmount() {
+            const list = this.goodsLists && this.goodsLists.length ? this.goodsLists : (this.goods || [])
+            return list.reduce((sum, item = {}) => {
+                const count = Number(this.firstDefined(item.goods_num, item.quantity, item.num, 1))
+                const price = Number(this.goodsDisplayPrice(item))
+                return sum + (Number.isNaN(count) || Number.isNaN(price) ? 0 : count * price)
+            }, 0)
         },
         orderAmountBeforePoints() {
             return Math.max(this.orderAmountBeforeDiscount - this.effectiveDiscountAmount, 0)
@@ -527,18 +554,130 @@ export default {
             return this.firstDefined(
                 pointsInfo.pointsDeductAmount,
                 pointsInfo.points_deduct_amount,
+                pointsInfo.usePointsAmount,
+                pointsInfo.use_points_amount,
+                pointsInfo.usablePointsAmount,
+                pointsInfo.usable_points_amount,
+                pointsInfo.maxUsableAmount,
+                pointsInfo.max_usable_amount,
                 pointsInfo.deductAmount,
                 pointsInfo.deduct_amount,
                 amountInfo.pointsDeductAmount,
                 amountInfo.points_deduct_amount,
+                amountInfo.usePointsAmount,
+                amountInfo.use_points_amount,
+                amountInfo.usablePointsAmount,
+                amountInfo.usable_points_amount,
+                amountInfo.maxUsableAmount,
+                amountInfo.max_usable_amount,
                 amountInfo.integralAmount,
                 amountInfo.integral_amount,
                 data.pointsDeductAmount,
                 data.points_deduct_amount,
+                data.usePointsAmount,
+                data.use_points_amount,
+                data.usablePointsAmount,
+                data.usable_points_amount,
+                data.maxUsableAmount,
+                data.max_usable_amount,
                 data.integralAmount,
                 data.integral_amount,
                 ''
             ) !== ''
+        },
+        pointsUseLimit() {
+            const data = this.orderInfo || {}
+            const pointsInfo = this.normalizedPointsInfo
+            return this.moneyValue(this.firstDefined(
+                data.integral_limit,
+                data.integralLimit,
+                data.pointsLimit,
+                data.points_limit,
+                pointsInfo.integralLimit,
+                pointsInfo.integral_limit,
+                pointsInfo.minUsePoints,
+                pointsInfo.min_use_points,
+                pointsInfo.pointsLimit,
+                pointsInfo.points_limit,
+                0
+            ))
+        },
+        pointsExchangeRate() {
+            const data = this.orderInfo || {}
+            const pointsInfo = this.normalizedPointsInfo
+            const raw = this.moneyValue(this.firstDefined(
+                pointsInfo.exchangeAmount,
+                pointsInfo.exchange_amount,
+                pointsInfo.moneyPerPoint,
+                pointsInfo.money_per_point,
+                pointsInfo.amountPerPoint,
+                pointsInfo.amount_per_point,
+                pointsInfo.pointMoney,
+                pointsInfo.point_money,
+                pointsInfo.exchangeRate,
+                pointsInfo.exchange_rate,
+                pointsInfo.deductRate,
+                pointsInfo.deduct_rate,
+                pointsInfo.pointRate,
+                pointsInfo.point_rate,
+                pointsInfo.integralRate,
+                pointsInfo.integral_rate,
+                pointsInfo.integralRatio,
+                pointsInfo.integral_ratio,
+                pointsInfo.pointsRatio,
+                pointsInfo.points_ratio,
+                data.exchangeAmount,
+                data.exchange_amount,
+                data.moneyPerPoint,
+                data.money_per_point,
+                data.amountPerPoint,
+                data.amount_per_point,
+                data.exchangeRate,
+                data.exchange_rate,
+                data.deductRate,
+                data.deduct_rate,
+                data.integralRate,
+                data.integral_rate,
+                data.integralRatio,
+                data.integral_ratio,
+                0
+            ))
+            if (raw > 0 && raw <= 1) return raw
+            if (raw > 1) return 1 / raw
+            return 0
+        },
+        backendMaxPointsDeductAmount() {
+            const data = this.orderInfo || {}
+            const pointsInfo = this.normalizedPointsInfo
+            const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
+            return this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, [
+                'maxDeductAmount',
+                'max_deduct_amount',
+                'maxUseAmount',
+                'max_use_amount',
+                'maxUsableAmount',
+                'max_usable_amount',
+                'maxPointsDeductAmount',
+                'max_points_deduct_amount',
+                'maxIntegralDeductAmount',
+                'max_integral_deduct_amount'
+            ])
+        },
+        maxPointsDeductText() {
+            if (this.backendMaxPointsDeductAmount > 0) return `¥${Math.min(this.backendMaxPointsDeductAmount, this.orderAmountBeforePoints || this.backendMaxPointsDeductAmount).toFixed(2)}`
+            if (this.pointsDeductAmount > 0) return `¥${this.pointsDeductAmount.toFixed(2)}`
+            if (this.pointsExchangeRate > 0 && this.userIntegral > 0) return `¥${this.fallbackPointsDeductAmount.toFixed(2)}`
+            return '¥0.00'
+        },
+        fallbackPointsDeductAmount() {
+            if (!this.pointsFeatureEnabled || this.userIntegral <= 0) return 0
+            if (this.pointsUseLimit > 0 && this.userIntegral < this.pointsUseLimit) return 0
+            if (this.pointsExchangeRate <= 0) return 0
+            const maxAmount = this.backendMaxPointsDeductAmount
+            const byPoints = this.userIntegral * this.pointsExchangeRate
+            const orderLimit = this.orderAmountBeforePoints
+            const amount = Math.min(byPoints, orderLimit || byPoints, maxAmount || byPoints)
+            return Number(amount > 0 ? amount.toFixed(2) : 0)
         },
         integralText() {
             const userIntegral = this.userIntegral
@@ -552,7 +691,6 @@ export default {
         },
         pointsHelpText() {
             if (!this.pointsFeatureEnabled) return '当前订单暂不可用'
-            if (!this.hasBackendPointsDeductAmount && this.userIntegral > 0) return '后端未返回本单积分抵扣额'
             if (!this.canUseIntegral) return '未满足积分抵扣条件'
             if (this.pointsDeductAmount > 0) return `勾选后应付金额减少¥${this.pointsDeductAmount.toFixed(2)}`
             return '勾选后将按订单规则试算抵扣'
@@ -561,6 +699,8 @@ export default {
             return true
         },
         pointsFeatureEnabled() {
+            const pointsInfo = this.normalizedPointsInfo || {}
+            const amountInfo = (this.orderInfo && (this.orderInfo.amountInfo || this.orderInfo.amount_info || this.orderInfo.settlementAmount || this.orderInfo.settlement_amount)) || {}
             const switchValue = this.firstDefined(
                 this.orderInfo.integral_switch,
                 this.orderInfo.integralSwitch,
@@ -569,15 +709,41 @@ export default {
                 this.orderInfo.supportPoints,
                 this.orderInfo.support_points,
                 this.orderInfo.canUsePoints,
-                this.orderInfo.can_use_points
+                this.orderInfo.can_use_points,
+                pointsInfo.integral_switch,
+                pointsInfo.integralSwitch,
+                pointsInfo.pointsEnabled,
+                pointsInfo.points_enabled,
+                pointsInfo.supportPoints,
+                pointsInfo.support_points,
+                pointsInfo.canUsePoints,
+                pointsInfo.can_use_points,
+                pointsInfo.enabled,
+                amountInfo.integral_switch,
+                amountInfo.integralSwitch,
+                amountInfo.pointsEnabled,
+                amountInfo.points_enabled,
+                amountInfo.supportPoints,
+                amountInfo.support_points,
+                amountInfo.canUsePoints,
+                amountInfo.can_use_points
             )
             if (switchValue === false || switchValue === 0 || switchValue === '0') return false
-            if (this.orderInfo.integral_config === 0 || this.orderInfo.integral_config === '0' || this.orderInfo.integral_config === false) return false
+            const configValue = this.firstDefined(
+                this.orderInfo.integral_config,
+                this.orderInfo.integralConfig,
+                pointsInfo.integral_config,
+                pointsInfo.integralConfig,
+                amountInfo.integral_config,
+                amountInfo.integralConfig
+            )
+            if (configValue === 0 || configValue === '0' || configValue === false) return false
+            if (switchValue === undefined && (this.hasBackendPointsDeductAmount || this.backendMaxPointsDeductAmount > 0 || this.pointsExchangeRate > 0)) return true
             return true
         },
         canUseIntegral() {
             if (!this.pointsFeatureEnabled) return false
-            return this.userIntegral > 0 && this.pointsDeductAmount > 0 && this.hasBackendPointsDeductAmount && this.userIntegral >= Number(this.orderInfo.integral_limit || 0)
+            return this.userIntegral > 0 && this.pointsDeductAmount > 0 && this.userIntegral >= this.pointsUseLimit
         },
         userIntegral() {
             const data = this.orderInfo || {}
@@ -636,17 +802,25 @@ export default {
             const pointsInfo = this.normalizedPointsInfo
             const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
             const backendPoints = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsAmount', 'points_amount', 'used', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points', 'maxUsableIntegral', 'max_usable_integral', 'usablePoints', 'usable_points', 'usableIntegral', 'usable_integral'])
-            if (backendPoints > 0) return backendPoints
-            if (this.pointsDeductAmount > 0) return Math.min(this.userIntegral, Math.ceil(this.pointsDeductAmount / 0.008))
+            if (backendPoints > 0) return Math.min(this.userIntegral, backendPoints)
+            if (this.pointsDeductAmount > 0 && this.pointsExchangeRate > 0) return Math.min(this.userIntegral, Math.ceil(this.pointsDeductAmount / this.pointsExchangeRate))
             return 0
         },
         pointsDeductAmount() {
             const data = this.orderInfo || {}
             const pointsInfo = this.normalizedPointsInfo
             const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
-            const backendAmount = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsDeductAmount', 'points_deduct_amount', 'deductAmount', 'deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount', 'maxPointsDeductAmount', 'max_points_deduct_amount', 'maxIntegralDeductAmount', 'max_integral_deduct_amount', 'maxDeductAmount', 'max_deduct_amount'])
-            if (backendAmount > 0) return backendAmount
-            return 0
+            const backendAmount = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsDeductAmount', 'points_deduct_amount', 'usePointsAmount', 'use_points_amount', 'usablePointsAmount', 'usable_points_amount', 'maxUsableAmount', 'max_usable_amount', 'deductAmount', 'deduct_amount', 'integral_amount', 'integralAmount', 'integralDeductAmount', 'integral_deduct_amount'])
+            if (backendAmount > 0) return Number(Math.min(backendAmount, this.orderAmountBeforePoints || backendAmount, this.backendMaxPointsDeductAmount || backendAmount).toFixed(2))
+            const byPoints = this.pointsExchangeRate > 0 ? this.userIntegral * this.pointsExchangeRate : 0
+            const candidates = [
+                this.fallbackPointsDeductAmount,
+                this.backendMaxPointsDeductAmount,
+                this.orderAmountBeforePoints,
+                byPoints
+            ].filter((value) => Number(value) > 0)
+            if (!candidates.length) return 0
+            return Number(Math.min(...candidates).toFixed(2))
         },
         pointsSettleTip() {
             if (this.useIntegral && this.pointsAmount > 0) {
@@ -789,6 +963,11 @@ export default {
         firstDefined(...values) {
             return values.find(value => value !== undefined && value !== null && value !== '')
         },
+        normalizeDeliveryTypeValue(value) {
+            const text = String(value || '').toUpperCase()
+            if (value === 2 || text === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(text)) return 2
+            return 1
+        },
         safeText(value) {
             if (value === undefined || value === null) return ''
             const text = String(value)
@@ -819,7 +998,7 @@ export default {
             }
             const reasons = []
             if (!this.pointsFeatureEnabled) {
-                reasons.push('订单预览返回 integral_switch/integral_config/pointsEnabled/supportPoints/canUsePoints 为关闭状态或未支持')
+                reasons.push('订单预览返回 integral_switch/integral_config/pointsEnabled/supportPoints/canUsePoints 为关闭状态或未支持，已同时检查 orderInfo、pointsInfo/integralInfo 和 amountInfo')
             }
             if (this.userIntegral <= 0) {
                 reasons.push('用户可用积分为 0，orderInfo、pointsInfo 和积分账户兜底接口都没有返回可用积分')
@@ -1084,7 +1263,7 @@ export default {
             }
         },
         normalizePreviewGoods(item = {}, index = 0) {
-            const original = this.goods[index] || this.goods.find(goods => String(goods.item_id || goods.skuId || goods.id || '') === String(item.item_id || item.skuId || item.sku_id || item.id || '')) || {}
+            const original = this.findOriginalGoods(item, index)
             const image = this.goodsImage(item) || this.goodsImage(original)
             const shopLogo = this.resolveOrderImage(item.shop_logo || item.shopLogo || item.shopLogoUrl || item.storeLogo || original.shop_logo || original.shopLogo || original.shopLogoUrl || original.storeLogo, 'avatar')
             const salePrice = this.goodsDisplayPrice({ ...original, ...item })
@@ -1118,8 +1297,44 @@ export default {
                 shop_id: item.shop_id || item.shopId || item.store_id || item.storeId || original.shop_id || original.shopId || original.store_id || original.storeId || this.orderInfo.shop_id || this.orderInfo.shopId || '',
                 shopId: item.shopId || item.shop_id || item.storeId || item.store_id || original.shopId || original.shop_id || original.storeId || original.store_id || this.orderInfo.shopId || this.orderInfo.shop_id || '',
                 shop_name: item.shop_name || item.shopName || item.store_name || item.storeName || original.shop_name || original.shopName || original.store_name || original.storeName || this.orderInfo.shop_name || this.orderInfo.shopName || '商城自营',
-                shopName: item.shopName || item.shop_name || item.storeName || item.store_name || original.shopName || original.shop_name || original.storeName || original.store_name || this.orderInfo.shopName || this.orderInfo.shop_name || '商城自营'
+                shopName: item.shopName || item.shop_name || item.storeName || item.store_name || original.shopName || original.shop_name || original.storeName || original.store_name || this.orderInfo.shopName || this.orderInfo.shop_name || '商城自营',
+                pointsDeductAmount: this.firstDefined(item.pointsDeductAmount, item.points_deduct_amount, original.pointsDeductAmount, original.points_deduct_amount),
+                points_deduct_amount: this.firstDefined(item.points_deduct_amount, item.pointsDeductAmount, original.points_deduct_amount, original.pointsDeductAmount),
+                maxDeductAmount: this.firstDefined(item.maxDeductAmount, item.max_deduct_amount, original.maxDeductAmount, original.max_deduct_amount),
+                max_deduct_amount: this.firstDefined(item.max_deduct_amount, item.maxDeductAmount, original.max_deduct_amount, original.maxDeductAmount),
+                singleMaxDeductAmount: this.firstDefined(item.singleMaxDeductAmount, item.single_max_deduct_amount, original.singleMaxDeductAmount, original.single_max_deduct_amount),
+                single_max_deduct_amount: this.firstDefined(item.single_max_deduct_amount, item.singleMaxDeductAmount, original.single_max_deduct_amount, original.singleMaxDeductAmount)
             }
+        },
+        findOriginalGoods(item = {}, index = 0) {
+            const goods = this.goods || []
+            const itemIds = this.goodsIdentityValues(item)
+            const matched = itemIds.length
+                ? goods.find(original => this.goodsIdentityValues(original).some(value => itemIds.includes(value)))
+                : null
+            if (matched) return matched
+            if (index >= 0 && goods[index]) return goods[index]
+            return {}
+        },
+        goodsIdentityValues(item = {}) {
+            return [
+                item.cart_id,
+                item.cartItemId,
+                item.cart_item_id,
+                item.item_id,
+                item.itemId,
+                item.skuId,
+                item.sku_id,
+                item.orderItemId,
+                item.order_item_id,
+                item.goods_id,
+                item.goodsId,
+                item.spuId,
+                item.spu_id,
+                item.productId,
+                item.product_id,
+                item.id
+            ].filter(value => value !== undefined && value !== null && value !== '').map(value => String(value))
         },
         goodsKey(item = {}, index = 0) {
             return this.firstDefined(item.item_id, item.itemId, item.goods_id, item.goodsId, item.skuId, item.sku_id, item.id, `goods_${index}`)
@@ -1591,16 +1806,21 @@ export default {
                 orderChannel: this.currentDelivery.sign === 'store' ? 'OFFLINE_PICKUP' : 'ONLINE',
                 goodsSource: this.detectGoodsSource(this.goods),
                 is1688: this.is1688Goods(this.goods),
-                delivery_type: this.delivery,
-                use_integral: this.useIntegral,
-                usePoints: Boolean(this.useIntegral),
+                delivery_type: this.normalizeDeliveryTypeValue(this.delivery),
+                deliveryType: this.normalizeDeliveryTypeValue(this.delivery),
+                use_integral: this.canUseIntegral ? this.useIntegral : 0,
+                useIntegral: Boolean(this.canUseIntegral && this.useIntegral),
+                usePoints: Boolean(this.canUseIntegral && this.useIntegral),
+                use_points: Boolean(this.canUseIntegral && this.useIntegral),
                 orderInfo: this.orderInfo,
-                pointsDeductAmount: this.useIntegral ? this.pointsDeductAmount : 0,
-                pointsAmount: this.useIntegral ? this.pointsAmount : 0,
-                points_deduct_amount: this.useIntegral ? this.pointsDeductAmount : 0,
-                points_amount: this.useIntegral ? this.pointsAmount : 0,
-                integral_amount: this.useIntegral ? this.pointsDeductAmount : 0,
-                integral_num: this.useIntegral ? this.pointsAmount : 0,
+                pointsDeductAmount: this.canUseIntegral && this.useIntegral ? this.pointsDeductAmount : 0,
+                pointsAmount: this.canUseIntegral && this.useIntegral ? this.pointsAmount : 0,
+                points_deduct_amount: this.canUseIntegral && this.useIntegral ? this.pointsDeductAmount : 0,
+                points_amount: this.canUseIntegral && this.useIntegral ? this.pointsAmount : 0,
+                usedPoints: this.canUseIntegral && this.useIntegral ? this.pointsAmount : 0,
+                used_points: this.canUseIntegral && this.useIntegral ? this.pointsAmount : 0,
+                integral_amount: this.canUseIntegral && this.useIntegral ? this.pointsDeductAmount : 0,
+                integral_num: this.canUseIntegral && this.useIntegral ? this.pointsAmount : 0,
                 addressId: this.addressId,
                 address_id: this.addressId,
                 address: this.address && this.address.id ? this.address : undefined,
@@ -1615,15 +1835,45 @@ export default {
                 bargain_launch_id: this.bargainLaunchId == -1 ? '' : this.bargainLaunchId
             }
             if (this.currentDelivery.sign === 'store') {
+                const pickupContact = this.safeText(this.userConsignee).trim()
+                const pickupMobile = this.safeText(this.userMobile).trim()
+                const pickupAddress = this.storeAddressText
+                delete orderFrom.addressId
+                delete orderFrom.address_id
+                delete orderFrom.address
                 orderFrom.selffetch_shop_id = this.storeInfo.id
+                orderFrom.selffetchShopId = this.storeInfo.id
                 orderFrom.store_id = this.storeInfo.id
                 orderFrom.pickupLatitude = this.storeInfo.latitude
+                orderFrom.pickup_latitude = this.storeInfo.latitude
                 orderFrom.pickupLongitude = this.storeInfo.longitude
-                orderFrom.pickupAddress = this.storeAddressText
-                orderFrom.pickupName = this.storeAddressText
-                orderFrom.consignee = this.userConsignee
-                orderFrom.mobile = this.userMobile
+                orderFrom.pickup_longitude = this.storeInfo.longitude
+                orderFrom.pickupAddress = pickupAddress
+                orderFrom.pickup_address = pickupAddress
+                orderFrom.pickupName = this.storeInfo.name || this.storeInfo.shop_name || this.storeInfo.shopName || pickupAddress
+                orderFrom.pickup_name = orderFrom.pickupName
+                orderFrom.pickupContact = pickupContact
+                orderFrom.pickup_contact = pickupContact
+                orderFrom.pickupMobile = pickupMobile
+                orderFrom.pickup_mobile = pickupMobile
+                orderFrom.consignee = pickupContact
+                orderFrom.mobile = pickupMobile
+            } else {
+                orderFrom.delivery_type = 1
+                orderFrom.deliveryType = 1
             }
+            console.log('[confirm_order][submit_payload]', {
+                action,
+                deliverySign: this.currentDelivery.sign,
+                delivery_type: orderFrom.delivery_type,
+                addressId: orderFrom.addressId || orderFrom.address_id || '',
+                selffetchShopId: orderFrom.selffetchShopId || orderFrom.selffetch_shop_id || '',
+                pickupAddress: orderFrom.pickupAddress || '',
+                pickupContact: orderFrom.pickupContact || '',
+                pickupMobile: orderFrom.pickupMobile || '',
+                consignee: orderFrom.consignee || '',
+                mobile: orderFrom.mobile || ''
+            })
             if (this.teamId) {
                 const goods = this.goods[0]
                 delete orderFrom.goods

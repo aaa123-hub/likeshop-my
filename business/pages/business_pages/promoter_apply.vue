@@ -3,9 +3,13 @@
         <navbar title="角色申请" :background="{ background: '#ffffff' }" title-color="#222222"></navbar>
         <view class="header">
             <view class="title-row">
-                <view class="title">角色申请</view>
+                <view class="title">当前角色</view>
                 <view class="header-tags">
-                    <view class="header-tag" v-for="item in headerRoleTags" :key="item.roleCode">{{ roleLabel(item.roleCode) }}</view>
+                    <view
+                        v-for="item in headerRoleTags"
+                        :key="item.roleCode"
+                        :class="['header-tag', 'header-tag--' + roleTagType(item.roleCode)]"
+                    >{{ roleLabel(item.roleCode) }}</view>
                 </view>
             </view>
             <view class="subtitle">实名通过后选择角色，提交必要资料等待审核</view>
@@ -19,79 +23,42 @@
             <view class="kyc-gate__btn" @tap="goKyc">去实名</view>
         </view>
 
-        <view class="apply-entry" v-if="showReapplyEntry" @tap="startApply">
-            <view>
-                <view class="apply-entry__title">申请新角色</view>
-            </view>
-            <view class="apply-entry__btn">去申请</view>
-        </view>
-
-        <view class="empty-state" v-else-if="showFirstApplyEntry">
-            <view class="empty-state__title">申请角色</view>
-            <view class="empty-state__desc">请选择推广者、区域代理、子公司或总部提交申请</view>
-            <view class="empty-state__btn" @tap="startFirstApply">去申请</view>
-        </view>
-
-        <view :class="['status-card', 'status-card--' + currentStatusType]" v-if="currentApplication">
-            <view>
-                <view class="status-title">{{ roleLabel(currentApplication.roleCode) }}</view>
-                <view class="status-desc">{{ currentStatusDesc }}</view>
-                <view class="status-desc" v-if="applicationAuditRemark(currentApplication)">{{ applicationAuditRemark(currentApplication) }}</view>
-                <view class="status-desc" v-if="currentApplication.applicationNo">申请编号：{{ currentApplication.applicationNo }}</view>
-            </view>
-            <view class="status-value">{{ statusLabel(currentApplication.applicationStatus) }}</view>
-        </view>
-
-        <view :class="['focus-card', 'focus-card--' + currentStatusType]" v-if="currentApplication && focusInfo.length">
-            <view class="focus-item" v-for="item in focusInfo" :key="item.label">
-                <text class="focus-label">{{ item.label }}</text>
-                <text class="focus-value">{{ item.value }}</text>
-            </view>
-        </view>
-
-        <view class="info-card" v-if="currentApplication">
-            <view class="info-title">{{ currentRole ? '角色信息' : '申请信息' }}</view>
-            <view class="info-grid">
-                <view class="info-item" v-for="item in visibleApplicationInfo" :key="item.label">
-                    <text class="info-label">{{ item.label }}</text>
-                    <text class="info-value">{{ item.value }}</text>
+        <view class="role-board" v-if="isKycApproved && !showApplyForm">
+            <view class="role-board__head">
+                <view>
+                    <view class="role-board__title">可申请角色</view>
                 </view>
             </view>
-        </view>
-
-        <view class="action-card" v-if="currentApplication && !showApplyForm && statusActions.length">
-            <view class="action-title">下一步操作</view>
-            <view class="action-buttons">
-                <button
-                    v-for="item in statusActions"
-                    :key="item.type"
-                    :class="['action-btn', item.primary ? 'action-btn--primary' : 'action-btn--plain']"
-                    @tap="handleStatusAction(item.type)"
-                >{{ item.label }}</button>
+            <view class="role-apply-list">
+                <view
+                    v-for="item in roleApplyCards"
+                    :key="item.roleCode"
+                    :class="['role-apply-card', 'role-apply-card--' + item.type, selectedRoleCode === item.roleCode ? 'role-apply-card--active' : '']"
+                    @tap="handleRoleCardAction(item)"
+                >
+                    <view class="role-apply-card__top">
+                        <view>
+                            <view class="role-apply-card__name">{{ item.label }}</view>
+                            <view class="role-apply-card__desc">{{ item.desc }}</view>
+                        </view>
+                        <view :class="['role-apply-card__status', 'role-apply-card__status--' + item.type]">{{ item.statusText }}</view>
+                    </view>
+                    <view class="role-apply-card__meta">
+                        <text v-if="item.timeText">{{ item.timeText }}</text>
+                    </view>
+                    <view class="role-apply-card__remark" v-if="item.remark">{{ item.remark }}</view>
+                    <view class="role-apply-card__hint" v-if="item.hintText">{{ item.hintText }}</view>
+                </view>
             </view>
         </view>
 
         <view class="form-card" v-if="shouldShowForm">
-            <view class="form-title">{{ currentApplication ? '重新提交资料' : '提交申请资料' }}</view>
-            <view class="role-select">
-                <view class="role-select__head">
-                    <text class="role-select__title">申请角色</text>
-                    <text class="role-select__current">当前选择：{{ selectedRoleLabel }}</text>
+            <view class="form-head">
+                <view>
+                    <view class="form-title">{{ currentApplication ? '重新提交资料' : '提交申请资料' }}</view>
+                    <view class="form-subtitle">当前申请：{{ selectedRoleLabel }}</view>
                 </view>
-                <view class="role-select__grid">
-                    <view
-                        v-for="item in rolePickerRange"
-                        :key="item.value"
-                        :class="['role-select__option', normalizeRoleCode(item.value) === selectedRoleCode ? 'role-select__option--active' : '']"
-                        @tap="onRoleCardTap(item)"
-                    >
-                        <view>
-                            <view class="role-select__name">{{ item.label }}</view>
-                            <view class="role-select__desc">{{ roleOptionDesc(item.value) }}</view>
-                        </view>
-                        <view class="role-select__check"></view>
-                    </view>
-                </view>
+                <view class="form-close" @tap="cancelApplyForm">返回选择</view>
             </view>
             <view class="form-item">
                 <text class="label">姓名</text>
@@ -140,15 +107,29 @@
 
         <button class="submit-btn" v-if="shouldShowForm" :loading="submitting" @tap="submitApply">{{ currentApplication ? '重新提交申请' : '提交申请' }}</button>
 
-        <view class="history" v-if="applications.length">
+        <view class="history" v-if="applyRoleApplications.length && !showApplyForm">
             <view class="history-title">申请记录</view>
-            <view v-for="item in applications" :key="item.applicationNo" class="history-item">
-                <view>
-                    <view class="history-role">{{ roleLabel(item.roleCode) }}</view>
-                    <view class="history-time">{{ item.appliedAt || item.createdAt || '' }}</view>
-                    <view class="history-desc" v-if="applicationAuditRemark(item)">{{ applicationAuditRemark(item) }}</view>
+            <view v-for="item in applyRoleApplications" :key="item.applicationNo" class="history-item">
+                <view class="history-main">
+                    <view class="history-row">
+                        <view class="history-role">{{ roleLabel(item.roleCode) }}</view>
+                        <view :class="['history-status', 'history-status--' + statusType(item.applicationStatus)]">{{ statusLabel(item.applicationStatus) }}</view>
+                    </view>
+                    <view class="history-meta" v-if="historyPrimaryTime(item)">
+                        <text v-if="historyPrimaryTime(item)">{{ historyPrimaryTime(item) }}</text>
+                    </view>
+                    <view class="history-detail" v-if="visibleHistoryInfo(item).length">
+                        <view class="history-detail__item" v-for="info in visibleHistoryInfo(item)" :key="info.label">
+                            <text class="history-detail__label">{{ info.label }}</text>
+                            <text class="history-detail__value">{{ info.value }}</text>
+                        </view>
+                    </view>
+                    <view class="history-info" v-if="historySecondaryTime(item)">{{ historySecondaryTime(item) }}</view>
+                    <view :class="['history-desc', 'history-desc--' + statusType(item.applicationStatus)]" v-if="applicationAuditRemark(item)">
+                        <text class="history-desc__label">{{ historyRemarkLabel(item) }}</text>
+                        <text class="history-desc__value">{{ applicationAuditRemark(item) }}</text>
+                    </view>
                 </view>
-                <view :class="['history-status', 'history-status--' + statusType(item.applicationStatus)]">{{ statusLabel(item.applicationStatus) }}</view>
             </view>
         </view>
 
@@ -166,8 +147,7 @@ import { localizeBackendText, normalizeBackendCode, normalizeKycStatus } from '@
 const roleOptions = [
     { label: '推广者', value: 'PROMOTER' },
     { label: '区域代理', value: 'AGENT' },
-    { label: '子公司', value: 'SUBSIDIARY' },
-    { label: '总部', value: 'HQ' }
+    { label: '子公司', value: 'SUBSIDIARY' }
 ]
 
 const APPLY_ROLE_CODES = roleOptions.map(item => item.value)
@@ -205,7 +185,9 @@ export default {
             },
             showApplyForm: false,
             kycInfo: {},
-            submitting: false
+            submitting: false,
+            pageReady: false,
+            pageRefreshing: false
         }
     },
     computed: {
@@ -272,6 +254,44 @@ export default {
         rolePickerRange() {
             return this.normalizedRoleOptions.length ? this.normalizedRoleOptions : roleOptions.map((item) => ({ ...item }))
         },
+        roleApplyCards() {
+            return this.rolePickerRange.map((role) => {
+                const roleCode = this.normalizeRoleCode(role.value)
+                const application = this.applicationByRole(roleCode)
+                const statusType = this.statusType(application && application.applicationStatus)
+                const approved = statusType === 'approved'
+                const pending = statusType === 'pending'
+                const deposit = statusType === 'deposit'
+                const rejected = statusType === 'rejected' || statusType === 'cancelled'
+                const applied = Boolean(application)
+                const actionText = approved
+                    ? '已生效'
+                    : deposit
+                        ? '去缴押金'
+                        : pending
+                            ? '待审核'
+                            : rejected
+                                ? '重新申请'
+                                : '申请该角色'
+                const time = application && this.applicationPrimaryTime(application)
+                return {
+                    roleCode,
+                    label: this.roleLabel(roleCode),
+                    desc: this.roleOptionDesc(roleCode),
+                    type: statusType === 'default' ? this.roleTagType(roleCode) : statusType,
+                    statusText: applied ? this.statusLabel(application.applicationStatus) : '可申请',
+                    depositText: this.displayDepositText({ ...application, roleCode }) || '押金以平台配置为准',
+                    timeText: time ? `${approved ? '通过' : '申请'}：${time}` : '',
+                    remark: application && !approved ? this.applicationAuditRemark(application) : '',
+                    application,
+                    statusType,
+                    actionText,
+                    disabled: approved || pending,
+                    primary: !approved && !pending,
+                    hintText: approved ? '' : pending ? '等待平台审核' : '点击进入申请'
+                }
+            })
+        },
         selectedRoleCode() {
             const item = this.roleOptions[this.roleIndex] || this.roleOptions[0] || {}
             return this.normalizeRoleCode(item.value || 'PROMOTER')
@@ -327,16 +347,13 @@ export default {
             return '角色申请会使用实名通过后的姓名、证件和照片。'
         },
         roleDepositAmount() {
-            const role = this.roleOptions[this.roleIndex] || {}
-            const config = {
-                ...(this.userInfo.roleDepositConfig || this.userInfo.role_deposit_config || this.userInfo.depositConfig || this.userInfo.deposit_config || {}),
-                ...this.roleDepositConfig
-            }
-            const value = role.depositAmount ?? config[this.selectedRoleCode] ?? config[this.normalizeRoleCode(role.value)] ?? ''
-            return value === undefined || value === null ? '' : value
+            return this.roleDepositAmountFor(this.selectedRoleCode)
         },
         applyRoleApplications() {
-            return this.applications.filter(item => APPLY_ROLE_CODES.includes(this.normalizeRoleCode(item.roleCode)))
+            return this.applications
+                .filter(item => APPLY_ROLE_CODES.includes(this.normalizeRoleCode(item.roleCode)))
+                .slice()
+                .sort((a, b) => this.applicationTimeValue(b) - this.applicationTimeValue(a))
         },
         hasApplyRoleRecord() {
             return this.currentRoles.length > 0 || this.applyRoleApplications.length > 0
@@ -371,7 +388,7 @@ export default {
             const status = this.currentStatusType
             if (status === 'deposit') {
                 return [
-                    { label: '待缴押金', value: this.moneyText(item.depositAmount) || '以平台通知为准' },
+                    { label: '待缴押金', value: this.displayDepositText(item) || '以平台通知为准' },
                     { label: '押金状态', value: this.depositStatusLabel(item.depositStatus) || '待缴纳' }
                 ]
             }
@@ -398,7 +415,7 @@ export default {
                 { label: '申请人', value: item.applicantName },
                 { label: '手机号', value: item.mobile },
                 { label: '推广码', value: item.inviteCode || item.promoterCode || this.promoterInviteCode },
-                { label: '押金金额', value: this.moneyText(item.depositAmount) },
+                { label: '押金金额', value: this.displayDepositText(item) },
                 { label: '押金状态', value: this.depositStatusLabel(item.depositStatus) },
                 { label: '申请时间', value: item.appliedAt },
                 { label: '审核时间', value: item.auditTime },
@@ -409,9 +426,8 @@ export default {
             return this.applicationInfo.filter((item) => item.value)
         },
         shouldShowForm() {
-            if (!this.isKycApproved || this.currentStatusType === 'approved') return false
-            if (!this.currentApplication && !this.hasApplyRoleRecord) return true
-            return !this.currentApplication || this.showApplyForm
+            if (!this.isKycApproved) return false
+            return this.showApplyForm
         },
         showFirstApplyEntry() {
             return false
@@ -433,7 +449,10 @@ export default {
         statusActions() {
             const status = this.currentStatusType
             if (status === 'approved') {
-                return [{ type: 'backend', label: '进入角色工作台', primary: true }]
+                if (this.nextApplyableRole) {
+                    return [{ type: 'apply-other', label: `继续申请${this.roleLabel(this.nextApplyableRole.value)}`, primary: true }]
+                }
+                return []
             }
             if (status === 'rejected' || status === 'cancelled') {
                 return [{ type: 'reapply', label: '重新申请', primary: true }]
@@ -442,21 +461,41 @@ export default {
                 return [{ type: 'deposit', label: '去缴押金', primary: true }]
             }
             return []
+        },
+        nextApplyableRole() {
+            return this.roleOptions.find((role) => {
+                const code = this.normalizeRoleCode(role.value)
+                if (!APPLY_ROLE_CODES.includes(code)) return false
+                const application = this.applications.find((item) => this.normalizeRoleCode(item.roleCode) === code)
+                return this.statusType(application && application.applicationStatus) !== 'approved'
+            }) || null
         }
     },
     onLoad() {
         this.form.mobile = this.userInfo.mobile || ''
+        this.loadPageData().finally(() => {
+            this.pageReady = true
+        })
+    },
+    onShow() {
+        if (!this.pageReady) return
         this.loadPageData()
     },
     methods: {
         async loadPageData() {
-            await Promise.all([this.loadKycStatus(), this.loadApplications(), this.loadRoles()])
-            this.mergeRoleOptions()
-            this.syncSelectedRole()
+            if (this.pageRefreshing) return
+            this.pageRefreshing = true
+            try {
+                await Promise.all([this.loadKycStatus(), this.loadApplications()])
+                this.mergeRoleOptions()
+                this.syncSelectedRole()
+            } finally {
+                this.pageRefreshing = false
+            }
         },
         async loadKycStatus() {
             try {
-                const res = await getKycStatus()
+                const res = await getKycStatus({ show: false })
                 if (res.code != 1) return
                 this.kycInfo = res.data || {}
                 if (this.isKycApproved) this.applyKycToForm()
@@ -481,8 +520,17 @@ export default {
             const certIndex = this.certTypes.findIndex((item) => item.value === this.form.certType)
             if (certIndex !== -1) this.certTypeIndex = certIndex
         },
+        shouldLoadRoleConfig() {
+            return this.roleOptions.some((item) => {
+                const code = this.normalizeRoleCode(item.value || item.roleCode)
+                return APPLY_ROLE_CODES.includes(code) && this.roleDepositAmountFor(code) === ''
+            })
+        },
+        async ensureRoleConfig() {
+            if (this.shouldLoadRoleConfig()) await this.loadRoles()
+        },
         async loadRoles() {
-            const res = await getRoles().catch(() => null)
+            const res = await getRoles({ show: false }).catch(() => null)
             if (res && res.code == 1) {
                 const data = res.data || {}
                 this.roles = data.roles || data.list || []
@@ -492,20 +540,44 @@ export default {
         },
         async loadApplications() {
             try {
-                const res = await getRoleApplications()
+                const res = await getRoleApplications({ show: false })
                 if (res.code == 1) {
                     const data = res.data || {}
                     this.applications = (data.applications || data.list || []).map((item) => this.normalizeApplicationState(item))
                 }
-            } catch (error) {
-                uni.showToast({ title: '获取申请记录失败', icon: 'none' })
-            }
+            } catch (error) {}
+        },
+        applicationByRole(roleCode) {
+            const code = this.normalizeRoleCode(roleCode)
+            const item = this.applications.find((item) => this.normalizeRoleCode(item.roleCode || item.role_code || item.role) === code)
+            return item ? this.withPromoterCode(item) : null
         },
         normalizeApplicationState(item = {}) {
-            const status = normalizeBackendCode(item.applicationStatus || item.auditStatus || item.status)
+            const statusValues = [
+                item.applicationStatus,
+                item.application_status,
+                item.auditStatus,
+                item.audit_status,
+                item.reviewStatus,
+                item.review_status,
+                item.applyStatus,
+                item.apply_status,
+                item.status,
+                item.rawApplicationStatus,
+                item.raw_application_status
+            ].map((value) => normalizeBackendCode(value)).filter(Boolean)
+            const rejectedStatuses = ['REJECTED', 'REJECT', 'REFUSED', 'REFUSE', 'FAILED', 'FAIL', 'AUDIT_REJECTED', 'REVIEW_REJECTED', 'NOT_PASS', 'NOT_PASSED']
+            if (statusValues.some((status) => rejectedStatuses.includes(status))) {
+                return this.normalizeApplicationFields({
+                    ...item,
+                    applicationStatus: 'REJECTED',
+                    auditStatus: 'REJECTED'
+                })
+            }
+            const status = statusValues[0] || ''
             const payStatus = normalizeBackendCode(item.payStatus || item.depositStatus || item.pay_status || item.deposit_status)
             if ((status === '' || status === 'PENDING_DEPOSIT' || status === 'WAIT_PAY' || status === 'PENDING_PAY') && ['PAID', 'SUCCESS', 'WAIVED', 'FREE'].includes(payStatus)) {
-                return {
+                return this.normalizeApplicationFields({
                     ...item,
                     rawApplicationStatus: item.rawApplicationStatus || item.raw_application_status || status,
                     raw_application_status: item.rawApplicationStatus || item.raw_application_status || status,
@@ -513,9 +585,25 @@ export default {
                     auditStatus: 'PENDING_AUDIT',
                     depositStatus: payStatus,
                     payStatus
-                }
+                })
             }
-            return item
+            return this.normalizeApplicationFields(item)
+        },
+        normalizeApplicationFields(item = {}) {
+            const roleCode = this.normalizeRoleCode(item.roleCode || item.role_code || item.role)
+            const applicationNo = item.applicationNo || item.application_no || item.applyNo || item.apply_no || item.no || ''
+            const appliedAt = item.appliedAt || item.applied_at || item.applyTime || item.apply_time || item.createTime || item.create_time || item.createdAt || item.created_at || ''
+            const auditTime = item.auditTime || item.audit_time || item.reviewTime || item.review_time || item.approvedAt || item.approved_at || item.updatedAt || item.updated_at || ''
+            const paidAt = item.paidAt || item.paid_at || item.payTime || item.pay_time || item.depositPaidAt || item.deposit_paid_at || ''
+            return {
+                ...item,
+                roleCode,
+                applicationNo,
+                appliedAt,
+                auditTime,
+                paidAt,
+                applicationStatus: item.applicationStatus || item.application_status || item.auditStatus || item.audit_status || item.reviewStatus || item.review_status || item.applyStatus || item.apply_status || item.status || ''
+            }
         },
         markDepositPaidPendingAudit(application = this.currentApplication || {}) {
             const code = this.normalizeRoleCode(application.roleCode || application.role_code || this.selectedRoleCode)
@@ -531,6 +619,7 @@ export default {
             this.$set(this.applications, existedIndex, next)
         },
         syncSelectedRole() {
+            if (this.showApplyForm) return
             const roleCode = (this.currentRoles[0] && this.currentRoles[0].roleCode) || (this.applyRoleApplications[0] && this.applyRoleApplications[0].roleCode)
             if (!roleCode) return
             this.selectRole(roleCode)
@@ -585,6 +674,10 @@ export default {
             if (!this.isApplyRole(code)) return
             this.selectRole(code)
         },
+        selectRoleForView(roleCode) {
+            const index = this.roleOptions.findIndex((item) => this.normalizeRoleCode(item.value) === this.normalizeRoleCode(roleCode))
+            if (index !== -1) this.roleIndex = index
+        },
         selectRole(roleCode) {
             const index = this.roleOptions.findIndex((item) => item.value === this.normalizeRoleCode(roleCode))
             if (index !== -1) {
@@ -596,10 +689,16 @@ export default {
             const roleIndex = this.roleOptions.findIndex((role) => this.normalizeRoleCode(role.value) === this.normalizeRoleCode(item.value))
             if (roleIndex === -1) return
             this.roleIndex = roleIndex
+            this.showApplyForm = false
             this.prefillForm(this.currentApplication || {})
         },
-        startApply() {
+        cancelApplyForm() {
+            this.showApplyForm = false
+            this.prefillForm(this.currentApplication || {})
+        },
+        async startApply() {
             if (!this.isKycApproved) return this.goKyc()
+            await this.ensureRoleConfig()
             const index = this.firstApplyableRoleIndex()
             if (index === -1) {
                 uni.showToast({ title: '当前角色均已开通', icon: 'none' })
@@ -610,6 +709,25 @@ export default {
             this.applyKycToForm()
             this.showApplyForm = true
         },
+        async startApplyRole(roleCode) {
+            if (!this.isKycApproved) return this.goKyc()
+            await this.ensureRoleConfig()
+            const index = this.roleOptions.findIndex((role) => this.normalizeRoleCode(role.value) === this.normalizeRoleCode(roleCode))
+            if (index === -1) return
+            this.roleIndex = index
+            this.prefillForm(this.currentApplication || {})
+            this.applyKycToForm()
+            this.showApplyForm = true
+        },
+        async handleRoleCardAction(item = {}) {
+            this.selectRoleForView(item.roleCode)
+            if (item.disabled) return
+            if (item.statusType === 'deposit') {
+                await this.payDeposit()
+                return
+            }
+            await this.startApplyRole(item.roleCode)
+        },
         roleLabel(roleCode) {
             const code = this.normalizeRoleCode(roleCode)
             const map = {
@@ -617,8 +735,7 @@ export default {
                 USER: '普通用户',
                 PROMOTER: '推广者',
                 AGENT: '区域代理',
-                SUBSIDIARY: '子公司',
-                HQ: '总部'
+                SUBSIDIARY: '子公司'
             }
             if (map[code]) return map[code]
             const role = roleOptions.find((item) => item.value === code)
@@ -626,13 +743,25 @@ export default {
             const currentRole = this.currentRoles.find((item) => this.normalizeRoleCode(item.roleCode) === code)
             return (currentRole && currentRole.roleName) || code
         },
+        roleTagType(roleCode) {
+            const code = this.normalizeRoleCode(roleCode)
+            const map = {
+                MERCHANT: 'merchant',
+                PROMOTER: 'promoter',
+                AGENT: 'agent',
+                SUBSIDIARY: 'subsidiary',
+                USER: 'user'
+            }
+            return map[code] || 'default'
+        },
         normalizeRoleCode(roleCode) {
             const code = normalizeBackendCode(roleCode)
-            const map = { HEADQUARTERS: 'HQ', OPERATION_CENTER: 'AGENT', AREA_AGENT: 'AGENT', COUNTY_AGENT: 'AGENT' }
+            const map = { OPERATION_CENTER: 'AGENT', AREA_AGENT: 'AGENT', COUNTY_AGENT: 'AGENT', BRANCH: 'SUBSIDIARY', COMPANY_BRANCH: 'SUBSIDIARY' }
             return map[code] || code
         },
-        startFirstApply() {
+        async startFirstApply() {
             if (!this.isKycApproved) return this.goKyc()
+            await this.ensureRoleConfig()
             const index = this.firstApplyableRoleIndex()
             this.roleIndex = index === -1 ? 0 : index
             this.prefillForm({})
@@ -644,7 +773,7 @@ export default {
             if (['PENDING_DEPOSIT'].includes(normalized)) return 'deposit'
             if (['PENDING_AUDIT', 'WAIT_AUDIT', 'AUDITING'].includes(normalized)) return 'pending'
             if (['APPROVED', 'PASS', 'PASSED', 'REALNAME_VERIFIED'].includes(normalized)) return 'approved'
-            if (['REJECTED', 'REJECT', 'FAILED'].includes(normalized)) return 'rejected'
+            if (['REJECTED', 'REJECT', 'REFUSED', 'REFUSE', 'FAILED', 'FAIL', 'AUDIT_REJECTED', 'REVIEW_REJECTED', 'NOT_PASS', 'NOT_PASSED'].includes(normalized)) return 'rejected'
             if (['CANCELLED'].includes(normalized)) return 'cancelled'
             return 'default'
         },
@@ -660,9 +789,16 @@ export default {
                 PASSED: '已通过',
                 REJECTED: '已拒绝',
                 REJECT: '已拒绝',
+                REFUSED: '已拒绝',
+                REFUSE: '已拒绝',
+                AUDIT_REJECTED: '已拒绝',
+                REVIEW_REJECTED: '已拒绝',
+                NOT_PASS: '已拒绝',
+                NOT_PASSED: '已拒绝',
                 CANCELLED: '已取消',
                 AUDITING: '待审核',
                 SUCCESS: '待审核',
+                FAIL: '已拒绝',
                 FAILED: '已拒绝'
             }
             return map[normalized] || localizeBackendText(status, '未申请')
@@ -685,18 +821,87 @@ export default {
             const map = {
                 PROMOTER: '适合推广获客和邀请分销',
                 AGENT: '适合区域渠道和门店拓展',
-                SUBSIDIARY: '适合直营网点和下级管理',
-                HQ: '适合总部统一运营管理'
+                SUBSIDIARY: '适合子公司直营网点管理'
             }
             return map[this.normalizeRoleCode(roleCode)] || '提交资料后等待平台审核'
         },
         applicationAuditRemark(item = {}) {
-            const raw = item.auditRemark || item.audit_remark || item.rejectReasonMessage || item.reject_reason_message || item.rejectReasonCode || item.reject_reason_code || item.remark || ''
+            const raw = item.auditRemark || item.audit_remark || item.reviewRemark || item.review_remark || item.auditOpinion || item.audit_opinion || item.rejectReasonMessage || item.reject_reason_message || item.rejectReasonCode || item.reject_reason_code || item.approveRemark || item.approve_remark || item.remark || ''
             return localizeBackendText(raw, '')
+        },
+        historyRemarkLabel(item = {}) {
+            const status = this.statusType(item.applicationStatus)
+            if (status === 'rejected') return '拒绝原因'
+            if (status === 'approved') return '通过说明'
+            if (status === 'cancelled') return '取消说明'
+            return '审核说明'
+        },
+        applicationPrimaryTime(item = {}) {
+            const status = this.statusType(item.applicationStatus)
+            if (status === 'approved') return item.auditTime || item.appliedAt || item.createdAt || item.created_at || ''
+            return item.appliedAt || item.createdAt || item.created_at || item.auditTime || ''
+        },
+        historyPrimaryTime(item = {}) {
+            const status = this.statusType(item.applicationStatus)
+            if (status === 'approved') {
+                const time = item.auditTime || this.applicationPrimaryTime(item)
+                return time ? `通过时间：${time}` : ''
+            }
+            if (status === 'pending') {
+                const time = item.paidAt || item.appliedAt || this.applicationPrimaryTime(item)
+                return time ? `提交时间：${time}` : ''
+            }
+            if (status === 'deposit') {
+                const time = item.appliedAt || this.applicationPrimaryTime(item)
+                return time ? `申请时间：${time}` : ''
+            }
+            const time = this.applicationPrimaryTime(item)
+            return time ? `申请时间：${time}` : ''
+        },
+        historySecondaryTime(item = {}) {
+            const status = this.statusType(item.applicationStatus)
+            if (status === 'pending' && item.paidAt) return `押金支付：${item.paidAt}`
+            if ((status === 'rejected' || status === 'cancelled') && item.auditTime) return `审核时间：${item.auditTime}`
+            if (status === 'approved' && item.appliedAt && item.auditTime && item.appliedAt !== item.auditTime) return `申请时间：${item.appliedAt}`
+            return ''
+        },
+        historyApplicationNo(item = {}) {
+            return item.applicationNo || item.application_no || item.applyNo || item.apply_no || ''
+        },
+        visibleHistoryInfo(item = {}) {
+            return [
+                { label: '申请人', value: item.applicantName || item.applicant_name },
+                { label: '手机号', value: item.mobile },
+                { label: '押金', value: this.displayDepositText(item) },
+                { label: '押金状态', value: this.depositStatusLabel(item.depositStatus || item.payStatus) }
+            ].filter((info) => info.value)
+        },
+        applicationTimeValue(item = {}) {
+            const raw = item.auditTime || item.appliedAt || item.createdAt || item.created_at || item.createTime || item.create_time || ''
+            const value = raw ? new Date(String(raw).replace(/-/g, '/')).getTime() : 0
+            return Number.isNaN(value) ? 0 : value
         },
         moneyText(value) {
             if (value === '' || value === null || value === undefined) return ''
             return `¥${value}`
+        },
+        roleDepositAmountFor(roleCode, fallback = '') {
+            const code = this.normalizeRoleCode(roleCode || this.selectedRoleCode)
+            const role = this.roleOptions.find((item) => this.normalizeRoleCode(item.value || item.roleCode) === code) || {}
+            const config = {
+                ...(this.userInfo.roleDepositConfig || this.userInfo.role_deposit_config || this.userInfo.depositConfig || this.userInfo.deposit_config || {}),
+                ...this.roleDepositConfig
+            }
+            const value = [config[code], role.depositAmount, fallback].find((item) => item !== undefined && item !== null && item !== '')
+            return value === undefined || value === null ? '' : value
+        },
+        displayDepositAmount(application = {}) {
+            const roleCode = application.roleCode || application.role_code || this.selectedRoleCode
+            const applicationAmount = application.depositAmount ?? application.deposit_amount ?? application.bondAmount ?? application.bond_amount ?? ''
+            return this.roleDepositAmountFor(roleCode, applicationAmount)
+        },
+        displayDepositText(application = {}) {
+            return this.moneyText(this.displayDepositAmount(application))
         },
         async handleStatusAction(type) {
             if (type === 'reapply') {
@@ -704,17 +909,13 @@ export default {
                 this.showApplyForm = true
                 return
             }
+            if (type === 'apply-other') {
+                this.startApply()
+                return
+            }
             if (type === 'deposit') {
                 await this.payDeposit()
                 return
-            }
-            if (type === 'backend') {
-                const url = this.currentApplication && this.currentApplication.backendUrl
-                if (url) {
-                    uni.navigateTo({ url })
-                    return
-                }
-                uni.navigateTo({ url: `/business/pages/business_pages/role_workbench?roleCode=${this.selectedRoleCode}` })
             }
         },
         goKyc() {
@@ -741,7 +942,7 @@ export default {
                 const res = await prepay({
                     bizType: 'ROLE_DEPOSIT',
                     bizOrderNo: depositNo,
-                    amount: application.depositAmount,
+                    amount: this.displayDepositAmount(application),
                     idempotentKey: `role-deposit-${depositNo}-WECHAT_JSAPI`
                 })
                 const { code, data, msg, message } = res || {}
@@ -827,6 +1028,7 @@ export default {
         },
         async payDepositBeforeSubmit() {
             if (!this.requiresPrepayDeposit) return { depositPayOrderNo: '', depositBizOrderNo: '' }
+            await this.ensureRoleConfig()
             if (this.roleDepositAmount === '' || Number(this.roleDepositAmount) < 0) {
                 throw new Error('该角色押金金额未配置，请联系平台')
             }
@@ -855,9 +1057,12 @@ export default {
             this.submitting = true
             try {
                 const roleCode = this.roleOptions[this.roleIndex].value
+                const application = this.currentApplication || {}
                 const depositInfo = await this.payDepositBeforeSubmit()
                 const res = await applyRoleApplication({
                     ...this.form,
+                    applicationNo: application.applicationNo || application.application_no || '',
+                    applicationId: application.applicationId || application.application_id || application.id || '',
                     roleCode,
                     ...depositInfo,
                     depositAmount: this.roleDepositAmount,
@@ -868,7 +1073,7 @@ export default {
                 })
                 if (res.code == 1) {
                     uni.showToast({ title: '申请已提交', icon: 'success' })
-                    this.upsertPendingAuditApplication(roleCode, depositInfo)
+                    this.upsertPendingAuditApplication(roleCode, depositInfo, res.data || {})
                     this.showApplyForm = false
                     await this.loadPageData()
                 } else {
@@ -884,20 +1089,26 @@ export default {
                 this.submitting = false
             }
         },
-        upsertPendingAuditApplication(roleCode, depositInfo = {}) {
+        upsertPendingAuditApplication(roleCode, depositInfo = {}, backendApplication = {}) {
             const code = this.normalizeRoleCode(roleCode)
             const existedIndex = this.applications.findIndex((item) => this.normalizeRoleCode(item.roleCode) === code)
+            const existed = existedIndex === -1 ? {} : this.applications[existedIndex]
+            const normalizedBackend = this.normalizeApplicationState(backendApplication || {})
+            const backendStatus = this.statusType(normalizedBackend.applicationStatus || normalizedBackend.auditStatus || normalizedBackend.status)
+            const fallbackStatus = backendStatus === 'approved' ? 'APPROVED' : 'PENDING_AUDIT'
+            const paidStatus = depositInfo.depositPayOrderNo || depositInfo.depositBizOrderNo ? 'PAID' : ''
             const next = {
-                ...(existedIndex === -1 ? {} : this.applications[existedIndex]),
+                ...existed,
                 ...this.form,
                 ...depositInfo,
+                ...normalizedBackend,
                 roleCode: code,
-                applicationStatus: 'PENDING_AUDIT',
-                auditStatus: 'PENDING_AUDIT',
-                depositStatus: depositInfo.depositPayOrderNo || depositInfo.depositBizOrderNo ? 'PAID' : '',
-                payStatus: depositInfo.depositPayOrderNo || depositInfo.depositBizOrderNo ? 'PAID' : '',
-                depositAmount: this.roleDepositAmount,
-                appliedAt: new Date().toISOString()
+                applicationStatus: normalizedBackend.applicationStatus || fallbackStatus,
+                auditStatus: normalizedBackend.auditStatus || normalizedBackend.applicationStatus || fallbackStatus,
+                depositStatus: normalizedBackend.depositStatus || paidStatus || existed.depositStatus || '',
+                payStatus: normalizedBackend.payStatus || paidStatus || existed.payStatus || '',
+                depositAmount: this.roleDepositAmountFor(code, normalizedBackend.depositAmount),
+                appliedAt: normalizedBackend.appliedAt || existed.appliedAt || new Date().toISOString()
             }
             if (existedIndex === -1) this.applications.unshift(next)
             else this.$set(this.applications, existedIndex, next)
@@ -912,7 +1123,12 @@ export default {
 .title-row { display: flex; align-items: center; gap: 16rpx; min-width: 0; }
 .title { font-size: 40rpx; font-weight: 700; line-height: 56rpx; }
 .header-tags { display: flex; flex-wrap: wrap; gap: 10rpx; min-width: 0; }
-.header-tag { height: 40rpx; padding: 0 16rpx; border-radius: 20rpx; color: #ffffff; background: rgba(255, 255, 255, .18); border: 1rpx solid rgba(255, 255, 255, .32); font-size: 22rpx; line-height: 40rpx; }
+.header-tag { height: 42rpx; padding: 0 16rpx; border-radius: 21rpx; color: #ffffff; background: rgba(255, 255, 255, .18); border: 1rpx solid rgba(255, 255, 255, .32); font-size: 22rpx; line-height: 42rpx; }
+.header-tag--merchant { background: rgba(255, 255, 255, .2); border-color: rgba(255, 255, 255, .36); }
+.header-tag--promoter { background: rgba(255, 188, 84, .28); border-color: rgba(255, 214, 142, .48); }
+.header-tag--agent { background: rgba(158, 112, 255, .28); border-color: rgba(202, 180, 255, .48); }
+.header-tag--subsidiary { background: rgba(84, 154, 255, .28); border-color: rgba(172, 218, 255, .48); }
+.header-tag--user, .header-tag--default { background: rgba(255, 255, 255, .16); }
 .subtitle { margin-top: 10rpx; color: rgba(255, 255, 255, .88); font-size: 25rpx; line-height: 36rpx; }
 .role-card, .status-card, .focus-card, .info-card, .action-card, .form-card, .history, .empty-state { margin-top: 22rpx; padding: 26rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 12rpx 34rpx rgba(31, 58, 94, .08); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
@@ -936,20 +1152,62 @@ export default {
 .kyc-gate__btn, .apply-entry__btn { flex: none; height: 64rpx; padding: 0 28rpx; border-radius: 32rpx; color: #ffffff; background: #1688ff; font-size: 26rpx; line-height: 64rpx; }
 .apply-entry { border: 1rpx solid #cce5ff; background: linear-gradient(135deg, #eef8ff, #ffffff); }
 .apply-entry__btn { background: linear-gradient(135deg, #1688ff, #03a6ff); }
-.status-card { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; overflow: hidden; }
+.role-board { margin-top: 22rpx; padding: 24rpx; border-radius: 26rpx; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); box-shadow: 0 14rpx 36rpx rgba(31, 58, 94, .07); border: 1rpx solid rgba(221, 230, 242, .75); }
+.role-board__head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.role-board__title { color: #172033; font-size: 31rpx; font-weight: 700; line-height: 44rpx; }
+.role-apply-list { display: flex; flex-direction: column; gap: 16rpx; margin-top: 20rpx; }
+.role-apply-card { position: relative; padding: 24rpx 24rpx 22rpx 28rpx; border-radius: 22rpx; border: 1rpx solid #e8eef7; background: rgba(255, 255, 255, .92); box-sizing: border-box; overflow: hidden; box-shadow: 0 8rpx 22rpx rgba(30, 54, 92, .045); }
+.role-apply-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 8rpx; background: #c9d4e5; }
+.role-apply-card--promoter::before { background: #f59e0b; }
+.role-apply-card--agent::before { background: #7c3aed; }
+.role-apply-card--subsidiary::before { background: #2563eb; }
+.role-apply-card--approved::before { background: #10a66a; }
+.role-apply-card--pending::before { background: #1677ff; }
+.role-apply-card--deposit::before { background: #d48806; }
+.role-apply-card--rejected::before { background: #e34d59; }
+.role-apply-card--cancelled::before { background: #8a96a6; }
+.role-apply-card--active { border-color: #9ccfff; background: linear-gradient(135deg, #f2f8ff, #ffffff); box-shadow: 0 12rpx 28rpx rgba(22, 136, 255, .1); }
+.role-apply-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14rpx; min-width: 0; }
+.role-apply-card__top > view:first-child { flex: 1; min-width: 0; }
+.role-apply-card__name { color: #172033; font-size: clamp(26rpx, 4vw, 31rpx); font-weight: 700; line-height: 1.35; word-break: keep-all; }
+.role-apply-card__desc { margin-top: 6rpx; color: #667085; font-size: clamp(21rpx, 3.2vw, 23rpx); line-height: 1.5; word-break: break-all; }
+.role-apply-card__status { flex: none; max-width: 180rpx; min-height: 42rpx; padding: 7rpx 16rpx; border-radius: 23rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 22rpx; font-weight: 600; line-height: 28rpx; text-align: center; box-sizing: border-box; word-break: keep-all; }
+.role-apply-card__status--approved { color: #10a66a; background: rgba(16, 166, 106, .13); }
+.role-apply-card__status--pending { color: #1677ff; background: rgba(22, 119, 255, .12); }
+.role-apply-card__status--deposit { color: #d48806; background: rgba(250, 173, 20, .16); }
+.role-apply-card__status--rejected, .role-apply-card__status--cancelled { color: #e34d59; background: rgba(227, 77, 89, .12); }
+.role-apply-card__status--promoter { color: #b45309; background: rgba(245, 158, 11, .14); }
+.role-apply-card__status--agent { color: #6d28d9; background: rgba(124, 58, 237, .12); }
+.role-apply-card__status--subsidiary { color: #1d4ed8; background: rgba(37, 99, 235, .12); }
+.role-apply-card__meta { display: flex; flex-wrap: wrap; gap: 8rpx 16rpx; margin-top: 14rpx; color: #667085; font-size: 22rpx; line-height: 32rpx; }
+.role-apply-card__remark { margin-top: 12rpx; color: #5f6b7a; font-size: 23rpx; line-height: 34rpx; }
+.role-apply-card--rejected .role-apply-card__remark { color: #e34d59; }
+.role-apply-card__hint { margin-top: 12rpx; color: #1677ff; font-size: 23rpx; line-height: 32rpx; }
+.status-card { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18rpx; overflow: hidden; }
+.status-card::after { content: ''; position: absolute; right: -58rpx; top: -58rpx; width: 172rpx; height: 172rpx; border-radius: 50%; background: rgba(255, 255, 255, .55); }
 .status-card--deposit { background: linear-gradient(135deg, #fff7e6, #ffffff); border: 1rpx solid #ffd89a; }
-.status-card--pending { background: linear-gradient(135deg, #eaf4ff, #ffffff); border: 1rpx solid #b9dcff; }
+.status-card--pending { background: linear-gradient(135deg, #eaf4ff 0%, #f8fcff 58%, #ffffff 100%); border: 1rpx solid #b9dcff; box-shadow: 0 18rpx 46rpx rgba(22, 119, 255, .14); }
 .status-card--approved { background: linear-gradient(135deg, #e8fff4, #ffffff); border: 1rpx solid #9ee8c0; }
 .status-card--rejected { background: linear-gradient(135deg, #fff0f0, #ffffff); border: 1rpx solid #ffc2c2; }
 .status-card--cancelled { background: linear-gradient(135deg, #f2f3f5, #ffffff); border: 1rpx solid #dcdfe6; }
-.status-title { color: #222222; font-size: 30rpx; font-weight: 600; }
-.status-value { flex: none; padding: 10rpx 18rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 26rpx; }
+.status-main { position: relative; z-index: 1; flex: 1; min-width: 0; }
+.status-title-row { display: flex; align-items: center; gap: 14rpx; min-width: 0; }
+.status-icon { flex: none; width: 52rpx; height: 52rpx; border-radius: 18rpx; background: linear-gradient(135deg, #1688ff, #18c59f); box-shadow: 0 10rpx 18rpx rgba(22, 136, 255, .2); }
+.status-icon::after { content: ''; display: block; width: 20rpx; height: 10rpx; margin: 17rpx 0 0 15rpx; border-left: 4rpx solid #ffffff; border-bottom: 4rpx solid #ffffff; transform: rotate(-45deg); }
+.status-title { color: #222222; font-size: 32rpx; font-weight: 700; line-height: 44rpx; }
+.status-value { position: relative; z-index: 1; flex: none; padding: 12rpx 20rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 26rpx; font-weight: 600; }
 .status-card--deposit .status-value { color: #d48806; background: rgba(250, 173, 20, .14); }
-.status-card--pending .status-value { color: #1677ff; background: rgba(22, 119, 255, .12); }
+.status-card--pending .status-value { color: #ffffff; background: linear-gradient(135deg, #1677ff, #19b6ff); box-shadow: 0 10rpx 22rpx rgba(22, 119, 255, .24); }
 .status-card--approved .status-value { color: #10a66a; background: rgba(16, 166, 106, .12); }
 .status-card--rejected .status-value { color: #e34d59; background: rgba(227, 77, 89, .12); }
 .status-card--cancelled .status-value { color: #7a7f8a; background: rgba(122, 127, 138, .12); }
-.status-desc { margin-top: 6rpx; color: #666666; font-size: 24rpx; line-height: 36rpx; }
+.status-desc { margin-top: 10rpx; color: #5f6b7a; font-size: 25rpx; line-height: 38rpx; }
+.status-desc--no { color: #8a96a6; font-size: 23rpx; }
+.status-pending-flow { display: flex; align-items: center; gap: 10rpx; margin-top: 20rpx; padding: 16rpx; border-radius: 18rpx; background: rgba(255, 255, 255, .72); }
+.status-flow-step { flex: none; color: #8a96a6; font-size: 22rpx; line-height: 32rpx; white-space: nowrap; }
+.status-flow-step.is-done { color: #18a058; }
+.status-flow-step.is-active { color: #1677ff; font-weight: 700; }
+.status-flow-line { flex: 1; min-width: 24rpx; height: 2rpx; background: linear-gradient(90deg, rgba(24, 160, 88, .5), rgba(22, 119, 255, .28)); }
 .focus-card { display: flex; gap: 18rpx; }
 .focus-card--deposit { background: #fffaf0; }
 .focus-card--pending { background: #f2f8ff; }
@@ -960,6 +1218,16 @@ export default {
 .focus-label { display: block; color: #888888; font-size: 23rpx; }
 .focus-value { display: block; margin-top: 10rpx; color: #222222; font-size: 30rpx; font-weight: 600; line-height: 42rpx; word-break: break-all; }
 .info-title { margin-bottom: 18rpx; color: #222222; font-size: 30rpx; font-weight: 600; }
+.info-card--approved { border: 1rpx solid #9ee8c0; background: linear-gradient(135deg, #f0fff7, #ffffff); }
+.approved-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.approved-title { color: #12352a; font-size: 32rpx; font-weight: 700; line-height: 44rpx; }
+.approved-desc { margin-top: 8rpx; color: #5d776e; font-size: 24rpx; line-height: 36rpx; }
+.approved-tag { flex: none; height: 52rpx; padding: 0 20rpx; border-radius: 26rpx; font-size: 25rpx; font-weight: 600; line-height: 52rpx; }
+.approved-tag--merchant { color: #1769ff; background: rgba(23, 105, 255, .1); }
+.approved-tag--promoter { color: #b26a00; background: rgba(255, 159, 28, .16); }
+.approved-tag--agent { color: #0c8f61; background: rgba(24, 197, 159, .15); }
+.approved-tag--subsidiary { color: #1769ff; background: rgba(23, 105, 255, .12); }
+.approved-tag--user, .approved-tag--default { color: #6b7280; background: rgba(107, 114, 128, .12); }
 .info-item { display: flex; justify-content: space-between; gap: 20rpx; padding: 14rpx 0; border-top: 1rpx solid #f0f1f3; }
 .info-label { flex: none; color: #999999; font-size: 24rpx; }
 .info-value { color: #222222; font-size: 26rpx; text-align: right; word-break: break-all; }
@@ -970,17 +1238,20 @@ export default {
 .action-btn--primary { color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); box-shadow: 0 10rpx 22rpx rgba(22, 136, 255, .18); }
 .action-btn--plain { color: #1688ff; background: #eef7ff; }
 .form-card { padding: 30rpx; }
-.form-title { margin-bottom: 20rpx; color: #222222; font-size: 32rpx; font-weight: 700; }
+.form-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; margin-bottom: 22rpx; }
+.form-title { color: #222222; font-size: 32rpx; font-weight: 700; line-height: 44rpx; }
+.form-subtitle { margin-top: 6rpx; color: #1688ff; font-size: 24rpx; line-height: 34rpx; }
+.form-close { flex: none; height: 56rpx; padding: 0 22rpx; border-radius: 28rpx; color: #5f6b7a; background: #f0f3f8; font-size: 24rpx; line-height: 56rpx; }
 .role-select { margin-bottom: 20rpx; padding: 22rpx; border-radius: 20rpx; background: linear-gradient(180deg, #f7fbff, #ffffff); border: 1rpx solid #e1efff; box-sizing: border-box; }
-.role-select__head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.role-select__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10rpx 18rpx; }
 .role-select__title { color: #222222; font-size: 29rpx; font-weight: 700; }
-.role-select__current { flex: none; color: #1688ff; font-size: 24rpx; }
-.role-select__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16rpx; margin-top: 18rpx; }
-.role-select__option { position: relative; min-height: 136rpx; padding: 20rpx 18rpx; border-radius: 18rpx; border: 2rpx solid #e5ebf2; background: #ffffff; box-sizing: border-box; overflow: hidden; }
+.role-select__current { flex: none; max-width: 100%; color: #1688ff; font-size: 24rpx; line-height: 34rpx; }
+.role-select__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; margin-top: 18rpx; }
+.role-select__option { position: relative; min-height: 146rpx; padding: 20rpx 16rpx 18rpx; border-radius: 18rpx; border: 2rpx solid #e5ebf2; background: #ffffff; box-sizing: border-box; overflow: hidden; }
 .role-select__option--active { border-color: #1688ff; background: linear-gradient(135deg, #eef7ff, #ffffff); box-shadow: 0 10rpx 24rpx rgba(22, 136, 255, .14); }
-.role-select__name { color: #222222; font-size: 28rpx; font-weight: 700; line-height: 40rpx; }
-.role-select__desc { margin-top: 8rpx; color: #7a8594; font-size: 22rpx; line-height: 32rpx; }
-.role-select__check { position: absolute; right: 16rpx; top: 16rpx; width: 30rpx; height: 30rpx; border-radius: 50%; border: 2rpx solid #d6dee9; background: #ffffff; box-sizing: border-box; }
+.role-select__name { padding-right: 34rpx; color: #222222; font-size: 27rpx; font-weight: 700; line-height: 38rpx; word-break: keep-all; }
+.role-select__desc { margin-top: 8rpx; color: #7a8594; font-size: 21rpx; line-height: 30rpx; word-break: break-all; }
+.role-select__check { position: absolute; right: 14rpx; top: 16rpx; width: 28rpx; height: 28rpx; border-radius: 50%; border: 2rpx solid #d6dee9; background: #ffffff; box-sizing: border-box; }
 .role-select__option--active .role-select__check { border-color: #1688ff; background: #1688ff; }
 .role-select__option--active .role-select__check::after { content: ''; position: absolute; left: 8rpx; top: 4rpx; width: 9rpx; height: 15rpx; border-right: 3rpx solid #ffffff; border-bottom: 3rpx solid #ffffff; transform: rotate(45deg); }
 .form-item { display: flex; align-items: center; min-height: 96rpx; margin-top: 16rpx; padding: 18rpx 20rpx; border: 1rpx solid #edf1f6; border-radius: 18rpx; background: #f8fafc; box-sizing: border-box; }
@@ -996,12 +1267,27 @@ textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ff
 .kyc-material__photo { width: 100%; height: 180rpx; border-radius: 14rpx; background: #edf1f6; }
 .agreement-row { display: flex; align-items: center; gap: 14rpx; margin-top: 22rpx; color: #666666; font-size: 24rpx; line-height: 34rpx; }
 .submit-btn { margin-top: 30rpx; height: 88rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); border-radius: 44rpx; font-size: 30rpx; box-shadow: 0 14rpx 28rpx rgba(22, 136, 255, .22); }
-.history-title { margin-bottom: 16rpx; color: #222222; font-size: 30rpx; font-weight: 600; }
-.history-item { display: flex; align-items: center; justify-content: space-between; padding: 18rpx 0; border-top: 1rpx solid #f0f1f3; }
-.history-role { color: #222222; font-size: 28rpx; }
-.history-time { margin-top: 6rpx; color: #999999; font-size: 22rpx; }
-.history-desc { margin-top: 6rpx; color: #999999; font-size: 22rpx; line-height: 32rpx; }
-.history-status { flex: none; padding: 8rpx 16rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 24rpx; }
+.history { padding: 18rpx 18rpx; }
+.history-title { margin-bottom: 10rpx; color: #1f2937; font-size: 28rpx; font-weight: 700; }
+.history-item { position: relative; padding: 14rpx 16rpx 14rpx 22rpx; border: 1rpx solid #edf1f6; border-radius: 14rpx; background: #fbfcff; box-sizing: border-box; overflow: hidden; }
+.history-item + .history-item { margin-top: 8rpx; }
+.history-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6rpx; background: #c9d4e5; }
+.history-main { min-width: 0; }
+.history-row { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
+.history-role { color: #1f2937; font-size: 26rpx; font-weight: 700; line-height: 34rpx; }
+.history-meta { display: flex; flex-wrap: wrap; gap: 4rpx 14rpx; margin-top: 4rpx; color: #667085; font-size: 21rpx; line-height: 28rpx; }
+.history-detail { display: flex; flex-wrap: wrap; gap: 2rpx 16rpx; margin-top: 6rpx; padding: 0; border-radius: 0; background: transparent; }
+.history-detail__item { min-width: 0; }
+.history-detail__label { display: inline; color: #98a2b3; font-size: 20rpx; line-height: 28rpx; }
+.history-detail__label::after { content: '：'; }
+.history-detail__value { display: inline; color: #1f2937; font-size: 21rpx; line-height: 28rpx; word-break: break-all; }
+.history-info { margin-top: 4rpx; color: #8a96a6; font-size: 20rpx; line-height: 28rpx; }
+.history-desc { margin-top: 6rpx; padding: 8rpx 10rpx; border-radius: 10rpx; color: #c2410c; background: #fff7ed; font-size: 21rpx; line-height: 30rpx; }
+.history-desc--approved { color: #10a66a; background: rgba(16, 166, 106, .08); }
+.history-desc__label { display: inline; font-weight: 700; line-height: 30rpx; }
+.history-desc__label::after { content: '：'; }
+.history-desc__value { display: inline; line-height: 30rpx; word-break: break-all; }
+.history-status { flex: none; padding: 4rpx 12rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 21rpx; font-weight: 600; line-height: 28rpx; }
 .history-status--deposit { color: #d48806; background: rgba(250, 173, 20, .14); }
 .history-status--pending { color: #1677ff; background: rgba(22, 119, 255, .12); }
 .history-status--approved { color: #10a66a; background: rgba(16, 166, 106, .12); }
@@ -1014,4 +1300,21 @@ textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ff
 .agreement-content { height: 520rpx; margin-top: 24rpx; padding: 22rpx; border-radius: 18rpx; background: #f7f9fc; color: #555555; font-size: 26rpx; line-height: 42rpx; box-sizing: border-box; }
 .agreement-btn { margin-top: 24rpx; height: 78rpx; border-radius: 39rpx; color: #ffffff; background: #1688ff; font-size: 28rpx; line-height: 78rpx; }
 .agreement-btn--disabled { background: #c7d0dc; }
+
+@media screen and (max-width: 360px) {
+    .promoter-page { padding-left: 18rpx; padding-right: 18rpx; }
+    .header, .form-card, .status-card, .focus-card, .info-card, .action-card, .history, .empty-state, .role-board { padding-left: 22rpx; padding-right: 22rpx; }
+    .title-row, .status-card, .kyc-gate, .apply-entry { align-items: flex-start; flex-direction: column; }
+    .status-value, .kyc-gate__btn, .apply-entry__btn { align-self: flex-start; }
+    .status-pending-flow { width: 100%; box-sizing: border-box; overflow-x: auto; }
+    .role-select__grid { grid-template-columns: 1fr; }
+    .role-select__option { min-height: 112rpx; }
+    .focus-card, .action-buttons { flex-direction: column; }
+    .role-apply-card__top { flex-direction: column; }
+    .role-apply-card__status { align-self: flex-start; }
+    .form-item { align-items: flex-start; flex-direction: column; }
+    .label { width: auto; margin-bottom: 8rpx; }
+    input, .picker-value { width: 100%; text-align: left; }
+    .kyc-material__photos { grid-template-columns: 1fr; }
+}
 </style>

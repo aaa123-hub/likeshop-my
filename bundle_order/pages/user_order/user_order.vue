@@ -29,7 +29,7 @@
                 v-for="(item, index) in order"
                 :key="index"
                 :class="['order-tabs__item', active === index ? 'is-active' : '']"
-                @tap="changeShow(index)"
+                @tap="changeShow(index, true)"
             >
                 {{ item.name }}
             </view>
@@ -75,12 +75,8 @@ export default {
         type: orderType.DELIVERY,
         isShow: false
       }, {
-        name: '已完成',
-        type: orderType.FINISH,
-        isShow: false
-      }, {
-        name: '已关闭',
-        type: orderType.CLOSE,
+        name: '已结束',
+        type: orderType.ENDED,
         isShow: false
       }]
     };
@@ -116,7 +112,7 @@ export default {
     if (component && component.getOrderListFun) component.getOrderListFun()
   },
   methods: {
-    changeShow(index) {
+    changeShow(index, forceRefresh = false) {
 		if(index >= 0) {
 			const item = this.order[index]
 			if (!item) return
@@ -124,8 +120,16 @@ export default {
 				uni.navigateTo({ url: item.url })
 				return
 			}
+			const wasShown = Boolean(item.isShow)
 			this.active = index
 			this.order[index].isShow = true
+			if (forceRefresh && wasShown) {
+				this.$nextTick(() => {
+					const current = this.$refs['order' + item.type]
+					const component = Array.isArray(current) ? current[0] : current
+					if (component && component.reflesh) component.reflesh()
+				})
+			}
 		}
     },
     goBack() {

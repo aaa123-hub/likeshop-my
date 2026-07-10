@@ -29,9 +29,11 @@ export const orderType = {
   //待发货
  DELIVERY: 'delivery',
    //待收货
+ ENDED: 'ended',
+  //已结束
  FINISH: 'finish',
-  //待收货
- CLOSE: 'close' //待收货
+  //已完成
+ CLOSE: 'close' //已关闭
 
 };
 // 售后状态

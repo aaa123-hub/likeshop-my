@@ -9,7 +9,7 @@
         <view class="form">
             <view class="field">
                 <text>子订单号</text>
-                <input v-model="form.subOrderNo" placeholder="请输入或扫码获取" />
+                <input v-model="form.subOrderNo" placeholder="二维码未包含时可不填" />
             </view>
             <view class="field">
                 <text>核销码</text>
@@ -54,7 +54,7 @@ export default {
                 onlyFromCamera: false,
                 success: (res) => {
                     this.applyScanResult(res.result || res.path || '')
-                    if (this.form.subOrderNo && this.form.verifyCode) this.submitVerify()
+                    if (this.form.verifyCode) this.submitVerify()
                 },
                 fail: () => uni.showToast({ title: '扫码未完成', icon: 'none' })
             })
@@ -67,20 +67,24 @@ export default {
                 const [key, val] = part.split('=')
                 if (key) pairs[key] = val || ''
             })
-            this.form.subOrderNo = pairs.subOrderNo || pairs.sub_order_no || pairs.orderNo || pairs.order_no || this.findToken(value, /(SO|SUB|OS)[A-Z0-9]{6,}/i) || this.form.subOrderNo
-            this.form.verifyCode = pairs.verifyCode || pairs.verify_code || pairs.code || this.findToken(value, /(?:verify|code)[:=]?([A-Z0-9]{4,32})/i) || this.form.verifyCode
+            const scene = pairs.scene || pairs.qrScene || pairs.qr_scene || ''
+            if (scene) {
+                decodeURIComponent(scene).split(/[&;]/).forEach((part) => {
+                    const [key, val] = part.split('=')
+                    if (key && !pairs[key]) pairs[key] = val || ''
+                })
+            }
+            this.form.subOrderNo = pairs.subOrderNo || pairs.sub_order_no || pairs.orderNo || pairs.order_no || pairs.orderSn || pairs.order_sn || pairs.bizOrderNo || pairs.biz_order_no || this.findToken(value, /(SO|SUB|OS)[A-Z0-9]{6,}/i) || this.form.subOrderNo
+            this.form.verifyCode = pairs.verifyCode || pairs.verify_code || pairs.pickupCode || pairs.pickup_code || pairs.code || pairs.qrCode || pairs.qr_code || this.findToken(value, /(?:verifyCode|verify_code|pickupCode|pickup_code|code)[:=]?([A-Z0-9_-]{4,64})/i) || this.form.verifyCode
+            if (!this.form.verifyCode && /^[A-Za-z0-9_-]{4,64}$/.test(value)) this.form.verifyCode = value
         },
         findToken(value, pattern) {
             const matched = String(value || '').match(pattern)
             return matched ? (matched[1] || matched[0]) : ''
         },
         async submitVerify() {
-            if (!this.form.merchantId) {
-                uni.showToast({ title: '缺少商家ID', icon: 'none' })
-                return
-            }
-            if (!this.form.subOrderNo || !this.form.verifyCode) {
-                uni.showToast({ title: '请先扫码或填写核销信息', icon: 'none' })
+            if (!this.form.verifyCode) {
+                uni.showToast({ title: '请先扫码或填写核销码', icon: 'none' })
                 return
             }
             this.submitting = true

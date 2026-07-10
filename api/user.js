@@ -4,9 +4,129 @@ import area from '@/utils/area'
 import Cache from '@/utils/cache'
 import { USER_INFO } from '@/config/cachekey'
 import { resolveImage } from '@/utils/image-placeholder'
+import { cleanBackendText, isEmptyBackendText } from '@/utils/backend-text'
 
 function firstDefined(...values) {
-    return values.find((value) => value !== undefined && value !== null && value !== '')
+    return values.find((value) => !isEmptyBackendText(value))
+}
+
+function pickAfterSaleId(source = {}) {
+    const value = firstDefined(
+        source.afterSaleId,
+        source.after_sale_id,
+        source.afterSaleNo,
+        source.after_sale_no,
+        source.refundNo,
+        source.refund_no,
+        source.refundId,
+        source.refund_id,
+        source.id
+    )
+    return value && !isBackendStatusOnlyId(source, value) ? value : ''
+}
+
+function pickAfterSaleStatus(source = {}) {
+    return firstDefined(
+        source.statusText,
+        source.status_text,
+        source.refundStatusText,
+        source.refund_status_text,
+        source.afterSaleStatusText,
+        source.after_sale_status_text,
+        source.desc,
+        source.refundStatus,
+        source.refund_status,
+        source.afterSaleStatus,
+        source.after_sale_status,
+        source.after_status,
+        source.status
+    )
+}
+
+function pickOrderItemId(source = {}) {
+    return firstDefined(
+        source.orderItemId,
+        source.order_item_id,
+        source.itemId,
+        source.item_id,
+        source.orderGoodsId,
+        source.order_goods_id,
+        source.id,
+        source.skuId,
+        source.sku_id
+    )
+}
+
+function collectAfterSaleRecords(data = {}) {
+    const sources = [
+        data.afterSales,
+        data.after_sales,
+        data.afterSaleList,
+        data.after_sale_list,
+        data.refundList,
+        data.refund_list,
+        data.refunds,
+        data.refundInfo,
+        data.refund_info,
+        data.afterSale,
+        data.after_sale
+    ]
+    return sources.reduce((list, source) => {
+        if (!source) return list
+        if (Array.isArray(source)) return list.concat(source)
+        if (Array.isArray(source.list)) return list.concat(source.list)
+        if (Array.isArray(source.records)) return list.concat(source.records)
+        if (Array.isArray(source.items)) return list.concat(source.items)
+        return list.concat(source)
+    }, [])
+}
+
+function isBackendStatusOnlyId(source = {}, value) {
+    const text = String(value || '').toUpperCase()
+    if (!text) return false
+    const statusLike = ['APPLIED', 'APPLY', 'PENDING', 'PENDING_REVIEW', 'WAIT_AUDIT', 'WAIT_SELLER', 'WAIT_MERCHANT', 'PROCESSING', 'REFUNDING', 'IN_PROGRESS', 'APPROVED', 'PASS', 'PASSED', 'MERCHANT_APPROVED', 'RETURNING', 'WAIT_RETURN', 'WAIT_BUYER_RETURN', 'REJECTED', 'REJECT', 'CANCELLED', 'CANCELED', 'CLOSED', 'REFUNDED', 'REFUND_SUCCESS', 'SUCCESS', 'FAILED']
+    return source.id === value && statusLike.includes(text) && !source.afterSaleId && !source.after_sale_id && !source.refundNo && !source.refund_no && !source.refundId && !source.refund_id
+}
+
+function matchAfterSaleRecord(item = {}, records = []) {
+    const itemIds = [
+        item.orderItemId,
+        item.order_item_id,
+        item.itemId,
+        item.item_id,
+        item.id,
+        item.skuId,
+        item.sku_id
+    ].filter((value) => value !== undefined && value !== null && value !== '').map(String)
+    return records.find((record = {}) => {
+        const goods = record.orderGoods || record.orderItem || record.item || record.goods || record.goodsInfo || {}
+        const recordItemIds = [
+            record.orderItemId,
+            record.order_item_id,
+            record.itemId,
+            record.item_id,
+            record.orderGoodsId,
+            record.order_goods_id,
+            record.goodsItemId,
+            record.goods_item_id,
+            record.item?.id,
+            record.item?.orderItemId,
+            record.orderItem?.id,
+            record.orderItem?.orderItemId,
+            record.goods?.id,
+            record.goods?.orderItemId,
+            pickOrderItemId(goods)
+        ].filter((value) => value !== undefined && value !== null && value !== '').map(String)
+        return recordItemIds.length && itemIds.some((id) => recordItemIds.includes(id))
+    }) || {}
+}
+
+function hasAfterSaleSignal(source = {}) {
+    return Boolean(pickAfterSaleId(source) || pickAfterSaleStatus(source))
+}
+
+function selectAfterSalePayload(...sources) {
+    return sources.find((source) => hasAfterSaleSignal(source || {})) || {}
 }
 
 function normalizeListResponse(res = {}) {
@@ -46,6 +166,7 @@ function normalizePageResponse(res = {}, itemNormalizer) {
 }
 
 function refundStatusText(status) {
+    if (isEmptyBackendText(status)) return ''
     if (status === 0 || status === '0') return '待商家处理'
     if (status === 1 || status === '1') return '处理中'
     if (status === 2 || status === '2' || status === 3 || status === '3') return '商家已同意'
@@ -80,7 +201,7 @@ function refundStatusText(status) {
         SUCCESS: '退款成功',
         FAILED: '退款失败'
     }
-    return map[String(status || '').toUpperCase()] || status || '处理中'
+    return cleanBackendText(map[String(status || '').toUpperCase()] || status, '') || '处理中'
 }
 
 function refundStatusCode(status) {
@@ -119,7 +240,7 @@ function refundStatusCode(status) {
 const defaultRefundReasons = ['商品质量问题', '拍错/多拍/不想要', '未按约定时间发货', '其他']
 
 function normalizeRefundReasonText(reason) {
-    if (!reason) return ''
+    if (isEmptyBackendText(reason)) return ''
     const reasonMap = {
         QUALITY_PROBLEM: '商品质量问题',
         WRONG_GOODS: '商品错发/漏发',
@@ -130,10 +251,10 @@ function normalizeRefundReasonText(reason) {
         DELAY_SHIPMENT: '未按约定时间发货',
         OTHER: '其他'
     }
-    if (typeof reason === 'string') return reason
+    if (typeof reason === 'string') return cleanBackendText(reason
         .split(/[,，、]/)
         .map((item) => reasonMap[String(item || '').toUpperCase()] || item)
-        .join('、')
+        .join('、'), '')
     if (typeof reason === 'object') return reason.name || reason.reason || reason.label || reason.title || reason.text || reason.value || ''
     return String(reason)
 }
@@ -189,6 +310,7 @@ function normalizeAfterSaleGoods(goods = {}) {
 
 function normalizeAfterSaleItem(item = {}) {
     const refundNo = item.refundNo || item.afterSaleId || item.after_sale_id || item.id
+    const orderNo = item.orderNo || item.order_no || item.bizOrderNo || item.biz_order_no || item.order_id || item.order_sn
     const status = item.refundStatus || item.afterSaleStatus || item.status
     const images = item.evidenceImages || item.proofImages || item.images || item.refund_image || item.refundImage || []
     const goods = item.orderGoods || item.orderItem || item.item || item.goodsList || item.goods_lists || item.order_goods || item.goods || item.goodsInfo || {}
@@ -205,8 +327,10 @@ function normalizeAfterSaleItem(item = {}) {
         after_sale_id: refundNo,
         refundNo,
         sn: refundNo,
-        order_id: item.orderNo || item.order_id,
-        order_sn: item.orderNo || item.order_sn,
+        order_id: orderNo,
+        order_no: orderNo,
+        orderNo,
+        order_sn: orderNo,
         sub_order_no: item.subOrderNo || item.sub_order_no,
         time: item.applyTime || item.create_time || item.createdAt || '',
         create_time: item.applyTime || item.create_time || item.createdAt || '',
@@ -471,8 +595,32 @@ function normalizeWithdrawAccountType(type) {
 }
 
 function normalizeLedgerItem(item = {}) {
-    const amount = item.changeAmount ?? item.change_amount ?? item.pointsChange ?? item.points_change ?? item.pointAmount ?? item.point_amount ?? item.integral ?? item.amount ?? item.money ?? 0
-    const balance = item.balanceAfter ?? item.balance_after ?? item.pointsAfter ?? item.points_after ?? item.availablePoints ?? item.available_points ?? item.balance ?? item.left_amount ?? item.left_money ?? 0
+    const amount = firstDefined(
+        item.changeAmount,
+        item.change_amount,
+        item.pointsChange,
+        item.points_change,
+        item.pointChange,
+        item.point_change,
+        item.points,
+        item.point,
+        item.pointAmount,
+        item.point_amount,
+        item.integral,
+        item.integralAmount,
+        item.integral_amount,
+        item.score,
+        item.scoreAmount,
+        item.score_amount,
+        item.rewardPoints,
+        item.reward_points,
+        item.commissionPoints,
+        item.commission_points,
+        item.amount,
+        item.money,
+        0
+    )
+    const balance = firstDefined(item.balanceAfter, item.balance_after, item.pointsAfter, item.points_after, item.pointAfter, item.point_after, item.availablePoints, item.available_points, item.remainingPoints, item.remaining_points, item.balance, item.left_amount, item.left_money, 0)
     return {
         ...item,
         id: item.id || item.ledgerId || item.flowId,
@@ -917,10 +1065,29 @@ export function getGoodsInfo(params) {
         const data = res.data || {}
         const itemList = data.itemList || data.order_goods || data.goods_lists || []
         const goods = itemList.find((item) => String(item.id || item.orderItemId || item.itemId || item.skuId) === String(params.item_id || params.itemId)) || itemList[0] || {}
-        const afterSale = goods.afterSale || goods.after_sale || goods.refundInfo || goods.refund_info || data.refundInfo || data.refund_info || {}
-        const afterSaleStatus = afterSale.refundStatus || afterSale.afterSaleStatus || afterSale.status || goods.refundStatus || goods.afterSaleStatus || goods.after_status
-        const afterSaleId = afterSale.afterSaleId || afterSale.after_sale_id || afterSale.refundNo || afterSale.id || goods.afterSaleId || goods.after_sale_id || goods.refundNo
-        const statusText = afterSaleId || afterSaleStatus !== undefined ? refundStatusText(afterSale.statusText || afterSale.status_text || afterSaleStatus) : ''
+        const matchedAfterSale = matchAfterSaleRecord(goods, collectAfterSaleRecords(data))
+        const afterSale = selectAfterSalePayload(goods.afterSale, goods.after_sale, goods.refundInfo, goods.refund_info, matchedAfterSale)
+        const afterSaleStatus = firstDefined(
+            pickAfterSaleStatus(afterSale),
+            goods.refundStatus,
+            goods.refund_status,
+            goods.afterSaleStatus,
+            goods.after_sale_status,
+            goods.after_status,
+            goods.after_status_desc,
+            goods.refundStatusText,
+            goods.refund_status_text
+        )
+        const afterSaleId = firstDefined(
+            pickAfterSaleId(afterSale),
+            goods.afterSaleId,
+            goods.after_sale_id,
+            goods.refundNo,
+            goods.refund_no,
+            goods.refundId,
+            goods.refund_id
+        )
+        const statusText = afterSaleId ? (refundStatusText(afterSale.statusText || afterSale.status_text || afterSaleStatus) || '售后处理中') : (afterSaleStatus !== undefined ? refundStatusText(afterSale.statusText || afterSale.status_text || afterSaleStatus) : '')
         const price = goods.realAmount || goods.totalAmount || goods.payAmount || goods.goods_price || goods.salePrice || 0
         const reasons = data.refundReasons || data.refund_reasons || data.afterSaleReasons || data.after_sale_reasons || data.reason
         return {
@@ -937,6 +1104,7 @@ export function getGoodsInfo(params) {
                     refund_express_money: data.amountInfo?.freightAmount || 0,
                     after_sale_id: afterSaleId || '',
                     after_status_desc: statusText || '',
+                    refund_info: afterSale,
                     refund_btn: !(afterSaleId || statusText)
                 },
                 reason: normalizeRefundReasons(reasons),
@@ -964,6 +1132,24 @@ export function cancelApply(data) {
         afterSaleId: data.afterSaleId || data.after_sale_id || data.id,
         orderNo: data.orderNo || data.order_id || data.order_sn
     })
+}
+
+export function deleteAfterSale(data) {
+    const orderNo = data.orderNo || data.order_no || data.order_id || data.order_sn || data.bizOrderNo || data.biz_order_no
+    const afterSaleId = data.afterSaleId || data.after_sale_id || data.refundNo || data.refund_no || data.id
+    if (afterSaleId) {
+        return request.delete(`miniapp/after-sales/${afterSaleId}`).then((res) => {
+            if (res.code == 1 || !orderNo) return res
+            return request.delete(`miniapp/orders/${orderNo}`)
+        }).catch((error) => {
+            if (orderNo) return request.delete(`miniapp/orders/${orderNo}`)
+            return Promise.reject(error)
+        })
+    }
+    if (!orderNo) {
+        return Promise.resolve({ code: 0, msg: '售后/订单信息缺失' })
+    }
+    return request.delete(`miniapp/orders/${orderNo}`)
 }
 
 export function afterSaleDetail(params) {
@@ -1050,15 +1236,72 @@ export function getRechargeRecord(params) {
     return getAccountLog(params)
 }
 
-export function inputInviteCode(data) {
+function isMissingPromotionEndpoint(res = {}) {
+    const code = String(res.rawCode || res.code || '').toUpperCase()
+    const message = String(res.msg || res.message || '')
+    return code === 'A0108' || /No static resource|miniapp\/promotion/i.test(message)
+}
+
+function shouldFallbackInviteBind(res = {}) {
+    if (isMissingPromotionEndpoint(res)) return true
+    const message = String(res.msg || res.message || '')
+    return /invite|邀请码|推广码|联盟码|二维码|merchant|商家|fan|粉丝|参数|不能为空|缺少|不存在|无法解析/i.test(message)
+}
+
+function bindInviteByAllianceCard(data = {}) {
     return request.get('miniapp/alliance/card', {
         params: {
             inviteCode: data.invite_code || data.inviteCode || data.code,
             promoterUserId: data.promoterUserId || data.promoter_user_id || data.uid || data.userId,
+            ownerUserId: data.ownerUserId || data.owner_user_id || data.inviterUserId || data.inviter_user_id || data.promoterUserId || data.promoter_user_id || data.uid || '',
             roleCode: data.roleCode || data.role_code || data.role,
+            fanType: data.fanType || data.fan_type || data.type,
+            merchantId: data.merchantId || data.merchant_id || '',
+            ownerMerchantId: data.ownerMerchantId || data.owner_merchant_id || data.inviterMerchantId || data.inviter_merchant_id || '',
+            fanUserId: data.fanUserId || data.fan_user_id || data.userId || data.user_id || '',
+            fanRoleCode: data.fanRoleCode || data.fan_role_code || '',
+            fanScene: data.fanScene || data.fan_scene || data.sceneType || data.scene_type || '',
+            rawScene: data.rawScene || data.raw_scene || '',
             scene: data.scene || ''
         }
     }).then((res) => res.code == 1 ? { ...res, msg: res.msg || '绑定成功' } : res)
+}
+
+export function inputInviteCode(data = {}) {
+    const inviteCode = data.invite_code || data.inviteCode || data.code
+    const roleCode = normalizeRoleCode(data.roleCode || data.role_code || data.role)
+    const promoterUserId = data.promoterUserId || data.promoter_user_id || data.uid || data.promoterId || data.promoter_id
+    const userId = currentUserId(data)
+    const fanUserId = data.fanUserId || data.fan_user_id || userId
+    const ownerUserId = data.ownerUserId || data.owner_user_id || data.inviterUserId || data.inviter_user_id || promoterUserId || ''
+    const payload = {
+        userId,
+        user_id: userId,
+        fanUserId,
+        fan_user_id: fanUserId,
+        inviteCode,
+        invite_code: inviteCode,
+        promoterUserId,
+        promoter_user_id: promoterUserId,
+        ownerUserId,
+        owner_user_id: ownerUserId,
+        roleCode,
+        role_code: roleCode,
+        scene: data.scene || data.fanScene || data.fan_scene || 'PROMOTION_QR',
+        rawScene: data.rawScene || data.raw_scene || '',
+        fanType: data.fanType || data.fan_type || data.type || 'CONSUMER',
+        fanRoleCode: data.fanRoleCode || data.fan_role_code || '',
+        fanScene: data.fanScene || data.fan_scene || data.sceneType || data.scene_type || 'PROMOTION_QR'
+    }
+    if (data.merchantId || data.merchant_id) payload.merchantId = data.merchantId || data.merchant_id
+    if (data.ownerMerchantId || data.owner_merchant_id || data.inviterMerchantId || data.inviter_merchant_id) {
+        payload.ownerMerchantId = data.ownerMerchantId || data.owner_merchant_id || data.inviterMerchantId || data.inviter_merchant_id
+    }
+    return request.post('miniapp/promotion/invite-bind', payload).then((res) => {
+        if (res.code == 1) return { ...res, msg: res.msg || '绑定成功' }
+        if (shouldFallbackInviteBind(res)) return bindInviteByAllianceCard({ ...data, ...payload }).then((fallbackRes) => fallbackRes.code == 1 ? fallbackRes : res)
+        return res
+    })
 }
 
 export function applyVip(data) {
@@ -1197,12 +1440,56 @@ export function getLevelList() {
 }
 
 export function getUserFans(data) {
+    const params = {
+        userId: currentUserId(data),
+        roleCode: normalizeRoleCode(data?.roleCode || data?.role_code || data?.role || 'PROMOTER'),
+        fanType: data?.fanType || data?.fan_type || data?.type,
+        keyword: data?.keyword,
+        fans: data?.fans,
+        money: data?.money,
+        order: data?.order,
+        pageNo: data?.pageNo || data?.page_no || 1,
+        pageSize: data?.pageSize || data?.page_size || 20
+    }
+    return request.get('miniapp/promotion/fans', { params }).then((res) => {
+        if (res.code == 1) return normalizePageResponse(res, normalizeFanItem)
+        if (!isMissingPromotionEndpoint(res)) return res
+        return request.get('miniapp/alliance/orders', {
+            params: {
+                pageNo: params.pageNo,
+                pageSize: params.pageSize
+            }
+        }).then((fallbackRes) => fallbackRes.code == 1 ? normalizePageResponse(fallbackRes, normalizeFanItem) : fallbackRes)
+    })
+}
+
+function normalizeFanItem(item = {}) {
+    const user = item.user || item.userInfo || item.fan || {}
+    const fansTeam = item.fans_team ?? item.teamCount ?? item.team_count ?? item.subFansCount ?? item.sub_fans_count ?? item.teamSize ?? 0
+    const fansOrder = item.fans_order ?? item.orderCount ?? item.order_count ?? item.orders ?? 0
+    const fansMoney = item.fans_money ?? item.totalProfit ?? item.total_profit ?? item.commissionAmount ?? item.commission_amount ?? item.amount ?? 0
+    return {
+        ...item,
+        id: item.id || item.fanId || item.fan_id || item.userId || item.user_id || user.userId || user.id,
+        nickname: item.nickname || item.nickName || item.fanName || item.fan_name || item.userName || user.nickname || user.nickName || '粉丝用户',
+        avatar: resolveImage(item.avatar || item.avatarUrl || item.headimgurl || user.avatar || user.avatarUrl, 'avatar'),
+        mobile: item.mobile || item.phone || user.mobile || user.phone || '',
+        create_time: item.create_time || item.createTime || item.bindTime || item.bind_time || item.createdAt || '',
+        fans_team: fansTeam,
+        fans_order: fansOrder,
+        fans_money: fansMoney,
+        roleCode: normalizeRoleCode(item.roleCode || item.role_code || item.role || ''),
+        bindTime: item.bindTime || item.bind_time || item.createTime || item.create_time || ''
+    }
+}
+
+function getAllianceOrders(data = {}) {
     return request.get('miniapp/alliance/orders', {
         params: {
             pageNo: data?.pageNo || data?.page_no || 1,
             pageSize: data?.pageSize || data?.page_size || 20
         }
-    }).then((res) => res.code == 1 ? normalizePageResponse(res) : res)
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeFanItem) : res)
 }
 
 export function applyWithdraw(data) {
@@ -1246,12 +1533,19 @@ function extractList(payload = {}) {
     if (Array.isArray(payload.records)) return payload.records
     if (Array.isArray(payload.items)) return payload.items
     if (Array.isArray(payload.applications)) return payload.applications
+    if (Array.isArray(payload.roleApplications)) return payload.roleApplications
+    if (Array.isArray(payload.role_applications)) return payload.role_applications
+    if (Array.isArray(payload.applyRecords)) return payload.applyRecords
+    if (Array.isArray(payload.apply_records)) return payload.apply_records
     if (Array.isArray(payload.rows)) return payload.rows
     if (Array.isArray(payload.content)) return payload.content
+    if (payload.data && typeof payload.data === 'object') return extractList(payload.data)
     if (payload.page && typeof payload.page === 'object') return extractList(payload.page)
     if (payload.application && typeof payload.application === 'object') return [payload.application]
     if (payload.currentApplication && typeof payload.currentApplication === 'object') return [payload.currentApplication]
     if (payload.current_application && typeof payload.current_application === 'object') return [payload.current_application]
+    if (payload.roleApplication && typeof payload.roleApplication === 'object') return [payload.roleApplication]
+    if (payload.role_application && typeof payload.role_application === 'object') return [payload.role_application]
     return []
 }
 
@@ -1276,9 +1570,19 @@ export function submitFeedback(data = {}) {
 }
 
 export function scanOfflinePayment(data) {
+    const code = data.qrCode || data.qr_code || data.code || data.payOrderNo || data.pay_order_no || data.paymentNo || data.payment_no || data.orderNo || data.order_no || data.bizOrderNo || data.biz_order_no
     return request.post('miniapp/offline-payments/scan', {
         shopId: data.shopId || data.shop_id,
-        qrCode: data.qrCode || data.qr_code || data.code,
+        qrCode: code,
+        qr_code: code,
+        payOrderNo: data.payOrderNo || data.pay_order_no || code,
+        pay_order_no: data.pay_order_no || data.payOrderNo || code,
+        paymentNo: data.paymentNo || data.payment_no || code,
+        payment_no: data.payment_no || data.paymentNo || code,
+        orderNo: data.orderNo || data.order_no || code,
+        order_no: data.order_no || data.orderNo || code,
+        bizOrderNo: data.bizOrderNo || data.biz_order_no || code,
+        biz_order_no: data.biz_order_no || data.bizOrderNo || code,
         amount: data.amount || data.money,
         payMethod: 'WECHAT_JSAPI',
         idempotentKey: data.idempotentKey || `offline-pay-${Date.now()}`
@@ -1400,8 +1704,10 @@ export function submitKyc(data) {
     }).then((res) => res.code == 1 ? { ...res, data: normalizeKycPayload(res.data || {}) } : res)
 }
 
-export function getKycStatus() {
-    return request.get('miniapp/kyc/status').then((res) => {
+export function getKycStatus(params = {}) {
+    return request.get('miniapp/kyc/status', {
+        show: params.show
+    }).then((res) => {
         if (res.code != 1) {
             if (isKycNotSubmittedResponse(res)) {
                 return {
@@ -1487,25 +1793,39 @@ export function getMerchantQualificationStatus(params = {}) {
 }
 
 function normalizeRoleApplication(data = {}) {
-    const explicitApplicationStatus = data.applicationStatus || data.application_status || data.auditStatus || data.audit_status || data.reviewStatus || data.review_status || data.applyStatus || data.apply_status || ''
-    const rawStatus = String(explicitApplicationStatus || data.status || '').toUpperCase()
-    const auditRemark = data.auditRemark || data.audit_remark || data.auditMessage || data.audit_message || data.rejectReason || data.reject_reason || data.reason || ''
-    const payStatus = String(data.payStatus || data.pay_status || data.paymentStatus || data.payment_status || data.depositStatus || data.deposit_status || data.bondStatus || data.bond_status || data.marginStatus || data.margin_status || '').toUpperCase()
+    const applicationInfo = data.application || data.roleApplication || data.role_application || data.applyInfo || data.apply_info || {}
+    const depositInfo = data.depositOrder || data.deposit_order || data.depositInfo || data.deposit_info || data.bondOrder || data.bond_order || data.marginOrder || data.margin_order || {}
+    const source = { ...depositInfo, ...data, ...applicationInfo }
+    const statusCandidates = [
+        source.applicationStatus,
+        source.application_status,
+        source.auditStatus,
+        source.audit_status,
+        source.reviewStatus,
+        source.review_status,
+        source.applyStatus,
+        source.apply_status,
+        source.status
+    ].map((value) => String(value || '').toUpperCase()).filter(Boolean)
+    const explicitApplicationStatus = statusCandidates[0] || ''
+    const rawStatus = explicitApplicationStatus
+    const auditRemark = source.auditRemark || source.audit_remark || source.auditMessage || source.audit_message || source.rejectReason || source.reject_reason || source.reason || ''
+    const payStatus = String(source.payStatus || source.pay_status || source.paymentStatus || source.payment_status || source.depositStatus || source.deposit_status || source.bondStatus || source.bond_status || source.marginStatus || source.margin_status || '').toUpperCase()
     const paidStatuses = ['PAID', 'SUCCESS', 'SUCCEEDED', 'FINISHED', 'COMPLETED', 'WAIVED', 'FREE']
     const unpaidStatuses = ['UNPAID', 'WAIT_PAY', 'PENDING_PAY', 'NOT_PAID', 'PAYING']
     const approvedStatuses = ['APPROVED', 'PASS', 'PASSED']
-    const rejectedStatuses = ['REJECTED', 'REJECT', 'REFUSED', 'FAIL', 'FAILED']
+    const rejectedStatuses = ['REJECTED', 'REJECT', 'REFUSED', 'REFUSE', 'FAIL', 'FAILED', 'AUDIT_REJECTED', 'REVIEW_REJECTED', 'NOT_PASS', 'NOT_PASSED']
     const pendingAuditStatuses = ['PENDING_AUDIT', 'WAIT_AUDIT', 'AUDITING', 'PENDING_REVIEW', 'WAIT_REVIEW', 'REVIEWING']
     const pendingDepositStatuses = ['PENDING_DEPOSIT', 'WAIT_DEPOSIT', 'PENDING_PAY', 'WAIT_PAY']
-    const depositNo = data.depositNo || data.deposit_no || data.bondNo || data.bond_no || data.marginNo || data.margin_no || ''
-    const depositAmount = data.depositAmount ?? data.deposit_amount ?? data.bondAmount ?? data.bond_amount ?? data.marginAmount ?? data.margin_amount ?? ''
+    const depositNo = source.depositNo || source.deposit_no || source.bondNo || source.bond_no || source.marginNo || source.margin_no || ''
+    const depositAmount = source.depositAmount ?? source.deposit_amount ?? source.bondAmount ?? source.bond_amount ?? source.marginAmount ?? source.margin_amount ?? ''
     let status = rawStatus
-    if (approvedStatuses.includes(rawStatus)) {
+    if (statusCandidates.some((item) => rejectedStatuses.includes(item))) {
+        status = 'REJECTED'
+    } else if (approvedStatuses.includes(rawStatus)) {
         status = 'APPROVED'
     } else if (!explicitApplicationStatus && paidStatuses.includes(rawStatus)) {
         status = 'PENDING_AUDIT'
-    } else if (rejectedStatuses.includes(rawStatus)) {
-        status = 'REJECTED'
     } else if (pendingAuditStatuses.includes(rawStatus)) {
         status = 'PENDING_AUDIT'
     } else if (paidStatuses.includes(payStatus) && (!rawStatus || pendingDepositStatuses.includes(rawStatus))) {
@@ -1515,43 +1835,43 @@ function normalizeRoleApplication(data = {}) {
     }
     return {
         ...data,
-        applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || data.applicationId || data.application_id || data.id || '',
-        depositNo: depositNo || data.depositPayOrderNo || data.deposit_pay_order_no || data.depositBizOrderNo || data.deposit_biz_order_no || '',
-        roleCode: normalizeRoleCode(data.roleCode || data.role_code || data.role || ''),
+        applicationNo: source.applicationNo || source.application_no || source.applyNo || source.apply_no || source.applicationId || source.application_id || source.id || '',
+        depositNo: depositNo || source.depositPayOrderNo || source.deposit_pay_order_no || source.depositBizOrderNo || source.deposit_biz_order_no || '',
+        roleCode: normalizeRoleCode(source.roleCode || source.role_code || source.role || ''),
         rawApplicationStatus: rawStatus,
         raw_application_status: rawStatus,
         applicationStatus: status,
         auditStatus: status,
         auditRemark,
-        applicantName: data.applicantName || data.applicant_name || data.realName || data.real_name || data.name || '',
-        mobile: data.mobile || data.phone || data.contactMobile || data.contact_mobile || '',
-        username: data.username || data.loginName || data.login_name || data.account || data.accountName || data.account_name || '',
-        certType: data.certType || data.cert_type || '',
-        certNo: data.certNo || data.cert_no || '',
-        certFrontUrl: data.certFrontUrl || data.cert_front_url || '',
-        certBackUrl: data.certBackUrl || data.cert_back_url || '',
-        businessLicenseUrl: data.businessLicenseUrl || data.business_license_url || '',
-        provinceCode: data.provinceCode || data.province_code || '',
-        provinceName: data.provinceName || data.province_name || data.province || '',
-        cityCode: data.cityCode || data.city_code || '',
-        cityName: data.cityName || data.city_name || data.city || '',
-        districtCode: data.districtCode || data.district_code || '',
-        districtName: data.districtName || data.district_name || data.district || '',
-        inviteCode: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.distributionCode || data.distribution_code || '',
-        promoterCode: data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || data.invite_code || data.distributionCode || data.distribution_code || '',
-        backendUrl: data.backendUrl || data.backend_url || data.entryUrl || data.entry_url || data.url || '',
-        materialUrls: data.materialUrls || data.material_urls || [],
-        depositPayOrderNo: data.depositPayOrderNo || data.deposit_pay_order_no || data.payOrderNo || data.pay_order_no || '',
-        depositBizOrderNo: data.depositBizOrderNo || data.deposit_biz_order_no || data.bizOrderNo || data.biz_order_no || depositNo || '',
+        applicantName: source.applicantName || source.applicant_name || source.realName || source.real_name || source.name || '',
+        mobile: source.mobile || source.phone || source.contactMobile || source.contact_mobile || '',
+        username: source.username || source.loginName || source.login_name || source.account || source.accountName || source.account_name || '',
+        certType: source.certType || source.cert_type || '',
+        certNo: source.certNo || source.cert_no || '',
+        certFrontUrl: source.certFrontUrl || source.cert_front_url || '',
+        certBackUrl: source.certBackUrl || source.cert_back_url || '',
+        businessLicenseUrl: source.businessLicenseUrl || source.business_license_url || '',
+        provinceCode: source.provinceCode || source.province_code || '',
+        provinceName: source.provinceName || source.province_name || source.province || '',
+        cityCode: source.cityCode || source.city_code || '',
+        cityName: source.cityName || source.city_name || source.city || '',
+        districtCode: source.districtCode || source.district_code || '',
+        districtName: source.districtName || source.district_name || source.district || '',
+        inviteCode: source.inviteCode || source.invite_code || source.promoterCode || source.promoter_code || source.promotionCode || source.promotion_code || source.distributionCode || source.distribution_code || '',
+        promoterCode: source.promoterCode || source.promoter_code || source.promotionCode || source.promotion_code || source.inviteCode || source.invite_code || source.distributionCode || source.distribution_code || '',
+        backendUrl: source.backendUrl || source.backend_url || source.entryUrl || source.entry_url || source.url || '',
+        materialUrls: source.materialUrls || source.material_urls || [],
+        depositPayOrderNo: source.depositPayOrderNo || source.deposit_pay_order_no || source.payOrderNo || source.pay_order_no || '',
+        depositBizOrderNo: source.depositBizOrderNo || source.deposit_biz_order_no || source.bizOrderNo || source.biz_order_no || depositNo || '',
         depositAmount,
         payStatus,
         depositStatus: payStatus,
-        refundStatus: data.refundStatus || data.refund_status || '',
-        financeAuditStatus: data.financeAuditStatus || data.finance_audit_status || '',
-        paidAt: data.paidAt || data.paid_at || '',
-        appliedAt: data.appliedAt || data.applied_at || data.createTime || data.create_time || data.createdAt || data.created_at || '',
-        auditTime: data.auditTime || data.audit_time || data.approvedAt || data.approved_at || data.reviewTime || data.review_time || data.updatedAt || data.updated_at || '',
-        remark: data.remark || data.applyRemark || data.apply_remark || data.applyDescription || data.apply_description || data.description || ''
+        refundStatus: source.refundStatus || source.refund_status || '',
+        financeAuditStatus: source.financeAuditStatus || source.finance_audit_status || '',
+        paidAt: source.paidAt || source.paid_at || '',
+        appliedAt: source.appliedAt || source.applied_at || source.createTime || source.create_time || source.createdAt || source.created_at || '',
+        auditTime: source.auditTime || source.audit_time || source.approvedAt || source.approved_at || source.reviewTime || source.review_time || source.updatedAt || source.updated_at || '',
+        remark: source.remark || source.applyRemark || source.apply_remark || source.applyDescription || source.apply_description || source.description || ''
     }
 }
 
@@ -1561,7 +1881,9 @@ function normalizeRoleCode(roleCode) {
         HEADQUARTERS: 'HQ',
         OPERATION_CENTER: 'AGENT',
         AREA_AGENT: 'AGENT',
-        COUNTY_AGENT: 'AGENT'
+        COUNTY_AGENT: 'AGENT',
+        BRANCH: 'SUBSIDIARY',
+        COMPANY_BRANCH: 'SUBSIDIARY'
     }
     return map[code] || code
 }
@@ -1583,6 +1905,7 @@ function normalizeRoleItem(data = {}) {
 
 export function getRoles(params = {}) {
     return request.get('miniapp/roles', {
+        show: params.show,
         params: {
             userId: currentUserId(params)
         }
@@ -1614,6 +1937,7 @@ export function getRoles(params = {}) {
 
 export function getRoleApplications(params = {}) {
     return request.get('miniapp/role-applications', {
+        show: params.show,
         params: {
             userId: currentUserId(params)
         }
@@ -1645,6 +1969,10 @@ export function getRoleApplications(params = {}) {
 export function applyRoleApplication(data = {}) {
     return request.post('miniapp/role-applications', {
         userId: currentUserId(data),
+        applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || '',
+        application_no: data.application_no || data.applicationNo || data.applyNo || data.apply_no || '',
+        applicationId: data.applicationId || data.application_id || data.id || '',
+        application_id: data.application_id || data.applicationId || data.id || '',
         roleCode: normalizeRoleCode(data.roleCode || data.role_code || 'PROMOTER'),
         provinceCode: data.provinceCode || data.province_code || '',
         provinceName: data.provinceName || data.province_name || '',
@@ -1674,6 +2002,87 @@ export function applyRoleApplication(data = {}) {
     }).then((res) => res.code == 1 && res.data ? { ...res, data: normalizeRoleApplication(res.data) } : res)
 }
 
+function normalizeWorkbenchData(data = {}, params = {}) {
+    const metrics = data.metrics || data.statistics || data.stats || data.summary || {}
+    const points = data.points || data.pointsInfo || data.points_info || data.integralInfo || data.integral_info || {}
+    const invite = data.inviteInfo || data.invite_info || data.promotionInfo || data.promotion_info || data.shareInfo || data.share_info || {}
+    const role = data.roleInfo || data.role_info || data.currentRole || data.current_role || {}
+    const merchant = data.merchantInfo || data.merchant_info || data.shopInfo || data.shop_info || {}
+    const source = { ...metrics, ...points, ...invite, ...role, ...merchant, ...data }
+    const roleCode = normalizeRoleCode(source.roleCode || source.role_code || source.role || params.roleCode || params.role_code || params.role || 'PROMOTER')
+    const availablePoints = firstDefined(source.availablePoints, source.available_points, source.pointsAvailable, source.points_available, source.points, source.integral, 0)
+    const frozenPoints = firstDefined(source.frozenPoints, source.frozen_points, source.pointsFrozen, source.points_frozen, source.freezePoints, source.freeze_points, 0)
+    const todayProfit = firstDefined(source.todayProfit, source.today_profit, source.todayEstimatedProfit, source.today_estimated_profit, source.todayIncome, source.today_income, source.todayCommission, source.today_commission, 0)
+    const monthProfit = firstDefined(source.monthProfit, source.month_profit, source.monthIncome, source.month_income, source.monthCommission, source.month_commission, 0)
+    const totalProfit = firstDefined(source.totalProfit, source.total_profit, source.totalIncome, source.total_income, source.totalCommission, source.total_commission, source.incomeAmount, source.income_amount, 0)
+    const fansCount = firstDefined(source.fansCount, source.fans_count, source.fanCount, source.fan_count, source.boundFansCount, source.bound_fans_count, source.consumerCount, source.consumer_count, 0)
+    const todayFans = firstDefined(source.todayFans, source.today_fans, source.todayFanCount, source.today_fan_count, source.newFansCount, source.new_fans_count, 0)
+    const merchantCount = firstDefined(source.merchantCount, source.merchant_count, source.boundMerchantCount, source.bound_merchant_count, source.shopCount, source.shop_count, source.storeCount, source.store_count, 0)
+    const orderCount = firstDefined(source.orderCount, source.order_count, source.orders, source.orderNum, source.order_num, 0)
+    const todayOrderCount = firstDefined(source.todayOrderCount, source.today_order_count, source.todayOrders, source.today_orders, 0)
+    const inviteCode = firstDefined(source.inviteCode, source.invite_code, source.promoterCode, source.promoter_code, source.promotionCode, source.promotion_code, source.distributionCode, source.distribution_code, source.code, '')
+    const qrcodeUrl = firstDefined(source.qrcodeUrl, source.qrcode_url, source.qrCode, source.qr_code, source.qrcode, source.qr_code_url, source.image, source.imageUrl, '')
+    const posterUrl = firstDefined(source.posterUrl, source.poster_url, source.poster, source.posterImage, source.poster_image, source.sharePoster, source.share_poster, '')
+    return {
+        ...data,
+        roleCode,
+        role_code: roleCode,
+        roleName: source.roleName || source.role_name || '',
+        roleStatus: source.roleStatus || source.role_status || source.status || '',
+        applicationStatus: source.applicationStatus || source.application_status || source.auditStatus || source.audit_status || '',
+        availablePoints,
+        available_points: availablePoints,
+        frozenPoints,
+        frozen_points: frozenPoints,
+        todayProfit,
+        today_profit: todayProfit,
+        monthProfit,
+        month_profit: monthProfit,
+        totalProfit,
+        total_profit: totalProfit,
+        fansCount,
+        fans_count: fansCount,
+        todayFans,
+        today_fans: todayFans,
+        merchantCount,
+        merchant_count: merchantCount,
+        orderCount,
+        order_count: orderCount,
+        todayOrderCount,
+        today_order_count: todayOrderCount,
+        inviteCode,
+        invite_code: inviteCode,
+        promoterCode: firstDefined(source.promoterCode, source.promoter_code, inviteCode, ''),
+        promoter_code: firstDefined(source.promoterCode, source.promoter_code, inviteCode, ''),
+        posterUrl,
+        poster_url: posterUrl,
+        qrcodeUrl,
+        qrcode_url: qrcodeUrl,
+        shareTitle: source.shareTitle || source.share_title || source.title || '',
+        shareDesc: source.shareDesc || source.share_desc || source.desc || '',
+        merchantId: source.merchantId || source.merchant_id || source.shopId || source.shop_id || '',
+        merchantName: source.merchantName || source.merchant_name || source.shopName || source.shop_name || ''
+    }
+}
+
+function normalizeInviteCodeData(data = {}, params = {}) {
+    return normalizeWorkbenchData({
+        ...data,
+        inviteCode: firstDefined(data.inviteCode, data.invite_code, data.promoterCode, data.promoter_code, data.code, data.promotionCode, data.promotion_code, ''),
+        qrcodeUrl: firstDefined(data.qrcodeUrl, data.qrcode_url, data.qrCode, data.qr_code, data.qrcode, data.image, data.imageUrl, ''),
+        posterUrl: firstDefined(data.posterUrl, data.poster_url, data.poster, data.posterImage, data.poster_image, '')
+    }, params)
+}
+
+export function getPromotionInviteCode(params = {}) {
+    return request.get('miniapp/promotion/invite-code', {
+        params: {
+            userId: currentUserId(params),
+            roleCode: normalizeRoleCode(params.roleCode || params.role_code || params.role || 'PROMOTER')
+        }
+    }).then((res) => res.code == 1 ? { ...res, data: normalizeInviteCodeData(res.data || {}, params) } : res)
+}
+
 export function getRoleWorkbench(params = {}) {
     return request.get('miniapp/roles/workbench', {
         params: {
@@ -1685,33 +2094,25 @@ export function getRoleWorkbench(params = {}) {
         const data = res.data || {}
         return {
             ...res,
-            data: {
-                ...data,
-                availablePoints: data.availablePoints ?? data.available_points ?? data.pointsAvailable ?? data.points_available ?? 0,
-                available_points: data.availablePoints ?? data.available_points ?? data.pointsAvailable ?? data.points_available ?? 0,
-                frozenPoints: data.frozenPoints ?? data.frozen_points ?? data.pointsFrozen ?? data.points_frozen ?? 0,
-                frozen_points: data.frozenPoints ?? data.frozen_points ?? data.pointsFrozen ?? data.points_frozen ?? 0,
-                todayProfit: data.todayProfit ?? data.today_profit ?? data.todayEstimatedProfit ?? data.today_estimated_profit ?? data.todayIncome ?? data.today_income ?? 0,
-                today_profit: data.todayProfit ?? data.today_profit ?? data.todayEstimatedProfit ?? data.today_estimated_profit ?? data.todayIncome ?? data.today_income ?? 0,
-                inviteCode: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.distributionCode || data.distribution_code || '',
-                posterUrl: data.posterUrl || data.poster_url || data.poster || data.posterImage || data.poster_image || '',
-                qrcodeUrl: data.qrcodeUrl || data.qrcode_url || data.qrCode || data.qr_code || data.qrcode || data.qr_code_url || data.image || ''
-            }
+            data: normalizeWorkbenchData(data, params)
         }
     })
 }
 
 export function getRolePointsLedger(params = {}) {
-    return request.get('miniapp/points/ledger', {
-        params: {
-            userId: currentUserId(params),
-            roleCode: normalizeRoleCode(params.roleCode || params.role_code || params.role),
-            timeRange: params.timeRange || params.time_range || '',
-            bizType: params.bizType || params.biz_type || params.type || '',
-            pageNo: params.pageNo || params.page_no || 1,
-            pageSize: params.pageSize || params.page_size || 20
-        }
-    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLedgerItem) : res)
+    const query = {
+        userId: currentUserId(params),
+        roleCode: normalizeRoleCode(params.roleCode || params.role_code || params.role),
+        timeRange: params.timeRange || params.time_range || '',
+        bizType: params.bizType || params.biz_type || params.type || '',
+        pageNo: params.pageNo || params.page_no || 1,
+        pageSize: params.pageSize || params.page_size || 20
+    }
+    return request.get('miniapp/promotion/profit-ledgers', { params: query }).then((res) => {
+        if (res.code == 1) return normalizePageResponse(res, normalizeLedgerItem)
+        if (!isMissingPromotionEndpoint(res)) return res
+        return request.get('miniapp/points/ledger', { params: query }).then((fallbackRes) => fallbackRes.code == 1 ? normalizePageResponse(fallbackRes, normalizeLedgerItem) : fallbackRes)
+    })
 }
 
 export function getMessages(params = {}) {
