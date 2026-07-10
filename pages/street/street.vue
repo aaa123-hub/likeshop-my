@@ -18,20 +18,35 @@
         </view>
 
         <view class="street-sheet">
-            <view class="street-service-grid">
-                <view
-                    v-for="(item, index) in streetCategories"
-                    :key="index"
-                    class="street-service-item"
-                    :data-index="index"
-                    @tap.stop="openStreetCategory"
+            <view class="street-service-section">
+                <swiper
+                    v-if="streetCategoryPages.length"
+                    class="street-service-swiper"
+                    :indicator-dots="streetCategoryPages.length > 1"
+                    indicator-color="rgba(55, 125, 242, 0.22)"
+                    indicator-active-color="#377df2"
+                    :autoplay="false"
+                    :circular="false"
                 >
-                    <view class="street-service-item__icon-shell">
-                        <view v-if="isEmptyImage(item.image)" class="street-service-item__image image-placeholder">无</view>
-                        <image v-else class="street-service-item__image" :src="item.image" mode="aspectFit"></image>
-                    </view>
-                    <text class="street-service-item__text">{{ item.name }}</text>
-                </view>
+                    <swiper-item v-for="(page, pageIndex) in streetCategoryPages" :key="pageIndex">
+                        <view class="street-service-grid">
+                            <view
+                                v-for="(item, index) in page"
+                                :key="item.key || index"
+                                class="street-service-item"
+                                :data-page-index="pageIndex"
+                                :data-index="index"
+                                @tap.stop="openStreetCategory"
+                            >
+                                <view class="street-service-item__icon-shell">
+                                    <view v-if="isEmptyImage(item.image)" class="street-service-item__image image-placeholder">无</view>
+                                    <image v-else class="street-service-item__image" :src="item.image" mode="aspectFit"></image>
+                                </view>
+                                <text class="street-service-item__text">{{ item.name }}</text>
+                            </view>
+                        </view>
+                    </swiper-item>
+                </swiper>
                 <view v-if="!streetCategories.length && !streetLoading" class="street-empty street-empty--grid">暂无分类</view>
             </view>
 
@@ -110,6 +125,17 @@ export default {
         this.loadStreetIndex().finally(() => {
             uni.stopPullDownRefresh()
         })
+    },
+    computed: {
+        streetCategoryPages() {
+            const pageSize = 8
+            const list = Array.isArray(this.streetCategories) ? this.streetCategories : []
+            const pages = []
+            for (let index = 0; index < list.length; index += pageSize) {
+                pages.push(list.slice(index, index + pageSize))
+            }
+            return pages
+        }
     },
     methods: {
         async loadStreetIndex() {
@@ -205,8 +231,11 @@ export default {
             this.loadStreetIndex()
         },
         openStreetCategory(event) {
-            const index = Number(event && event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.index)
-            const item = this.streetCategories[index]
+            const dataset = event && event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+            const pageIndex = Number(dataset.pageIndex || 0)
+            const index = Number(dataset.index || 0)
+            const page = this.streetCategoryPages[pageIndex] || []
+            const item = page[index]
             this.goPage(item && item.url)
         },
         openStreetMerchant(event) {
@@ -327,11 +356,20 @@ export default {
     box-shadow: 0 -3rpx 16rpx rgba(224, 224, 224, 0.67);
 }
 
+.street-service-section {
+    padding: 48rpx 42rpx 0;
+}
+
+.street-service-swiper {
+    height: 318rpx;
+}
+
 .street-service-grid {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start;
-    padding: 48rpx 42rpx 0;
+    align-content: flex-start;
+    padding: 0;
 }
 
 .street-service-item {
@@ -340,7 +378,10 @@ export default {
     align-items: center;
     width: 25%;
     flex: 0 0 25%;
-    margin-bottom: 34rpx;
+    min-width: 0;
+    height: 132rpx;
+    margin-bottom: 28rpx;
+    box-sizing: border-box;
 }
 
 .street-service-item__icon-shell {
@@ -361,6 +402,9 @@ export default {
     color: #222222;
     font-size: 26rpx;
     line-height: 26rpx;
+    max-width: 132rpx;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

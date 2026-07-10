@@ -1464,7 +1464,7 @@ export default {
         changeIntegral() {
             const diagnostics = this.logPointsDiagnostics(this.useIntegral ? '关闭积分抵扣' : '开启积分抵扣')
             if (!this.useIntegral && !diagnostics.canUse) {
-                return this.$toast({ title: diagnostics.reason || '当前订单暂不支持积分抵扣' })
+                return
             }
             this.useIntegral = this.useIntegral ? 0 : 1
             this.$nextTick(() => this.handleOrderMethods('info'))

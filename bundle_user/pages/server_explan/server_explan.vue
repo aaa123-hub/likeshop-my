@@ -21,12 +21,6 @@
         <text class="legal-doc__sign-value">{{ item.value }}</text>
       </view>
     </view>
-    <view v-if="showReadDoneCheck" class="legal-doc__read-check">
-      <view :class="['legal-doc__read-checkbox', readMarked ? 'is-checked' : '']">
-        <text v-if="readMarked">✓</text>
-      </view>
-      <text class="legal-doc__read-text">{{ readMarked ? '已阅读完' : '滑动到底部后自动确认已阅读完' }}</text>
-    </view>
   </view>
   <rich-text v-else-if="article_content" :nodes="article_content"></rich-text>
   <view v-else class="server-empty">暂无内容</view>
@@ -117,9 +111,6 @@ export default {
   computed: {
     showSignRows() {
       return !LOGIN_AGREEMENT_TYPES.includes(this.type)
-    },
-    showReadDoneCheck() {
-      return LOGIN_AGREEMENT_TYPES.includes(this.type)
     }
   },
   methods: {
@@ -441,44 +432,6 @@ export default {
   font-size: 24rpx;
   line-height: 36rpx;
   word-break: break-word;
-}
-
-.legal-doc__read-check {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  margin-top: 34rpx;
-  padding: 22rpx 20rpx;
-  border-radius: 18rpx;
-  background: #f8fafd;
-  border: 1rpx solid #e8edf5;
-  box-sizing: border-box;
-}
-
-.legal-doc__read-checkbox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34rpx;
-  height: 34rpx;
-  border-radius: 50%;
-  border: 2rpx solid #c6ccd8;
-  color: #ffffff;
-  font-size: 23rpx;
-  line-height: 1;
-  box-sizing: border-box;
-}
-
-.legal-doc__read-checkbox.is-checked {
-  border-color: #ff4d3d;
-  background: #ff4d3d;
-}
-
-.legal-doc__read-text {
-  color: #4b5563;
-  font-size: 25rpx;
-  line-height: 36rpx;
 }
 
 .main ::v-deep h2,

@@ -136,17 +136,10 @@
                     <view class="service-sheet__title">平台客服</view>
                     <image class="service-sheet__hero" :src="serviceHeroImage" mode="aspectFit"></image>
                 </view>
-                <view
-                    v-for="item in serviceContacts"
-                    :key="item.type"
-                    class="service-contact"
-                >
-                    <image class="service-contact__icon" :src="item.icon" mode="aspectFit"></image>
-                    <view class="service-contact__info">
-                        <view class="service-contact__name">{{ item.type }}</view>
-                        <view class="service-contact__value">{{ item.value }}</view>
-                    </view>
-                    <view class="service-contact__btn" @tap="contactService(item)">联系</view>
+                <view class="service-qrcode-card">
+                    <image class="service-qrcode" :src="serviceQrCode" mode="aspectFit" @tap="previewServiceQr"></image>
+                    <view class="service-qrcode__title">扫码联系平台客服</view>
+                    <view class="service-qrcode__desc">长按或点击放大二维码，按页面提示添加客服处理问题</view>
                 </view>
                 <view class="service-sheet__cancel" @tap="closeServiceModal">取消</view>
             </view>
@@ -163,8 +156,9 @@ import Cache from '@/utils/cache'
 import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
-import { getService } from '@/api/app'
 import { getMerchantQualificationStatus, getPromotionInviteCode, getRoleApplications, getRoles, inputInviteCode } from '@/api/user'
+
+const SERVICE_QR_CODE = 'https://shengyuan.store/api/miniapp/files/miniapp/d748a229d2504aaeac129746548bc086/11.png'
 
 export default {
     data() {
@@ -176,16 +170,11 @@ export default {
 			roleList: [],
             merchantQualification: {},
 			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
-            serviceContacts: [
-                { type: '微信', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/c4f6d65e2af84cdc96cbd0a164610364/contact-phone-icon.png' },
-                { type: 'QQ', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/f3a751f36ea442378ed3b18f916ce872/contact-message-icon.png' },
-                { type: '手机号', value: '', icon: 'https://shengyuan.store/api/miniapp/files/miniapp/ad78cb6626b94083b5b4690cd5d7bc91/contact-email-icon.png' }
-            ]
+            serviceQrCode: SERVICE_QR_CODE
         }
     },
     onLoad() {
         setTabbar()
-        this.getServiceInfo()
     },
     onShow() {
         this.getUser().then(() => this.getRoleInfo())
@@ -247,15 +236,10 @@ export default {
         closeServiceModal() {
             this.showServiceModal = false
         },
-        getServiceInfo() {
-            getService().then(res => {
-                if (res.code != 1) return
-                const data = res.data || {}
-                this.serviceContacts = [
-                    { ...this.serviceContacts[0], value: data.wechat || '' },
-                    { ...this.serviceContacts[1], value: data.qq || '' },
-                    { ...this.serviceContacts[2], value: data.phone || '' }
-                ]
+        previewServiceQr() {
+            uni.previewImage({
+                urls: [this.serviceQrCode],
+                current: this.serviceQrCode
             })
         },
         getRoleInfo() {
@@ -397,17 +381,6 @@ export default {
             }
             return ''
         },
-        contactService(item) {
-            if (!item.value) {
-                uni.showToast({ title: '客服信息暂未配置', icon: 'none' })
-                return
-            }
-            if (item.type === '手机号') {
-                uni.makePhoneCall({ phoneNumber: item.value.replace(/\s/g, '') })
-                return
-            }
-            copy(item.value)
-        },
         onCopy() {
             copy(this.userInfo.sn)
         }
@@ -529,7 +502,7 @@ export default {
     --page-safe-top: var(--status-bar-height, 44rpx);
     position: relative;
     min-height: 100vh;
-    padding-bottom: calc(40rpx + var(--window-bottom));
+    padding-bottom: calc(18rpx + var(--window-bottom));
     background: #f4f6ff;
     overflow-x: hidden;
 }
@@ -545,12 +518,25 @@ export default {
 .my-page__screen {
     position: relative;
     width: 100%;
-    min-height: calc(2008rpx + var(--page-safe-top));
+    min-height: calc(1846rpx + var(--page-safe-top) + var(--window-bottom));
     overflow: visible;
 }
 
 .my-page--guest .my-page__screen {
-    min-height: calc(1480rpx + var(--page-safe-top));
+    min-height: calc(1328rpx + var(--page-safe-top) + var(--window-bottom));
+}
+
+.my-page--no-offline .my-page__screen,
+.my-page--no-promotion .my-page__screen {
+    min-height: calc(1609rpx + var(--page-safe-top) + var(--window-bottom));
+}
+
+.my-page--no-offline.my-page--no-promotion .my-page__screen {
+    min-height: calc(1372rpx + var(--page-safe-top) + var(--window-bottom));
+}
+
+.my-page--guest.my-page--no-offline.my-page--no-promotion .my-page__screen {
+    min-height: calc(1343rpx + var(--page-safe-top) + var(--window-bottom));
 }
 
 .my-page__header-bg {
@@ -774,72 +760,50 @@ export default {
     height: 58rpx;
 }
 
-.service-contact {
+.service-qrcode-card {
     position: relative;
     z-index: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    height: 72rpx;
-    margin-top: 58rpx;
+    margin: 18rpx auto 0;
+    padding: 26rpx 28rpx 28rpx;
+    border-radius: 28rpx;
+    background: rgba(255, 255, 255, .92);
+    box-shadow: 0 14rpx 34rpx rgba(33, 79, 146, .08);
+    box-sizing: border-box;
 }
 
-.service-contact:first-of-type {
-    margin-top: 38rpx;
+.service-qrcode {
+    width: 336rpx;
+    height: 336rpx;
+    border-radius: 20rpx;
+    background: #ffffff;
+    box-shadow: 0 8rpx 20rpx rgba(31, 58, 94, .06);
 }
 
-.service-contact__icon {
-    flex: none;
-    width: 72rpx;
-    height: 72rpx;
-}
-
-.service-contact__info {
-    flex: 1;
-    min-width: 0;
-    margin-left: 25rpx;
-}
-
-.service-contact__name {
+.service-qrcode__title {
+    margin-top: 22rpx;
     color: #222222;
-    font-size: 28rpx;
-    font-weight: 600;
-    line-height: 32rpx;
-    white-space: nowrap;
+    font-size: 30rpx;
+    font-weight: 700;
+    line-height: 42rpx;
+    text-align: center;
 }
 
-.service-contact__value {
-    margin-top: 20rpx;
-    color: #999999;
-    font-size: 28rpx;
-    line-height: 32rpx;
-    white-space: nowrap;
-}
-
-.service-contact__value:empty::after {
-    content: '暂未配置';
-    color: #999999;
-}
-
-.service-contact__btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    width: 153rpx;
-    height: 54rpx;
-    color: #ffffff;
-    font-size: 23rpx;
-    font-weight: 600;
-    line-height: 26rpx;
-    background: #037dfa;
-    border-radius: 27rpx;
-    white-space: nowrap;
+.service-qrcode__desc {
+    max-width: 520rpx;
+    margin-top: 8rpx;
+    color: #667085;
+    font-size: 24rpx;
+    line-height: 36rpx;
+    text-align: center;
 }
 
 .service-sheet__cancel {
     position: relative;
     z-index: 1;
-    margin-top: 84rpx;
+    margin-top: 34rpx;
     color: #666666;
     font-size: 29rpx;
     font-weight: 600;

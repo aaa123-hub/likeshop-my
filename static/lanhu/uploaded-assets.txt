@@ -2054,3 +2054,10 @@ local: https://lanhu-oss-proxy.lanhuapp.com/e46b78fd9e4096a3a4374942a753e7e5
 request: POST /api/miniapp/files/upload
 url: https://shengyuan.store/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png
 response: {"code":"0","message":"SUCCESS","traceId":"cd761d19-cf8d-46ad-9da5-764f1b6b9074","data":{"bucket":"ai-shop","objectName":"miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","size":11535,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/b5ab465327674382843897e9739f4239/kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png","fileName":"kyc_photo_back_bg-e46b78fd9e4096a3a4374942a753e7e5.png"},"timestamp":"2026-07-08T06:17:32.457237202Z"}
+
+[success] 我的页面 - 平台客服二维码
+key: user_service_qrcode
+local: /Users/pc/Downloads/11.png
+request: POST /api/miniapp/files/upload
+url: https://shengyuan.store/api/miniapp/files/miniapp/d748a229d2504aaeac129746548bc086/11.png
+response: {"code":"0","message":"SUCCESS","traceId":"883439f1-b8be-46c4-8598-770df380c771","data":{"bucket":"ai-shop","objectName":"miniapp/d748a229d2504aaeac129746548bc086/11.png","url":"https://shengyuan.store/api/miniapp/files/miniapp/d748a229d2504aaeac129746548bc086/11.png","size":63775,"fileUrl":"https://shengyuan.store/api/miniapp/files/miniapp/d748a229d2504aaeac129746548bc086/11.png","contentType":"image/png","path":"/api/miniapp/files/miniapp/d748a229d2504aaeac129746548bc086/11.png","fileName":"11.png"},"timestamp":"2026-07-10T11:33:52.989219733Z"}

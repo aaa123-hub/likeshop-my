@@ -64,9 +64,9 @@
                 <text class="label">姓名</text>
                 <view class="picker-value">{{ form.applicantName || '-' }}</view>
             </view>
-            <view class="form-item">
+            <view :class="['form-item', isReadonlyField('mobile') ? 'form-item--readonly' : '']">
                 <text class="label">手机号</text>
-                <input v-model="form.mobile" type="number" placeholder="请输入手机号" />
+                <input v-model="form.mobile" :disabled="isReadonlyField('mobile')" type="number" placeholder="请输入手机号" />
             </view>
             <view class="form-item">
                 <text class="label">证件类型</text>
@@ -103,15 +103,15 @@
             <view class="upgrade-tip" v-if="accountCredentialTip">
                 {{ accountCredentialTip }}
             </view>
-            <view class="form-item" v-if="requiresAccountCredentials">
+            <view :class="['form-item', readonlyBackendUsername ? 'form-item--readonly' : '']" v-if="requiresAccountCredentials || readonlyBackendUsername">
                 <text class="label">登录账号</text>
-                <input v-model="form.username" placeholder="审核通过后用于登录渠道后台" />
+                <input v-model="form.username" :disabled="readonlyBackendUsername" placeholder="审核通过后用于登录渠道后台" />
             </view>
-            <view class="form-item" v-if="requiresAccountCredentials">
+            <view class="form-item" v-if="requiresBackendPassword">
                 <text class="label">登录密码</text>
                 <input v-model="form.password" password placeholder="请设置至少 6 位密码" />
             </view>
-            <view class="form-item" v-if="requiresAccountCredentials">
+            <view class="form-item" v-if="requiresBackendPassword">
                 <text class="label">确认密码</text>
                 <input v-model="form.confirmPassword" password placeholder="请再次输入密码" />
             </view>
@@ -119,7 +119,7 @@
                 <text class="label">申请说明</text>
                 <textarea v-model="form.remark" placeholder="可填写推广资源、经营区域等信息" />
             </view>
-            <view class="kyc-material">
+            <view :class="['kyc-material', hasReadonlyKycMaterial ? 'kyc-material--readonly' : '']">
                 <view class="kyc-material__title">实名材料</view>
                 <view class="kyc-material__photos">
                     <image v-if="form.certFrontUrl" class="kyc-material__photo" :src="form.certFrontUrl" mode="aspectFit"></image>
@@ -162,7 +162,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import Navbar from '@/components/navbar/navbar.vue'
-import { applyRoleApplication, getKycStatus, getRoleApplications, getRoles } from '@/api/user'
+import { applyRoleApplication, getKycStatus, getOnboardingContext, getRoleApplications, getRoles } from '@/api/user'
 import { prepay } from '@/api/app'
 import { wxpay } from '@/utils/pay'
 import { localizeBackendText, normalizeBackendCode, normalizeKycStatus } from '@/utils/backend-text'
@@ -218,6 +218,8 @@ export default {
             areaPickerColumns: [[], [], []],
             showApplyForm: false,
             kycInfo: {},
+            onboardingContext: {},
+            readonlyFields: {},
             submitting: false,
             pageReady: false,
             pageRefreshing: false
@@ -368,12 +370,90 @@ export default {
         isRoleUpgradeApplication() {
             return this.hasApprovedPromoterRole && ['AGENT', 'SUBSIDIARY'].includes(this.selectedRoleCode)
         },
+        hasBackendAccount() {
+            const context = this.onboardingContext || {}
+            const account = context.backendAccount || context.backend_account || {}
+            const info = this.userInfo || {}
+            return Boolean(
+                context.hasBackendAccount
+                || context.has_backend_account
+                || account.adminUserId
+                || account.admin_user_id
+                || account.platformUserId
+                || account.platform_user_id
+                || account.username
+                || context.backendUsername
+                || context.backend_username
+                || info.platformUserId
+                || info.platform_user_id
+                || info.adminUserId
+                || info.admin_user_id
+                || info.backendUserId
+                || info.backend_user_id
+                || info.merchantId
+                || info.merchant_id
+                || info.promoterId
+                || info.promoter_id
+                || info.agentId
+                || info.agent_id
+                || info.subsidiaryId
+                || info.subsidiary_id
+            )
+        },
+        onboardingUiHints() {
+            return (this.onboardingContext && (this.onboardingContext.uiHints || this.onboardingContext.ui_hints)) || {}
+        },
         requiresAccountCredentials() {
+            if (this.onboardingUiHints.showBackendAccountFields === false) return false
+            if (this.hasBackendAccount) return false
             if (this.isMerchantRole) return false
             if (this.isRoleUpgradeApplication) return false
             return true
         },
+        requiresBackendUsername() {
+            if (this.onboardingUiHints.requireBackendUsername === false) return false
+            return this.requiresAccountCredentials
+        },
+        requiresBackendPassword() {
+            if (this.onboardingUiHints.requireBackendPassword === false) return false
+            if (this.hasBackendAccount || this.isMerchantRole) return false
+            return this.requiresAccountCredentials
+        },
+        readonlyBackendUsername() {
+            return !this.requiresBackendUsername && Boolean(this.form.username)
+        },
+        backendUsernameFromSources() {
+            const context = this.onboardingContext || {}
+            const account = context.backendAccount || context.backend_account || {}
+            const info = this.userInfo || {}
+            const merchantRole = this.roles.find((item) => this.normalizeRoleCode(item.roleCode || item.role_code || item.role || item.code || item.value) === 'MERCHANT') || {}
+            return context.backendUsername
+                || context.backend_username
+                || account.username
+                || account.loginName
+                || account.login_name
+                || account.accountNo
+                || account.account_no
+                || info.backendUsername
+                || info.backend_username
+                || info.platformUsername
+                || info.platform_username
+                || info.adminUsername
+                || info.admin_username
+                || info.loginName
+                || info.login_name
+                || info.username
+                || info.accountNo
+                || info.account_no
+                || merchantRole.username
+                || merchantRole.loginName
+                || merchantRole.login_name
+                || merchantRole.accountNo
+                || merchantRole.account_no
+                || ''
+        },
         accountCredentialTip() {
+            if (this.hasBackendAccount || this.onboardingUiHints.showBackendAccountFields === false) return '当前账号已绑定平台后台账号，本次申请将沿用已有账号，无需重新填写登录账号和密码。'
             if (this.isRoleUpgradeApplication) return `已是推广者，继续申请${this.selectedRoleLabel}只需选择申请区域，渠道后台账号和密码沿用原账户。`
             if (this.isMerchantRole) return '当前账号已是商家，平台管理系统已有对应账号，本次申请无需重新设置登录账号和密码。'
             return ''
@@ -447,6 +527,9 @@ export default {
             if (!this.requiresPrepayDeposit) return '无需押金'
             if (this.roleDepositAmount === '') return '待平台配置'
             return this.moneyText(this.roleDepositAmount)
+        },
+        hasReadonlyKycMaterial() {
+            return this.isReadonlyField('certFrontUrl') || this.isReadonlyField('certBackUrl')
         },
         currentStatusType() {
             return this.statusType(this.currentApplication && this.currentApplication.applicationStatus)
@@ -565,34 +648,101 @@ export default {
             if (this.pageRefreshing) return
             this.pageRefreshing = true
             try {
+                await this.loadOnboardingContext()
                 await Promise.all([this.loadKycStatus(), this.loadApplications()])
                 this.mergeRoleOptions()
                 this.syncSelectedRole()
+                this.prefillBackendUsername()
             } finally {
                 this.pageRefreshing = false
+            }
+        },
+        async loadOnboardingContext() {
+            try {
+                const res = await getOnboardingContext({ show: false })
+                if (res.code != 1 || !res.data) return
+                this.applyOnboardingContext(res.data)
+            } catch (error) {}
+        },
+        applyOnboardingContext(data = {}) {
+            this.onboardingContext = data
+            const profile = data.reusableProfile || data.reusable_profile || {}
+            const hints = data.uiHints || data.ui_hints || {}
+            const kycData = this.mergeKycInfo(this.kycInfo, {
+                ...data,
+                ...profile,
+                kycStatus: data.kycStatus || data.kyc_status || data.auditStatus || data.audit_status,
+                realName: profile.realName || profile.real_name || profile.applicantName || profile.applicant_name || data.realName || data.real_name,
+                certNo: profile.certNo || profile.cert_no || profile.certNoMask || profile.cert_no_mask || data.certNo || data.cert_no || data.certNoMask || data.cert_no_mask,
+                certType: profile.certType || profile.cert_type || data.certType || data.cert_type,
+                certFrontUrl: profile.certFrontUrl || profile.cert_front_url || data.certFrontUrl || data.cert_front_url,
+                certBackUrl: profile.certBackUrl || profile.cert_back_url || data.certBackUrl || data.cert_back_url
+            })
+            if (kycData.kycStatus || hints.canReuseKycProfile || profile.realName || profile.applicantName) {
+                this.kycInfo = kycData
+                this.applyKycToForm(true)
+            }
+            const account = data.backendAccount || data.backend_account || {}
+            const backendUsername = data.backendUsername || data.backend_username || account.username
+            const mobile = profile.mobile || data.mobile || data.contactMobile || data.contact_mobile
+            this.form.username = backendUsername || this.form.username
+            this.form.mobile = mobile || this.form.mobile
+            this.markReadonlyField('username', backendUsername)
+            this.markReadonlyField('applicantName', profile.applicantName || profile.applicant_name || profile.realName || profile.real_name || data.realName || data.real_name)
+            this.markReadonlyField('mobile', mobile)
+            this.markReadonlyField('certType', profile.certType || profile.cert_type || data.certType || data.cert_type)
+            this.markReadonlyField('certNo', profile.certNo || profile.cert_no || profile.certNoMask || profile.cert_no_mask || data.certNo || data.cert_no || data.certNoMask || data.cert_no_mask)
+            this.markReadonlyField('certFrontUrl', profile.certFrontUrl || profile.cert_front_url || data.certFrontUrl || data.cert_front_url)
+            this.markReadonlyField('certBackUrl', profile.certBackUrl || profile.cert_back_url || data.certBackUrl || data.cert_back_url)
+            if (this.hasBackendAccount || hints.showBackendAccountFields === false) {
+                this.form.password = ''
+                this.form.confirmPassword = ''
+            }
+        },
+        isReadonlyField(field) {
+            return Boolean(this.readonlyFields && this.readonlyFields[field])
+        },
+        markReadonlyField(field, value) {
+            if (value === undefined || value === null || value === '') return
+            this.$set(this.readonlyFields, field, true)
+        },
+        prefillBackendUsername() {
+            const username = this.backendUsernameFromSources
+            if (!username) return
+            this.form.username = this.form.username || username
+            if (this.hasBackendAccount || this.isMerchantRole || this.onboardingUiHints.showBackendAccountFields === false) {
+                this.markReadonlyField('username', username)
+                this.form.password = ''
+                this.form.confirmPassword = ''
             }
         },
         async loadKycStatus() {
             const localKyc = this.localKycInfo()
             const cachedKyc = this.cachedKycInfo()
-            const fallbackKyc = this.mergeKycInfo(localKyc, cachedKyc)
+            const fallbackKyc = this.mergeKycInfo(this.mergeKycInfo(localKyc, cachedKyc), this.kycInfo)
             if (localKyc.kycStatus) {
                 this.kycInfo = fallbackKyc
-                if (this.isKycApproved) this.applyKycToForm()
+                if (this.isKycApproved) this.applyKycToForm(true)
                 else this.clearKycForm()
                 if (localKyc.fromProfile && this.isKycInfoComplete(fallbackKyc)) return
             }
             try {
                 const res = await getKycStatus({ show: false })
                 if (res.code != 1) return
+                const remoteStatus = normalizeKycStatus((res.data || {}).kycStatus || (res.data || {}).kyc_status || 'NOT_SUBMITTED')
+                const currentStatus = normalizeKycStatus(this.kycInfo.kycStatus || this.kycInfo.kyc_status || 'NOT_SUBMITTED')
+                if (currentStatus !== 'NOT_SUBMITTED' && remoteStatus === 'NOT_SUBMITTED') {
+                    if (this.isKycApproved) this.applyKycToForm(true)
+                    return
+                }
                 this.kycInfo = this.mergeKycInfo(fallbackKyc, res.data || {})
                 this.saveKycCache(this.kycInfo)
-                if (this.isKycApproved) this.applyKycToForm()
+                if (this.isKycApproved) this.applyKycToForm(true)
                 else if (!localKyc.kycStatus) this.clearKycForm()
             } catch (error) {
                 if (fallbackKyc.kycStatus) {
                     this.kycInfo = fallbackKyc
-                    if (this.isKycApproved) this.applyKycToForm()
+                    if (this.isKycApproved) this.applyKycToForm(true)
                 }
             }
         },
@@ -667,13 +817,20 @@ export default {
             this.form.certBackUrl = ''
             this.certTypeIndex = 0
         },
-        applyKycToForm() {
+        applyKycToForm(markReadonly = false) {
             const data = this.kycInfo || {}
             this.form.applicantName = data.realName || data.real_name || this.form.applicantName
             this.form.certType = data.certType || data.cert_type || this.form.certType
             this.form.certNo = data.certNo || data.cert_no || this.form.certNo
             this.form.certFrontUrl = data.certFrontUrl || data.cert_front_url || this.form.certFrontUrl
             this.form.certBackUrl = data.certBackUrl || data.cert_back_url || this.form.certBackUrl
+            if (markReadonly) {
+                this.markReadonlyField('applicantName', data.realName || data.real_name)
+                this.markReadonlyField('certType', data.certType || data.cert_type)
+                this.markReadonlyField('certNo', data.certNo || data.cert_no)
+                this.markReadonlyField('certFrontUrl', data.certFrontUrl || data.cert_front_url)
+                this.markReadonlyField('certBackUrl', data.certBackUrl || data.cert_back_url)
+            }
             const certIndex = this.certTypes.findIndex((item) => item.value === this.form.certType)
             if (certIndex !== -1) this.certTypeIndex = certIndex
         },
@@ -907,8 +1064,9 @@ export default {
             }
             this.roleIndex = index
             this.prefillForm(this.currentApplication || {})
-            this.applyKycToForm()
+            this.applyKycToForm(true)
             this.prefillUpgradeAccount()
+            this.prefillBackendUsername()
             this.refreshAreaColumns()
             this.showApplyForm = true
         },
@@ -919,8 +1077,9 @@ export default {
             if (index === -1) return
             this.roleIndex = index
             this.prefillForm(this.currentApplication || {})
-            this.applyKycToForm()
+            this.applyKycToForm(true)
             this.prefillUpgradeAccount()
+            this.prefillBackendUsername()
             this.refreshAreaColumns()
             this.showApplyForm = true
         },
@@ -970,8 +1129,9 @@ export default {
             const index = this.firstApplyableRoleIndex()
             this.roleIndex = index === -1 ? 0 : index
             this.prefillForm({})
-            this.applyKycToForm()
+            this.applyKycToForm(true)
             this.prefillUpgradeAccount()
+            this.prefillBackendUsername()
             this.refreshAreaColumns()
             this.showApplyForm = true
         },
@@ -1196,18 +1356,21 @@ export default {
             this.form.cityName = application.cityName || application.city_name || application.city || ''
             this.form.districtCode = application.districtCode || application.district_code || ''
             this.form.districtName = application.districtName || application.district_name || application.district || ''
-            this.applyKycToForm()
+            this.applyKycToForm(true)
             this.form.remark = application.remark || this.form.remark
             this.form.materialUrlsText = Array.isArray(application.materialUrls) ? application.materialUrls.join('\n') : (application.materialUrls || this.form.materialUrlsText)
             this.form.password = ''
             this.form.confirmPassword = ''
             this.syncAreaPickerValueByForm()
             this.prefillUpgradeAccount()
+            this.prefillBackendUsername()
         },
         prefillUpgradeAccount() {
             if (!this.isRoleUpgradeApplication) return
             const promoter = this.approvedPromoterApplication || {}
-            this.form.username = promoter.username || promoter.loginName || promoter.login_name || this.form.username
+            const username = promoter.username || promoter.loginName || promoter.login_name
+            this.form.username = username || this.form.username
+            this.markReadonlyField('username', username)
             this.form.password = ''
             this.form.confirmPassword = ''
         },
@@ -1224,7 +1387,7 @@ export default {
                 uni.showToast({ title: this.hasAreaOptions ? '请选择申请区域' : '暂无可选区域，请联系平台配置', icon: 'none' })
                 return false
             }
-            if (this.requiresAccountCredentials && !this.form.username.trim()) {
+            if (this.requiresBackendUsername && !this.form.username.trim()) {
                 uni.showToast({ title: '请填写登录账号', icon: 'none' })
                 return false
             }
@@ -1236,11 +1399,11 @@ export default {
                 uni.showToast({ title: '实名材料不完整，请先完成实名认证', icon: 'none' })
                 return false
             }
-            if (this.requiresAccountCredentials && (!this.form.password || this.form.password.length < 6)) {
+            if (this.requiresBackendPassword && (!this.form.password || this.form.password.length < 6)) {
                 uni.showToast({ title: '请设置至少 6 位密码', icon: 'none' })
                 return false
             }
-            if (this.requiresAccountCredentials && this.form.password !== this.form.confirmPassword) {
+            if (this.requiresBackendPassword && this.form.password !== this.form.confirmPassword) {
                 uni.showToast({ title: '两次密码输入不一致', icon: 'none' })
                 return false
             }
@@ -1581,7 +1744,14 @@ input, .picker-value { min-height: 62rpx; line-height: 62rpx; text-align: right;
 .picker-value--placeholder { color: #98a2b3; }
 textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ffffff; line-height: 40rpx; box-sizing: border-box; text-align: left; }
 .upgrade-tip { margin-top: 16rpx; padding: 18rpx 20rpx; border-radius: 18rpx; color: #176b55; background: #eefbf6; border: 1rpx solid #c7f0df; font-size: 24rpx; line-height: 36rpx; }
+.form-item--readonly {
+    background: #f3f6fa;
+}
+.form-item--readonly input {
+    color: #667085;
+}
 .kyc-material { margin-top: 24rpx; padding: 24rpx; border-radius: 20rpx; background: #f8fafc; border: 1rpx solid #edf1f6; }
+.kyc-material--readonly { background: #f3f6fa; border-color: #e5ebf2; }
 .kyc-material__title { color: #333333; font-size: 28rpx; font-weight: 600; }
 .kyc-material__photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18rpx; margin-top: 18rpx; }
 .kyc-material__photo { width: 100%; height: 180rpx; border-radius: 14rpx; background: #edf1f6; }

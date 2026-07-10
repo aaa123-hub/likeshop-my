@@ -2,7 +2,7 @@ import request from '../utils/request'
 import { client } from '@/utils/tools'
 import area from '@/utils/area'
 import Cache from '@/utils/cache'
-import { USER_INFO } from '@/config/cachekey'
+import { TOKEN, USER_INFO } from '@/config/cachekey'
 import { resolveImage } from '@/utils/image-placeholder'
 import { cleanBackendText, isEmptyBackendText } from '@/utils/backend-text'
 
@@ -1734,6 +1734,163 @@ export function getKycStatus(params = {}) {
     })
 }
 
+function normalizeBackendAccount(data = {}) {
+    const account = data.backendAccount || data.backend_account || data.account || data.adminAccount || data.admin_account || {}
+    return {
+        ...account,
+        adminUserId: firstDefined(account.adminUserId, account.admin_user_id, account.id, data.adminUserId, data.admin_user_id),
+        platformUserId: firstDefined(account.platformUserId, account.platform_user_id, data.platformUserId, data.platform_user_id),
+        userId: firstDefined(account.userId, account.user_id, data.userId, data.user_id),
+        accountNo: firstDefined(account.accountNo, account.account_no, data.accountNo, data.account_no),
+        username: firstDefined(account.username, account.loginName, account.login_name, data.backendUsername, data.backend_username, data.username, data.loginName, data.login_name),
+        roleCode: firstDefined(account.roleCode, account.role_code, account.role, data.roleCode, data.role_code, data.role),
+        accountStatus: firstDefined(account.accountStatus, account.account_status, account.status, data.accountStatus, data.account_status),
+        displayName: firstDefined(account.displayName, account.display_name, account.name, data.displayName, data.display_name)
+    }
+}
+
+function normalizeOnboardingContext(data = {}) {
+    const uiHints = data.uiHints || data.ui_hints || {}
+    const backendAccount = normalizeBackendAccount(data)
+    const reusableProfile = data.reusableProfile || data.reusable_profile || data.kycProfile || data.kyc_profile || {}
+    const kycProfile = normalizeKycPayload({
+        ...data,
+        ...reusableProfile,
+        realName: firstDefined(reusableProfile.realName, reusableProfile.real_name, reusableProfile.applicantName, reusableProfile.applicant_name, data.realName, data.real_name),
+        certNo: firstDefined(reusableProfile.certNo, reusableProfile.cert_no, reusableProfile.certNoMask, reusableProfile.cert_no_mask, data.certNo, data.cert_no, data.certNoMask, data.cert_no_mask),
+        certFrontUrl: firstDefined(reusableProfile.certFrontUrl, reusableProfile.cert_front_url, data.certFrontUrl, data.cert_front_url),
+        certBackUrl: firstDefined(reusableProfile.certBackUrl, reusableProfile.cert_back_url, data.certBackUrl, data.cert_back_url),
+        kycStatus: firstDefined(data.kycStatus, data.kyc_status, data.auditStatus, data.audit_status)
+    })
+    const hasBackendAccount = Boolean(
+        data.hasBackendAccount
+        || data.has_backend_account
+        || backendAccount.adminUserId
+        || backendAccount.platformUserId
+        || backendAccount.username
+    )
+    const normalizedHints = {
+        ...uiHints,
+        showBackendAccountFields: uiHints.showBackendAccountFields ?? uiHints.show_backend_account_fields ?? !hasBackendAccount,
+        requireBackendUsername: uiHints.requireBackendUsername ?? uiHints.require_backend_username ?? !hasBackendAccount,
+        requireBackendPassword: uiHints.requireBackendPassword ?? uiHints.require_backend_password ?? !hasBackendAccount,
+        canReuseKycProfile: uiHints.canReuseKycProfile ?? uiHints.can_reuse_kyc_profile ?? false,
+        hideRepeatedKycFields: uiHints.hideRepeatedKycFields ?? uiHints.hide_repeated_kyc_fields ?? false
+    }
+    return {
+        ...data,
+        hasBackendAccount,
+        has_backend_account: hasBackendAccount,
+        backendAccount,
+        backend_account: backendAccount,
+        backendUsername: firstDefined(data.backendUsername, data.backend_username, backendAccount.username),
+        backend_username: firstDefined(data.backend_username, data.backendUsername, backendAccount.username),
+        kycStatus: kycProfile.kycStatus,
+        kyc_status: kycProfile.kyc_status,
+        auditStatus: firstDefined(data.auditStatus, data.audit_status, kycProfile.kycStatus),
+        audit_status: firstDefined(data.audit_status, data.auditStatus, kycProfile.kyc_status),
+        realName: kycProfile.realName,
+        real_name: kycProfile.real_name,
+        certType: kycProfile.certType,
+        cert_type: kycProfile.cert_type,
+        certNoMask: firstDefined(data.certNoMask, data.cert_no_mask, reusableProfile.certNoMask, reusableProfile.cert_no_mask, kycProfile.certNo),
+        cert_no_mask: firstDefined(data.cert_no_mask, data.certNoMask, reusableProfile.cert_no_mask, reusableProfile.certNoMask, kycProfile.cert_no),
+        certFrontUrl: kycProfile.certFrontUrl,
+        cert_front_url: kycProfile.cert_front_url,
+        certBackUrl: kycProfile.certBackUrl,
+        cert_back_url: kycProfile.cert_back_url,
+        reusableProfile: {
+            ...reusableProfile,
+            applicantName: firstDefined(reusableProfile.applicantName, reusableProfile.applicant_name, kycProfile.realName),
+            applicant_name: firstDefined(reusableProfile.applicant_name, reusableProfile.applicantName, kycProfile.realName),
+            realName: kycProfile.realName,
+            real_name: kycProfile.real_name,
+            mobile: firstDefined(reusableProfile.mobile, data.mobile, data.contactMobile, data.contact_mobile),
+            certType: kycProfile.certType,
+            cert_type: kycProfile.cert_type,
+            certNo: kycProfile.certNo,
+            cert_no: kycProfile.cert_no,
+            certNoMask: firstDefined(reusableProfile.certNoMask, reusableProfile.cert_no_mask, data.certNoMask, data.cert_no_mask, kycProfile.certNo),
+            cert_no_mask: firstDefined(reusableProfile.cert_no_mask, reusableProfile.certNoMask, data.cert_no_mask, data.certNoMask, kycProfile.cert_no),
+            certFrontUrl: kycProfile.certFrontUrl,
+            cert_front_url: kycProfile.cert_front_url,
+            certBackUrl: kycProfile.certBackUrl,
+            cert_back_url: kycProfile.cert_back_url
+        },
+        uiHints: normalizedHints,
+        ui_hints: normalizedHints
+    }
+}
+
+export function getOnboardingContext(params = {}) {
+    const token = Cache.get(TOKEN)
+    const userId = currentUserId(params)
+    return request.get('miniapp/user/onboarding-context', {
+        show: params.show,
+        params: token || !userId ? {} : { userId }
+    }).then((res) => {
+        if (res.code != 1 || !res.data) return res
+        return {
+            ...res,
+            data: normalizeOnboardingContext(res.data || {})
+        }
+    })
+}
+
+function normalizeMerchantIndustry(item = {}) {
+    if (typeof item === 'string') return { id: item, value: item, name: item, label: item }
+    const id = firstDefined(item.id, item.industryId, item.industry_id, item.code, item.industryCode, item.industry_code, item.value)
+    const name = firstDefined(item.name, item.industryName, item.industry_name, item.label, item.title)
+    return {
+        ...item,
+        id,
+        value: id,
+        industryId: id,
+        industry_id: id,
+        industryCode: firstDefined(item.industryCode, item.industry_code, item.code, id),
+        industry_code: firstDefined(item.industry_code, item.industryCode, item.code, id),
+        name,
+        label: name
+    }
+}
+
+function normalizeMerchantIndustryList(data = {}) {
+    const source = Array.isArray(data)
+        ? data
+        : data.list || data.records || data.items || data.industries || data.industryList || data.industry_list || []
+    return (Array.isArray(source) ? source : []).map(normalizeMerchantIndustry).filter(item => item.value !== undefined && item.value !== null && item.value !== '' && item.label)
+}
+
+export function getMerchantIndustries(params = {}) {
+    return request.get('miniapp/merchant-industries', {
+        show: params.show
+    }).then((res) => {
+        if (res.code == 1) {
+            return {
+                ...res,
+                data: {
+                    ...(!Array.isArray(res.data) ? (res.data || {}) : {}),
+                    list: normalizeMerchantIndustryList(res.data || {})
+                }
+            }
+        }
+        if (isMissingMiniappResourceResponse(res, 'miniapp/merchant-industries')) {
+            return request.get('miniapp/merchant-applications/industries', {
+                show: params.show
+            }).then((fallbackRes) => fallbackRes.code == 1
+                ? {
+                    ...fallbackRes,
+                    data: {
+                        ...(!Array.isArray(fallbackRes.data) ? (fallbackRes.data || {}) : {}),
+                        list: normalizeMerchantIndustryList(fallbackRes.data || {})
+                    }
+                }
+                : fallbackRes)
+        }
+        return res
+    })
+}
+
 function normalizeMerchantQualification(data = {}) {
     const source = data.application || data.merchantApplication || data.merchant_application || data.registration || data || {}
     const rawQualificationUrls = source.qualificationUrls || source.qualification_urls || source.qualificationUrlList || source.qualification_url_list || source.qualificationUrl || source.qualification_url || []
@@ -1765,6 +1922,10 @@ function normalizeMerchantQualification(data = {}) {
         shop_name: source.shopName || source.shop_name || source.storeName || source.store_name || source.merchantName || source.merchant_name || '',
         industryId: source.industryId || source.industry_id || '',
         industry_id: source.industryId || source.industry_id || '',
+        industryCode: source.industryCode || source.industry_code || '',
+        industry_code: source.industryCode || source.industry_code || '',
+        industryName: source.industryName || source.industry_name || '',
+        industry_name: source.industryName || source.industry_name || '',
         contactName: source.contactName || source.contact_name || source.legalPerson || source.legal_person || '',
         contact_name: source.contactName || source.contact_name || source.legalPerson || source.legal_person || '',
         contactMobile: source.contactMobile || source.contact_mobile || source.mobile || source.phone || '',
@@ -1792,6 +1953,17 @@ function normalizeMerchantQualification(data = {}) {
         apply_status: applyStatus,
         auditStatus: source.auditStatus || source.audit_status || applyStatus,
         audit_status: source.auditStatus || source.audit_status || applyStatus,
+        hasBackendAccount: source.hasBackendAccount || source.has_backend_account || false,
+        has_backend_account: source.hasBackendAccount || source.has_backend_account || false,
+        backendAccount: normalizeBackendAccount(source),
+        backend_account: normalizeBackendAccount(source),
+        backendUsername: firstDefined(source.backendUsername, source.backend_username, source.username, source.loginName, source.login_name),
+        backend_username: firstDefined(source.backend_username, source.backendUsername, source.username, source.loginName, source.login_name),
+        roles: source.roles || source.roleList || source.role_list || [],
+        roleCode: source.roleCode || source.role_code || source.role || '',
+        role_code: source.roleCode || source.role_code || source.role || '',
+        uiHints: source.uiHints || source.ui_hints || {},
+        ui_hints: source.uiHints || source.ui_hints || {},
         auditRemark: source.auditRemark || source.audit_remark || source.remark || '',
         audit_remark: source.auditRemark || source.audit_remark || source.remark || '',
         updatedAt: source.updatedAt || source.updated_at || source.updateTime || source.createTime || source.createdAt || '',
@@ -2116,7 +2288,7 @@ export function getRoleApplications(params = {}) {
 }
 
 export function applyRoleApplication(data = {}) {
-    return request.post('miniapp/role-applications', {
+    const payload = {
         userId: currentUserId(data),
         applicationNo: data.applicationNo || data.application_no || data.applyNo || data.apply_no || '',
         application_no: data.application_no || data.applicationNo || data.applyNo || data.apply_no || '',
@@ -2148,7 +2320,10 @@ export function applyRoleApplication(data = {}) {
         realname_verified: data.realnameVerified ?? data.realname_verified ?? data.realNameVerified ?? data.real_name_verified,
         agreementAccepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true,
         agreement_accepted: data.agreementAccepted ?? data.agreement_accepted ?? data.agreement ?? true
-    }).then((res) => res.code == 1 && res.data ? { ...res, data: normalizeRoleApplication(res.data) } : res)
+    }
+    if (!payload.username) delete payload.username
+    if (!payload.password) delete payload.password
+    return request.post('miniapp/role-applications', payload).then((res) => res.code == 1 && res.data ? { ...res, data: normalizeRoleApplication(res.data) } : res)
 }
 
 function normalizeWorkbenchData(data = {}, params = {}) {
