@@ -1789,12 +1789,13 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				return avatars.map(avatar => this.resolveAvatar(avatar))
 			},
 			shareShopScore() {
-				const score = this.goodsDetail.shop_score ?? this.goodsDetail.shopScore ?? this.goodsDetail.shop?.shopScore ?? this.goodsDetail.shop?.score ?? 5
+				const score = this.goodsDetail.shop_score ?? this.goodsDetail.shopScore ?? this.goodsDetail.shop?.shopScore ?? this.goodsDetail.shop?.score ?? ''
+				if (score === '' || score === null || score === undefined) return ''
 				const value = Number(score)
-				return Number.isNaN(value) ? String(score || '5.0') : value.toFixed(1)
+				return Number.isNaN(value) ? String(score) : value.toFixed(1)
 			},
 			shareBusinessTime() {
-				return this.formatDisplayTime(this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '8:00-16:00')
+				return this.formatDisplayTime(this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '')
 			},
 			goodsTagList() {
 				return this.formatPlainTags(this.goodsDetail.tags || this.goodsDetail.labels || this.goodsDetail.goods_tags || this.goodsDetail.goodsTags || this.goodsServiceList).filter(tag => !this.isImportSourceField('标签', tag)).slice(0, 4)

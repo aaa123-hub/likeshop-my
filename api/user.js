@@ -1644,18 +1644,20 @@ function normalizeKycStatus(status, data = {}) {
 }
 
 function normalizeKycPayload(data = {}) {
-    const rawStatus = firstDefined(data.kycStatus, data.kyc_status, data.auditStatus, data.audit_status, data.realnameStatus, data.realname_status, data.realNameStatus, data.real_name_status, data.status)
-    const nextAction = firstDefined(data.nextAction, data.next_action, '')
+    const detail = data.kycInfo || data.kyc_info || data.realnameInfo || data.realname_info || data.realNameInfo || data.real_name_info || data.certificationInfo || data.certification_info || data.authInfo || data.auth_info || data.verifyInfo || data.verify_info || {}
+    const source = { ...data, ...detail }
+    const rawStatus = firstDefined(source.kycStatus, source.kyc_status, source.auditStatus, source.audit_status, source.realnameStatus, source.realname_status, source.realNameStatus, source.real_name_status, source.certificationStatus, source.certification_status, source.authStatus, source.auth_status, source.status)
+    const nextAction = firstDefined(source.nextAction, source.next_action, '')
     const status = normalizeKycStatus(rawStatus, data)
-    const realName = firstDefined(data.realName, data.real_name, data.realNameMask, data.real_name_mask, data.name, data.applicantName, data.applicant_name, '')
-    const certNo = firstDefined(data.certNo, data.cert_no, data.certNoMask, data.cert_no_mask, data.idCardNo, data.id_card_no, data.idNo, data.id_no, data.cardNo, data.card_no, '')
-    const certType = firstDefined(data.certType, data.cert_type, data.idType, data.id_type, 'ID_CARD')
-    const certFrontUrl = firstDefined(data.certFrontUrl, data.cert_front_url, data.frontUrl, data.front_url, data.idCardFrontUrl, data.id_card_front_url, data.idcardFrontUrl, data.idcard_front_url, data.frontImage, data.front_image, '')
-    const certBackUrl = firstDefined(data.certBackUrl, data.cert_back_url, data.backUrl, data.back_url, data.idCardBackUrl, data.id_card_back_url, data.idcardBackUrl, data.idcard_back_url, data.backImage, data.back_image, '')
-    const auditMessage = firstDefined(data.auditMessage, data.audit_message, data.message, '')
-    const rejectReasonCode = firstDefined(data.rejectReasonCode, data.reject_reason_code, '')
-    const rejectReasonMessage = firstDefined(data.rejectReasonMessage, data.reject_reason_message, data.rejectReason, data.reject_reason, '')
-    const lastSubmitTime = firstDefined(data.lastSubmitTime, data.last_submit_time, data.submitTime, data.submit_time, data.createTime, data.create_time, '')
+    const realName = firstDefined(source.realName, source.real_name, source.trueName, source.true_name, source.realNameMask, source.real_name_mask, source.name, source.applicantName, source.applicant_name, '')
+    const certNo = firstDefined(source.certNo, source.cert_no, source.certNoMask, source.cert_no_mask, source.idCardNo, source.id_card_no, source.idNo, source.id_no, source.identityNo, source.identity_no, source.idNumber, source.id_number, source.cardNo, source.card_no, '')
+    const certType = firstDefined(source.certType, source.cert_type, source.idType, source.id_type, source.cardType, source.card_type, 'ID_CARD')
+    const certFrontUrl = firstDefined(source.certFrontUrl, source.cert_front_url, source.frontUrl, source.front_url, source.idCardFrontUrl, source.id_card_front_url, source.idcardFrontUrl, source.idcard_front_url, source.frontImage, source.front_image, source.certFrontImage, source.cert_front_image, '')
+    const certBackUrl = firstDefined(source.certBackUrl, source.cert_back_url, source.backUrl, source.back_url, source.idCardBackUrl, source.id_card_back_url, source.idcardBackUrl, source.idcard_back_url, source.backImage, source.back_image, source.certBackImage, source.cert_back_image, '')
+    const auditMessage = firstDefined(source.auditMessage, source.audit_message, source.message, '')
+    const rejectReasonCode = firstDefined(source.rejectReasonCode, source.reject_reason_code, '')
+    const rejectReasonMessage = firstDefined(source.rejectReasonMessage, source.reject_reason_message, source.rejectReason, source.reject_reason, '')
+    const lastSubmitTime = firstDefined(source.lastSubmitTime, source.last_submit_time, source.submitTime, source.submit_time, source.createTime, source.create_time, source.createdAt, source.created_at, '')
     return {
         ...data,
         rawKycStatus: rawStatus || '',
@@ -1693,6 +1695,12 @@ function isKycNotSubmittedResponse(res = {}) {
         || /No static resource|miniapp\/kyc\/status|未实名|未认证|未提交|无实名|暂无实名|not[_\s-]?(submitted|verified|authenticated)|kyc[_\s-]?(not[_\s-]?found|not[_\s-]?submitted)/i.test(message)
 }
 
+function isMissingMiniappResourceResponse(res = {}, path = '') {
+    const code = String(firstDefined(res.rawCode, res.code, '')).toUpperCase()
+    const message = String(res.msg || res.message || '')
+    return code === 'A0108' && /No static resource/i.test(message) && (!path || message.includes(path))
+}
+
 export function submitKyc(data) {
     return request.post('miniapp/kyc/submit', {
         realName: data.realName || data.real_name,
@@ -1727,38 +1735,103 @@ export function getKycStatus(params = {}) {
 }
 
 function normalizeMerchantQualification(data = {}) {
+    const source = data.application || data.merchantApplication || data.merchant_application || data.registration || data || {}
+    const rawQualificationUrls = source.qualificationUrls || source.qualification_urls || source.qualificationUrlList || source.qualification_url_list || source.qualificationUrl || source.qualification_url || []
+    let qualificationUrls = rawQualificationUrls
+    if (typeof qualificationUrls === 'string') {
+        try {
+            const parsed = JSON.parse(qualificationUrls)
+            qualificationUrls = Array.isArray(parsed) ? parsed : [qualificationUrls]
+        } catch (error) {
+            qualificationUrls = qualificationUrls ? [qualificationUrls] : []
+        }
+    }
+    if (!Array.isArray(qualificationUrls)) qualificationUrls = []
+    const applyStatus = source.applyStatus || source.apply_status || source.auditStatus || source.audit_status || source.status || ''
     return {
         ...data,
-        merchant_id: data.merchantId || data.merchant_id,
-        merchant_no: data.merchantNo || data.merchant_no,
-        merchant_name: data.merchantName || data.merchant_name,
-        merchant_type: data.merchantType || data.merchant_type,
-        contact_mobile: data.contactMobile || data.contact_mobile,
-        legal_person: data.legalPerson || data.legal_person,
-        settlement_account_no: data.settlementAccountNo || data.settlement_account_no,
-        qualification_type: data.qualificationType || data.qualification_type,
-        qualification_no: data.qualificationNo || data.qualification_no,
-        qualification_url: data.qualificationUrl || data.qualification_url,
-        remark: data.remark || data.description || data.shopDescription || data.shop_description || data.storeDescription || data.store_description || data.onlineShopDescription || data.online_shop_description || '',
-        audit_status: data.auditStatus || data.audit_status,
-        audit_remark: data.auditRemark || data.audit_remark,
-        updated_at: data.updatedAt || data.updated_at
+        ...source,
+        applicationNo: source.applicationNo || source.application_no || source.applyNo || source.apply_no || '',
+        application_no: source.application_no || source.applicationNo || source.applyNo || source.apply_no || '',
+        merchantId: source.merchantId || source.merchant_id || '',
+        merchant_id: source.merchantId || source.merchant_id || '',
+        merchant_no: source.merchantNo || source.merchant_no,
+        merchantName: source.merchantName || source.merchant_name || '',
+        merchant_name: source.merchantName || source.merchant_name || '',
+        merchantType: source.merchantType || source.merchant_type || 'COMPANY',
+        merchant_type: source.merchantType || source.merchant_type || 'COMPANY',
+        username: source.username || source.loginName || source.login_name || '',
+        shopName: source.shopName || source.shop_name || source.storeName || source.store_name || source.merchantName || source.merchant_name || '',
+        shop_name: source.shopName || source.shop_name || source.storeName || source.store_name || source.merchantName || source.merchant_name || '',
+        industryId: source.industryId || source.industry_id || '',
+        industry_id: source.industryId || source.industry_id || '',
+        contactName: source.contactName || source.contact_name || source.legalPerson || source.legal_person || '',
+        contact_name: source.contactName || source.contact_name || source.legalPerson || source.legal_person || '',
+        contactMobile: source.contactMobile || source.contact_mobile || source.mobile || source.phone || '',
+        contact_mobile: source.contactMobile || source.contact_mobile || source.mobile || source.phone || '',
+        legalPerson: source.legalPerson || source.legal_person || source.contactName || source.contact_name || '',
+        legal_person: source.legalPerson || source.legal_person || source.contactName || source.contact_name || '',
+        licenseNo: source.licenseNo || source.license_no || source.qualificationNo || source.qualification_no || '',
+        license_no: source.licenseNo || source.license_no || source.qualificationNo || source.qualification_no || '',
+        licenseUrl: source.licenseUrl || source.license_url || '',
+        license_url: source.licenseUrl || source.license_url || '',
+        licenseImageUrl: source.licenseImageUrl || source.license_image_url || source.qualificationUrl || source.qualification_url || '',
+        license_image_url: source.licenseImageUrl || source.license_image_url || source.qualificationUrl || source.qualification_url || '',
+        legalIdFrontUrl: source.legalIdFrontUrl || source.legal_id_front_url || '',
+        legal_id_front_url: source.legalIdFrontUrl || source.legal_id_front_url || '',
+        legalIdBackUrl: source.legalIdBackUrl || source.legal_id_back_url || '',
+        legal_id_back_url: source.legalIdBackUrl || source.legal_id_back_url || '',
+        qualificationUrls,
+        qualification_urls: qualificationUrls,
+        settlementAccountNo: source.settlementAccountNo || source.settlement_account_no || '',
+        settlement_account_no: source.settlementAccountNo || source.settlement_account_no || '',
+        detailAddress: source.detailAddress || source.detail_address || source.address || '',
+        detail_address: source.detailAddress || source.detail_address || source.address || '',
+        remark: source.remark || source.description || source.shopDescription || source.shop_description || source.storeDescription || source.store_description || source.onlineShopDescription || source.online_shop_description || '',
+        applyStatus,
+        apply_status: applyStatus,
+        auditStatus: source.auditStatus || source.audit_status || applyStatus,
+        audit_status: source.auditStatus || source.audit_status || applyStatus,
+        auditRemark: source.auditRemark || source.audit_remark || source.remark || '',
+        audit_remark: source.auditRemark || source.audit_remark || source.remark || '',
+        updatedAt: source.updatedAt || source.updated_at || source.updateTime || source.createTime || source.createdAt || '',
+        updated_at: source.updatedAt || source.updated_at || source.updateTime || source.createTime || source.createdAt || ''
     }
 }
 
-export function applyMerchantQualification(data = {}) {
-    return request.post('miniapp/eco-applications/merchant-qualification/apply', {
+function merchantApplicationPayload(data = {}) {
+    const qualificationUrls = data.qualificationUrls || data.qualification_urls || []
+    const payload = {
         userId: data.userId || data.user_id,
-        merchantName: data.merchantName || data.merchant_name,
-        merchantType: data.merchantType || data.merchant_type || 'PERSONAL',
-        contactMobile: data.contactMobile || data.contact_mobile || data.mobile,
-        legalPerson: data.legalPerson || data.legal_person,
-        settlementAccountNo: data.settlementAccountNo || data.settlement_account_no || data.email,
-        qualificationType: data.qualificationType || data.qualification_type || 'BUSINESS_LICENSE',
-        qualificationNo: data.qualificationNo || data.qualification_no,
-        qualificationUrl: data.qualificationUrl || data.qualification_url,
-        remark: data.remark
-    }).then((res) => {
+        username: data.username || data.loginName || data.login_name || '',
+        password: data.password || '',
+        merchantName: data.merchantName || data.merchant_name || '',
+        merchantType: data.merchantType || data.merchant_type || 'COMPANY',
+        contactName: data.contactName || data.contact_name || '',
+        contactMobile: data.contactMobile || data.contact_mobile || data.mobile || '',
+        legalPerson: data.legalPerson || data.legal_person || '',
+        licenseNo: data.licenseNo || data.license_no || data.qualificationNo || data.qualification_no || '',
+        licenseUrl: data.licenseUrl || data.license_url || '',
+        licenseImageUrl: data.licenseImageUrl || data.license_image_url || data.qualificationUrl || data.qualification_url || '',
+        legalIdFrontUrl: data.legalIdFrontUrl || data.legal_id_front_url || '',
+        legalIdBackUrl: data.legalIdBackUrl || data.legal_id_back_url || '',
+        qualificationUrls: typeof qualificationUrls === 'string' ? qualificationUrls : JSON.stringify(Array.isArray(qualificationUrls) ? qualificationUrls.filter(Boolean) : []),
+        shopName: data.shopName || data.shop_name || data.merchantName || data.merchant_name || '',
+        industryId: data.industryId || data.industry_id || '',
+        settlementAccountNo: data.settlementAccountNo || data.settlement_account_no || '',
+        detailAddress: data.detailAddress || data.detail_address || ''
+    }
+    if (!payload.username) delete payload.username
+    if (!payload.password) delete payload.password
+    return payload
+}
+
+export function applyMerchantQualification(data = {}) {
+    return submitMerchantApplication(data)
+}
+
+export function submitMerchantApplication(data = {}) {
+    return request.post('miniapp/merchant-applications', merchantApplicationPayload(data)).then((res) => {
         if (res.code != 1 || !res.data) return res
         return {
             ...res,
@@ -1768,14 +1841,18 @@ export function applyMerchantQualification(data = {}) {
 }
 
 export function getMerchantQualificationStatus(params = {}) {
-    return request.get('miniapp/eco-applications/merchant-qualification/status', {
+    return getMerchantApplicationStatus(params)
+}
+
+export function getMerchantApplicationStatus(params = {}) {
+    return request.get('miniapp/merchant-applications', {
         params: {
             userId: params.userId || params.user_id
         }
     }).then((res) => {
         if (res.code != 1 || !res.data) {
             const message = String(res.msg || res.message || '')
-            if (res.code === 'A0108' || /No static resource|merchant-qualification\/status/i.test(message)) {
+            if (res.code === 'A0108' || /No static resource|merchant-applications|merchant-qualification\/status/i.test(message)) {
                 return {
                     ...res,
                     code: 1,
@@ -1789,6 +1866,49 @@ export function getMerchantQualificationStatus(params = {}) {
             ...res,
             data: normalizeMerchantQualification(res.data)
         }
+    })
+}
+
+export function resubmitMerchantApplication(data = {}) {
+    const payload = {
+        applicationNo: data.applicationNo || data.application_no || '',
+        contactMobile: data.contactMobile || data.contact_mobile || data.mobile || '',
+        ...merchantApplicationPayload(data)
+    }
+    return request.post('miniapp/merchant-applications/resubmit', payload).then((res) => {
+        if (res.code != 1 || !res.data) return res
+        return {
+            ...res,
+            data: normalizeMerchantQualification(res.data)
+        }
+    })
+}
+
+function normalizeMerchantAuditItem(item = {}) {
+    return normalizeMerchantQualification(item)
+}
+
+export function getPlatformMerchantAudits(params = {}) {
+    return request.get('miniapp/platform-admin/merchant-audits', {
+        params: {
+            auditStatus: params.auditStatus || params.audit_status || 'PENDING',
+            pageNo: params.pageNo || params.page_no || 1,
+            pageSize: params.pageSize || params.page_size || 100
+        }
+    }).then((res) => normalizePageResponse(res, normalizeMerchantAuditItem))
+}
+
+export function auditPlatformMerchantApplication(applicationNo, data = {}) {
+    return request.post(`miniapp/platform-admin/merchant-audits/${applicationNo}`, {
+        result: data.result || data.auditResult || data.audit_result || 'APPROVED',
+        remark: data.remark || data.auditRemark || data.audit_remark || ''
+    })
+}
+
+export function auditPlatformMerchantByMerchantId(merchantId, data = {}) {
+    return request.post(`miniapp/platform-admin/merchants/${merchantId}/audit`, {
+        auditResult: data.auditResult || data.audit_result || data.result || 'APPROVED',
+        auditRemark: data.auditRemark || data.audit_remark || data.remark || ''
     })
 }
 
@@ -1889,12 +2009,18 @@ function normalizeRoleCode(roleCode) {
 }
 
 function normalizeRoleItem(data = {}) {
+    const areaOptions = data.areaOptions || data.area_options || data.areas || data.areaList || data.area_list
+        || data.regions || data.regionOptions || data.region_options || data.regionList || data.region_list
+        || data.availableAreas || data.available_areas || data.applyAreas || data.apply_areas
+        || data.availableRegions || data.available_regions || []
     return {
         ...data,
         roleCode: normalizeRoleCode(data.roleCode || data.role_code || data.role || data.code),
         roleName: data.roleName || data.role_name || data.name || data.title || '',
         label: data.label || data.roleName || data.role_name || data.name || data.title || '',
         value: normalizeRoleCode(data.roleCode || data.role_code || data.role || data.code || data.value),
+        areaOptions,
+        area_options: areaOptions,
         areaName: data.areaName || data.area_name || data.cityName || data.city_name || data.districtName || data.district_name || '',
         inviteCode: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.distributionCode || data.distribution_code || data.code || '',
         promoterCode: data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || data.invite_code || data.distributionCode || data.distribution_code || data.code || '',
@@ -1910,11 +2036,17 @@ export function getRoles(params = {}) {
             userId: currentUserId(params)
         }
     }).then((res) => {
-        if (res.code != 1) return res
+        if (res.code != 1) {
+            return res
+        }
         const data = res.data || {}
         const list = extractList(data).map(normalizeRoleItem)
         const rawApplyRoles = data.applyRoles || data.apply_roles || data.roleOptions || data.role_options || data.availableRoles || data.available_roles || data.configs || data.roleConfigs || data.role_configs || []
         const applyRoles = (Array.isArray(rawApplyRoles) ? rawApplyRoles : []).map(normalizeRoleItem)
+        const areaOptions = data.areaOptions || data.area_options || data.areas || data.areaList || data.area_list
+            || data.regions || data.regionOptions || data.region_options || data.regionList || data.region_list
+            || data.availableAreas || data.available_areas || data.applyAreas || data.apply_areas
+            || data.availableRegions || data.available_regions || []
         const roleDepositConfig = {
             ...(data.roleDepositConfig || data.role_deposit_config || data.depositConfig || data.deposit_config || {})
         }
@@ -1929,6 +2061,8 @@ export function getRoles(params = {}) {
                 list,
                 applyRoles,
                 roleOptions: applyRoles,
+                areaOptions,
+                area_options: areaOptions,
                 roleDepositConfig
             }
         }
@@ -1942,7 +2076,22 @@ export function getRoleApplications(params = {}) {
             userId: currentUserId(params)
         }
     }).then((res) => {
-        if (res.code != 1) return res
+        if (res.code != 1) {
+            if (isMissingMiniappResourceResponse(res, 'miniapp/role-applications')) {
+                return {
+                    ...res,
+                    code: 1,
+                    data: {
+                        applications: [],
+                        depositOrders: [],
+                        list: []
+                    },
+                    show: false,
+                    unsupported: true
+                }
+            }
+            return res
+        }
         const data = res.data || {}
         const list = extractList(data).map(normalizeRoleApplication)
         const depositOrders = (data.depositOrders || data.deposit_orders || []).map(normalizeRoleApplication)

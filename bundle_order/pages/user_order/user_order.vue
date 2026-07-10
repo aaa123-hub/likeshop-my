@@ -75,8 +75,9 @@ export default {
         type: orderType.DELIVERY,
         isShow: false
       }, {
-        name: '已结束',
-        type: orderType.ENDED,
+        name: '售后',
+        type: 'afterSale',
+        url: '/bundle_order/pages/post_sale/post_sale',
         isShow: false
       }]
     };
@@ -116,6 +117,7 @@ export default {
 		if(index >= 0) {
 			const item = this.order[index]
 			if (!item) return
+			if (this.active === index && item.isShow && forceRefresh) return
 			if (item && item.url) {
 				uni.navigateTo({ url: item.url })
 				return

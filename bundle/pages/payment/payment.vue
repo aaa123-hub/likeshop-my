@@ -373,8 +373,14 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 						uni.$emit('payment', {
 							result: true,
 							order_id: this.order_id,
+							orderId: this.order_id,
+							orderNo: this.order_id,
+							order_no: this.order_id,
+							order_sn: this.order_id,
 							payOrderNo: this.payOrderNo,
 							pay_order_no: this.payOrderNo,
+							paymentNo: this.payOrderNo,
+							payment_no: this.payOrderNo,
 							paid: true
 						});
 						break;
@@ -409,7 +415,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			},
 			rememberPaidOrder() {
 				const ids = (uni.getStorageSync('ORDER_PAID_IDS') || []).map((id) => String(id || '')).filter(Boolean)
-				;[this.order_id, this.payOrderNo].filter(Boolean).map(String).forEach((id) => {
+				;[this.order_id, this.payOrderNo, this.facePayCode].filter(Boolean).map(String).forEach((id) => {
 					if (!ids.includes(id)) ids.push(id)
 				})
 				uni.setStorageSync('ORDER_PAID_IDS', ids.slice(-200))

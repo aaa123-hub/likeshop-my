@@ -17,17 +17,21 @@
                 :key="item.key"
                 class="score-row"
             >
-                <view class="score-row__label">{{ item.label }}</view>
-                <view class="score-stars">
-                    <text
-                        v-for="star in 5"
-                        :key="star"
-                        :class="['score-star', star <= item.value ? 'is-active' : '']"
-                        @tap="setRate(item.key, star)"
-                    >★</text>
+                <view class="score-row__main">
+                    <view class="score-row__label">{{ item.label }}</view>
+                    <view :class="['score-row__desc', item.value <= 2 ? 'is-muted' : 'is-primary']">
+                        {{ rateDesc(item.value) }}
+                    </view>
                 </view>
-                <view :class="['score-row__desc', item.value <= 2 ? 'is-muted' : 'is-primary']">
-                    {{ rateDesc(item.value) }}
+                <view class="score-stars" :aria-label="item.label">
+                    <view
+                        v-for="(star, starIndex) in 5"
+                        :key="starIndex"
+                        :class="['score-star', starIndex < item.value ? 'score-star--selected' : '']"
+                        @tap.stop="setRate(item.key, starIndex + 1)"
+                    >
+                        <image class="score-star__icon" :src="starIcon" mode="aspectFit"></image>
+                    </view>
                 </view>
             </view>
         </view>
@@ -110,7 +114,8 @@ export default {
             goods: [],
             comment: '',
             anonymous: false,
-            type: ''
+            type: '',
+            starIcon: 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'
         }
     },
     computed: {
@@ -146,9 +151,10 @@ export default {
         rateDesc(value) {
             const score = Number(value || 0)
             if (!score) return '请选择'
-            if (score <= 2) return '待改进'
-            if (score === 3) return '一般'
-            if (score === 4) return '满意'
+            if (score === 1) return '有待提升'
+            if (score === 2) return '基本符合'
+            if (score === 3) return '体验不错'
+            if (score === 4) return '比较满意'
             return '非常满意'
         },
 
@@ -212,12 +218,12 @@ export default {
                 if (res.code == 1) {
                     const data = res.data || {}
                     const goods = data.goods || data.product || data.sku || data
-                    this.goods = [goods]
+                    this.goods = Object.keys(goods || {}).length ? [goods] : []
                 } else {
-                    this.goods = [{ name: '待评价商品', goods_name: '待评价商品' }]
+                    this.goods = []
                 }
             }).catch(() => {
-                this.goods = [{ name: '待评价商品', goods_name: '待评价商品' }]
+                this.goods = []
             })
         },
 
@@ -288,7 +294,7 @@ export default {
     margin-bottom: 20rpx;
 }
 .score-card {
-    padding: 28rpx 28rpx 14rpx;
+    padding: 30rpx 28rpx 8rpx;
     margin-bottom: 20rpx;
 }
 .score-card__head,
@@ -300,8 +306,9 @@ export default {
 }
 .score-card__title {
     color: #1f2937;
-    font-size: 31rpx;
-    font-weight: 700;
+    font-size: 32rpx;
+    font-weight: 800;
+    line-height: 44rpx;
 }
 .score-card__hint,
 .review-count,
@@ -312,42 +319,59 @@ export default {
 .score-row {
     display: flex;
     align-items: center;
-    min-height: 94rpx;
-    margin-top: 16rpx;
-    padding: 0 14rpx 0 18rpx;
-    border-radius: 20rpx;
-    background: #fffaf5;
-    border: 1rpx solid #f6eadc;
+    justify-content: space-between;
+    gap: 18rpx;
+    min-height: 92rpx;
+    padding: 18rpx 0;
+    border-bottom: 1rpx solid #f1f3f6;
+}
+.score-row:last-child {
+    border-bottom: 0;
+}
+.score-row__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
 }
 .score-row__label {
     flex: none;
-    width: 132rpx;
     color: #344054;
-    font-size: 26rpx;
-    font-weight: 600;
+    font-size: 27rpx;
+    font-weight: 700;
     line-height: 36rpx;
 }
 .score-stars {
+    flex: none;
     display: flex;
     align-items: center;
-    gap: 6rpx;
-    padding: 8rpx;
+    gap: 10rpx;
+    padding: 0;
     border-radius: 999rpx;
     background: #ffffff;
-    box-shadow: inset 0 0 0 1rpx #f2f4f7;
 }
 .score-star {
-    width: 40rpx;
-    height: 42rpx;
-    color: #d0d5dd;
-    font-size: 40rpx;
-    line-height: 42rpx;
-    text-align: center;
-    transition: color .16s ease, transform .16s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46rpx;
+    height: 46rpx;
+    border-radius: 50%;
+    opacity: .32;
+    filter: grayscale(1);
+    transition: opacity .16s ease, filter .16s ease, transform .16s ease;
 }
-.score-star.is-active {
-    color: #ffad1f;
-    transform: scale(1.04);
+.score-star__icon {
+    width: 38rpx;
+    height: 38rpx;
+    display: block;
+}
+.score-star--selected {
+    opacity: 1;
+    filter: none;
+    transform: scale(1.06);
 }
 .score-row__desc {
     display: flex;
@@ -355,23 +379,23 @@ export default {
     justify-content: center;
     flex: none;
     min-width: 92rpx;
-    height: 40rpx;
-    margin-left: auto;
-    padding: 0 14rpx;
+    height: 38rpx;
+    padding: 0;
     border-radius: 999rpx;
-    color: #f97316;
+    color: #667085;
     font-size: 22rpx;
-    line-height: 40rpx;
-    background: #fff3e0;
+    font-weight: 600;
+    line-height: 38rpx;
+    background: transparent;
     box-sizing: border-box;
 }
 .score-row__desc.is-muted {
-    color: #667085;
-    background: #eef2f6;
+    color: #98a2b3;
+    background: transparent;
 }
 .score-row__desc.is-primary {
-    color: #f97316;
-    background: #fff3e0;
+    color: #667085;
+    background: transparent;
 }
 .goods-reviews .goods-dec {
     padding: 32rpx 30rpx;
@@ -451,6 +475,19 @@ export default {
     font-size: 30rpx;
     font-weight: 700;
     line-height: 88rpx;
+}
+
+@media screen and (max-width: 360px) {
+    .score-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14rpx;
+    }
+    .score-stars {
+        width: 100%;
+        justify-content: space-between;
+        box-sizing: border-box;
+    }
 }
 
 </style>

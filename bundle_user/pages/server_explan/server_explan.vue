@@ -14,6 +14,19 @@
       :key="index"
       :class="['legal-doc__row', 'legal-doc__row--' + row.type]"
     >{{ row.text }}</view>
+    <view v-if="showSignRows && articleSignRows.length" class="legal-doc__sign-card">
+      <view class="legal-doc__sign-title">签署信息</view>
+      <view v-for="item in articleSignRows" :key="item.label + item.value" class="legal-doc__sign-row">
+        <text class="legal-doc__sign-label">{{ item.label }}</text>
+        <text class="legal-doc__sign-value">{{ item.value }}</text>
+      </view>
+    </view>
+    <view v-if="showReadDoneCheck" class="legal-doc__read-check">
+      <view :class="['legal-doc__read-checkbox', readMarked ? 'is-checked' : '']">
+        <text v-if="readMarked">✓</text>
+      </view>
+      <text class="legal-doc__read-text">{{ readMarked ? '已阅读完' : '滑动到底部后自动确认已阅读完' }}</text>
+    </view>
   </view>
   <rich-text v-else-if="article_content" :nodes="article_content"></rich-text>
   <view v-else class="server-empty">暂无内容</view>
@@ -44,13 +57,18 @@
 import { getServerProto, getPrivatePolicy } from '@/api/app';
 import { getLegalDocument } from '@/utils/legal-documents'
 
+const LOGIN_AGREEMENT_READ_PREFIX = 'LOGIN_AGREEMENT_READ_'
+const LOGIN_AGREEMENT_TYPES = [0, 1]
+
 export default {
   data() {
     return {
       article_content: "",
       articleRows: [],
       articleMetaRows: [],
-      type: 0
+      articleSignRows: [],
+      type: 0,
+      readMarked: false
     };
   },
 
@@ -93,6 +111,17 @@ export default {
         break;
     }
   },
+  onReachBottom() {
+    this.markDocumentRead()
+  },
+  computed: {
+    showSignRows() {
+      return !LOGIN_AGREEMENT_TYPES.includes(this.type)
+    },
+    showReadDoneCheck() {
+      return LOGIN_AGREEMENT_TYPES.includes(this.type)
+    }
+  },
   methods: {
     localDocument() {
       return getLegalDocument(this.type)
@@ -111,6 +140,8 @@ export default {
         .trim()
     },
     displayDocumentTitle(title = '') {
+      if (this.type === 0) return '服务协议'
+      if (this.type === 1) return '隐私政策'
       return String(title || '')
         .replace(/^钥岫商城/, '')
         .replace(/^平台服务协议$/, '平台服务协议')
@@ -121,19 +152,57 @@ export default {
       const matched = text.match(/^(运营主体：.+?)(版本日期\s*[:：]\s*.+)$/)
       return matched ? [matched[1], matched[2]] : [text]
     },
+    mergeBrokenLines(lines = []) {
+      const merged = []
+      lines.forEach((line) => {
+        const prev = merged[merged.length - 1] || ''
+        if (/\/$/.test(prev) && /^1\d{10}$/.test(line)) {
+          merged[merged.length - 1] = `${prev} ${line}`
+          return
+        }
+        if (/[,，、]$/.test(prev) && line && !/^(第[一二三四五六七八九十百]+条|[一二三四五六七八九十]+、|\d+(\.\d+)*[.、]|甲方|乙方|日期|签署方式)/.test(line)) {
+          merged[merged.length - 1] = `${prev}${line}`
+          return
+        }
+        merged.push(line)
+      })
+      return merged
+    },
+    extractSignRows(lines = []) {
+      const signRows = []
+      const contentLines = []
+      const signLabels = ['甲方（盖章）', '乙方（签字/盖章）', '法定代表人/授权代表', '法定代表人/经营者/授权代表', '日期', '签署方式']
+      const normalizeSignLabel = (line) => signLabels.find(label => line.startsWith(`${label}：`) || line.startsWith(`${label}:`))
+      lines.forEach((line) => {
+        const label = normalizeSignLabel(line)
+        if (!label) {
+          contentLines.push(line)
+          return
+        }
+        const value = line.replace(new RegExp(`^${label}[：:]?`), '').trim() || '待签署'
+        signRows.push({ label, value })
+      })
+      return { signRows, contentLines }
+    },
     metaPairFromLines(lines = []) {
       const metaRows = []
       const contentLines = []
       const labels = ['运营主体', '版本日期', '甲方', '乙方', '统一社会信用代码', '住所/联系地址', '联系人及电话', '电子邮箱', '平台名称', '证照/身份证号', '签署日期', '协议编号']
+      const hiddenLabels = LOGIN_AGREEMENT_TYPES.includes(this.type) ? ['签署日期'] : []
       for (let index = 0; index < lines.length; index += 1) {
         const line = lines[index]
         const colonMatch = line.match(/^(.+?)[:：]\s*(.+)$/)
         if (colonMatch && labels.includes(colonMatch[1].trim())) {
+          if (hiddenLabels.includes(colonMatch[1].trim())) continue
           metaRows.push({ label: colonMatch[1].trim(), value: colonMatch[2].trim() })
           continue
         }
         if (labels.includes(line)) {
           const next = lines[index + 1] || ''
+          if (hiddenLabels.includes(line)) {
+            if (next && !labels.includes(next) && !/^(第[一二三四五六七八九十百]+条|[一二三四五六七八九十]+、)/.test(next)) index += 1
+            continue
+          }
           if (next && !labels.includes(next) && !/^(第[一二三四五六七八九十百]+条|[一二三四五六七八九十]+、)/.test(next)) {
             metaRows.push({ label: line, value: next })
             index += 1
@@ -161,9 +230,19 @@ export default {
         .filter(Boolean)
       const titleSet = new Set([doc.title, this.displayDocumentTitle(doc.title)])
       const withoutDuplicateTitle = titleSet.has(rawLines[0]) ? rawLines.slice(1) : rawLines
-      const { metaRows, contentLines } = this.metaPairFromLines(withoutDuplicateTitle)
+      const mergedLines = this.mergeBrokenLines(withoutDuplicateTitle)
+      const { signRows, contentLines: linesBeforeMeta } = this.extractSignRows(mergedLines)
+      const { metaRows, contentLines } = this.metaPairFromLines(linesBeforeMeta)
       this.articleMetaRows = metaRows.filter(row => row.value && !/^_+$/.test(row.value))
+      this.articleSignRows = this.showSignRows ? signRows.filter(row => row.value) : []
       return contentLines.map((text, index) => ({ text, type: this.rowType(text, index) }))
+    },
+    markDocumentRead() {
+      if (this.readMarked || !LOGIN_AGREEMENT_TYPES.includes(this.type) || !this.articleRows.length) return
+      this.readMarked = true
+      try {
+        uni.setStorageSync(`${LOGIN_AGREEMENT_READ_PREFIX}${this.type}`, true)
+      } catch (error) {}
     },
     applyArticleContent(content) {
       const value = String(content || '').trim()
@@ -176,6 +255,22 @@ export default {
       const isPlaceholder = !value || value === placeholderMap[this.type] || /^<p>.*待平台完善。<\/p>$/.test(value)
       this.article_content = ''
       this.articleRows = this.buildRows(isPlaceholder ? this.fallbackContent() : value)
+      this.checkShortDocumentRead()
+    },
+    checkShortDocumentRead() {
+      if (!LOGIN_AGREEMENT_TYPES.includes(this.type)) return
+      this.$nextTick(() => {
+        setTimeout(() => {
+          uni.createSelectorQuery()
+            .in(this)
+            .select('.main')
+            .boundingClientRect((rect) => {
+              const windowHeight = uni.getSystemInfoSync().windowHeight || 0
+              if (rect && windowHeight && rect.height <= windowHeight + 4) this.markDocumentRead()
+            })
+            .exec()
+        }, 80)
+      })
     },
     // 服务协议
     getServerProtoFun() {
@@ -191,7 +286,7 @@ export default {
       }).catch(() => this.applyArticleContent(''));
     },
 
-    // 隐私协议
+    // 隐私政策
     getPrivatePolicyFun() {
       getPrivatePolicy().then(res => {
         if (res.code == 1) {
@@ -306,6 +401,86 @@ export default {
   font-weight: 600;
 }
 
+.legal-doc__sign-card {
+  margin-top: 32rpx;
+  padding: 20rpx 22rpx;
+  border: 1rpx solid #e8edf5;
+  border-radius: 16rpx;
+  background: #fffdf8;
+  box-sizing: border-box;
+}
+
+.legal-doc__sign-title {
+  margin-bottom: 10rpx;
+  color: #182232;
+  font-size: 27rpx;
+  font-weight: 700;
+  line-height: 38rpx;
+}
+
+.legal-doc__sign-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 9rpx 0;
+  border-top: 1rpx solid #f1eadc;
+}
+
+.legal-doc__sign-label {
+  flex: none;
+  width: 210rpx;
+  color: #8a6a30;
+  font-size: 23rpx;
+  line-height: 34rpx;
+}
+
+.legal-doc__sign-value {
+  flex: 1;
+  min-width: 0;
+  color: #273142;
+  font-size: 24rpx;
+  line-height: 36rpx;
+  word-break: break-word;
+}
+
+.legal-doc__read-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 34rpx;
+  padding: 22rpx 20rpx;
+  border-radius: 18rpx;
+  background: #f8fafd;
+  border: 1rpx solid #e8edf5;
+  box-sizing: border-box;
+}
+
+.legal-doc__read-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  border: 2rpx solid #c6ccd8;
+  color: #ffffff;
+  font-size: 23rpx;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.legal-doc__read-checkbox.is-checked {
+  border-color: #ff4d3d;
+  background: #ff4d3d;
+}
+
+.legal-doc__read-text {
+  color: #4b5563;
+  font-size: 25rpx;
+  line-height: 36rpx;
+}
+
 .main ::v-deep h2,
 .main ::v-deep h3 {
   margin: 28rpx 0 12rpx;
@@ -354,6 +529,15 @@ export default {
   }
 
   .legal-doc__meta-label {
+    width: auto;
+  }
+
+  .legal-doc__sign-row {
+    flex-direction: column;
+    gap: 4rpx;
+  }
+
+  .legal-doc__sign-label {
     width: auto;
   }
 }

@@ -31,6 +31,7 @@
                 >
                     <text class="sort-aside__text line1">{{ item.name }}</text>
                 </view>
+                <view v-if="!sideCategories.length && !categoryLoading" class="sort-aside__empty">暂无分类</view>
             </scroll-view>
 
             <view class="sort-content">
@@ -73,6 +74,10 @@
                     @refresherrefresh="refreshCategoryList"
                 >
                     <view id="sort-content-top" class="sort-content__inner">
+                        <view v-if="!categoryGroups.length && !categoryLoading" class="sort-empty">
+                            <view class="sort-empty__title">暂无分类</view>
+                            <view class="sort-empty__desc">分类数据更新中</view>
+                        </view>
                         <view v-for="(group, groupIndex) in categoryGroups" :key="`${group.name}-${groupIndex}`" class="sort-category-group">
                             <view v-if="group.name" class="sort-category-group__title">{{ group.name }}</view>
                             <view class="sort-grid">
@@ -122,33 +127,8 @@ import { mapActions, mapGetters } from 'vuex'
 import { getCatrgory } from '@/api/store'
 import Cache from '@/utils/cache'
 import { setTabbar } from '@/utils/tools'
-import { getDesignAsset, designAssetList } from '@/utils/design-assets'
-import { isPlaceholderImage, resolveImage as resolvePlaceholderImage } from '@/utils/image-placeholder'
-
-const defaultCategories = [
-    '为你推荐',
-    '保健食品',
-    '家庭日用',
-    '护理美发',
-    '母婴用品',
-    '服饰内衣',
-    '礼品箱包',
-    '出行箱包',
-    '个护化妆',
-    '家居家电'
-]
-
-const fallbackHotCategories = [
-    { name: '冬季毛衣', image: designAssetList.categoryFallbacks[0] },
-    { name: '风衣', image: designAssetList.categoryFallbacks[1] },
-    { name: '冬季毛衣', image: designAssetList.categoryFallbacks[2] },
-    { name: '冬季毛衣', image: designAssetList.categoryFallbacks[0] },
-    { name: '风衣', image: designAssetList.categoryFallbacks[1] },
-    { name: '冬季毛衣', image: designAssetList.categoryFallbacks[2] },
-    { name: '冬季毛衣', image: designAssetList.categoryFallbacks[0] },
-    { name: '风衣', image: designAssetList.categoryFallbacks[1] },
-    { name: '冬季毛衣', image: designAssetList.categoryFallbacks[2] }
-]
+import { getDesignAsset } from '@/utils/design-assets'
+import { isPlaceholderImage } from '@/utils/image-placeholder'
 
 export default {
     data() {
@@ -167,7 +147,7 @@ export default {
     computed: {
         ...mapGetters(['cartNum', 'inviteCode']),
         sideCategories() {
-            return this.cateList.length ? this.cateList : defaultCategories.map((name) => ({ name }))
+            return this.cateList
         },
         currentCategory() {
             return this.sideCategories[this.activeIndex] || {}
@@ -184,10 +164,7 @@ export default {
                 if (this.cateList.length && this.currentCategory.id) {
                     return [{ name: '', children: [this.formatCategoryItem(this.currentCategory, 0)] }]
                 }
-                return [{
-                    name: '',
-                    children: fallbackHotCategories.map((item, index) => this.formatCategoryItem(item, index))
-                }]
+                return []
             }
 
             if (this.activeSecondIndex === 0) {
@@ -317,7 +294,7 @@ export default {
         formatCategoryItem(item, index) {
             return {
                 id: item.id || item.categoryId,
-                name: item.name || fallbackHotCategories[index % fallbackHotCategories.length].name,
+                name: item.name || '',
                 image: this.resolveImage(item.icon || item.image || item.iconUrl || item.imageUrl || item.pic || item.cover, index)
             }
         },
@@ -332,7 +309,7 @@ export default {
             if (image) {
                 return getDesignAsset(image)
             }
-            return resolvePlaceholderImage(designAssetList.categoryFallbacks[index % designAssetList.categoryFallbacks.length])
+            return ''
         },
         isEmptyImage(src) {
             return isPlaceholderImage(src)
@@ -518,6 +495,14 @@ export default {
     width: 100%;
 }
 
+.sort-aside__empty {
+    padding: 40rpx 16rpx;
+    color: #9ca3af;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    text-align: center;
+}
+
 .sort-content {
     display: flex;
     flex-direction: column;
@@ -537,6 +522,24 @@ export default {
     padding: 14rpx 18rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + constant(safe-area-inset-bottom)) 18rpx;
     padding: 14rpx 18rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + env(safe-area-inset-bottom)) 18rpx;
     box-sizing: border-box;
+}
+
+.sort-empty {
+    padding: 120rpx 24rpx;
+    color: #9ca3af;
+    text-align: center;
+}
+
+.sort-empty__title {
+    color: #6b7280;
+    font-size: 28rpx;
+    line-height: 40rpx;
+}
+
+.sort-empty__desc {
+    margin-top: 8rpx;
+    font-size: 24rpx;
+    line-height: 34rpx;
 }
 
 .sort-second-tabs {

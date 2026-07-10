@@ -118,12 +118,12 @@
                     <view v-if="isEmptyImage(getShopImage(item))" class="shop-card__logo image-placeholder">无</view>
                     <image v-else class="shop-card__logo" :src="displayImage(getShopImage(item))" mode="aspectFill"></image>
                     <view class="shop-card__body">
-                        <view class="shop-card__name line1">{{ item.shopName || item.name || '门店名称' }}</view>
-                        <view class="shop-card__address line2">{{ item.detailAddress || item.address || '营业状态待更新' }}</view>
+                        <view class="shop-card__name line1">{{ item.shopName || item.name || '' }}</view>
+                        <view v-if="item.detailAddress || item.address" class="shop-card__address line2">{{ item.detailAddress || item.address }}</view>
                     </view>
                     <view class="shop-card__meta">
                         <view class="shop-card__status">{{ item.openStatus === 'OPEN' ? '营业中' : '未营业' }}</view>
-                        <view class="shop-card__score">{{ item.shopScore || 0 }}分</view>
+                        <view v-if="item.shopScore" class="shop-card__score">{{ item.shopScore }}分</view>
                     </view>
                 </view>
             </view>
@@ -290,7 +290,7 @@ export default {
             return tags.map(tag => typeof tag === 'string' ? tag : (tag.name || tag.title || tag.label || '')).filter(Boolean).slice(0, 2)
         },
         formatRecentVisitName(item = {}) {
-            const name = String(item.name || item.shopName || '门店名称')
+            const name = String(item.name || item.shopName || '')
             const chars = Array.from(name)
             return chars.length > 4 ? `${chars.slice(0, 4).join('')}...` : name
         },

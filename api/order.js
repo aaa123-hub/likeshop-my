@@ -753,10 +753,10 @@ function pickShopAmount(data = {}, itemList = []) {
 function formatOrderStatus(status) {
   const normalized = String(status || '').toUpperCase();
   const statusMap = {
-    CREATED: "待付款",
-    WAIT_PAY: "待付款",
-    PENDING_PAY: "待付款",
-    UNPAID: "待付款",
+    CREATED: "待支付",
+    WAIT_PAY: "待支付",
+    PENDING_PAY: "待支付",
+    UNPAID: "待支付",
     PAID: "待发货",
     WAIT_SHIP: "待发货",
     WAIT_DELIVERY: "待发货",
@@ -774,6 +774,25 @@ function formatOrderStatus(status) {
     REFUNDED: "已退款"
   };
   return statusMap[normalized] || cleanBackendText(status, "") || "";
+}
+
+function normalizePayStatusValue(value) {
+  return String(value || '').trim().replace(/[\s-]+/g, '_').toUpperCase();
+}
+
+function isPaidStatusValue(value) {
+  const normalized = normalizePayStatusValue(value);
+  return value === 1 || value === "1" || ["PAID", "PAYED", "SUCCESS", "SUCCEEDED", "PAID_SUCCESS", "PAY_SUCCESS", "FINISHED", "COMPLETED"].includes(normalized);
+}
+
+function isUnpaidOrderStatusValue(value) {
+  const normalized = normalizePayStatusValue(value);
+  return value === 0 || value === "0" || ["CREATED", "WAIT_PAY", "PENDING_PAY", "UNPAID", "NOT_PAID"].includes(normalized);
+}
+
+function isWaitShipStatusValue(value) {
+  const normalized = normalizePayStatusValue(value);
+  return value === 1 || value === "1" || ["PAID", "WAIT_SHIP", "WAIT_DELIVERY"].includes(normalized);
 }
 function formatRefundStatus(status) {
   if (isEmptyBackendText(status)) return "";
@@ -902,15 +921,17 @@ function normalizeOrderDetail(data = {}) {
   const isSelfFetch = deliveryType === 2 || normalizedDeliveryType === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(normalizedDeliveryType);
   const status = firstDefined(data.orderStatus, baseInfo.orderStatus, data.order_status, data.status);
   const normalizedStatus = String(status || '').toUpperCase();
-  const payStatus = firstDefined(data.payStatus, baseInfo.payStatus, data.pay_status, data.paymentStatus, baseInfo.paymentStatus, data.payment_status, baseInfo.payment_status);
-  const normalizedPayStatus = String(payStatus || '').toUpperCase();
-  const payTime = firstDefined(baseInfo.paidAt, baseInfo.payTime, data.paidAt, data.pay_time, data.payTime, data.paid_at);
-  const isPaidByPayment = payStatus === 1 || payStatus === "1" || ["PAID", "PAYED", "SUCCESS", "PAID_SUCCESS", "PAY_SUCCESS"].includes(normalizedPayStatus) || Boolean(payTime);
+  const paymentInfo = data.paymentInfo || data.payment_info || data.payInfo || data.pay_info || baseInfo.paymentInfo || baseInfo.payment_info || {};
+  const payStatus = firstDefined(data.payStatus, baseInfo.payStatus, data.pay_status, baseInfo.pay_status, data.paymentStatus, baseInfo.paymentStatus, data.payment_status, baseInfo.payment_status, paymentInfo.payStatus, paymentInfo.pay_status, paymentInfo.paymentStatus, paymentInfo.payment_status, paymentInfo.status);
+  const payTime = firstDefined(baseInfo.paidAt, baseInfo.payTime, baseInfo.pay_time, data.paidAt, data.pay_time, data.payTime, data.paid_at, paymentInfo.paidAt, paymentInfo.paid_at, paymentInfo.payTime, paymentInfo.pay_time);
+  const paidAmount = firstDefined(data.paidAmount, data.paid_amount, baseInfo.paidAmount, baseInfo.paid_amount, paymentInfo.paidAmount, paymentInfo.paid_amount);
+  const transactionNo = firstDefined(data.transactionId, data.transaction_id, data.transactionNo, data.transaction_no, baseInfo.transactionId, baseInfo.transaction_id, paymentInfo.transactionId, paymentInfo.transaction_id, paymentInfo.transactionNo, paymentInfo.transaction_no);
+  const isPaidByPayment = isPaidStatusValue(payStatus) || Boolean(payTime) || Boolean(transactionNo) || numberValue(paidAmount, 0) > 0;
   const deliveryStatus = data.deliveryStatus || data.delivery_status || baseInfo.deliveryStatus || baseInfo.delivery_status || deliveryInfo.deliveryStatus || deliveryInfo.delivery_status;
-  const paidFallbackStatus = ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID', '0'].includes(normalizedStatus) || status === 0 ? 'PAID' : status;
+  const paidFallbackStatus = isUnpaidOrderStatusValue(status) ? 'PAID' : status;
   const effectiveBaseStatus = isPaidByPayment ? paidFallbackStatus : status;
   const effectiveBaseStatusText = String(effectiveBaseStatus || '').toUpperCase();
-  const effectiveStatus = ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', '1'].includes(effectiveBaseStatusText) && hasShippingSignal(data, baseInfo, deliveryInfo) ? 'SHIPPED' : effectiveBaseStatus;
+  const effectiveStatus = isWaitShipStatusValue(effectiveBaseStatus) && hasShippingSignal(data, baseInfo, deliveryInfo) ? 'SHIPPED' : effectiveBaseStatus;
   const normalizedEffectiveStatus = String(effectiveStatus || '').toUpperCase();
   const orderAfterSale = pickOrderAfterSalePayload(data, baseInfo);
   const orderAfterSaleId = firstDefined(pickAfterSaleId(orderAfterSale), data.refundNo, data.refund_no, baseInfo.refundNo, baseInfo.refund_no);
@@ -928,8 +949,8 @@ function normalizeOrderDetail(data = {}) {
   );
   const orderAfterSaleText = orderAfterSaleId || orderAfterSaleStatus ? (formatRefundStatus(orderAfterSaleStatus) || '售后处理中') : '';
   const isAfterSaleOrder = Boolean(orderAfterSaleId || orderAfterSaleText || isRefundingOrderStatus(status));
-  const isWaitPay = ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID', '0'].includes(normalizedEffectiveStatus) || effectiveStatus === 0;
-  const isWaitShip = ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', '1'].includes(normalizedEffectiveStatus) || effectiveStatus === 1;
+  const isWaitPay = !isPaidByPayment && isUnpaidOrderStatusValue(effectiveStatus);
+  const isWaitShip = isWaitShipStatusValue(effectiveStatus);
   const isWaitReceive = ['WAIT_RECEIVE', 'DELIVERED', 'RECEIVING', '2'].includes(normalizedEffectiveStatus) || effectiveStatus === 2 || isReceivableDeliveryStatus(deliveryStatus);
   const isShippedOnly = ['SHIPPED', 'IN_TRANSIT'].includes(normalizedEffectiveStatus) || hasShippingSignal(data, baseInfo, deliveryInfo);
   const isFinished = ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(normalizedEffectiveStatus) || effectiveStatus === 3;

@@ -18,7 +18,7 @@
                     mode="aspectFill"
                 ></image>
                 <view class="my-page__profile-text" @tap="goLogin">
-                    <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '暂未设置用户名' : '点击登录') }}</view>
+                    <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '用户名' : '点击登录') }}</view>
                     <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
                     <view class="my-page__member-id my-page__member-id--hint" v-else>{{ isLogin ? '完善昵称后，好友更容易识别你' : '登录体验更多功能' }}</view>
                     <view v-if="isLogin" class="my-page__identity-row">
@@ -416,7 +416,7 @@ export default {
         ...mapGetters(['cartNum', 'userInfo', 'inviteCode', 'appConfig']),
         onlineOrderEntries() {
             return [
-                { name: '待付款', url: '/bundle_order/pages/user_order/user_order?type=pay', image: designAssets.myOrderPay, badge: this.userInfo.wait_pay },
+                { name: '待支付', url: '/bundle_order/pages/user_order/user_order?type=pay', image: designAssets.myOrderPay, badge: this.userInfo.wait_pay },
                 { name: '待发货', url: '/bundle_order/pages/user_order/user_order?type=ship', image: designAssets.myOrderShip, badge: this.userInfo.wait_delivery },
                 { name: '待收货/核销', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myOrderReceive, badge: this.userInfo.wait_take },
                 { name: '待取积分', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints, badge: this.pendingPointsCount },

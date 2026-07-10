@@ -529,6 +529,10 @@
                                 </view>
                                 <text class="street-service-item__text">{{ item.name }}</text>
                             </view>
+                            <view v-if="!streetCategories.length" class="store-detail-media-empty">
+                                <view class="store-detail-media-empty__title">暂无分类</view>
+                                <view class="store-detail-media-empty__desc">分类信息更新中</view>
+                            </view>
                         </view>
 
                         <view class="street-merchant-list">
@@ -544,10 +548,10 @@
                                 </view>
                                 <view class="street-merchant-card__body">
                                     <view class="street-merchant-card__title line1">{{ item.name }}</view>
-                                    <view class="street-merchant-card__rating">
+                                    <view class="street-merchant-card__rating" v-if="item.score">
                                         <view class="street-merchant-card__stars">
                                             <image
-                                                v-for="starIndex in 5"
+                                                v-for="starIndex in item.starCount"
                                                 :key="starIndex"
                                                 class="street-merchant-card__star"
                                                 :src="streetStarIcon"
@@ -1250,16 +1254,7 @@ export default {
             streetLoaded: false,
             navigating: false,
             streetMerchants: [],
-            streetCategories: [
-                { name: '美食餐饮', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '休闲娱乐', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_2.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '美容美发', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_3.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '体育运动', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_4.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '酒店住宿', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_5.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '本地生活', image: '', url: '/business/pages/business_pages/street_goods' },
-                { name: '百货日用', image: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/image_4_7.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '粮油饮品', image: '', url: '/business/pages/business_pages/street_goods' }
-            ],
+            streetCategories: [],
             walletRecords: [],
             paymentRecordSummary: {
                 totalAmount: '¥0.00',
@@ -2591,20 +2586,22 @@ export default {
                 })
                 if (res.code != 1 || !res.data) {
                     this.streetLoaded = false
+                    this.streetCategories = []
+                    this.streetMerchants = []
                     return
                 }
                 const data = res.data
-                const defaultCategories = this.streetCategories.slice()
-                const defaultMerchants = this.streetMerchants.slice()
                 this.streetSearchText = data.searchBox?.keyword || data.searchBox?.placeholder || this.streetSearchText
                 this.streetCategories = (data.recommendedCategories || []).length
-                    ? data.recommendedCategories.map((item, index) => this.mapStreetCategory(item, defaultCategories[index], index))
-                    : defaultCategories
+                    ? data.recommendedCategories.map((item, index) => this.mapStreetCategory(item, {}, index))
+                    : []
                 this.streetMerchants = (data.recommendedShops || []).length
-                    ? data.recommendedShops.map((item, index) => this.mapStreetMerchant(item, defaultMerchants[index]))
-                    : defaultMerchants
+                    ? data.recommendedShops.map((item) => this.mapStreetMerchant(item, {}))
+                    : []
             } catch (error) {
                 this.streetLoaded = false
+                this.streetCategories = []
+                this.streetMerchants = []
             }
         },
         mapStreetCategory(item = {}, fallback = {}, index = 0) {
@@ -2613,7 +2610,7 @@ export default {
                 ...fallback,
                 ...item,
                 name: item.name || fallback.name || '',
-                image: this.shouldUseEmptyServiceImage(item.name || fallback.name) ? '' : (item.image || fallback.image || ''),
+                image: item.image || fallback.image || '',
                 categoryId,
                 url: categoryId
                     ? `/business/pages/business_pages/street_goods?categoryId=${categoryId}`
@@ -2632,8 +2629,9 @@ export default {
                 shopId,
                 name: item.shopName || item.name || fallback.name || '',
                 score: this.formatStreetScore(item.shopScore ?? item.score ?? fallback.score),
+                starCount: this.getStreetStarCount(item.shopScore ?? item.score ?? fallback.score),
                 image: item.shopLogo || item.image || fallback.image || '',
-                meta: metaParts.join(' · ') || fallback.meta || '营业状态待更新',
+                meta: metaParts.join(' · ') || fallback.meta || '',
                 url: shopId
                     ? `/business/pages/business_pages/store_detail?shopId=${shopId}`
                     : (fallback.url || '/business/pages/business_pages/store_detail')
@@ -2642,15 +2640,17 @@ export default {
         isEmptyImage(src) {
             return isPlaceholderImage(src)
         },
-        shouldUseEmptyServiceImage(name = '') {
-            return ['服装', '本地生活', '粮油饮品'].some(item => String(name).includes(item))
-        },
-        formatStreetScore(value, fallback = '5.0') {
+        formatStreetScore(value, fallback = '') {
             if (value === '' || value === null || value === undefined) return fallback
             const score = Number(value)
             if (Number.isNaN(score)) return String(value)
             const safeScore = Math.max(0, Math.min(score, 5))
             return safeScore.toFixed(1)
+        },
+        getStreetStarCount(value) {
+            const score = Number(value)
+            if (Number.isNaN(score) || score <= 0) return 0
+            return Math.max(1, Math.min(5, Math.round(score)))
         },
         formatStreetTimeText(value) {
             if (!value) return ''

@@ -190,6 +190,7 @@ function shouldAttachUserId(url = "") {
     "miniapp/feedback",
     "miniapp/service/tickets",
     "miniapp/eco-applications/merchant-qualification",
+    "miniapp/merchant-applications",
     "miniapp/messages",
     "miniapp/points",
     "miniapp/kyc",

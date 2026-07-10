@@ -249,7 +249,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return isPlaceholderImage(item.image || item.goods_image || item.cover)
 			},
 			getMerchantTitle(item) {
-				return item.name || item.goods_name || item.shop_name || '广州市越秀区斌记面家'
+				return item.name || item.goods_name || item.shop_name || ''
 			},
 			getGoodsImage(item) {
 				return resolveImage(item.image || item.goods_image || item.cover, 'goods')
@@ -261,10 +261,10 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return Number.isNaN(value) ? String(score) : value.toFixed(1)
 			},
 			getGoodsTime(item) {
-				return item.business_time || item.time_desc || '8:00-16:00'
+				return item.business_time || item.time_desc || ''
 			},
 			getGoodsDistance(item) {
-				return item.distance_desc || item.distance || '距离 1.2km'
+				return item.distance_desc || item.distance || ''
 			},
 			goResultDetail(item) {
 				const shopId = item.shop_id || item.shopId || item.merchantShopId

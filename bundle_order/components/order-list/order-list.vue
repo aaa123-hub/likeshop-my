@@ -27,15 +27,6 @@ author: likeshop.cn.team //
       >
         <view class="order-header row-between">
           <view class="order-sn row">
-            <view v-if="isSelfFetchOrder(item)" class="mr10">
-              <u-tag
-                text="自提"
-                size="mini"
-                type="primary"
-                mode="dark"
-                bg-color="#0cc21e"
-              />
-            </view>
             <view v-if="item.order_type == 1" class="mr10">
               <u-tag text="秒杀" size="mini" type="primary" mode="plain" />
             </view>
@@ -45,7 +36,7 @@ author: likeshop.cn.team //
             <view v-if="item.order_type == 3" class="mr10">
               <u-tag text="砍价" size="mini" type="primary" mode="plain" />
             </view>
-            <text class="line1">订单编号：{{ item.order_sn || item.id }}</text>
+            <text class="order-sn__text">订单编号：{{ item.order_sn || item.id }}</text>
           </view>
           <view class="order-header__right">
             <view v-if="isAfterSaleOrder(item)" class="order-after-tag">{{ afterSaleStatusText(item) || '售后中' }}</view>
@@ -59,22 +50,11 @@ author: likeshop.cn.team //
             <text class="order-meta__value">{{ row.value }}</text>
           </view>
         </view>
-        <view class="pickup-summary" v-if="isSelfFetchOrder(item)">
-          <view class="pickup-summary__row">
-            <text class="pickup-summary__label">自提门店</text>
-            <text class="pickup-summary__value line1">{{ selfFetchShopName(item) }}</text>
-          </view>
-          <view class="pickup-summary__row" v-if="selfFetchShopAddress(item)">
-            <text class="pickup-summary__label">自提地址</text>
-            <text class="pickup-summary__value">{{ selfFetchShopAddress(item) }}</text>
-          </view>
-          <view class="pickup-summary__row">
-            <text class="pickup-summary__label">提货信息</text>
-            <text class="pickup-summary__value line1">{{ selfFetchContactText(item) }}</text>
-          </view>
-          <view class="pickup-summary__row" v-if="pickupCode(item)">
-            <text class="pickup-summary__label">提货码</text>
-            <text class="pickup-summary__value pickup-summary__code">{{ pickupCode(item) }}</text>
+        <view class="pickup-brief" v-if="isSelfFetchOrder(item)">
+          <view class="pickup-brief__tag">{{ verificationStatusText(item) }}</view>
+          <view class="pickup-brief__main">
+            <view class="pickup-brief__name">{{ selfFetchShopName(item) }}</view>
+            <view class="pickup-brief__address" v-if="selfFetchShopAddress(item)">{{ selfFetchShopAddress(item) }}</view>
           </view>
         </view>
         <view class="order-con">
@@ -107,7 +87,7 @@ author: likeshop.cn.team //
           class="order-footer row"
           v-if="
             (!isAfterSaleOrder(item) && (
-              item.pickup_btn ||
+              showPickupButton(item) ||
               canCancelOrder(item) ||
               showDeliveryButton(item) ||
               showTakeButton(item) ||
@@ -185,7 +165,7 @@ author: likeshop.cn.team //
               评价晒图
             </button>
           </view>
-          <view v-if="item.pickup_btn" class="ml20">
+          <view v-if="showPickupButton(item)" class="ml20">
             <button
               size="sm"
               hover-class="none"
@@ -267,6 +247,8 @@ export default {
       paidOrderIds: [],
       showLoading: false,
       pay_way: "",
+      lastRequestKey: "",
+      lastRequestAt: 0,
     };
   },
 
@@ -355,14 +337,24 @@ export default {
         item.order_no,
         item.order_sn,
         item.orderSn,
+        item.orderCode,
+        item.order_code,
+        item.no,
+        item.sn,
         item.order_id,
         item.orderId,
         item.bizOrderNo,
         item.biz_order_no,
         item.subOrderNo,
         item.sub_order_no,
+        item.paymentNo,
+        item.payment_no,
         item.payOrderNo,
-        item.pay_order_no
+        item.pay_order_no,
+        item.transactionId,
+        item.transaction_id,
+        item.transactionNo,
+        item.transaction_no
       ].filter((value) => value !== undefined && value !== null && value !== '').map((value) => String(value))
     },
     rememberDeletedOrder(id) {
@@ -514,6 +506,12 @@ export default {
     async getOrderListFun() {
       if (this.isFetching) return;
       let { page, orderType, orderList, status } = this;
+      const requestType = this.requestOrderType(orderType);
+      const requestKey = `${requestType || 'all'}:${page}`;
+      const now = Date.now();
+      if (this.lastRequestKey === requestKey && now - this.lastRequestAt < 300) return;
+      this.lastRequestKey = requestKey;
+      this.lastRequestAt = now;
       const showInitialLoading = page === 1 && !orderList.length;
       this.isFetching = true;
       if (showInitialLoading) this.showLoading = true;
@@ -522,7 +520,7 @@ export default {
         let loadCount = 0;
         do {
           data = await loadingFun(getOrderList, page, orderList, status, {
-            type: this.requestOrderType(orderType),
+            type: requestType,
           });
           if (!data) {
             if (!this.orderList.length && this.status === loadingType.LOADING) {
@@ -554,13 +552,10 @@ export default {
     },
     requestOrderType(type) {
       const value = String(type || '');
-      return ['ended', 'delivery'].includes(value) ? 'all' : type;
+      return ['ship', 'delivery', 'ended'].includes(value) ? 'all' : type;
     },
     shouldAutoLoadNextPage(type, list, status, loadCount) {
-      return ['delivery', 'ended'].includes(String(type || '')) &&
-        !list.length &&
-        status === loadingType.LOADING &&
-        loadCount < 10;
+      return false;
     },
     goPage(url) {
       uni.navigateTo({
@@ -708,7 +703,15 @@ export default {
       return value === 1 || value === '1' || value === 'WECHAT_JSAPI' || value === 'wechat' || value === 'wxpay';
     },
     normalizeStatus(value) {
-      return String(value || '').toUpperCase();
+      return String(value || '').trim().replace(/[\s-]+/g, '_').toUpperCase();
+    },
+    isPaidStatus(value) {
+      const status = this.normalizeStatus(value)
+      return value === 1 || value === '1' || ['PAID', 'PAYED', 'SUCCESS', 'SUCCEEDED', 'PAID_SUCCESS', 'PAY_SUCCESS', 'FINISHED', 'COMPLETED'].includes(status)
+    },
+    isUnpaidStatus(value) {
+      const status = this.normalizeStatus(value)
+      return value === 0 || value === '0' || ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID'].includes(status)
     },
     cleanText(value, fallback = '') {
       return cleanBackendText(value, fallback);
@@ -738,7 +741,6 @@ export default {
       if (type === 'pay') return !this.isAfterSaleOrder(item) && this.isPendingPayOrder(item);
       if (type === 'ship') return !this.isAfterSaleOrder(item) && this.isWaitShipOrder(item);
       if (type === 'delivery') return !this.isAfterSaleOrder(item) && !this.isEndedOrder(item) && (this.isShippedOrder(item) || this.isPendingSelfFetchOrder(item));
-      if (type === 'ended') return this.isEndedOrder(item);
       return true;
     },
     hasShippingSignal(item = {}) {
@@ -779,7 +781,7 @@ export default {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
       return Boolean(
         this.isSelfFetchOrder(item) &&
-        !item.verification_status &&
+        !this.isVerifiedOrder(item) &&
         (this.isPaidOrder(item) && this.isRawPendingPayOrder(item) || item.order_status == 1 || item.order_status == 2 || ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED'].includes(status))
       );
     },
@@ -809,7 +811,7 @@ export default {
     },
     isRawPendingPayOrder(item) {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status || item.pay_status || item.payStatus);
-      return item.order_status == 0 || item.pay_status == 0 || ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID'].includes(status);
+      return this.isUnpaidStatus(item.order_status || item.orderStatus || item.status || item.pay_status || item.payStatus) || item.pay_status == 0;
     },
     isLocallyPaidOrder(item = {}) {
       return this.orderIdentityList(item).some((id) => this.paidOrderIds.includes(id))
@@ -817,15 +819,24 @@ export default {
     isBackendPaidOrder(item = {}) {
       const payStatus = this.normalizeStatus(item.pay_status || item.payStatus || item.paymentStatus || item.payment_status)
       const orderStatus = this.normalizeStatus(item.order_status || item.orderStatus || item.status)
+      const paymentInfo = item.paymentInfo || item.payment_info || item.payInfo || item.pay_info || {}
+      const paidAmount = Number(item.paidAmount || item.paid_amount || paymentInfo.paidAmount || paymentInfo.paid_amount || 0)
       return Boolean(
-        item.pay_status == 1 ||
-        item.payStatus == 1 ||
-        ['PAID', 'PAYED', 'SUCCESS', 'PAID_SUCCESS', 'PAY_SUCCESS'].includes(payStatus) ||
+        this.isPaidStatus(item.pay_status || item.payStatus || item.paymentStatus || item.payment_status || paymentInfo.payStatus || paymentInfo.pay_status || paymentInfo.status) ||
         ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', 'COMPLETED', 'SUCCESS', 'FINISHED'].includes(orderStatus) ||
         item.pay_time ||
         item.payTime ||
         item.paidAt ||
-        item.paid_at
+        item.paid_at ||
+        paymentInfo.payTime ||
+        paymentInfo.pay_time ||
+        paymentInfo.paidAt ||
+        paymentInfo.paid_at ||
+        item.transactionId ||
+        item.transaction_id ||
+        paymentInfo.transactionId ||
+        paymentInfo.transaction_id ||
+        (!Number.isNaN(paidAmount) && paidAmount > 0)
       )
     },
     isPaidOrder(item = {}) {
@@ -860,6 +871,9 @@ export default {
     showTakeButton(item) {
       return Boolean(!this.isSelfFetchOrder(item) && !this.isEndedOrder(item) && (item.take_btn || this.isReceivableOrder(item)))
     },
+    showPickupButton(item = {}) {
+      return Boolean(this.isSelfFetchOrder(item) && !this.isPendingPayOrder(item) && !this.isClosedOrder(item) && !this.isVerifiedOrder(item) && item.pickup_btn)
+    },
     isReceivableOrder(item = {}) {
       if (item.receivable || item.can_confirm_receipt) return true
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
@@ -883,19 +897,19 @@ export default {
       if (this.isRefundFinishedOrder(item)) return '已退款';
       if (this.isAfterSaleOrder(item)) return '售后中';
       if (this.isExpiredPendingPayOrder(item)) return '已关闭';
-      if (this.isPaidOrder(item) && this.isRawPendingPayOrder(item)) return this.isSelfFetchOrder(item) ? '待取货' : '待发货';
+      if (this.isPaidOrder(item) && this.isRawPendingPayOrder(item)) return '待发货';
       const rawText = item.order_status_desc || item.orderStatusDesc || item.statusText || '';
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status || rawText);
-      if (this.isSelfFetchOrder(item) && ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', '1', '2'].includes(status)) {
+      if (this.isSelfFetchOrder(item) && ['SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', '2'].includes(status)) {
         return '待取货';
       }
       if (this.isShippedOrder(item) && !this.isEndedOrder(item)) return this.isShippedText(rawText) ? this.cleanText(rawText) : '已发货';
       if (/^submit-/i.test(String(rawText || status))) return '订单已提交';
       const map = {
-        CREATED: '待付款',
-        WAIT_PAY: '待付款',
-        PENDING_PAY: '待付款',
-        UNPAID: '待付款',
+        CREATED: '待支付',
+        WAIT_PAY: '待支付',
+        PENDING_PAY: '待支付',
+        UNPAID: '待支付',
         SUBMITTED: '订单已提交',
         SUBMIT: '订单已提交',
         PAID: '待发货',
@@ -998,6 +1012,15 @@ export default {
       const value = String(type || '').toUpperCase()
       return type === 2 || value === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(value)
     },
+    isVerifiedOrder(item = {}) {
+      const value = item.verification_status ?? item.verificationStatus ?? item.verifyStatus ?? item.verify_status ?? ''
+      if (value === true || value === 1 || value === '1') return true
+      const status = this.normalizeStatus(value)
+      return ['VERIFIED', 'USED', 'CONSUMED', 'SUCCESS', 'DONE', 'COMPLETED'].includes(status)
+    },
+    verificationStatusText(item = {}) {
+      return this.isVerifiedOrder(item) ? '已核销' : '待核销'
+    },
     selfFetchShop(item = {}) {
       return item.selffetch_shop || item.selffetchShop || item.pickupShop || {}
     },
@@ -1042,13 +1065,10 @@ export default {
         { label: '商家', value: this.cleanPlainText(item.shop_name || item.shopName) },
         { label: '下单时间', value: this.formatDisplayTime(item.create_time || item.createTime || item.createdAt) },
         { label: '支付时间', value: this.formatDisplayTime(item.pay_time || item.payTime || item.paidAt) },
-        { label: this.isSelfFetchOrder(item) ? '取货方式' : '配送方式', value: this.formatDeliveryType(item.delivery_type || item.deliveryType) },
+        ...(!this.isSelfFetchOrder(item) ? [{ label: '配送方式', value: this.formatDeliveryType(item.delivery_type || item.deliveryType) }] : []),
         { label: '支付方式', value: this.formatPayWay(item.pay_way_text || item.payMethod || item.pay_way) },
         { label: '支付状态', value: this.formatPayStatus(item.pay_status || item.payStatus) }
       ]
-      if (this.isSelfFetchOrder(item)) {
-        rows.push({ label: '核销状态', value: item.verification_status ? '已核销' : '待核销' })
-      }
       return rows.filter((row) => this.cleanText(row.value) !== '');
     },
   },
@@ -1130,6 +1150,12 @@ export default {
       color: #343b48;
       font-size: 25rpx;
       line-height: 36rpx;
+    }
+
+    .order-sn__text {
+      flex: 1;
+      min-width: 0;
+      word-break: break-all;
     }
 
     .order-header__right {
@@ -1222,46 +1248,47 @@ export default {
       word-break: break-all;
     }
 
-    .pickup-summary {
-      margin: 14rpx 24rpx 6rpx;
-      padding: 18rpx 20rpx;
-      border: 1rpx solid #c9f2d8;
-      border-radius: 18rpx;
-      background: #f4fff8;
-    }
-
-    .pickup-summary__row {
+    .pickup-brief {
       display: flex;
-      align-items: flex-start;
-      gap: 14rpx;
-      min-height: 34rpx;
-      margin-top: 8rpx;
+      align-items: center;
+      gap: 12rpx;
+      margin: 14rpx 24rpx 0;
+      padding: 14rpx 18rpx;
+      border-radius: 16rpx;
+      background: #f4fff8;
+      border: 1rpx solid #d8f5e2;
+      box-sizing: border-box;
     }
 
-    .pickup-summary__row:first-child {
-      margin-top: 0;
-    }
-
-    .pickup-summary__label {
+    .pickup-brief__tag {
       flex: none;
-      width: 112rpx;
-      color: #18a058;
-      font-size: 23rpx;
-      line-height: 34rpx;
+      padding: 5rpx 12rpx;
+      border-radius: 999rpx;
+      color: #10a66a;
+      background: #e8fbf1;
+      font-size: 22rpx;
+      font-weight: 700;
+      line-height: 30rpx;
     }
 
-    .pickup-summary__value {
+    .pickup-brief__main {
       flex: 1;
       min-width: 0;
-      color: #263238;
+    }
+
+    .pickup-brief__name {
+      color: #475467;
       font-size: 24rpx;
       line-height: 34rpx;
       word-break: break-all;
     }
 
-    .pickup-summary__code {
-      color: #1f7af4;
-      font-weight: 600;
+    .pickup-brief__address {
+      margin-top: 4rpx;
+      color: #667085;
+      font-size: 22rpx;
+      line-height: 32rpx;
+      word-break: break-all;
     }
 
     .all-price {
@@ -1344,7 +1371,7 @@ export default {
 
       .order-header,
       .order-meta,
-      .pickup-summary,
+      .pickup-brief,
       .all-price,
       .amount-detail,
       .order-footer {

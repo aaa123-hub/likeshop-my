@@ -32,6 +32,7 @@
                     </view>
                     <text class="street-service-item__text">{{ item.name }}</text>
                 </view>
+                <view v-if="!streetCategories.length && !streetLoading" class="street-empty street-empty--grid">暂无分类</view>
             </view>
 
             <view class="street-merchant-list">
@@ -46,9 +47,9 @@
                         <view v-if="isEmptyImage(item.image)" class="street-merchant-card__image image-placeholder">无</view>
                         <image v-else class="street-merchant-card__image" :src="item.image" mode="aspectFill"></image>
                     </view>
-                    <view class="street-merchant-card__body">
-                        <view class="street-merchant-card__title line1">{{ item.name }}</view>
-                        <view class="street-merchant-card__rating">
+                        <view class="street-merchant-card__body">
+                            <view class="street-merchant-card__title line1">{{ item.name }}</view>
+                        <view class="street-merchant-card__rating" v-if="item.score">
                             <view class="street-merchant-card__stars">
                                 <image
                                     v-for="starIndex in item.starCount"
@@ -66,6 +67,7 @@
                         </view>
                     </view>
                 </view>
+                <view v-if="!streetMerchants.length && !streetLoading" class="street-empty">暂无商家</view>
             </view>
         </view>
     </view>
@@ -78,8 +80,6 @@ import { isPlaceholderImage, resolveImage } from '@/utils/image-placeholder'
 
 const STREET_ASSET_BASE = 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/'
 const streetAsset = (name) => `${STREET_ASSET_BASE}${name}`
-const merchantThumb = ''
-const emptyServiceNames = ['服装', '本地生活', '粮油饮品']
 
 export default {
     data() {
@@ -87,25 +87,13 @@ export default {
             streetKeyword: '',
             streetSearchText: '输入关键词',
             streetLoaded: false,
+            streetLoading: false,
             navigating: false,
             streetSearchIcon: streetAsset('searchlist_menu_capsule.png'),
             streetStarIcon: streetAsset('searchlist_star.png'),
             streetTimeIcon: streetAsset('searchlist_time.png'),
-            streetCategories: [
-                { name: '美食餐饮', image: streetAsset('image_4.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '休闲娱乐', image: streetAsset('image_4_2.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '美容美发', image: streetAsset('image_4_3.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '体育运动', image: streetAsset('image_4_4.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '酒店住宿', image: streetAsset('image_4_5.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '本地生活', image: '', url: '/business/pages/business_pages/street_goods' },
-                { name: '百货日用', image: streetAsset('image_4_7.png'), url: '/business/pages/business_pages/street_goods' },
-                { name: '粮油饮品', image: '', url: '/business/pages/business_pages/street_goods' }
-            ],
-            streetMerchants: [
-                { name: '广州市越秀区斌记面家', score: '5.0', meta: '营业中 · 到店体验', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
-                { name: '本地生活精选店', score: '5.0', meta: '营业中 · 本地生活', image: merchantThumb, url: '/business/pages/business_pages/store_detail' },
-                { name: '社区优选服务中心', score: '5.0', meta: '营业中 · 社区服务', image: merchantThumb, url: '/business/pages/business_pages/store_detail' }
-            ]
+            streetCategories: [],
+            streetMerchants: []
         }
     },
     onLoad() {
@@ -127,27 +115,32 @@ export default {
         async loadStreetIndex() {
             if (this.streetLoaded) return Promise.resolve()
             this.streetLoaded = true
-            const defaultCategories = this.streetCategories.slice()
-            const defaultMerchants = this.streetMerchants.slice()
+            this.streetLoading = true
             try {
                 const res = await getStreetIndex({
                     keyword: this.streetKeyword
                 })
-                if (res.code != 1 || !res.data) return
+                if (res.code != 1 || !res.data) {
+                    this.streetCategories = []
+                    this.streetMerchants = []
+                    return
+                }
                 const data = res.data
                 const searchBox = data.searchBox || {}
                 const recommendedCategories = Array.isArray(data.recommendedCategories) ? data.recommendedCategories : []
                 const recommendedShops = Array.isArray(data.recommendedShops) ? data.recommendedShops : []
                 this.streetSearchText = searchBox.keyword || searchBox.placeholder || this.streetSearchText
                 this.streetCategories = recommendedCategories.length
-                    ? recommendedCategories.map((item, index) => this.mapStreetCategory(item, defaultCategories[index], index))
-                    : defaultCategories
+                    ? recommendedCategories.map((item, index) => this.mapStreetCategory(item, {}, index))
+                    : []
                 this.streetMerchants = recommendedShops.length
-                    ? recommendedShops.map((item, index) => this.mapStreetMerchant(item, defaultMerchants[index]))
-                    : defaultMerchants
+                    ? recommendedShops.map((item) => this.mapStreetMerchant(item, {}))
+                    : []
             } catch (error) {
-                this.streetCategories = defaultCategories
-                this.streetMerchants = defaultMerchants
+                this.streetCategories = []
+                this.streetMerchants = []
+            } finally {
+                this.streetLoading = false
             }
         },
         mapStreetCategory(item = {}, fallback = {}, index = 0) {
@@ -156,7 +149,7 @@ export default {
                 ...fallback,
                 ...item,
                 name: item.name || fallback.name || '',
-                image: this.shouldUseEmptyServiceImage(item.name || fallback.name) ? '' : resolveImage(item.image || fallback.image),
+                image: resolveImage(item.image || fallback.image),
                 categoryId,
                 url: categoryId
                     ? `/business/pages/business_pages/street_goods?categoryId=${categoryId}`
@@ -178,7 +171,7 @@ export default {
                 score: this.formatStreetScore(scoreValue),
                 starCount: this.getStreetStarCount(scoreValue),
                 image: resolveImage(item.shop_logo || item.shopLogo || item.logo || item.logoUrl || item.avatarUrl || item.image || item.cover || item.imageUrl || item.picUrl || fallback.image, 'goods'),
-                meta: metaParts.join(' · ') || fallback.meta || '营业状态待更新',
+                meta: metaParts.join(' · ') || fallback.meta || '',
                 url: shopId
                     ? `/business/pages/business_pages/store_detail?shopId=${shopId}`
                     : (fallback.url || '/business/pages/business_pages/store_detail')
@@ -187,18 +180,15 @@ export default {
         isEmptyImage(src) {
             return isPlaceholderImage(src)
         },
-        shouldUseEmptyServiceImage(name = '') {
-            return emptyServiceNames.some(item => String(name).includes(item))
-        },
         formatStreetScore(value) {
-            if (value === '' || value === null || value === undefined) return '5.0'
+            if (value === '' || value === null || value === undefined) return ''
             const score = Number(value)
             if (Number.isNaN(score)) return String(value)
             return score.toFixed(1)
         },
         getStreetStarCount(value) {
             const score = Number(value)
-            if (Number.isNaN(score) || score <= 0) return 5
+            if (Number.isNaN(score) || score <= 0) return 0
             return Math.max(1, Math.min(5, Math.round(score)))
         },
         getStreetOpenStatusLabel(status) {
@@ -376,6 +366,21 @@ export default {
 
 .street-merchant-list {
     padding: 6rpx 24rpx 24rpx;
+}
+
+.street-empty {
+    width: 100%;
+    padding: 52rpx 24rpx;
+    color: #9ca3af;
+    font-size: 26rpx;
+    line-height: 36rpx;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.street-empty--grid {
+    padding-top: 12rpx;
+    padding-bottom: 34rpx;
 }
 
 .street-merchant-card {

@@ -9,7 +9,7 @@ author: likeshop.cn.team
     <view class="order-details">
       <view class="header-bg"></view>
       <view class="main">
-        <view class="header">
+        <view :class="['header', isOrderStatus('CREATED') ? 'header--paying' : '']">
           <view class="item" v-if="isOrderStatus('CREATED')">
             <view class="white lg mb10">等待买家付款</view>
             <view
@@ -64,12 +64,11 @@ author: likeshop.cn.team
         </view>
 
         <!-- 扫码收货 -->
-        <view v-if="isSelfFetchOrder && (showQRSelffetch || orderDetail.verification_status)" class="contain receive">
-          <view v-if="orderDetail.verification_status" class="delivery--die">
+        <view v-if="isSelfFetchOrder && (showQRSelffetch || isVerifiedOrder)" class="contain receive">
+          <view v-if="isVerifiedOrder" class="delivery--die">
             <image
               src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/delivery_die.png"
-              width="134"
-              height="98"
+              class="delivery--die__image"
               mode="scaleFill"
             />
           </view>
@@ -79,7 +78,7 @@ author: likeshop.cn.team
             <text class="receive-qr__desc">到店后请向商家出示二维码或提货码</text>
             <view
               class="qr-contain"
-              :class="{ 'qr-contain--die': orderDetail.verification_status }"
+              :class="{ 'qr-contain--die': isVerifiedOrder }"
               ref="qr-image"
             >
               <tki-qrcode
@@ -758,7 +757,7 @@ export default {
     formatOrderStatusText(status) {
       const text = String(status || '')
       if (/^submit-/i.test(text)) return '订单已提交'
-      const map = { CREATED: '待付款', WAIT_PAY: '待付款', PENDING_PAY: '待付款', UNPAID: '待付款', SUBMITTED: '订单已提交', SUBMIT: '订单已提交', PAID: '待发货', WAIT_SHIP: '待发货', WAIT_DELIVERY: '待发货', SHIPPED: '待收货', WAIT_RECEIVE: '待收货', DELIVERED: '待收货', COMPLETED: '已完成', SUCCESS: '已完成', FINISHED: '已完成', REFUNDING: '售后处理中', REFUNDED: '已退款', CANCELLED: '已关闭', CANCELED: '已关闭', CLOSED: '已关闭', CLOSE: '已关闭', CLOSED_ORDER: '已关闭', 0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已关闭' };
+      const map = { CREATED: '待支付', WAIT_PAY: '待支付', PENDING_PAY: '待支付', UNPAID: '待支付', SUBMITTED: '订单已提交', SUBMIT: '订单已提交', PAID: '待发货', WAIT_SHIP: '待发货', WAIT_DELIVERY: '待发货', SHIPPED: '待收货', WAIT_RECEIVE: '待收货', DELIVERED: '待收货', COMPLETED: '已完成', SUCCESS: '已完成', FINISHED: '已完成', REFUNDING: '售后处理中', REFUNDED: '已退款', CANCELLED: '已关闭', CANCELED: '已关闭', CLOSED: '已关闭', CLOSE: '已关闭', CLOSED_ORDER: '已关闭', 0: '待支付', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已关闭' };
       const mapped = map[text.toUpperCase()] || map[status];
       return mapped || (isBackendCodeText(text) ? '订单处理中' : cleanBackendText(status, ''));
     },
@@ -923,7 +922,7 @@ export default {
       const status = this.orderDetail.order_status || this.orderDetail.order_status_desc
       const value = String(status || '').toUpperCase()
       if (this.isSelfFetchOrder && ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', '1', '2'].includes(value)) {
-        return '待核销'
+        return this.isVerifiedOrder ? '已核销' : '待核销'
       }
       if (this.isSelfFetchOrder && ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(value)) {
         return '已核销'
@@ -948,7 +947,7 @@ export default {
         this.orderDetail.team_status == 1 ? (result = true) : (result = false);
       }
 
-      return result && !!this.pickupQrValue && !this.orderDetail.verification_status;
+      return result && !!this.pickupQrValue && !this.isVerifiedOrder;
     },
     isOrderStatus() {
       const statusMap = {
@@ -969,6 +968,12 @@ export default {
         this.orderDetail.verifyCode ||
         '';
       return this.isOrderNoLikePickupCode(value) ? '' : value;
+    },
+    isVerifiedOrder() {
+      const value = this.orderDetail.verification_status ?? this.orderDetail.verificationStatus ?? this.orderDetail.verifyStatus ?? this.orderDetail.verify_status ?? ''
+      if (value === true || value === 1 || value === '1') return true
+      const status = String(value || '').trim().replace(/[\s-]+/g, '_').toUpperCase()
+      return ['VERIFIED', 'USED', 'CONSUMED', 'SUCCESS', 'DONE', 'COMPLETED'].includes(status)
     },
     selfFetchShop() {
       return this.orderDetail.selffetch_shop || this.orderDetail.selffetchShop || this.orderDetail.pickupShop || {}
@@ -1031,7 +1036,7 @@ export default {
       if (!this.isSelfFetchOrder && !Object.keys(verify).length) return [];
       return this.buildRows([
         ['核销码', this.pickValue(verify, ['pickupCode', 'verifyCode', 'code']) || this.pickupQrValue],
-        ['核销状态', this.orderDetail.verification_status ? '已核销' : '未核销'],
+        ['核销状态', this.isVerifiedOrder ? '已核销' : '待核销'],
         ['核销时间', this.formatDisplayTime(this.pickValue(verify, ['verifyTime', 'verify_time', 'verificationTime']))],
         ['核销门店', this.pickValue(verify, ['shopName', 'shop_name', 'storeName'])],
         ['核销员', this.pickValue(verify, ['staffName', 'staff_name', 'operator'])]
@@ -1114,7 +1119,7 @@ export default {
   position: absolute;
   top: 0;
   width: 100%;
-  height: 340rpx;
+  height: 276rpx;
   background: linear-gradient(135deg, #1f7af4 0%, #18b6ff 54%, #21c58e 100%);
   z-index: 0;
 }
@@ -1239,7 +1244,7 @@ export default {
 .order-details .main {
   position: relative;
   z-index: 1;
-  padding-top: 18rpx;
+  padding-top: 10rpx;
 }
 
 .order-details .contain {
@@ -1251,23 +1256,44 @@ export default {
 }
 
 .order-details .header {
-  min-height: 190rpx;
-  margin: 0 24rpx 24rpx;
-  padding: 42rpx 36rpx 34rpx;
+  min-height: auto;
+  margin: 0 24rpx 18rpx;
+  padding: 28rpx 32rpx 24rpx;
   border-radius: 24rpx;
   background: rgba(255, 255, 255, .14);
   box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, .24);
   box-sizing: border-box;
 }
 
+.order-details .header--paying {
+  margin-bottom: 14rpx;
+  padding: 22rpx 28rpx 20rpx;
+}
+
+.order-details .header--paying .item {
+  min-height: 0;
+}
+
+.order-details .header--paying .lg {
+  margin-bottom: 6rpx;
+  font-size: 34rpx;
+  line-height: 44rpx;
+}
+
+.order-details .header--paying .sm {
+  align-items: center;
+  line-height: 32rpx !important;
+}
+
 .order-details .header .lg {
-  font-size: 40rpx;
+  font-size: 36rpx;
   font-weight: 700;
-  line-height: 52rpx;
+  line-height: 48rpx;
 }
 
 .order-details .header .sm {
-  font-size: 25rpx;
+  font-size: 24rpx;
+  line-height: 34rpx;
   opacity: .92;
 }
 
@@ -1471,8 +1497,18 @@ export default {
 
 .delivery--die {
   position: absolute;
-  top: 0;
-  right: 30rpx;
+  top: 22rpx;
+  right: 28rpx;
+  z-index: 3;
+  width: 132rpx;
+  height: 96rpx;
+  opacity: .9;
+}
+
+.delivery--die__image {
+  width: 132rpx;
+  height: 96rpx;
+  display: block;
 }
 
 .receive-qr {

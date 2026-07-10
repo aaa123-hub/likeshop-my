@@ -34,23 +34,19 @@
                     </view>
                     <view class="company-login__agreement-text">
                         已阅读并同意
-                        <navigator
+                        <view
                             class="company-login__link"
-                            hover-class="none"
-                            url="/bundle_user/pages/server_explan/server_explan?type=0"
-                            @tap.stop
+                            @tap.stop="openAgreement(0)"
                         >
                             《服务协议》
-                        </navigator>
+                        </view>
                         和
-                        <navigator
+                        <view
                             class="company-login__link"
-                            hover-class="none"
-                            url="/bundle_user/pages/server_explan/server_explan?type=1"
-                            @tap.stop
+                            @tap.stop="openAgreement(1)"
                         >
-                            《隐私协议》
-                        </navigator>
+                            《隐私政策》
+                        </view>
                     </view>
                 </view>
 
@@ -70,29 +66,28 @@
             :value="showModel"
             show-cancel-button
             :show-title="false"
-            @confirm=";(isAgree = true), (showModel = false)"
+            @confirm="handleAgreementModalConfirm"
             @cancel="showModel = false"
             confirm-color="#FF4D3D"
         >
             <view class="company-login__modal">
                 <view>请先阅读并同意</view>
                 <view class="company-login__modal-links">
-                    <navigator
+                    <view
                         class="company-login__link"
-                        hover-class="none"
-                        url="/bundle_user/pages/server_explan/server_explan?type=0"
+                        @tap.stop="openAgreement(0)"
                     >
                         《服务协议》
-                    </navigator>
+                    </view>
                     和
-                    <navigator
+                    <view
                         class="company-login__link"
-                        hover-class="none"
-                        url="/bundle_user/pages/server_explan/server_explan?type=1"
+                        @tap.stop="openAgreement(1)"
                     >
-                        《隐私协议》
-                    </navigator>
+                        《隐私政策》
+                    </view>
                 </view>
+                <view class="company-login__modal-tip">{{ agreementReadTip }}</view>
             </view>
         </u-modal>
     </view>
@@ -109,15 +104,21 @@ import Cache from '@/utils/cache'
 import { BACK_URL } from '@/config/cachekey'
 import { designAssets } from '@/utils/design-assets'
 
+const LOGIN_AGREEMENT_READ_PREFIX = 'LOGIN_AGREEMENT_READ_'
+
 export default {
 	components: {
 			UModal
 		},
     data() {
         return {
-            isAgree: true,
+            isAgree: false,
             showModel: false,
             loginLoading: false,
+            agreementReadState: {
+                service: false,
+                privacy: false
+            },
             designAssets
         }
     },
@@ -126,6 +127,16 @@ export default {
         canBack() {
             const pages = getCurrentPages()
             return pages.length > 1
+        },
+        hasReadAllAgreements() {
+            return Boolean(this.agreementReadState.service && this.agreementReadState.privacy)
+        },
+        agreementReadTip() {
+            if (this.hasReadAllAgreements) return '已阅读完成，可勾选后继续登录。'
+            const unread = []
+            if (!this.agreementReadState.service) unread.push('服务协议')
+            if (!this.agreementReadState.privacy) unread.push('隐私政策')
+            return `请先阅读完${unread.join('和')}，滑动至页面底部后再返回勾选。`
         }
     },
     onLoad() {
@@ -134,18 +145,54 @@ export default {
                 url: '/pages/index/index'
             })
         }
+        this.refreshAgreementReadState()
+    },
+    onShow() {
+        this.refreshAgreementReadState()
     },
     methods: {
         ...mapMutations(['LOGIN']),
         goBack() {
             uni.navigateBack()
         },
+        refreshAgreementReadState() {
+            let service = false
+            let privacy = false
+            try {
+                service = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_READ_PREFIX}0`))
+                privacy = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_READ_PREFIX}1`))
+            } catch (error) {}
+            this.agreementReadState = { service, privacy }
+            if (!this.hasReadAllAgreements) this.isAgree = false
+        },
+        openAgreement(type) {
+            this.showModel = false
+            uni.navigateTo({
+                url: `/bundle_user/pages/server_explan/server_explan?type=${type}`
+            })
+        },
         changeChecked() {
+            this.refreshAgreementReadState()
+            if (!this.hasReadAllAgreements) {
+                this.isAgree = false
+                this.showModel = true
+                return
+            }
             this.isAgree = !this.isAgree
+        },
+        handleAgreementModalConfirm() {
+            this.showModel = false
+            if (this.hasReadAllAgreements) {
+                this.isAgree = true
+                return
+            }
+            this.openAgreement(this.agreementReadState.service ? 1 : 0)
         },
         async mnpLoginFun() {
             if (this.loginLoading) return
-            if (!this.isAgree) {
+            this.refreshAgreementReadState()
+            if (!this.hasReadAllAgreements || !this.isAgree) {
+                this.isAgree = false
                 this.showModel = true
                 return
             }
@@ -432,8 +479,9 @@ page {
 }
 
 .company-login__link {
-    display: inline;
+    display: inline-flex;
     color: #ff4d3d;
+    font-weight: 600;
 }
 
 .company-login__button {
@@ -475,5 +523,13 @@ page {
     align-items: center;
     font-size: 26rpx;
     color: #697386;
+}
+
+.company-login__modal-tip {
+    margin-top: 14rpx;
+    padding: 0 28rpx;
+    color: #8a94a6;
+    font-size: 24rpx;
+    line-height: 36rpx;
 }
 </style>

@@ -80,15 +80,38 @@
                 <text class="label">平台押金</text>
                 <view class="picker-value">{{ selectedDepositText }}</view>
             </view>
-            <view class="form-item">
+            <picker
+                v-if="needsAreaSelection && hasAreaOptions"
+                mode="multiSelector"
+                :range="areaPickerColumns"
+                range-key="label"
+                :value="areaPickerValue"
+                @columnchange="onAreaColumnChange"
+                @change="onAreaConfirm"
+            >
+                <view class="form-item form-item--picker">
+                    <text class="label">申请区域</text>
+                    <view :class="['picker-value', selectedAreaText ? '' : 'picker-value--placeholder']">
+                        {{ selectedAreaText || '请选择申请区域' }}
+                    </view>
+                </view>
+            </picker>
+            <view class="form-item form-item--picker" v-else-if="needsAreaSelection" @tap="handleEmptyAreaTap">
+                <text class="label">申请区域</text>
+                <view class="picker-value picker-value--placeholder">暂无可选区域</view>
+            </view>
+            <view class="upgrade-tip" v-if="accountCredentialTip">
+                {{ accountCredentialTip }}
+            </view>
+            <view class="form-item" v-if="requiresAccountCredentials">
                 <text class="label">登录账号</text>
                 <input v-model="form.username" placeholder="审核通过后用于登录渠道后台" />
             </view>
-            <view class="form-item">
+            <view class="form-item" v-if="requiresAccountCredentials">
                 <text class="label">登录密码</text>
                 <input v-model="form.password" password placeholder="请设置至少 6 位密码" />
             </view>
-            <view class="form-item">
+            <view class="form-item" v-if="requiresAccountCredentials">
                 <text class="label">确认密码</text>
                 <input v-model="form.confirmPassword" password placeholder="请再次输入密码" />
             </view>
@@ -151,6 +174,7 @@ const roleOptions = [
 ]
 
 const APPLY_ROLE_CODES = roleOptions.map(item => item.value)
+const KYC_CACHE_PREFIX = 'PROMOTER_APPLY_KYC_INFO_'
 
 export default {
     components: {
@@ -179,10 +203,19 @@ export default {
                 username: '',
                 password: '',
                 confirmPassword: '',
+                provinceCode: '',
+                provinceName: '',
+                cityCode: '',
+                cityName: '',
+                districtCode: '',
+                districtName: '',
                 remark: '',
                 materialUrlsText: '',
                 agreementAccepted: false
             },
+            areaOptions: [],
+            areaPickerValue: [0, 0, 0],
+            areaPickerColumns: [[], [], []],
             showApplyForm: false,
             kycInfo: {},
             submitting: false,
@@ -223,14 +256,14 @@ export default {
             return [{ roleCode: 'USER', roleName: '普通用户' }]
         },
         headerRoleTags() {
-            const tags = [{ roleCode: 'MERCHANT', roleName: '商家' }]
+            const tags = this.isMerchantRole ? [{ roleCode: 'MERCHANT', roleName: '商家' }] : []
             this.currentRoles.forEach((item) => {
                 const code = this.normalizeRoleCode(item.roleCode)
                 if (code && code !== 'MERCHANT' && code !== 'USER' && !tags.some((tag) => this.normalizeRoleCode(tag.roleCode) === code)) {
                     tags.push({ ...item, roleCode: code })
                 }
             })
-            return tags
+            return tags.length ? tags : [{ roleCode: 'USER', roleName: '普通用户' }]
         },
         selectableRoleOptions() {
             return this.roleOptions.map((item) => ({
@@ -255,7 +288,10 @@ export default {
             return this.normalizedRoleOptions.length ? this.normalizedRoleOptions : roleOptions.map((item) => ({ ...item }))
         },
         roleApplyCards() {
-            return this.rolePickerRange.map((role) => {
+            return this.rolePickerRange.filter((role) => {
+                const roleCode = this.normalizeRoleCode(role.value)
+                return !(roleCode === 'PROMOTER' && this.hasApprovedPromoterRole)
+            }).map((role) => {
                 const roleCode = this.normalizeRoleCode(role.value)
                 const application = this.applicationByRole(roleCode)
                 const statusType = this.statusType(application && application.applicationStatus)
@@ -298,6 +334,49 @@ export default {
         },
         selectedRoleLabel() {
             return this.roleLabel(this.selectedRoleCode)
+        },
+        selectedRoleConfig() {
+            return this.roleOptions.find((item) => this.normalizeRoleCode(item.value || item.roleCode) === this.selectedRoleCode) || {}
+        },
+        selectedRoleAreaOptions() {
+            const roleAreaOptions = this.extractAreaSource(this.selectedRoleConfig)
+            const normalizedRoleAreas = this.normalizeAreaOptions(roleAreaOptions)
+            return normalizedRoleAreas.length ? normalizedRoleAreas : this.areaOptions
+        },
+        hasAreaOptions() {
+            return this.selectedRoleAreaOptions.length > 0
+        },
+        needsAreaSelection() {
+            return ['AGENT', 'SUBSIDIARY'].includes(this.selectedRoleCode)
+        },
+        selectedAreaText() {
+            return [this.form.provinceName, this.form.cityName, this.form.districtName].filter(Boolean).join(' / ')
+        },
+        approvedPromoterApplication() {
+            return this.applications.find((item) => {
+                return this.normalizeRoleCode(item.roleCode || item.role_code || item.role) === 'PROMOTER'
+                    && this.statusType(item.applicationStatus || item.auditStatus || item.status) === 'approved'
+            }) || null
+        },
+        hasApprovedPromoterRole() {
+            return Boolean(
+                this.hasPromoterSignalInUserInfo()
+                || this.roles.some((item) => this.isApprovedRoleItem(item, 'PROMOTER'))
+                || this.approvedPromoterApplication
+            )
+        },
+        isRoleUpgradeApplication() {
+            return this.hasApprovedPromoterRole && ['AGENT', 'SUBSIDIARY'].includes(this.selectedRoleCode)
+        },
+        requiresAccountCredentials() {
+            if (this.isMerchantRole) return false
+            if (this.isRoleUpgradeApplication) return false
+            return true
+        },
+        accountCredentialTip() {
+            if (this.isRoleUpgradeApplication) return `已是推广者，继续申请${this.selectedRoleLabel}只需选择申请区域，渠道后台账号和密码沿用原账户。`
+            if (this.isMerchantRole) return '当前账号已是商家，平台管理系统已有对应账号，本次申请无需重新设置登录账号和密码。'
+            return ''
         },
         isMerchantRole() {
             const info = this.userInfo || {}
@@ -494,13 +573,91 @@ export default {
             }
         },
         async loadKycStatus() {
+            const localKyc = this.localKycInfo()
+            const cachedKyc = this.cachedKycInfo()
+            const fallbackKyc = this.mergeKycInfo(localKyc, cachedKyc)
+            if (localKyc.kycStatus) {
+                this.kycInfo = fallbackKyc
+                if (this.isKycApproved) this.applyKycToForm()
+                else this.clearKycForm()
+                if (localKyc.fromProfile && this.isKycInfoComplete(fallbackKyc)) return
+            }
             try {
                 const res = await getKycStatus({ show: false })
                 if (res.code != 1) return
-                this.kycInfo = res.data || {}
+                this.kycInfo = this.mergeKycInfo(fallbackKyc, res.data || {})
+                this.saveKycCache(this.kycInfo)
                 if (this.isKycApproved) this.applyKycToForm()
-                else this.clearKycForm()
+                else if (!localKyc.kycStatus) this.clearKycForm()
+            } catch (error) {
+                if (fallbackKyc.kycStatus) {
+                    this.kycInfo = fallbackKyc
+                    if (this.isKycApproved) this.applyKycToForm()
+                }
+            }
+        },
+        localKycInfo() {
+            const info = this.userInfo || {}
+            const rawStatus = info.kycStatus || info.kyc_status || info.realnameStatus || info.realname_status || info.realNameStatus || info.real_name_status || info.certificationStatus || info.certification_status || info.authStatus || info.auth_status || ''
+            const status = rawStatus ? normalizeKycStatus(rawStatus) : ''
+            const kycInfo = info.kycInfo || info.kyc_info || info.realnameInfo || info.realname_info || info.realNameInfo || info.real_name_info || info.certificationInfo || info.certification_info || info.authInfo || info.auth_info || {}
+            const source = { ...info, ...kycInfo }
+            return {
+                fromProfile: Boolean(status),
+                kycStatus: status,
+                kyc_status: status,
+                realName: source.realName || source.real_name || source.trueName || source.true_name || source.name || '',
+                real_name: source.realName || source.real_name || source.trueName || source.true_name || source.name || '',
+                certNo: source.certNo || source.cert_no || source.idCardNo || source.id_card_no || source.idNo || source.id_no || source.identityNo || source.identity_no || source.idNumber || source.id_number || '',
+                cert_no: source.certNo || source.cert_no || source.idCardNo || source.id_card_no || source.idNo || source.id_no || source.identityNo || source.identity_no || source.idNumber || source.id_number || '',
+                certType: source.certType || source.cert_type || source.idType || source.id_type || 'ID_CARD',
+                cert_type: source.certType || source.cert_type || source.idType || source.id_type || 'ID_CARD',
+                certFrontUrl: source.certFrontUrl || source.cert_front_url || source.frontUrl || source.front_url || source.idCardFrontUrl || source.id_card_front_url || '',
+                cert_front_url: source.certFrontUrl || source.cert_front_url || source.frontUrl || source.front_url || source.idCardFrontUrl || source.id_card_front_url || '',
+                certBackUrl: source.certBackUrl || source.cert_back_url || source.backUrl || source.back_url || source.idCardBackUrl || source.id_card_back_url || '',
+                cert_back_url: source.certBackUrl || source.cert_back_url || source.backUrl || source.back_url || source.idCardBackUrl || source.id_card_back_url || ''
+            }
+        },
+        isKycInfoComplete(data = {}) {
+            return Boolean((data.realName || data.real_name) && (data.certNo || data.cert_no) && (data.certFrontUrl || data.cert_front_url) && (data.certBackUrl || data.cert_back_url))
+        },
+        kycCacheKey() {
+            const userId = this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || ''
+            return userId ? `${KYC_CACHE_PREFIX}${userId}` : ''
+        },
+        cachedKycInfo() {
+            const key = this.kycCacheKey()
+            if (!key) return {}
+            try {
+                return uni.getStorageSync(key) || {}
+            } catch (error) {
+                return {}
+            }
+        },
+        saveKycCache(data = {}) {
+            const key = this.kycCacheKey()
+            if (!key || !data.kycStatus && !data.kyc_status) return
+            try {
+                uni.setStorageSync(key, data)
             } catch (error) {}
+        },
+        mergeKycInfo(local = {}, remote = {}) {
+            return {
+                ...local,
+                ...remote,
+                kycStatus: remote.kycStatus || remote.kyc_status || local.kycStatus || local.kyc_status,
+                kyc_status: remote.kyc_status || remote.kycStatus || local.kyc_status || local.kycStatus,
+                realName: remote.realName || remote.real_name || local.realName || local.real_name,
+                real_name: remote.real_name || remote.realName || local.real_name || local.realName,
+                certNo: remote.certNo || remote.cert_no || local.certNo || local.cert_no,
+                cert_no: remote.cert_no || remote.certNo || local.cert_no || local.certNo,
+                certType: remote.certType || remote.cert_type || local.certType || local.cert_type || 'ID_CARD',
+                cert_type: remote.cert_type || remote.certType || local.cert_type || local.certType || 'ID_CARD',
+                certFrontUrl: remote.certFrontUrl || remote.cert_front_url || local.certFrontUrl || local.cert_front_url,
+                cert_front_url: remote.cert_front_url || remote.certFrontUrl || local.cert_front_url || local.certFrontUrl,
+                certBackUrl: remote.certBackUrl || remote.cert_back_url || local.certBackUrl || local.cert_back_url,
+                cert_back_url: remote.cert_back_url || remote.certBackUrl || local.cert_back_url || local.certBackUrl
+            }
         },
         clearKycForm() {
             this.form.applicantName = ''
@@ -535,6 +692,8 @@ export default {
                 const data = res.data || {}
                 this.roles = data.roles || data.list || []
                 this.roleDepositConfig = data.roleDepositConfig || data.role_deposit_config || data.depositConfig || data.deposit_config || this.roleDepositConfig
+                this.areaOptions = this.normalizeAreaOptions(this.extractAreaSource(data))
+                this.refreshAreaColumns()
                 this.mergeApplyRoleOptions(data.applyRoles || data.roleOptions || [])
             }
         },
@@ -605,6 +764,40 @@ export default {
                 applicationStatus: item.applicationStatus || item.application_status || item.auditStatus || item.audit_status || item.reviewStatus || item.review_status || item.applyStatus || item.apply_status || item.status || ''
             }
         },
+        hasPromoterSignalInUserInfo() {
+            const info = this.userInfo || {}
+            const rawRoles = [
+                info.roleCode,
+                info.role_code,
+                info.role,
+                info.userRole,
+                info.user_role,
+                info.identity,
+                info.identityType,
+                info.identity_type
+            ]
+            const roleList = []
+                .concat(Array.isArray(info.roles) ? info.roles : [])
+                .concat(Array.isArray(info.roleList) ? info.roleList : [])
+                .concat(Array.isArray(info.role_list) ? info.role_list : [])
+            const roleMatched = rawRoles.concat(roleList.map((item) => item.roleCode || item.role_code || item.role || item.code || item.value || item))
+                .some((code) => this.normalizeRoleCode(code) === 'PROMOTER')
+            return Boolean(
+                roleMatched
+                || info.isPromoter
+                || info.is_promoter
+                || info.promoterId
+                || info.promoter_id
+                || info.promoterCode
+                || info.promoter_code
+            )
+        },
+        isApprovedRoleItem(item = {}, roleCode) {
+            if (this.normalizeRoleCode(item.roleCode || item.role_code || item.role || item.code || item.value) !== this.normalizeRoleCode(roleCode)) return false
+            const status = item.applicationStatus || item.application_status || item.auditStatus || item.audit_status || item.status || item.roleStatus || item.role_status
+            if (!status) return Boolean(item.approved || item.isApproved || item.is_approved || item.enabled || item.active)
+            return this.statusType(status) === 'approved'
+        },
         markDepositPaidPendingAudit(application = this.currentApplication || {}) {
             const code = this.normalizeRoleCode(application.roleCode || application.role_code || this.selectedRoleCode)
             const existedIndex = this.applications.findIndex((item) => this.normalizeRoleCode(item.roleCode || item.role_code || item.role) === code)
@@ -620,13 +813,14 @@ export default {
         },
         syncSelectedRole() {
             if (this.showApplyForm) return
-            const roleCode = (this.currentRoles[0] && this.currentRoles[0].roleCode) || (this.applyRoleApplications[0] && this.applyRoleApplications[0].roleCode)
+            const roleCode = (this.roleApplyCards[0] && this.roleApplyCards[0].roleCode) || (this.currentRoles[0] && this.currentRoles[0].roleCode) || (this.applyRoleApplications[0] && this.applyRoleApplications[0].roleCode)
             if (!roleCode) return
             this.selectRole(roleCode)
         },
         firstApplyableRoleIndex() {
             return this.roleOptions.findIndex((role) => {
                 const code = this.normalizeRoleCode(role.value)
+                if (code === 'PROMOTER' && this.hasApprovedPromoterRole) return false
                 const application = this.applications.find((item) => this.normalizeRoleCode(item.roleCode) === code)
                 return this.statusType(application && application.applicationStatus) !== 'approved'
             })
@@ -647,7 +841,8 @@ export default {
                 const next = {
                     label: item.label || item.roleName || item.role_name || this.roleLabel(code),
                     value: code,
-                    depositAmount: item.depositAmount ?? item.deposit_amount ?? item.bondAmount ?? item.bond_amount ?? item.marginAmount ?? item.margin_amount ?? ''
+                    depositAmount: item.depositAmount ?? item.deposit_amount ?? item.bondAmount ?? item.bond_amount ?? item.marginAmount ?? item.margin_amount ?? '',
+                    areaOptions: this.normalizeAreaOptions(this.extractAreaSource(item))
                 }
                 if (existed) {
                     Object.assign(existed, next)
@@ -656,6 +851,7 @@ export default {
                 }
                 if (next.depositAmount !== '') this.$set(this.roleDepositConfig, code, next.depositAmount)
             })
+            this.refreshAreaColumns()
         },
         withPromoterCode(item = {}) {
             if (this.normalizeRoleCode(item.roleCode || item.role_code || item.role) !== 'PROMOTER') return item
@@ -676,13 +872,17 @@ export default {
         },
         selectRoleForView(roleCode) {
             const index = this.roleOptions.findIndex((item) => this.normalizeRoleCode(item.value) === this.normalizeRoleCode(roleCode))
-            if (index !== -1) this.roleIndex = index
+            if (index !== -1) {
+                this.roleIndex = index
+                this.refreshAreaColumns()
+            }
         },
         selectRole(roleCode) {
             const index = this.roleOptions.findIndex((item) => item.value === this.normalizeRoleCode(roleCode))
             if (index !== -1) {
                 this.roleIndex = index
                 this.showApplyForm = false
+                this.refreshAreaColumns()
             }
         },
         onRoleCardTap(item = {}) {
@@ -691,6 +891,7 @@ export default {
             this.roleIndex = roleIndex
             this.showApplyForm = false
             this.prefillForm(this.currentApplication || {})
+            this.refreshAreaColumns()
         },
         cancelApplyForm() {
             this.showApplyForm = false
@@ -707,6 +908,8 @@ export default {
             this.roleIndex = index
             this.prefillForm(this.currentApplication || {})
             this.applyKycToForm()
+            this.prefillUpgradeAccount()
+            this.refreshAreaColumns()
             this.showApplyForm = true
         },
         async startApplyRole(roleCode) {
@@ -717,6 +920,8 @@ export default {
             this.roleIndex = index
             this.prefillForm(this.currentApplication || {})
             this.applyKycToForm()
+            this.prefillUpgradeAccount()
+            this.refreshAreaColumns()
             this.showApplyForm = true
         },
         async handleRoleCardAction(item = {}) {
@@ -766,6 +971,8 @@ export default {
             this.roleIndex = index === -1 ? 0 : index
             this.prefillForm({})
             this.applyKycToForm()
+            this.prefillUpgradeAccount()
+            this.refreshAreaColumns()
             this.showApplyForm = true
         },
         statusType(status) {
@@ -872,6 +1079,7 @@ export default {
             return [
                 { label: '申请人', value: item.applicantName || item.applicant_name },
                 { label: '手机号', value: item.mobile },
+                { label: '申请区域', value: this.applicationAreaText(item) },
                 { label: '押金', value: this.displayDepositText(item) },
                 { label: '押金状态', value: this.depositStatusLabel(item.depositStatus || item.payStatus) }
             ].filter((info) => info.value)
@@ -982,9 +1190,24 @@ export default {
             this.form.mobile = application.mobile || this.form.mobile
             this.form.username = application.username || this.form.username
             this.form.businessLicenseUrl = application.businessLicenseUrl || application.business_license_url || this.form.businessLicenseUrl
+            this.form.provinceCode = application.provinceCode || application.province_code || ''
+            this.form.provinceName = application.provinceName || application.province_name || application.province || ''
+            this.form.cityCode = application.cityCode || application.city_code || ''
+            this.form.cityName = application.cityName || application.city_name || application.city || ''
+            this.form.districtCode = application.districtCode || application.district_code || ''
+            this.form.districtName = application.districtName || application.district_name || application.district || ''
             this.applyKycToForm()
             this.form.remark = application.remark || this.form.remark
             this.form.materialUrlsText = Array.isArray(application.materialUrls) ? application.materialUrls.join('\n') : (application.materialUrls || this.form.materialUrlsText)
+            this.form.password = ''
+            this.form.confirmPassword = ''
+            this.syncAreaPickerValueByForm()
+            this.prefillUpgradeAccount()
+        },
+        prefillUpgradeAccount() {
+            if (!this.isRoleUpgradeApplication) return
+            const promoter = this.approvedPromoterApplication || {}
+            this.form.username = promoter.username || promoter.loginName || promoter.login_name || this.form.username
             this.form.password = ''
             this.form.confirmPassword = ''
         },
@@ -997,7 +1220,11 @@ export default {
                 uni.showToast({ title: '请填写姓名和手机号', icon: 'none' })
                 return false
             }
-            if (!this.form.username.trim()) {
+            if (this.needsAreaSelection && !this.selectedAreaText) {
+                uni.showToast({ title: this.hasAreaOptions ? '请选择申请区域' : '暂无可选区域，请联系平台配置', icon: 'none' })
+                return false
+            }
+            if (this.requiresAccountCredentials && !this.form.username.trim()) {
                 uni.showToast({ title: '请填写登录账号', icon: 'none' })
                 return false
             }
@@ -1009,15 +1236,106 @@ export default {
                 uni.showToast({ title: '实名材料不完整，请先完成实名认证', icon: 'none' })
                 return false
             }
-            if (!this.form.password || this.form.password.length < 6) {
+            if (this.requiresAccountCredentials && (!this.form.password || this.form.password.length < 6)) {
                 uni.showToast({ title: '请设置至少 6 位密码', icon: 'none' })
                 return false
             }
-            if (this.form.password !== this.form.confirmPassword) {
+            if (this.requiresAccountCredentials && this.form.password !== this.form.confirmPassword) {
                 uni.showToast({ title: '两次密码输入不一致', icon: 'none' })
                 return false
             }
             return true
+        },
+        extractAreaSource(source = {}) {
+            return source.areaOptions || source.area_options || source.areas || source.areaList || source.area_list
+                || source.regions || source.regionOptions || source.region_options || source.regionList || source.region_list
+                || source.availableAreas || source.available_areas || source.applyAreas || source.apply_areas
+                || source.availableRegions || source.available_regions || []
+        },
+        normalizeAreaOptions(source = []) {
+            const list = Array.isArray(source)
+                ? source
+                : Array.isArray(source.list)
+                    ? source.list
+                    : Array.isArray(source.records)
+                        ? source.records
+                        : Array.isArray(source.children)
+                            ? source.children
+                            : []
+            return list.map((item) => this.normalizeAreaItem(item)).filter((item) => item.label)
+        },
+        normalizeAreaItem(item = {}) {
+            if (typeof item === 'string') return { label: item, value: item, children: [] }
+            const label = item.label || item.name || item.areaName || item.area_name || item.regionName || item.region_name || item.provinceName || item.province_name || item.cityName || item.city_name || item.districtName || item.district_name || ''
+            const value = item.value || item.code || item.areaCode || item.area_code || item.regionCode || item.region_code || item.provinceCode || item.province_code || item.cityCode || item.city_code || item.districtCode || item.district_code || item.id || label
+            const children = item.children || item.childList || item.child_list || item.list || item.cities || item.cityList || item.city_list || item.districts || item.districtList || item.district_list || []
+            return {
+                ...item,
+                label,
+                value,
+                children: this.normalizeAreaOptions(children)
+            }
+        },
+        refreshAreaColumns() {
+            const areas = this.selectedRoleAreaOptions
+            const provinceIndex = Math.min(this.areaPickerValue[0] || 0, Math.max(areas.length - 1, 0))
+            const cities = areas[provinceIndex] && areas[provinceIndex].children ? areas[provinceIndex].children : []
+            const cityIndex = Math.min(this.areaPickerValue[1] || 0, Math.max(cities.length - 1, 0))
+            const districts = cities[cityIndex] && cities[cityIndex].children ? cities[cityIndex].children : []
+            const districtIndex = Math.min(this.areaPickerValue[2] || 0, Math.max(districts.length - 1, 0))
+            this.areaPickerValue = [provinceIndex, cityIndex, districtIndex]
+            this.areaPickerColumns = [areas, cities, districts]
+        },
+        onAreaColumnChange(e) {
+            const column = Number(e.detail.column || 0)
+            const value = Number(e.detail.value || 0)
+            const next = this.areaPickerValue.slice()
+            next[column] = value
+            if (column === 0) {
+                next[1] = 0
+                next[2] = 0
+            } else if (column === 1) {
+                next[2] = 0
+            }
+            this.areaPickerValue = next
+            this.refreshAreaColumns()
+        },
+        onAreaConfirm(e) {
+            const value = Array.isArray(e.detail.value) ? e.detail.value : this.areaPickerValue
+            this.areaPickerValue = value
+            this.refreshAreaColumns()
+            const province = this.areaPickerColumns[0][this.areaPickerValue[0]] || {}
+            const city = this.areaPickerColumns[1][this.areaPickerValue[1]] || {}
+            const district = this.areaPickerColumns[2][this.areaPickerValue[2]] || {}
+            this.form.provinceCode = province.value || ''
+            this.form.provinceName = province.label || ''
+            this.form.cityCode = city.value || ''
+            this.form.cityName = city.label || ''
+            this.form.districtCode = district.value || ''
+            this.form.districtName = district.label || ''
+        },
+        syncAreaPickerValueByForm() {
+            const areas = this.selectedRoleAreaOptions
+            if (!areas.length) {
+                this.refreshAreaColumns()
+                return
+            }
+            const provinceIndex = Math.max(areas.findIndex((item) => this.areaOptionMatched(item, this.form.provinceCode, this.form.provinceName)), 0)
+            const cities = areas[provinceIndex] && areas[provinceIndex].children ? areas[provinceIndex].children : []
+            const cityIndex = Math.max(cities.findIndex((item) => this.areaOptionMatched(item, this.form.cityCode, this.form.cityName)), 0)
+            const districts = cities[cityIndex] && cities[cityIndex].children ? cities[cityIndex].children : []
+            const districtIndex = Math.max(districts.findIndex((item) => this.areaOptionMatched(item, this.form.districtCode, this.form.districtName)), 0)
+            this.areaPickerValue = [provinceIndex, cityIndex, districtIndex]
+            this.refreshAreaColumns()
+        },
+        areaOptionMatched(item = {}, code, name) {
+            return Boolean((code && String(item.value) === String(code)) || (name && item.label === name))
+        },
+        handleEmptyAreaTap() {
+            uni.showToast({ title: '暂无可选区域，请联系平台配置', icon: 'none' })
+        },
+        applicationAreaText(item = {}) {
+            return [item.provinceName || item.province_name || item.province, item.cityName || item.city_name || item.city, item.districtName || item.district_name || item.district].filter(Boolean).join(' / ')
         },
         buildPreApplyOrderNo() {
             const userId = this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || 'user'
@@ -1260,34 +1578,36 @@ export default {
 .label { flex: none; width: 160rpx; color: #465366; font-size: 27rpx; font-weight: 500; line-height: 40rpx; }
 input, textarea, .picker-value { flex: 1; min-width: 0; color: #1f2937; font-size: 28rpx; }
 input, .picker-value { min-height: 62rpx; line-height: 62rpx; text-align: right; }
+.picker-value--placeholder { color: #98a2b3; }
 textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ffffff; line-height: 40rpx; box-sizing: border-box; text-align: left; }
+.upgrade-tip { margin-top: 16rpx; padding: 18rpx 20rpx; border-radius: 18rpx; color: #176b55; background: #eefbf6; border: 1rpx solid #c7f0df; font-size: 24rpx; line-height: 36rpx; }
 .kyc-material { margin-top: 24rpx; padding: 24rpx; border-radius: 20rpx; background: #f8fafc; border: 1rpx solid #edf1f6; }
 .kyc-material__title { color: #333333; font-size: 28rpx; font-weight: 600; }
 .kyc-material__photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18rpx; margin-top: 18rpx; }
 .kyc-material__photo { width: 100%; height: 180rpx; border-radius: 14rpx; background: #edf1f6; }
 .agreement-row { display: flex; align-items: center; gap: 14rpx; margin-top: 22rpx; color: #666666; font-size: 24rpx; line-height: 34rpx; }
 .submit-btn { margin-top: 30rpx; height: 88rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); border-radius: 44rpx; font-size: 30rpx; box-shadow: 0 14rpx 28rpx rgba(22, 136, 255, .22); }
-.history { padding: 18rpx 18rpx; }
-.history-title { margin-bottom: 10rpx; color: #1f2937; font-size: 28rpx; font-weight: 700; }
-.history-item { position: relative; padding: 14rpx 16rpx 14rpx 22rpx; border: 1rpx solid #edf1f6; border-radius: 14rpx; background: #fbfcff; box-sizing: border-box; overflow: hidden; }
-.history-item + .history-item { margin-top: 8rpx; }
-.history-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6rpx; background: #c9d4e5; }
+.history { padding: 14rpx; }
+.history-title { margin-bottom: 8rpx; color: #1f2937; font-size: 26rpx; font-weight: 700; }
+.history-item { position: relative; padding: 10rpx 12rpx 10rpx 18rpx; border: 1rpx solid #edf1f6; border-radius: 12rpx; background: #fbfcff; box-sizing: border-box; overflow: hidden; }
+.history-item + .history-item { margin-top: 6rpx; }
+.history-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5rpx; background: #c9d4e5; }
 .history-main { min-width: 0; }
-.history-row { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
-.history-role { color: #1f2937; font-size: 26rpx; font-weight: 700; line-height: 34rpx; }
-.history-meta { display: flex; flex-wrap: wrap; gap: 4rpx 14rpx; margin-top: 4rpx; color: #667085; font-size: 21rpx; line-height: 28rpx; }
-.history-detail { display: flex; flex-wrap: wrap; gap: 2rpx 16rpx; margin-top: 6rpx; padding: 0; border-radius: 0; background: transparent; }
+.history-row { display: flex; align-items: center; justify-content: space-between; gap: 10rpx; }
+.history-role { color: #1f2937; font-size: 24rpx; font-weight: 700; line-height: 32rpx; }
+.history-meta { display: flex; flex-wrap: wrap; gap: 2rpx 12rpx; margin-top: 2rpx; color: #667085; font-size: 19rpx; line-height: 26rpx; }
+.history-detail { display: flex; flex-wrap: wrap; gap: 0 12rpx; margin-top: 4rpx; padding: 0; border-radius: 0; background: transparent; }
 .history-detail__item { min-width: 0; }
-.history-detail__label { display: inline; color: #98a2b3; font-size: 20rpx; line-height: 28rpx; }
+.history-detail__label { display: inline; color: #98a2b3; font-size: 19rpx; line-height: 26rpx; }
 .history-detail__label::after { content: '：'; }
-.history-detail__value { display: inline; color: #1f2937; font-size: 21rpx; line-height: 28rpx; word-break: break-all; }
-.history-info { margin-top: 4rpx; color: #8a96a6; font-size: 20rpx; line-height: 28rpx; }
-.history-desc { margin-top: 6rpx; padding: 8rpx 10rpx; border-radius: 10rpx; color: #c2410c; background: #fff7ed; font-size: 21rpx; line-height: 30rpx; }
+.history-detail__value { display: inline; color: #1f2937; font-size: 20rpx; line-height: 26rpx; word-break: break-all; }
+.history-info { margin-top: 2rpx; color: #8a96a6; font-size: 19rpx; line-height: 26rpx; }
+.history-desc { margin-top: 4rpx; padding: 6rpx 8rpx; border-radius: 8rpx; color: #c2410c; background: #fff7ed; font-size: 19rpx; line-height: 28rpx; }
 .history-desc--approved { color: #10a66a; background: rgba(16, 166, 106, .08); }
-.history-desc__label { display: inline; font-weight: 700; line-height: 30rpx; }
+.history-desc__label { display: inline; font-weight: 700; line-height: 28rpx; }
 .history-desc__label::after { content: '：'; }
-.history-desc__value { display: inline; line-height: 30rpx; word-break: break-all; }
-.history-status { flex: none; padding: 4rpx 12rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 21rpx; font-weight: 600; line-height: 28rpx; }
+.history-desc__value { display: inline; line-height: 28rpx; word-break: break-all; }
+.history-status { flex: none; padding: 3rpx 10rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 19rpx; font-weight: 600; line-height: 26rpx; }
 .history-status--deposit { color: #d48806; background: rgba(250, 173, 20, .14); }
 .history-status--pending { color: #1677ff; background: rgba(22, 119, 255, .12); }
 .history-status--approved { color: #10a66a; background: rgba(16, 166, 106, .12); }
