@@ -24,10 +24,20 @@
             </view>
             <view class="order-switch__title">我的订单</view>
         </view>
+        <view class="scene-switch">
+            <view
+                v-for="item in orderScenes"
+                :key="item.value"
+                :class="['scene-switch__item', orderScene === item.value ? 'is-scene-active' : '']"
+                @tap="changeOrderScene(item.value)"
+            >
+                {{ item.name }}
+            </view>
+        </view>
         <view class="order-tabs">
             <view
-                v-for="(item, index) in order"
-                :key="index"
+                v-for="(item, index) in currentOrderTabs"
+                :key="item.type"
                 :class="['order-tabs__item', active === index ? 'is-active' : '']"
                 @tap="changeShow(index, true)"
             >
@@ -37,11 +47,12 @@
     </view>
     <view class="order-content">
         <order-list
-            v-for="(item, index) in order"
+            v-for="(item, index) in currentOrderTabs"
             :key="item.type"
             v-if="item.isShow"
             v-show="active === index"
             :order-type="item.type"
+            :order-scene="orderScene"
             :ref="'order' + item.type"
         ></order-list>
     </view>
@@ -58,7 +69,12 @@ export default {
   data() {
     return {
       active: 0,
-      order: [{
+      orderScene: 'online',
+      orderScenes: [
+        { name: '线上订单', value: 'online' },
+        { name: '线下订单', value: 'offline' }
+      ],
+      onlineOrderTabs: [{
         name: '全部',
         type: orderType.ALL,
         isShow: false
@@ -77,7 +93,27 @@ export default {
       }, {
         name: '售后',
         type: 'afterSale',
-        url: '/bundle_order/pages/post_sale/post_sale',
+        isShow: false
+      }],
+      offlineOrderTabs: [{
+        name: '全部',
+        type: orderType.ALL,
+        isShow: false
+      }, {
+        name: '待支付',
+        type: orderType.PAY,
+        isShow: false
+      }, {
+        name: '待核销',
+        type: orderType.SHIP,
+        isShow: false
+      }, {
+        name: '已核销',
+        type: orderType.FINISH,
+        isShow: false
+      }, {
+        name: '售后',
+        type: 'afterSale',
         isShow: false
       }]
     };
@@ -89,14 +125,15 @@ export default {
 		},
   props: {},
   onLoad: function (options = {}) {
-    const { order } = this
     const type = options.type === 'closed' ? orderType.CLOSE : (options.type || orderType.ALL);
-    const index = order.findIndex(item => item.type == type)
+    if (['online', 'offline'].includes(options.scene)) this.orderScene = options.scene
+    const index = this.currentOrderTabs.findIndex(item => item.type == type)
     this.changeShow(index >= 0 ? index : 0);
   },
 
   onPullDownRefresh: function () {
-    const {active, order} = this
+    const {active} = this
+    const order = this.currentOrderTabs
     const current = this.$refs['order' + order[active].type]
     const component = Array.isArray(current) ? current[0] : current
     if (component && component.reflesh) {
@@ -107,24 +144,26 @@ export default {
   },
 
   onReachBottom: function () {
-	  const {active, order} = this
+	  const {active} = this
+    const order = this.currentOrderTabs
     const current = this.$refs['order' + order[active].type]
     const component = Array.isArray(current) ? current[0] : current
     if (component && component.getOrderListFun) component.getOrderListFun()
   },
+  computed: {
+    currentOrderTabs() {
+      return this.orderScene === 'offline' ? this.offlineOrderTabs : this.onlineOrderTabs
+    }
+  },
   methods: {
     changeShow(index, forceRefresh = false) {
 		if(index >= 0) {
-			const item = this.order[index]
+			const item = this.currentOrderTabs[index]
 			if (!item) return
 			if (this.active === index && item.isShow && forceRefresh) return
-			if (item && item.url) {
-				uni.navigateTo({ url: item.url })
-				return
-			}
 			const wasShown = Boolean(item.isShow)
 			this.active = index
-			this.order[index].isShow = true
+			this.$set(this.currentOrderTabs[index], 'isShow', true)
 			if (forceRefresh && wasShown) {
 				this.$nextTick(() => {
 					const current = this.$refs['order' + item.type]
@@ -133,6 +172,19 @@ export default {
 				})
 			}
 		}
+    },
+    changeOrderScene(scene) {
+      if (!['online', 'offline'].includes(scene) || this.orderScene === scene) return
+      this.orderScene = scene
+      if (this.active >= this.currentOrderTabs.length) this.active = 0
+      this.changeShow(this.active)
+      this.$nextTick(() => {
+        this.currentOrderTabs.forEach((item) => {
+          const current = this.$refs['order' + item.type]
+          const component = Array.isArray(current) ? current[0] : current
+          if (component && component.reflesh) component.reflesh()
+        })
+      })
     },
     goBack() {
       const pages = getCurrentPages();
@@ -196,6 +248,33 @@ export default {
   height: 104rpx;
   padding: 0 16rpx 12rpx;
   box-sizing: border-box;
+}
+
+.scene-switch {
+  display: flex;
+  align-items: center;
+  margin: 0 24rpx 16rpx;
+  padding: 6rpx;
+  background: #edf2f7;
+  border-radius: 12rpx;
+}
+
+.scene-switch__item {
+  flex: 1;
+  min-width: 0;
+  height: 64rpx;
+  color: #475467;
+  font-size: 26rpx;
+  font-weight: 600;
+  line-height: 64rpx;
+  text-align: center;
+  border-radius: 8rpx;
+}
+
+.is-scene-active {
+  color: #1f2937;
+  background: #ffffff;
+  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, .08);
 }
 
 .order-tabs__item {

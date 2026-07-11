@@ -40,6 +40,59 @@ function parseImageList(value) {
     return []
 }
 
+function normalizeTimeValue(value) {
+    var text = String(value || '').trim()
+    if (!text) return ''
+    var match = text.match(/(\d{1,2})[:：](\d{2})/)
+    if (!match) return ''
+    var hour = Math.max(0, Math.min(23, Number(match[1]) || 0))
+    var minute = Math.max(0, Math.min(59, Number(match[2]) || 0))
+    return hour * 60 + minute
+}
+
+function inferOpenStatusFromHours(hours, fallbackStatus) {
+    var status = String(fallbackStatus || '').trim().toUpperCase()
+    var text = String(hours || '').trim()
+    if (!text) return status
+    if (/24\s*小时|全天|00[:：]00\s*[-~至到]\s*24[:：]00/i.test(text)) return 'OPEN'
+    var match = text.match(/(\d{1,2}[:：]\d{2})\s*(?:-|~|至|到)\s*(\d{1,2}[:：]\d{2})/)
+    if (!match) return status
+    var start = normalizeTimeValue(match[1])
+    var end = normalizeTimeValue(match[2])
+    if (start === '' || end === '') return status
+    var now = new Date()
+    var current = now.getHours() * 60 + now.getMinutes()
+    if (start === end) return 'OPEN'
+    if (start < end) return current >= start && current < end ? 'OPEN' : 'CLOSED'
+    return current >= start || current < end ? 'OPEN' : 'CLOSED'
+}
+
+function normalizeTimeValueClean(value) {
+    var text = String(value || '').trim()
+    var match = text.match(/(\d{1,2})[:：](\d{2})/)
+    if (!match) return ''
+    var hour = Math.max(0, Math.min(23, Number(match[1]) || 0))
+    var minute = Math.max(0, Math.min(59, Number(match[2]) || 0))
+    return hour * 60 + minute
+}
+
+function inferOpenStatusFromHoursClean(hours, fallbackStatus) {
+    var status = String(fallbackStatus || '').trim().toUpperCase()
+    var text = String(hours || '').trim()
+    if (!text) return status
+    if (/24\s*小时|全天|00[:：]00\s*[-~至到]\s*24[:：]00/i.test(text)) return 'OPEN'
+    var match = text.match(/(\d{1,2}[:：]\d{2})\s*(?:-|~|至|到)\s*(\d{1,2}[:：]\d{2})/)
+    if (!match) return status
+    var start = normalizeTimeValueClean(match[1])
+    var end = normalizeTimeValueClean(match[2])
+    if (start === '' || end === '') return status
+    var now = new Date()
+    var current = now.getHours() * 60 + now.getMinutes()
+    if (start === end) return 'OPEN'
+    if (start < end) return current >= start && current < end ? 'OPEN' : 'CLOSED'
+    return current >= start || current < end ? 'OPEN' : 'CLOSED'
+}
+
 function parseTextList(value) {
     if (!value) return []
     if (Array.isArray(value)) {
@@ -54,7 +107,7 @@ function parseTextList(value) {
             var parsed = JSON.parse(value)
             if (Array.isArray(parsed)) return parseTextList(parsed)
         } catch (e) {}
-        return value.split(/[,，|]/).map(function(item) { return item.trim() }).filter(Boolean)
+        return value.split(/[,，]/).map(function(item) { return item.trim() }).filter(Boolean)
     }
     if (typeof value === 'object') {
         return Object.keys(value).map(function(key) { return value[key] || key }).filter(Boolean)
@@ -194,7 +247,7 @@ function normalizeCommentSpecText(value) {
     var text = String(value || '').trim()
     if (!text) return ''
     if (/^\d+$/.test(text)) return ''
-    if (/^[A-Z0-9_-]{8,}$/i.test(text) && !/[一-龥/：:]/.test(text)) return ''
+    if (/^[A-Z0-9_-]{8,}$/i.test(text) && !/[\u4e00-\u9fa5，。！？、；：“”‘’（）]/.test(text)) return ''
     return text
 }
 function buildSpecValueId(spec, groupName, valueName, fallback) {
@@ -245,6 +298,8 @@ function normalizeGoodsListItem(item = {}) {
 function normalizeSkuItem(item = {}, index = 0) {
     var specs = parseSpecJson(item.specJson || item.spec_json || item.spec)
     var specValueStr = specs.map(function(spec) { return spec.valueName || spec.value || spec.name }).filter(Boolean).join(' / ') || item.skuName || '默认'
+    var skuName = item.sku_name || item.skuName || item.name || item.title || ''
+    var displaySkuName = skuName && skuName !== specValueStr ? skuName : specValueStr
     var specValueIds = specs.map(function(spec, specIndex) {
         var groupName = spec.name || spec.specName || '规格' + (specIndex + 1)
         var valueName = spec.valueName || spec.value || spec.name
@@ -256,15 +311,17 @@ function normalizeSkuItem(item = {}, index = 0) {
         id: item.id || item.skuId,
         item_id: item.item_id || item.skuId || item.id,
         sku_id: item.sku_id || item.skuId || item.id,
+        skuName: skuName || specValueStr,
+        sku_name: skuName || specValueStr,
         sku_code: item.sku_code || item.skuCode || '',
-        name: item.name || item.skuName || specValueStr,
+        name: displaySkuName,
         price: item.price || item.salePrice || 0,
         team_price: item.team_price || item.teamPrice || item.groupPrice || item.salePrice || item.price || 0,
         market_price: item.market_price || item.marketPrice || item.originPrice || item.origin_price || item.originalPrice || item.original_price || item.linePrice || item.line_price || 0,
         stock: valueOr(item.stock, valueOr(item.stockQty, valueOr(item.stockQuantity, 0))),
         image,
-        spec_value_str: item.spec_value_str || specValueStr,
-        spec_value: item.spec_value || specValueStr,
+        spec_value_str: displaySkuName || item.spec_value_str || specValueStr,
+        spec_value: displaySkuName || item.spec_value || specValueStr,
         spec_value_ids: item.spec_value_ids || specValueIds || String(item.skuId || item.id || index),
         spec_value_ids_arr: (item.spec_value_ids || specValueIds || String(item.skuId || item.id || index)).split(',')
     })
@@ -368,11 +425,17 @@ function normalizeGoodsDetail(payload = {}, spuId) {
     freeShipping = valueOr(freeShipping, detail.is_free_shipping)
     freeShipping = valueOr(freeShipping, detail.postageFree)
     freeShipping = valueOr(freeShipping, detail.postage_free)
+    var categoryType = valueOr(detail.categoryType, detail.category_type)
+    categoryType = valueOr(categoryType, valueOr(detail.goodsCategoryType, valueOr(detail.goods_category_type, valueOr(detail.productCategoryType, valueOr(detail.product_category_type, 'ONLINE')))))
 
     return Object.assign({}, detail, {
         id: detail.id || detail.spuId || detail.productId || spuId,
         goods_id: detail.goods_id || detail.spuId || detail.productId || detail.id || spuId,
         spuId: detail.spuId || detail.id || detail.productId || spuId,
+        categoryId: detail.categoryId || detail.category_id || '',
+        category_id: detail.category_id || detail.categoryId || '',
+        categoryType,
+        category_type: categoryType,
         shop_id: detail.shop_id || detail.shopId || detail.merchantShopId || detail.merchant_shop_id || shopInfo.shopId || shopInfo.id || '',
         shopId: detail.shopId || detail.shop_id || detail.merchantShopId || detail.merchant_shop_id || shopInfo.shopId || shopInfo.id || '',
         shop_name: detail.shop_name || detail.shopName || detail.storeName || shopInfo.shopName || shopInfo.name || '',
@@ -469,7 +532,7 @@ function normalizeCommentItem(item = {}) {
     var videos = parseImageList(item.video || item.videos || item.videoUrl || item.video_url || item.videoUrls || item.video_urls || item.commentVideo || item.comment_video || item.commentVideos || item.comment_videos)
     var appendVideos = parseImageList(item.appendVideo || item.append_video || item.appendVideos || item.append_videos || item.additionalVideo || item.additional_video || item.additionalVideos || item.additional_videos)
     var tags = parseTextList(item.tags || item.labels || item.commentTags || item.comment_tags || item.impressions || item.keyword || item.keywords)
-    var score = normalizeCommentScore(firstDefined(item.goods_comment, item.goodsComment, item.goods_rate, item.goodsRate, item.score, item.star, item.rating, item.productScore, item.product_score, item.description_comment, item.descriptionComment, 5))
+    var score = normalizeCommentScore(firstDefined(item.goods_comment, item.goodsComment, item.goods_rate, item.goodsRate, item.score, item.star, item.rating, item.productScore, item.product_score, item.description_comment, item.descriptionComment, ''))
     var serviceScore = item.service_comment || item.serviceComment || item.serviceScore || item.service_score || item.serverRate || item.server_rate ? normalizeCommentScore(firstDefined(item.service_comment, item.serviceComment, item.serviceScore, item.service_score, item.serverRate, item.server_rate)) : ''
     var expressScore = item.express_comment || item.expressComment || item.deliveryScore || item.delivery_score || item.logisticsScore || item.logistics_score ? normalizeCommentScore(firstDefined(item.express_comment, item.expressComment, item.deliveryScore, item.delivery_score, item.logisticsScore, item.logistics_score)) : ''
     var descScore = item.description_comment || item.descriptionComment || item.descScore || item.desc_score || item.descriptionScore || item.description_score ? normalizeCommentScore(firstDefined(item.description_comment, item.descriptionComment, item.descScore, item.desc_score, item.descriptionScore, item.description_score)) : ''
@@ -603,25 +666,45 @@ function normalizeStreetCategory(item = {}) {
 }
 
 function normalizeStreetShop(item = {}) {
+    var businessHours = item.businessHours || item.openHours || item.business_hours || item.serviceTime || item.service_time || ''
+    var openStatus = inferOpenStatusFromHoursClean(businessHours, item.open_status || item.openStatus || item.status || '')
     return Object.assign({}, item, {
         shopId: item.shopId || item.shop_id || item.merchantShopId || item.merchant_shop_id || item.id || '',
         shopName: item.shopName || item.shop_name || item.storeName || item.name || '',
         shopLogo: resolveImage(item.shop_logo || item.shopLogo || item.logo || item.logoUrl || item.image || item.cover),
         shopScore: valueOr(item.shop_score, valueOr(item.shopScore, valueOr(item.score, valueOr(item.star, '')))),
         detailAddress: item.detail_address || item.detailAddress || item.address || '',
-        openStatus: item.open_status || item.openStatus || item.status || ''
+        businessHours,
+        business_hours: businessHours,
+        openStatus,
+        open_status: openStatus
     })
 }
 
 function normalizeStreetIndex(data = {}) {
+    var categories = (data.recommendedCategories || []).map(normalizeStreetCategory)
+    var categoryPages = Array.isArray(data.categoryPages)
+        ? data.categoryPages.map(function(page) { return (Array.isArray(page) ? page : []).map(normalizeStreetCategory) })
+        : []
     return Object.assign({}, data, {
         searchBox: {
             keyword: (data.searchBox && data.searchBox.keyword) || '',
-            placeholder: (data.searchBox && data.searchBox.placeholder) || '搜索商品'
+            placeholder: (data.searchBox && data.searchBox.placeholder) || '搜索商品/店铺'
         },
-        recommendedCategories: (data.recommendedCategories || []).map(normalizeStreetCategory),
+        recommendedCategories: categories,
+        categoryPages: categoryPages.length ? categoryPages : chunkList(categories, Number(data.categoryPageSize || 8)),
+        categoryPageSize: Number(data.categoryPageSize || 8),
         recommendedShops: (data.recommendedShops || []).map(normalizeStreetShop)
     })
+}
+
+function chunkList(list, pageSize) {
+    var size = pageSize > 0 ? pageSize : 8
+    var pages = []
+    for (var index = 0; index < list.length; index += size) {
+        pages.push(list.slice(index, index + size))
+    }
+    return pages
 }
 
 function normalizeShopMediaItem(item = {}) {
@@ -636,28 +719,33 @@ function normalizeShopMediaItem(item = {}) {
 
 function normalizeShopCommentItem(item = {}) {
     var user = item.user || item.member || item.customer || {}
+    var score = firstDefined(item.score, item.star, item.rating, item.shopScore, item.serviceScore, '')
     return Object.assign({}, item, {
         id: item.id || item.commentId || item.reviewId || '',
         name: item.name || item.nickname || item.userName || item.memberName || user.nickname || user.name || user.userName || '匿名用户',
         date: item.date || item.create_time || item.createdAt || item.createTime || item.commentTime || item.evaluateTime || '',
         content: item.content || item.comment || item.reviewContent || item.remark || item.evaluateContent || item.commentContent || '用户评价',
         avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl || user.avatar || user.avatarUrl || user.headimgurl, 'avatar'),
-        score: item.score || item.star || item.rating || item.shopScore || item.serviceScore || 5
+        score: score === null || score === undefined ? '' : score
     })
 }
 
 function normalizeShopGroupItem(item = {}) {
     var normalized = normalizeGoodsListItem(item)
     var activity = item.activity || item.groupBuyActivity || item.groupActivity || {}
+    var product = item.product || item.spu || item.goods || item.goodsInfo || item.productInfo || item.spuInfo || activity.product || activity.spu || activity.goods || {}
     var goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || activity.goodsId || activity.spuId
     var price = valueOr(item.groupPrice, valueOr(item.group_price, valueOr(item.groupMinPrice, valueOr(item.group_min_price, valueOr(item.teamPrice, valueOr(item.team_price, valueOr(item.teamMinPrice, valueOr(item.team_min_price, valueOr(item.activityPrice, valueOr(item.activity_price, valueOr(item.salePrice, valueOr(item.sale_price, valueOr(item.minPrice, valueOr(item.min_price, valueOr(item.price, normalized.price)))))))))))))))
+    var realName = product.goodsName || product.goods_name || product.spuName || product.spu_name || product.productName || product.product_name || product.name || product.title || item.goodsName || item.goods_name || item.spuName || item.spu_name || item.productName || item.product_name
+    var fallbackName = item.name || item.title || item.activityName || item.activity_name || normalized.name || '团购套餐'
+    if (!realName || realName === '团购套餐') realName = fallbackName
     return Object.assign({}, normalized, item, {
         id: goodsId || normalized.id,
         goods_id: goodsId || normalized.goods_id,
         spuId: item.spuId || item.productId || goodsId || normalized.spu_id,
-        name: item.name || item.goodsName || item.goods_name || item.spuName || item.productName || item.title || item.activityName || item.activity_name || normalized.name,
-        goods_name: item.goods_name || item.goodsName || item.spuName || item.productName || item.title || item.activityName || item.activity_name || normalized.goods_name,
-        image: resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || item.thumbnail || normalized.image, 'goods'),
+        name: realName,
+        goods_name: realName,
+        image: resolveImage(product.image || product.cover || product.mainImageUrl || product.main_image_url || product.imageUrl || product.image_url || item.image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || item.thumbnail || normalized.image, 'goods'),
         price,
         groupPrice: price,
         priceText: item.priceText || item.price_text || item.groupPriceText || item.group_price_text || item.groupMinPriceText || item.group_min_price_text || item.teamPriceText || item.team_price_text || item.teamMinPriceText || item.team_min_price_text || item.activityPriceText || item.activity_price_text || item.salePriceText || item.sale_price_text || '',
@@ -685,6 +773,8 @@ function normalizeShopDetail(data = {}) {
     var albums = Array.isArray(albumPayload) ? albumPayload : parseImageList(albumPayload)
     var videos = Array.isArray(videoPayload) ? videoPayload : parseImageList(videoPayload)
     var logo = base.shopLogo || base.shop_logo || base.logo || base.logoUrl || base.avatarUrl || base.image || base.cover || base.mainImageUrl || base.headImage || base.head_image
+    var businessHours = base.businessHours || base.openHours || base.business_hours || base.serviceTime || base.service_time || ''
+    var openStatus = inferOpenStatusFromHoursClean(businessHours, base.openStatus || base.open_status || base.status || '')
     return Object.assign({}, data, detail, {
         cover: detail.cover || detail.shopCover || detail.shop_cover || detail.bannerImage || detail.banner_image || detail.mainImageUrl || detail.headImage ? resolveImage(detail.cover || detail.shopCover || detail.shop_cover || detail.bannerImage || detail.banner_image || detail.mainImageUrl || detail.headImage, 'goods') : '',
         image: detail.image || detail.cover || detail.mainImageUrl || detail.shopImage ? resolveImage(detail.image || detail.cover || detail.mainImageUrl || detail.shopImage, 'goods') : '',
@@ -697,11 +787,13 @@ function normalizeShopDetail(data = {}) {
             shopName: base.shopName || base.shop_name || base.storeName || base.store_name || base.name || detail.shopName || detail.storeName || '',
             shopLogo: resolveImage(logo),
             shopScore: valueOr(base.shopScore, valueOr(base.shop_score, valueOr(base.score, valueOr(base.star, '')))),
-            businessHours: base.businessHours || base.openHours || base.business_hours || base.serviceTime || base.service_time || '',
+            businessHours,
+            business_hours: businessHours,
             detailAddress: base.detailAddress || base.address || base.detail_address || base.fullAddress || base.full_address || '',
             latitude: base.latitude || base.lat || base.shopLatitude || base.shop_latitude || '',
             longitude: base.longitude || base.lng || base.shopLongitude || base.shop_longitude || '',
-            openStatus: base.openStatus || base.open_status || base.status || '',
+            openStatus,
+            open_status: openStatus,
             avatarUrl: resolveImage(base.avatarUrl || logo, 'avatar'),
             contactPhone: base.contactPhone || base.phone || base.mobile || '',
             provinceName: base.provinceName || '',
@@ -871,8 +963,21 @@ export function getGoodsDetail(data) {
 }
 
 export function getGoodsSearch(data = {}) {
+    var categoryId = data.category_id || data.categoryId || data.thirdCategoryId || data.third_category_id || data.secondCategoryId || data.second_category_id
     return request.get('miniapp/search/products', {
-        params: { keyword: data.keyword, categoryId: data.category_id || data.categoryId, shopId: data.shop_id || data.shopId, sortType: data.sortType || data.price || data.sales_sum, minPrice: data.minPrice || data.min_price, maxPrice: data.maxPrice || data.max_price, pageNo: data.page_no || data.pageNo, pageSize: data.page_size || data.pageSize }
+        params: {
+            keyword: data.keyword,
+            categoryId,
+            category_id: categoryId,
+            thirdCategoryId: data.thirdCategoryId || data.third_category_id || categoryId,
+            third_category_id: data.third_category_id || data.thirdCategoryId || categoryId,
+            shopId: data.shop_id || data.shopId,
+            sortType: data.sortType || data.price || data.sales_sum,
+            minPrice: data.minPrice || data.min_price,
+            maxPrice: data.maxPrice || data.max_price,
+            pageNo: data.page_no || data.pageNo,
+            pageSize: data.page_size || data.pageSize
+        }
     }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeGoodsList(res.data || {}) }) : res })
         .catch(function() { return { code: 1, data: normalizeGoodsList({ list: [], total: 0, hasNext: false }) } })
 }

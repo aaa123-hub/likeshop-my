@@ -534,6 +534,10 @@ function currentUserId(data = {}) {
     return data.userId || data.user_id || userInfo.userId || userInfo.user_id || userInfo.id
 }
 
+function hasLoginIdentity(data = {}) {
+    return Boolean(Cache.get(TOKEN))
+}
+
 function normalizeFavoriteProduct(item = {}) {
     const target = item.target || item.product || item.spu || item
     return {
@@ -1030,12 +1034,13 @@ function normalizePaymentRecord(item = {}) {
 
 export function applyAfterSale(data) {
     const orderNo = data.orderNo || data.order_id || data.id
+    const refundAmount = data.refundCashAmount ?? data.refund_cash_amount ?? data.refundableCashAmount ?? data.refundable_cash_amount ?? data.refundAmount ?? data.refund_price ?? data.amount
     return request.post(`miniapp/orders/${orderNo}/refunds`, {
         orderItemId: data.orderItemId || data.item_id,
         refundType: data.refundType || data.refund_type,
         refundReason: data.refundReason || data.reason,
         refundRemark: data.refundRemark || data.remark,
-        refundAmount: data.refundAmount || data.refund_price || data.amount,
+        refundAmount,
         proofImages: data.proofImages || (data.img ? [data.img] : []),
         idempotentKey: data.idempotentKey || `refund-${orderNo}-${Date.now()}`
     }).then((res) => {
@@ -1088,6 +1093,11 @@ export function getGoodsInfo(params) {
             goods.refund_id
         )
         const statusText = afterSaleId ? (refundStatusText(afterSale.statusText || afterSale.status_text || afterSaleStatus) || '售后处理中') : (afterSaleStatus !== undefined ? refundStatusText(afterSale.statusText || afterSale.status_text || afterSaleStatus) : '')
+        const amountInfo = data.amountInfo || data.amount_info || {}
+        const pointsInfo = data.pointsInfo || data.points_info || {}
+        const cashAmount = amountInfo.payAmount ?? amountInfo.pay_amount ?? data.payAmount ?? data.pay_amount ?? data.actualPayAmount ?? data.actual_pay_amount ?? data.paidAmount ?? data.paid_amount ?? goods.payAmount ?? goods.pay_amount ?? goods.realAmount ?? goods.real_amount ?? 0
+        const pointsAmount = amountInfo.pointsDeductAmount ?? amountInfo.points_deduct_amount ?? pointsInfo.pointsDeductAmount ?? pointsInfo.points_deduct_amount ?? data.pointsDeductAmount ?? data.points_deduct_amount ?? data.integralAmount ?? data.integral_amount ?? 0
+        const freightAmount = data.amountInfo?.freightAmount ?? data.amountInfo?.freight_amount ?? amountInfo.freightAmount ?? amountInfo.freight_amount ?? data.freightAmount ?? data.freight_amount ?? 0
         const price = goods.realAmount || goods.totalAmount || goods.payAmount || goods.goods_price || goods.salePrice || 0
         const reasons = data.refundReasons || data.refund_reasons || data.afterSaleReasons || data.after_sale_reasons || data.reason
         return {
@@ -1101,7 +1111,12 @@ export function getGoodsInfo(params) {
                     image: resolveImage(goods.image || goods.imageUrl || goods.mainImageUrl || goods.cover, 'goods'),
                     goods_num: goods.goods_num || goods.quantity || goods.num || 1,
                     total_pay_price: price,
-                    refund_express_money: data.amountInfo?.freightAmount || 0,
+                    refund_cash_amount: cashAmount,
+                    refundableCashAmount: cashAmount,
+                    refund_points_amount: pointsAmount,
+                    refundablePointsAmount: pointsAmount,
+                    pointsDeductAmount: pointsAmount,
+                    refund_express_money: freightAmount,
                     after_sale_id: afterSaleId || '',
                     after_status_desc: statusText || '',
                     refund_info: afterSale,
@@ -1703,18 +1718,49 @@ function isMissingMiniappResourceResponse(res = {}, path = '') {
 
 export function submitKyc(data) {
     return request.post('miniapp/kyc/submit', {
+        userId: data.userId || data.user_id,
         realName: data.realName || data.real_name,
         certType: data.certType || data.cert_type || 'ID_CARD',
         certNo: data.certNo || data.cert_no,
         certFrontUrl: data.certFrontUrl || data.cert_front_url || data.front,
         certBackUrl: data.certBackUrl || data.cert_back_url || data.back,
         requestNo: data.requestNo || data.request_no || `kyc-${Date.now()}`
-    }).then((res) => res.code == 1 ? { ...res, data: normalizeKycPayload(res.data || {}) } : res)
+    }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const normalized = normalizeKycPayload(data)
+        const nextAction = String(data.nextAction || data.next_action || '').toUpperCase()
+        if (nextAction === 'WAIT_MANUAL_REVIEW') {
+            normalized.kycStatus = 'PENDING_AUDIT'
+            normalized.kyc_status = 'PENDING_AUDIT'
+            normalized.auditStatus = 'PENDING_AUDIT'
+            normalized.audit_status = 'PENDING_AUDIT'
+        }
+        return { ...res, data: normalized }
+    })
 }
 
 export function getKycStatus(params = {}) {
+    if (!hasLoginIdentity(params)) {
+        return Promise.resolve({
+            code: 1,
+            data: normalizeKycPayload({ kycStatus: 'NOT_SUBMITTED' }),
+            show: false
+        })
+    }
+    const userId = currentUserId(params)
+    if (!userId) {
+        return Promise.resolve({
+            code: 1,
+            data: normalizeKycPayload({ kycStatus: 'NOT_SUBMITTED' }),
+            show: false
+        })
+    }
     return request.get('miniapp/kyc/status', {
-        show: params.show
+        show: params.show,
+        params: {
+            userId
+        }
     }).then((res) => {
         if (res.code != 1) {
             if (isKycNotSubmittedResponse(res)) {
@@ -1823,11 +1869,17 @@ function normalizeOnboardingContext(data = {}) {
 }
 
 export function getOnboardingContext(params = {}) {
-    const token = Cache.get(TOKEN)
     const userId = currentUserId(params)
+    if (!hasLoginIdentity(params) || !userId) {
+        return Promise.resolve({
+            code: 1,
+            data: normalizeOnboardingContext({}),
+            show: false
+        })
+    }
     return request.get('miniapp/user/onboarding-context', {
         show: params.show,
-        params: token || !userId ? {} : { userId }
+        params: { userId }
     }).then((res) => {
         if (res.code != 1 || !res.data) return res
         return {
@@ -1891,19 +1943,91 @@ export function getMerchantIndustries(params = {}) {
     })
 }
 
+function normalizeRegionOption(item = {}) {
+    if (typeof item === 'string') return { label: item, value: item, children: [] }
+    const label = item.label || item.name || item.regionName || item.region_name || item.areaName || item.area_name || item.provinceName || item.province_name || item.cityName || item.city_name || item.districtName || item.district_name || ''
+    const value = item.value || item.code || item.regionCode || item.region_code || item.areaCode || item.area_code || item.provinceCode || item.province_code || item.cityCode || item.city_code || item.districtCode || item.district_code || item.id || label
+    const children = item.children || item.childList || item.child_list || item.list || item.cities || item.cityList || item.city_list || item.districts || item.districtList || item.district_list || []
+    return {
+        ...item,
+        label,
+        value,
+        children: normalizeRegionOptions(children)
+    }
+}
+
+function normalizeRegionOptions(source = []) {
+    const list = Array.isArray(source)
+        ? source
+        : source.tree || source.list || source.records || source.items || source.regions || source.regionList || source.region_list || source.children || []
+    const normalized = (Array.isArray(list) ? list : []).map(normalizeRegionOption).filter(item => item.label && item.value)
+    if (normalized.length === 1 && String(normalized[0].value).toUpperCase() === 'CN' && normalized[0].children && normalized[0].children.length) {
+        return normalized[0].children
+    }
+    return normalized
+}
+
+export function getMiniappRegions(params = {}) {
+    return request.get('miniapp/regions', {
+        show: params.show,
+        params: {
+            parentRegionCode: params.parentRegionCode || params.parent_region_code || '',
+            tree: params.tree !== false
+        }
+    }).then((res) => {
+        if (res.code != 1) return res
+        const data = res.data || {}
+        const tree = normalizeRegionOptions(data.tree || data.list || data)
+        return {
+            ...res,
+            data: {
+                ...(!Array.isArray(data) ? data : {}),
+                tree,
+                list: normalizeRegionOptions(data.list || data.tree || data),
+                areaOptions: tree,
+                area_options: tree,
+                regionOptions: tree,
+                region_options: tree
+            }
+        }
+    })
+}
+
 function normalizeMerchantQualification(data = {}) {
     const source = data.application || data.merchantApplication || data.merchant_application || data.registration || data || {}
-    const rawQualificationUrls = source.qualificationUrls || source.qualification_urls || source.qualificationUrlList || source.qualification_url_list || source.qualificationUrl || source.qualification_url || []
-    let qualificationUrls = rawQualificationUrls
-    if (typeof qualificationUrls === 'string') {
+    const normalizeUrlList = (value) => {
+        if (!value) return []
+        let list = value
+        if (typeof list === 'string') {
+            const text = list.trim()
+            if (!text) return []
+            try {
+                const parsed = JSON.parse(text)
+                list = Array.isArray(parsed) ? parsed : [parsed]
+            } catch (error) {
+                list = text.split(/[,，]/)
+            }
+        }
+        if (!Array.isArray(list)) list = [list]
+        return list.map((item) => {
+            if (!item) return ''
+            if (typeof item === 'string') return item.trim()
+            return firstDefined(item.url, item.fileUrl, item.file_url, item.imageUrl, item.image_url, item.videoUrl, item.video_url, item.path, item.uri, '')
+        }).filter(Boolean)
+    }
+    const qualificationUrls = normalizeUrlList(source.qualificationUrls || source.qualification_urls || source.qualificationUrlList || source.qualification_url_list || source.qualificationUrl || source.qualification_url || [])
+    const shopImageUrls = normalizeUrlList(source.shopImageUrls || source.shop_image_urls || source.shopImages || source.shop_images || source.storeImages || source.store_images || source.albumUrls || source.album_urls || [])
+    const shopVideoUrls = normalizeUrlList(source.shopVideoUrls || source.shop_video_urls || source.shopVideos || source.shop_videos || source.storeVideos || source.store_videos || [])
+    let shopMedia = source.shopMedia || source.shop_media || source.mediaList || source.media_list || []
+    if (typeof shopMedia === 'string') {
         try {
-            const parsed = JSON.parse(qualificationUrls)
-            qualificationUrls = Array.isArray(parsed) ? parsed : [qualificationUrls]
+            const parsed = JSON.parse(shopMedia)
+            shopMedia = Array.isArray(parsed) ? parsed : []
         } catch (error) {
-            qualificationUrls = qualificationUrls ? [qualificationUrls] : []
+            shopMedia = []
         }
     }
-    if (!Array.isArray(qualificationUrls)) qualificationUrls = []
+    if (!Array.isArray(shopMedia)) shopMedia = []
     const applyStatus = source.applyStatus || source.apply_status || source.auditStatus || source.audit_status || source.status || ''
     return {
         ...data,
@@ -1920,6 +2044,16 @@ function normalizeMerchantQualification(data = {}) {
         username: source.username || source.loginName || source.login_name || '',
         shopName: source.shopName || source.shop_name || source.storeName || source.store_name || source.merchantName || source.merchant_name || '',
         shop_name: source.shopName || source.shop_name || source.storeName || source.store_name || source.merchantName || source.merchant_name || '',
+        shopLogoUrl: firstDefined(source.shopLogoUrl, source.shop_logo_url, source.shopLogo, source.shop_logo, source.logoUrl, source.logo_url, ''),
+        shop_logo_url: firstDefined(source.shop_logo_url, source.shopLogoUrl, source.shop_logo, source.shopLogo, source.logo_url, source.logoUrl, ''),
+        shopImageUrls,
+        shop_image_urls: shopImageUrls,
+        shopVideoUrls,
+        shop_video_urls: shopVideoUrls,
+        shopMedia,
+        shop_media: shopMedia,
+        businessHours: firstDefined(source.businessHours, source.business_hours, ''),
+        business_hours: firstDefined(source.business_hours, source.businessHours, ''),
         industryId: source.industryId || source.industry_id || '',
         industry_id: source.industryId || source.industry_id || '',
         industryCode: source.industryCode || source.industry_code || '',
@@ -1944,10 +2078,30 @@ function normalizeMerchantQualification(data = {}) {
         legal_id_back_url: source.legalIdBackUrl || source.legal_id_back_url || '',
         qualificationUrls,
         qualification_urls: qualificationUrls,
-        settlementAccountNo: source.settlementAccountNo || source.settlement_account_no || '',
-        settlement_account_no: source.settlementAccountNo || source.settlement_account_no || '',
+        wechatMerchantNo: firstDefined(source.wechatMerchantNo, source.wechat_merchant_no, source.subMchId, source.sub_mch_id, source.settlementAccountNo, source.settlement_account_no, ''),
+        wechat_merchant_no: firstDefined(source.wechat_merchant_no, source.wechatMerchantNo, source.sub_mch_id, source.subMchId, source.settlement_account_no, source.settlementAccountNo, ''),
+        settlementAccountNo: firstDefined(source.settlementAccountNo, source.settlement_account_no, source.wechatMerchantNo, source.wechat_merchant_no, source.subMchId, source.sub_mch_id, ''),
+        settlement_account_no: firstDefined(source.settlement_account_no, source.settlementAccountNo, source.wechat_merchant_no, source.wechatMerchantNo, source.sub_mch_id, source.subMchId, ''),
+        provinceCode: firstDefined(source.provinceCode, source.province_code, ''),
+        province_code: firstDefined(source.province_code, source.provinceCode, ''),
+        provinceName: firstDefined(source.provinceName, source.province_name, source.province, ''),
+        province_name: firstDefined(source.province_name, source.provinceName, source.province, ''),
+        cityCode: firstDefined(source.cityCode, source.city_code, ''),
+        city_code: firstDefined(source.city_code, source.cityCode, ''),
+        cityName: firstDefined(source.cityName, source.city_name, source.city, ''),
+        city_name: firstDefined(source.city_name, source.cityName, source.city, ''),
+        districtCode: firstDefined(source.districtCode, source.district_code, source.areaCode, source.area_code, ''),
+        district_code: firstDefined(source.district_code, source.districtCode, source.area_code, source.areaCode, ''),
+        districtName: firstDefined(source.districtName, source.district_name, source.district, source.areaName, source.area_name, ''),
+        district_name: firstDefined(source.district_name, source.districtName, source.district, source.area_name, source.areaName, ''),
         detailAddress: source.detailAddress || source.detail_address || source.address || '',
         detail_address: source.detailAddress || source.detail_address || source.address || '',
+        longitude: firstDefined(source.longitude, source.lng, ''),
+        lng: firstDefined(source.lng, source.longitude, ''),
+        latitude: firstDefined(source.latitude, source.lat, ''),
+        lat: firstDefined(source.lat, source.latitude, ''),
+        shopDescription: firstDefined(source.shopDescription, source.shop_description, source.storeDescription, source.store_description, source.description, source.remark, ''),
+        shop_description: firstDefined(source.shop_description, source.shopDescription, source.store_description, source.storeDescription, source.description, source.remark, ''),
         remark: source.remark || source.description || source.shopDescription || source.shop_description || source.storeDescription || source.store_description || source.onlineShopDescription || source.online_shop_description || '',
         applyStatus,
         apply_status: applyStatus,
@@ -1973,6 +2127,11 @@ function normalizeMerchantQualification(data = {}) {
 
 function merchantApplicationPayload(data = {}) {
     const qualificationUrls = data.qualificationUrls || data.qualification_urls || []
+    const shopImageUrls = data.shopImageUrls || data.shop_image_urls || []
+    const shopVideoUrls = data.shopVideoUrls || data.shop_video_urls || []
+    const toJsonList = (value) => typeof value === 'string'
+        ? value
+        : JSON.stringify(Array.isArray(value) ? value.filter(Boolean) : [])
     const payload = {
         userId: data.userId || data.user_id,
         username: data.username || data.loginName || data.login_name || '',
@@ -1987,11 +2146,28 @@ function merchantApplicationPayload(data = {}) {
         licenseImageUrl: data.licenseImageUrl || data.license_image_url || data.qualificationUrl || data.qualification_url || '',
         legalIdFrontUrl: data.legalIdFrontUrl || data.legal_id_front_url || '',
         legalIdBackUrl: data.legalIdBackUrl || data.legal_id_back_url || '',
-        qualificationUrls: typeof qualificationUrls === 'string' ? qualificationUrls : JSON.stringify(Array.isArray(qualificationUrls) ? qualificationUrls.filter(Boolean) : []),
+        qualificationUrls: toJsonList(qualificationUrls),
         shopName: data.shopName || data.shop_name || data.merchantName || data.merchant_name || '',
+        shopLogoUrl: data.shopLogoUrl || data.shop_logo_url || data.shopLogo || data.shop_logo || '',
+        shopImageUrls: toJsonList(shopImageUrls),
+        shopVideoUrls: toJsonList(shopVideoUrls),
+        shopDescription: data.shopDescription || data.shop_description || data.storeDescription || data.store_description || data.remark || '',
+        businessHours: data.businessHours || data.business_hours || '',
         industryId: data.industryId || data.industry_id || '',
-        settlementAccountNo: data.settlementAccountNo || data.settlement_account_no || '',
-        detailAddress: data.detailAddress || data.detail_address || ''
+        wechatMerchantNo: data.wechatMerchantNo || data.wechat_merchant_no || data.subMchId || data.sub_mch_id || data.settlementAccountNo || data.settlement_account_no || '',
+        wechat_merchant_no: data.wechat_merchant_no || data.wechatMerchantNo || data.sub_mch_id || data.subMchId || data.settlement_account_no || data.settlementAccountNo || '',
+        subMchId: data.subMchId || data.sub_mch_id || data.wechatMerchantNo || data.wechat_merchant_no || data.settlementAccountNo || data.settlement_account_no || '',
+        sub_mch_id: data.sub_mch_id || data.subMchId || data.wechat_merchant_no || data.wechatMerchantNo || data.settlement_account_no || data.settlementAccountNo || '',
+        settlementAccountNo: data.settlementAccountNo || data.settlement_account_no || data.wechatMerchantNo || data.wechat_merchant_no || data.subMchId || data.sub_mch_id || '',
+        provinceCode: data.provinceCode || data.province_code || '',
+        provinceName: data.provinceName || data.province_name || '',
+        cityCode: data.cityCode || data.city_code || '',
+        cityName: data.cityName || data.city_name || '',
+        districtCode: data.districtCode || data.district_code || data.areaCode || data.area_code || '',
+        districtName: data.districtName || data.district_name || data.areaName || data.area_name || '',
+        detailAddress: data.detailAddress || data.detail_address || '',
+        longitude: data.longitude || data.lng || '',
+        latitude: data.latitude || data.lat || ''
     }
     if (!payload.username) delete payload.username
     if (!payload.password) delete payload.password
@@ -2149,6 +2325,12 @@ function normalizeRoleApplication(data = {}) {
         cityName: source.cityName || source.city_name || source.city || '',
         districtCode: source.districtCode || source.district_code || '',
         districtName: source.districtName || source.district_name || source.district || '',
+        detailAddress: source.detailAddress || source.detail_address || source.address || '',
+        detail_address: source.detailAddress || source.detail_address || source.address || '',
+        longitude: firstDefined(source.longitude, source.lng, ''),
+        lng: firstDefined(source.lng, source.longitude, ''),
+        latitude: firstDefined(source.latitude, source.lat, ''),
+        lat: firstDefined(source.lat, source.latitude, ''),
         inviteCode: source.inviteCode || source.invite_code || source.promoterCode || source.promoter_code || source.promotionCode || source.promotion_code || source.distributionCode || source.distribution_code || '',
         promoterCode: source.promoterCode || source.promoter_code || source.promotionCode || source.promotion_code || source.inviteCode || source.invite_code || source.distributionCode || source.distribution_code || '',
         backendUrl: source.backendUrl || source.backend_url || source.entryUrl || source.entry_url || source.url || '',
@@ -2301,6 +2483,12 @@ export function applyRoleApplication(data = {}) {
         cityName: data.cityName || data.city_name || '',
         districtCode: data.districtCode || data.district_code || '',
         districtName: data.districtName || data.district_name || '',
+        detailAddress: data.detailAddress || data.detail_address || data.address || '',
+        detail_address: data.detailAddress || data.detail_address || data.address || '',
+        longitude: data.longitude || data.lng || '',
+        lng: data.lng || data.longitude || '',
+        latitude: data.latitude || data.lat || '',
+        lat: data.lat || data.latitude || '',
         applicantName: data.applicantName || data.realName || data.name || '',
         mobile: data.mobile || '',
         username: data.username || data.loginName || data.login_name || '',

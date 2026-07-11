@@ -70,24 +70,41 @@ export default {
           const sceneParams = strToParams(decodedScene);
           invite_code = sceneParams.invite_code || sceneParams.inviteCode || sceneParams.code || sceneParams.allianceCode || "";
           const uidMatch = decodedScene.match(/(?:^|&)uid_([^&]+)/);
-          promoterUserId = promoterUserId || String(sceneParams.promoterUserId || sceneParams.promoter_user_id || sceneParams.uid || sceneParams.userId || "").replace(/^uid_/, "") || (uidMatch && uidMatch[1]) || "";
+          const shortScene = this.parseShortPromotionScene(decodedScene);
+          invite_code = invite_code || shortScene.inviteCode || "";
+          promoterUserId = promoterUserId || String(sceneParams.promoterUserId || sceneParams.promoter_user_id || sceneParams.uid || sceneParams.userId || "").replace(/^uid_/, "") || (uidMatch && uidMatch[1]) || shortScene.ownerUserId || "";
           roleCode = roleCode || sceneParams.role || sceneParams.roleCode || sceneParams.role_type || sceneParams.roleType || "";
+          roleCode = roleCode || shortScene.roleCode || "";
         } catch (e) {
           return;
         }
       }
       if (invite_code || promoterUserId) {
-        inputInviteCode({
+        const invitePayload = {
           code: invite_code,
+          invite_code,
           promoterUserId,
           roleCode,
           scene,
-        }).then((res) => {
-          if (res.code == -1) {
-            Cache.set("INVITE_CODE", { invite_code, promoterUserId, roleCode, scene });
+        };
+        inputInviteCode(invitePayload).then((res) => {
+          if (!res || res.code != 1) {
+            Cache.set("INVITE_CODE", invitePayload);
           }
+        }).catch(() => {
+          Cache.set("INVITE_CODE", invitePayload);
         });
       }
+    },
+    parseShortPromotionScene(scene = "") {
+      const match = String(scene || "").match(/^u([^_]+)_r([^_]+)_i(.+)$/);
+      if (!match) return {};
+      const roleMap = { M: "MERCHANT", P: "PROMOTER", A: "AGENT", S: "SUBSIDIARY", H: "HQ" };
+      return {
+        ownerUserId: match[1],
+        roleCode: roleMap[String(match[2] || "").toUpperCase()] || match[2] || "",
+        inviteCode: match[3] || ""
+      };
     },
   },
 };

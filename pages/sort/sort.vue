@@ -25,106 +25,98 @@
             <scroll-view class="sort-aside" scroll-y scroll-with-animation>
                 <view
                     v-for="(item, index) in sideCategories"
-                    :key="index"
+                    :key="item.id || index"
                     :class="['sort-aside__item', index === activeIndex ? 'is-active' : '']"
                     @tap="changeCategory(index)"
                 >
-                    <text class="sort-aside__text line1">{{ item.name }}</text>
+                    <text class="sort-aside__text line2">{{ item.name }}</text>
                 </view>
                 <view v-if="!sideCategories.length && !categoryLoading" class="sort-aside__empty">暂无分类</view>
             </scroll-view>
 
-            <view class="sort-content">
-                <view v-if="secondCategoryOptions.length" class="sort-second-tabs">
-                    <view class="sort-second-tabs__row">
-                        <scroll-view class="sort-second-tabs__scroll" scroll-x :show-scrollbar="false">
-                            <view class="sort-second-tabs__list">
-                                <view
-                                    v-for="(item, index) in secondCategoryOptions"
-                                    :key="`${item.name}-${index}`"
-                                    :class="['sort-second-tabs__item', index === activeSecondIndex ? 'is-active' : '']"
-                                    @tap="changeSecondCategory(index)"
-                                >
-                                    <text class="line1">{{ item.name }}</text>
-                                </view>
+            <scroll-view
+                class="sort-content"
+                scroll-y
+                scroll-with-animation
+                refresher-enabled
+                :refresher-triggered="refreshing"
+                :scroll-into-view="contentAnchor"
+                @refresherrefresh="refreshCategoryList"
+            >
+                <view id="sort-content-top" class="sort-content__inner">
+                    <view v-if="currentCategory.name" class="sort-current">
+                        <text class="sort-current__title">{{ currentCategory.name }}</text>
+                    </view>
+
+                    <view v-if="!secondCategories.length && !categoryLoading" class="sort-empty">
+                        <view class="sort-empty__title">暂无分类</view>
+                        <view class="sort-empty__desc">分类数据更新中</view>
+                    </view>
+
+                    <view v-if="secondCategories.length" class="sort-second-grid">
+                        <view
+                            v-for="(second, secondIndex) in secondCategories"
+                            :key="second.id || secondIndex"
+                            :class="['sort-second-item', secondIndex === activeSecondIndex ? 'is-active' : '']"
+                            @tap="selectSecondCategory(secondIndex)"
+                        >
+                            <view v-if="isEmptyImage(getCategoryImage(second, secondIndex))" class="sort-second-item__icon image-placeholder">
+                                {{ categoryInitial(second.name) }}
                             </view>
-                        </scroll-view>
-                        <view class="sort-second-tabs__arrow" @tap="toggleSecondPanel">
-                            <view :class="['sort-second-tabs__arrow-icon', showSecondPanel ? 'is-open' : '']"></view>
+                            <image v-else class="sort-second-item__icon" :src="getCategoryImage(second, secondIndex)" mode="aspectFit"></image>
+                            <text class="sort-second-item__name line1">{{ second.name }}</text>
                         </view>
                     </view>
-                    <view v-if="showSecondPanel" class="sort-second-panel">
-                        <view
-                            v-for="(item, index) in secondCategoryOptions"
-                            :key="`panel-${item.name}-${index}`"
-                            :class="['sort-second-panel__item', index === activeSecondIndex ? 'is-active' : '']"
-                            @tap="changeSecondCategory(index)"
-                        >
-                            <text class="line1">{{ item.name }}</text>
+
+                    <view v-if="selectedSecondCategory" class="sort-third-panel">
+                        <view class="sort-third-panel__title">{{ selectedSecondCategory.name }}</view>
+                        <view v-if="selectedThirdCategories.length" class="sort-third-list">
+                            <view
+                                v-for="(third, thirdIndex) in selectedThirdCategories"
+                                :key="third.id || thirdIndex"
+                                :class="['sort-third-item', thirdIndex === activeThirdIndex ? 'is-active' : '']"
+                                @tap="selectThirdCategory(thirdIndex)"
+                            >
+                                <text class="sort-third-item__name line1">{{ third.name }}</text>
+                            </view>
                         </view>
+                        <view v-else class="sort-third-empty">当前二级分类暂无下级类目</view>
+                    </view>
+
+                    <view class="sort-section-title">
+                        <text>{{ selectedGoodsCategoryName || '分类商品' }}</text>
+                        <text class="sort-section-title__meta">销量优先</text>
+                    </view>
+                    <view v-if="goodsLoading" class="sort-goods-state">商品加载中...</view>
+                    <view v-else-if="!categoryGoods.length" class="sort-goods-state">当前类目暂无商品</view>
+                    <view v-else class="sort-like-grid">
+                        <navigator
+                            v-for="(item, index) in categoryGoods"
+                            :key="index"
+                            class="sort-like-card"
+                            hover-class="none"
+                            :url="`/bundle/pages/goods_details/goods_details?id=${item.id || 1}`"
+                        >
+                            <view v-if="isEmptyImage(item.image)" class="sort-like-card__image image-placeholder">图</view>
+                            <image v-else class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
+                            <view class="sort-like-card__body">
+                                <text class="sort-like-card__name line2">{{ item.name }}</text>
+                                <view class="sort-like-card__footer">
+                                    <text class="sort-like-card__price">￥{{ item.price }}</text>
+                                    <text class="sort-like-card__sold">{{ item.sold }}人付款</text>
+                                </view>
+                            </view>
+                        </navigator>
                     </view>
                 </view>
-                <scroll-view
-                    class="sort-content__scroll"
-                    scroll-y
-                    scroll-with-animation
-                    refresher-enabled
-                    :refresher-triggered="refreshing"
-                    :scroll-into-view="contentAnchor"
-                    @refresherrefresh="refreshCategoryList"
-                >
-                    <view id="sort-content-top" class="sort-content__inner">
-                        <view v-if="!categoryGroups.length && !categoryLoading" class="sort-empty">
-                            <view class="sort-empty__title">暂无分类</view>
-                            <view class="sort-empty__desc">分类数据更新中</view>
-                        </view>
-                        <view v-for="(group, groupIndex) in categoryGroups" :key="`${group.name}-${groupIndex}`" class="sort-category-group">
-                            <view v-if="group.name" class="sort-category-group__title">{{ group.name }}</view>
-                            <view class="sort-grid">
-                                <navigator
-                                    v-for="(item, index) in group.children"
-                                    :key="`${item.name}-${index}`"
-                                    class="sort-grid__item"
-                                    hover-class="none"
-                                    :url="buildSearchUrl(item)"
-                                >
-                                    <view v-if="isEmptyImage(item.image)" class="sort-grid__image image-placeholder">无</view>
-                                    <image v-else class="sort-grid__image" :src="item.image" mode="aspectFit"></image>
-                                    <text class="sort-grid__name line1">{{ item.name }}</text>
-                                </navigator>
-                            </view>
-                        </view>
-
-                        <view v-if="likeGoods.length" class="sort-section-title">猜你喜欢</view>
-                        <view v-if="likeGoods.length" class="sort-like-grid">
-                            <navigator
-                                v-for="(item, index) in likeGoods"
-                                :key="index"
-                                class="sort-like-card"
-                                hover-class="none"
-                                :url="`/bundle/pages/goods_details/goods_details?id=${item.id || 1}`"
-                            >
-                                <view v-if="isEmptyImage(item.image)" class="sort-like-card__image image-placeholder">无</view>
-                                <image v-else class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
-                                <view class="sort-like-card__body">
-                                    <text class="sort-like-card__name line2">{{ item.name }}</text>
-                                    <view class="sort-like-card__footer">
-                                        <text class="sort-like-card__price">¥{{ item.price }}</text>
-                                        <text class="sort-like-card__sold">{{ item.sold }}人付款</text>
-                                    </view>
-                                </view>
-                            </navigator>
-                        </view>
-                    </view>
-                </scroll-view>
-            </view>
+            </scroll-view>
         </view>
     </view>
 </template>
 
 <script>
 import { mapActions, mapGetters } from 'vuex'
-import { getCatrgory } from '@/api/store'
+import { getCatrgory, getGoodsSearch } from '@/api/store'
 import Cache from '@/utils/cache'
 import { setTabbar } from '@/utils/tools'
 import { getDesignAsset } from '@/utils/design-assets'
@@ -135,13 +127,16 @@ export default {
         return {
             activeIndex: 0,
             activeSecondIndex: 0,
-            showSecondPanel: false,
+            activeThirdIndex: 0,
             contentAnchor: '',
             searchKeyword: '',
             refreshing: false,
             categoryLoading: false,
+            goodsLoading: false,
             didShowOnce: false,
-            cateList: []
+            cateList: [],
+            categoryGoods: [],
+            goodsRequestKey: ''
         }
     },
     computed: {
@@ -155,53 +150,21 @@ export default {
         secondCategories() {
             return this.getCategoryChildren(this.currentCategory)
         },
-        secondCategoryOptions() {
-            if (!this.secondCategories.length) return []
-            return [{ name: '全部' }].concat(this.secondCategories)
+        selectedSecondCategory() {
+            return this.secondCategories[this.activeSecondIndex] || null
         },
-        categoryGroups() {
-            if (!this.secondCategories.length) {
-                if (this.cateList.length && this.currentCategory.id) {
-                    return [{ name: '', children: [this.formatCategoryItem(this.currentCategory, 0)] }]
-                }
-                return []
-            }
-
-            if (this.activeSecondIndex === 0) {
-                const children = this.secondCategories.reduce((list, item, groupIndex) => {
-                    const thirdCategories = this.getCategoryChildren(item)
-                    const source = thirdCategories.length ? thirdCategories : [item]
-                    return list.concat(source.map((child, index) => this.formatCategoryItem(child, groupIndex + index)))
-                }, [])
-                return [{ name: '', children }]
-            }
-
-            const activeSecondCategory = this.secondCategories[this.activeSecondIndex - 1]
-            const visibleSecondCategories = this.activeSecondIndex > 0 && activeSecondCategory
-                ? [activeSecondCategory]
-                : this.secondCategories
-
-            return visibleSecondCategories.map((item, groupIndex) => {
-                const thirdCategories = this.getCategoryChildren(item)
-                const children = thirdCategories.length ? thirdCategories : [item]
-                return {
-                    name: this.activeSecondIndex > 0 ? '' : item.name || '',
-                    children: children.map((child, index) => this.formatCategoryItem(child, groupIndex + index))
-                }
-            })
+        selectedThirdCategories() {
+            return this.selectedSecondCategory ? this.getCategoryChildren(this.selectedSecondCategory) : []
         },
-        likeGoods() {
-            const goodsList = this.currentCategory.goodsList || this.currentCategory.products || []
-            if (goodsList.length) {
-                return goodsList.slice(0, 4).map((item, index) => ({
-                    id: item.id || item.spuId || item.productId || index + 1,
-                    name: item.name || item.spuName || item.productName || item.title || '推荐商品',
-                    price: item.price || item.salePrice || item.minPrice || 0,
-                    sold: item.salesCount || item.sales_sum || item.sold || 0,
-                    image: this.resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl, index)
-                }))
-            }
-            return []
+        selectedGoodsCategory() {
+            return this.selectedThirdCategories[this.activeThirdIndex] || this.selectedSecondCategory || this.currentCategory || {}
+        },
+        selectedGoodsCategoryId() {
+            const item = this.selectedGoodsCategory || {}
+            return item.id || item.categoryId || ''
+        },
+        selectedGoodsCategoryName() {
+            return (this.selectedGoodsCategory && this.selectedGoodsCategory.name) || ''
         }
     },
     onLoad() {
@@ -238,7 +201,8 @@ export default {
                         ? this.cateList.findIndex((item) => String(item.id) === String(activeCategoryId))
                         : this.activeIndex
                     this.activeIndex = nextIndex >= 0 && nextIndex < this.sideCategories.length ? nextIndex : 0
-                    this.normalizeSecondCategory()
+                    this.resetChildSelection()
+                    this.loadCategoryGoods()
                 }
             } catch (error) {
                 console.error('[sort-tab] getCategoryList failed:', error)
@@ -256,46 +220,80 @@ export default {
         changeCategory(index) {
             if (index === this.activeIndex) return
             this.activeIndex = index
-            this.activeSecondIndex = 0
-            this.showSecondPanel = false
+            this.resetChildSelection()
+            this.loadCategoryGoods()
             this.contentAnchor = ''
             this.$nextTick(() => {
                 this.contentAnchor = 'sort-content-top'
             })
         },
-        changeSecondCategory(index) {
-            if (index === this.activeSecondIndex && !this.showSecondPanel) return
+        selectSecondCategory(index) {
             this.activeSecondIndex = index
-            this.showSecondPanel = false
-            this.contentAnchor = ''
-            this.$nextTick(() => {
-                this.contentAnchor = 'sort-content-top'
-            })
+            this.activeThirdIndex = 0
+            this.loadCategoryGoods()
         },
-        toggleSecondPanel() {
-            this.showSecondPanel = !this.showSecondPanel
+        selectThirdCategory(index) {
+            this.activeThirdIndex = index
+            this.loadCategoryGoods()
         },
-        normalizeSecondCategory() {
-            if (this.activeSecondIndex >= this.secondCategoryOptions.length) {
-                this.activeSecondIndex = 0
-            }
-            if (!this.secondCategoryOptions.length) {
-                this.showSecondPanel = false
-            }
-        },
-        buildSearchUrl(item) {
-            const id = item.id || ''
-            const name = encodeURIComponent(item.name || '')
-            return `/bundle/pages/goods_search/goods_search?id=${id}&name=${name}&type=1&from=category`
+        resetChildSelection() {
+            this.activeSecondIndex = 0
+            this.activeThirdIndex = 0
         },
         getCategoryChildren(item) {
             return (item && (item.sons || item.children)) || []
         },
-        formatCategoryItem(item, index) {
-            return {
-                id: item.id || item.categoryId,
-                name: item.name || '',
-                image: this.resolveImage(item.icon || item.image || item.iconUrl || item.imageUrl || item.pic || item.cover, index)
+        getCategoryImage(item, index) {
+            return this.resolveImage(item && (item.icon || item.image || item.iconUrl || item.imageUrl || item.pic || item.cover))
+        },
+        categoryInitial(name) {
+            const text = String(name || '').trim()
+            return text ? text.slice(0, 1) : '类'
+        },
+        async loadCategoryGoods() {
+            const categoryId = this.selectedGoodsCategoryId
+            const selected = this.selectedGoodsCategory || {}
+            const second = this.selectedSecondCategory || {}
+            const requestKey = [
+                categoryId || '',
+                selected.id || '',
+                second.id || '',
+                this.activeIndex,
+                this.activeSecondIndex,
+                this.activeThirdIndex
+            ].join(':')
+            this.goodsRequestKey = requestKey
+            if (!categoryId) {
+                this.categoryGoods = []
+                return
+            }
+            this.goodsLoading = true
+            try {
+                const res = await getGoodsSearch({
+                    categoryId,
+                    category_id: categoryId,
+                    thirdCategoryId: selected.id || categoryId,
+                    third_category_id: selected.id || categoryId,
+                    secondCategoryId: second.id || '',
+                    second_category_id: second.id || '',
+                    pageNo: 1,
+                    pageSize: 20,
+                    sortType: 'SALES_DESC',
+                    sales_sum: 'SALES_DESC'
+                })
+                if (this.goodsRequestKey !== requestKey) return
+                const list = res.code == 1 && res.data ? (res.data.list || []) : []
+                this.categoryGoods = list.map((item, index) => ({
+                    id: item.id || item.spuId || item.productId || index + 1,
+                    name: item.name || item.spuName || item.productName || item.title || '商品',
+                    price: item.price || item.salePrice || item.minPrice || 0,
+                    sold: Number(item.salesCount || item.sales_sum || item.sales_count || item.sold || 0),
+                    image: this.resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.goods_image)
+                })).sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0))
+            } catch (error) {
+                if (this.goodsRequestKey === requestKey) this.categoryGoods = []
+            } finally {
+                if (this.goodsRequestKey === requestKey) this.goodsLoading = false
             }
         },
         onSortSearch() {
@@ -305,7 +303,7 @@ export default {
                 url: `/bundle/pages/goods_search/goods_search?keyword=${encodeURIComponent(keyword)}`
             })
         },
-        resolveImage(image, index) {
+        resolveImage(image) {
             if (image) {
                 return getDesignAsset(image)
             }
@@ -367,17 +365,6 @@ export default {
     overflow: hidden;
 }
 
-.sort-search::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0));
-    pointer-events: none;
-}
-
 .sort-search__glass {
     position: relative;
     flex: none;
@@ -412,7 +399,7 @@ export default {
 }
 
 .sort-search__placeholder {
-    color: #c4c4c4;
+    color: #9ca3af;
     font-size: 24rpx;
 }
 
@@ -440,8 +427,7 @@ export default {
     font-size: 26rpx;
     font-weight: 600;
     border-radius: 30rpx;
-    background: linear-gradient(135deg, #45a5ff 0%, #1688ff 100%);
-    box-shadow: 0 8rpx 18rpx rgba(22, 136, 255, 0.24);
+    background: #1688ff;
 }
 
 .sort-main {
@@ -463,8 +449,8 @@ export default {
     position: relative;
     display: flex;
     align-items: center;
-    min-height: 112rpx;
-    padding: 0 18rpx 0 32rpx;
+    min-height: 104rpx;
+    padding: 0 18rpx 0 30rpx;
     box-sizing: border-box;
     color: #222222;
     font-size: 26rpx;
@@ -475,7 +461,7 @@ export default {
     color: #1688ff;
     font-weight: 600;
     background: #ffffff;
-    border-radius: 0 26rpx 26rpx 0;
+    border-radius: 0 24rpx 24rpx 0;
 }
 
 .sort-aside__item.is-active::before {
@@ -490,11 +476,6 @@ export default {
     background: #1688ff;
 }
 
-.sort-aside__text {
-    display: block;
-    width: 100%;
-}
-
 .sort-aside__empty {
     padding: 40rpx 16rpx;
     color: #9ca3af;
@@ -504,24 +485,29 @@ export default {
 }
 
 .sort-content {
-    display: flex;
-    flex-direction: column;
     flex: 1;
     min-width: 0;
     height: 100%;
-    overflow: hidden;
-}
-
-.sort-content__scroll {
-    flex: 1;
-    min-height: 0;
-    width: 100%;
 }
 
 .sort-content__inner {
-    padding: 14rpx 18rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + constant(safe-area-inset-bottom)) 18rpx;
-    padding: 14rpx 18rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + env(safe-area-inset-bottom)) 18rpx;
+    padding: 18rpx 20rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + constant(safe-area-inset-bottom)) 20rpx;
+    padding: 18rpx 20rpx calc(180rpx + var(--app-window-bottom, var(--window-bottom, 0px)) + env(safe-area-inset-bottom)) 20rpx;
     box-sizing: border-box;
+}
+
+.sort-current {
+    display: flex;
+    align-items: center;
+    height: 54rpx;
+    margin-bottom: 12rpx;
+}
+
+.sort-current__title {
+    color: #111827;
+    font-size: 30rpx;
+    font-weight: 600;
+    line-height: 42rpx;
 }
 
 .sort-empty {
@@ -542,218 +528,172 @@ export default {
     line-height: 34rpx;
 }
 
-.sort-second-tabs {
-    position: relative;
-    flex: none;
-    width: 100%;
-    padding: 10rpx 18rpx 12rpx;
-    box-sizing: border-box;
-    background: #ffffff;
-    box-shadow: 0 8rpx 18rpx rgba(31, 41, 51, 0.04);
-    z-index: 2;
+.sort-second-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16rpx;
+    margin-bottom: 24rpx;
 }
 
-.sort-second-tabs__row {
+.sort-second-item {
     display: flex;
-    align-items: center;
-    max-width: 100%;
-    overflow: hidden;
-}
-
-.sort-second-tabs__scroll {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.sort-second-tabs__list {
-    display: inline-flex;
-    align-items: center;
-    max-width: 100%;
-}
-
-.sort-second-tabs__item,
-.sort-second-panel__item {
-    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 52rpx;
-    max-width: 128rpx;
-    margin-right: 10rpx;
-    padding: 0 16rpx;
+    height: 156rpx;
+    padding: 12rpx 8rpx;
     box-sizing: border-box;
-    color: #4b5563;
-    font-size: 23rpx;
-    line-height: 32rpx;
     border: 1rpx solid #edf1f5;
-    border-radius: 18rpx;
-    background: #f7f9fc;
+    border-radius: 8rpx;
+    background: #ffffff;
 }
 
-.sort-second-tabs__item.is-active,
-.sort-second-panel__item.is-active {
-    color: #1688ff;
-    font-weight: 600;
-    border-color: rgba(22, 136, 255, 0.35);
+.sort-second-item.is-active {
+    border-color: rgba(22, 136, 255, 0.42);
     background: #edf7ff;
-    box-shadow: 0 8rpx 18rpx rgba(22, 136, 255, 0.1);
 }
 
-.sort-second-tabs__arrow {
-    flex: none;
+.sort-second-item__icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52rpx;
-    height: 52rpx;
-    border-radius: 18rpx;
-    background: #f7f9fc;
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 8rpx;
+    background: #eef6ff;
 }
 
-.sort-second-tabs__arrow-icon {
-    width: 14rpx;
-    height: 14rpx;
-    border-right: 3rpx solid #6b7280;
-    border-bottom: 3rpx solid #6b7280;
-    transform: rotate(45deg) translateY(-4rpx);
-    transition: transform 0.2s ease;
+.sort-second-item__name {
+    width: 100%;
+    margin-top: 12rpx;
+    color: #111827;
+    font-size: 24rpx;
+    font-weight: 500;
+    line-height: 34rpx;
+    text-align: center;
 }
 
-.sort-second-tabs__arrow-icon.is-open {
-    transform: rotate(225deg) translate(-2rpx, -2rpx);
+.sort-third-panel {
+    padding: 18rpx 16rpx;
+    margin-bottom: 18rpx;
+    border: 1rpx solid #edf1f5;
+    border-radius: 8rpx;
+    background: #ffffff;
 }
 
-.sort-second-panel {
+.sort-third-panel__title {
+    margin-bottom: 14rpx;
+    color: #111827;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 40rpx;
+}
+
+.sort-third-list {
     display: flex;
     flex-wrap: wrap;
-    margin-top: 12rpx;
-    padding: 16rpx 4rpx 4rpx 14rpx;
-    border: 1rpx solid #edf1f5;
-    border-radius: 22rpx;
-    background: #ffffff;
-    box-shadow: 0 12rpx 34rpx rgba(31, 41, 51, 0.08);
+    gap: 14rpx 12rpx;
 }
 
-.sort-second-panel__item {
-    margin: 0 10rpx 12rpx 0;
-}
-
-.sort-category-group {
-    margin-bottom: 14rpx;
-}
-
-.sort-category-group__title {
-    position: relative;
+.sort-third-item {
     display: flex;
     align-items: center;
-    margin: 4rpx 0 22rpx;
-    padding-left: 18rpx;
-    color: #1f2933;
+    justify-content: center;
+    width: calc((100% - 24rpx) / 3);
+    height: 58rpx;
+    padding: 0 10rpx;
+    box-sizing: border-box;
+    border: 1rpx solid #edf1f5;
+    border-radius: 8rpx;
+    background: #f8fafc;
+}
+
+.sort-third-item.is-active {
+    border-color: rgba(22, 136, 255, 0.45);
+    background: #edf7ff;
+}
+
+.sort-third-item__name {
+    max-width: 100%;
+    color: #374151;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.sort-third-item.is-active .sort-third-item__name {
+    color: #1688ff;
+    font-weight: 600;
+}
+
+.sort-third-empty {
+    display: flex;
+    align-items: center;
+    height: 58rpx;
+    color: #1688ff;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.sort-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14rpx;
+    margin: 32rpx 0 18rpx;
+    color: #222222;
     font-size: 30rpx;
     font-weight: 600;
     line-height: 42rpx;
 }
 
-.sort-category-group__title::before {
-    position: absolute;
-    left: 0;
-    width: 6rpx;
-    height: 24rpx;
-    border-radius: 999rpx;
-    background: #1688ff;
-    content: '';
+.sort-section-title__meta {
+    flex: none;
+    color: #9ca3af;
+    font-size: 22rpx;
+    font-weight: 400;
+    line-height: 32rpx;
 }
 
-.sort-grid {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-    margin-bottom: 18rpx;
-}
-
-.sort-grid__item {
-    width: 33.333%;
-    min-width: 0;
-    margin-bottom: 30rpx;
-    padding: 0 1rpx;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-.sort-grid__image {
+.sort-goods-state {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: calc((100vw - 252rpx) / 3 - 2rpx);
-    height: calc(((100vw - 252rpx) / 3 - 2rpx) * 1.12);
-    max-width: 142rpx;
-    max-height: 160rpx;
-    min-width: 92rpx;
-    min-height: 104rpx;
-    margin: 0 auto;
-    border-radius: 18rpx;
-    background: #f2f5f8;
-}
-
-.image-placeholder {
+    min-height: 180rpx;
     color: #9ca3af;
     font-size: 24rpx;
-    line-height: 32rpx;
+    line-height: 34rpx;
     text-align: center;
-}
-
-.sort-grid__name {
-    display: block;
-    max-width: 100%;
-    margin-top: 12rpx;
-    color: #303133;
-    font-size: 24rpx;
-    font-weight: 500;
-    line-height: 32rpx;
-}
-
-.sort-section-title {
-    margin: 12rpx 0 20rpx;
-    color: #222222;
-    font-size: 34rpx;
-    font-weight: 600;
-    line-height: 46rpx;
 }
 
 .sort-like-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18rpx;
 }
 
 .sort-like-card {
-    width: 48.4%;
-    margin-bottom: 18rpx;
-    box-sizing: border-box;
+    display: block;
     overflow: hidden;
-    border-radius: 22rpx;
+    border: 1rpx solid #edf1f5;
+    border-radius: 8rpx;
     background: #ffffff;
-    box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.06);
 }
 
 .sort-like-card__image {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     width: 100%;
-    height: 220rpx;
-    background: #eef1f5;
+    height: 210rpx;
+    background: #f3f4f6;
 }
 
 .sort-like-card__body {
-    padding: 14rpx 12rpx 16rpx;
+    padding: 14rpx;
 }
 
 .sort-like-card__name {
+    min-height: 68rpx;
     color: #222222;
     font-size: 24rpx;
-    font-weight: 500;
     line-height: 34rpx;
 }
 
@@ -761,22 +701,27 @@ export default {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-top: 12rpx;
+    gap: 10rpx;
+    margin-top: 10rpx;
 }
 
 .sort-like-card__price {
-    color: #ff2d2d;
+    color: #ef4444;
     font-size: 28rpx;
     font-weight: 700;
-    line-height: 42rpx;
 }
 
 .sort-like-card__sold {
-    flex: none;
-    margin-left: 8rpx;
-    color: #999999;
+    color: #9ca3af;
     font-size: 20rpx;
-    line-height: 30rpx;
-    white-space: nowrap;
+}
+
+.image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1688ff;
+    font-size: 24rpx;
+    font-weight: 600;
 }
 </style>

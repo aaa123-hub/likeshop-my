@@ -919,6 +919,7 @@ function normalizeOrderDetail(data = {}) {
   const deliveryType = baseInfo.deliveryType || data.delivery_type || data.deliveryType || pickupInfo.deliveryType || pickupInfo.delivery_type || (channelText === 'OFFLINE_PICKUP' ? 2 : '');
   const normalizedDeliveryType = String(deliveryType || '').toUpperCase();
   const isSelfFetch = deliveryType === 2 || normalizedDeliveryType === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(normalizedDeliveryType);
+  const orderScene = firstDefined(data.orderScene, data.order_scene, data.categoryType, data.category_type, isSelfFetch ? 'offline' : '');
   const status = firstDefined(data.orderStatus, baseInfo.orderStatus, data.order_status, data.status);
   const normalizedStatus = String(status || '').toUpperCase();
   const paymentInfo = data.paymentInfo || data.payment_info || data.payInfo || data.pay_info || baseInfo.paymentInfo || baseInfo.payment_info || {};
@@ -928,6 +929,7 @@ function normalizeOrderDetail(data = {}) {
   const transactionNo = firstDefined(data.transactionId, data.transaction_id, data.transactionNo, data.transaction_no, baseInfo.transactionId, baseInfo.transaction_id, paymentInfo.transactionId, paymentInfo.transaction_id, paymentInfo.transactionNo, paymentInfo.transaction_no);
   const isPaidByPayment = isPaidStatusValue(payStatus) || Boolean(payTime) || Boolean(transactionNo) || numberValue(paidAmount, 0) > 0;
   const deliveryStatus = data.deliveryStatus || data.delivery_status || baseInfo.deliveryStatus || baseInfo.delivery_status || deliveryInfo.deliveryStatus || deliveryInfo.delivery_status;
+  const verificationStatus = firstDefined(data.verificationStatus, data.verification_status, data.verifyStatus, data.verify_status, baseInfo.verificationStatus, baseInfo.verification_status, baseInfo.verifyStatus, baseInfo.verify_status);
   const paidFallbackStatus = isUnpaidOrderStatusValue(status) ? 'PAID' : status;
   const effectiveBaseStatus = isPaidByPayment ? paidFallbackStatus : status;
   const effectiveBaseStatusText = String(effectiveBaseStatus || '').toUpperCase();
@@ -947,10 +949,13 @@ function normalizeOrderDetail(data = {}) {
     baseInfo.refund_status,
     isRefundingOrderStatus(status) ? 'REFUNDING' : ''
   );
-  const orderAfterSaleText = orderAfterSaleId || orderAfterSaleStatus ? (formatRefundStatus(orderAfterSaleStatus) || '售后处理中') : '';
-  const isAfterSaleOrder = Boolean(orderAfterSaleId || orderAfterSaleText || isRefundingOrderStatus(status));
+  const refundedByStatus = ['REFUNDED', 'REFUND_SUCCESS'].includes(normalizedStatus) || ['REFUNDED', 'REFUND_SUCCESS'].includes(normalizedEffectiveStatus);
+  const orderAfterSaleText = refundedByStatus ? '售后' : (orderAfterSaleId || orderAfterSaleStatus ? (formatRefundStatus(orderAfterSaleStatus) || '售后处理中') : '');
+  const isAfterSaleOrder = Boolean(refundedByStatus || orderAfterSaleId || orderAfterSaleText || isRefundingOrderStatus(status));
   const isWaitPay = !isPaidByPayment && isUnpaidOrderStatusValue(effectiveStatus);
   const isWaitShip = isWaitShipStatusValue(effectiveStatus);
+  const isSelfFetchVerified = isSelfFetch && (['VERIFIED', 'USED', 'CONSUMED'].includes(String(verificationStatus || '').toUpperCase()) || ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(normalizedEffectiveStatus) || effectiveStatus === 3);
+  const selfFetchStatusText = isSelfFetch ? (refundedByStatus ? '售后' : isSelfFetchVerified ? '已核销' : isWaitShip ? '待核销' : '') : '';
   const isWaitReceive = ['WAIT_RECEIVE', 'DELIVERED', 'RECEIVING', '2'].includes(normalizedEffectiveStatus) || effectiveStatus === 2 || isReceivableDeliveryStatus(deliveryStatus);
   const isShippedOnly = ['SHIPPED', 'IN_TRANSIT'].includes(normalizedEffectiveStatus) || hasShippingSignal(data, baseInfo, deliveryInfo);
   const isFinished = ['COMPLETED', 'SUCCESS', 'FINISHED', '3'].includes(normalizedEffectiveStatus) || effectiveStatus === 3;
@@ -986,7 +991,9 @@ function normalizeOrderDetail(data = {}) {
       order_status: effectiveStatus,
       raw_order_status: status,
       delivery_status: deliveryStatus,
-      order_status_desc: effectiveStatus !== status ? formatOrderStatus(effectiveStatus) : (cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(effectiveStatus)),
+      verification_status: verificationStatus,
+      verify_status: verificationStatus,
+      order_status_desc: selfFetchStatusText || (effectiveStatus !== status ? formatOrderStatus(effectiveStatus) : (cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(effectiveStatus))),
       order_can_refund: canRefund,
       after_sale_id: afterSaleId || '',
       after_status_desc: afterStatusText || '',
@@ -1003,7 +1010,9 @@ function normalizeOrderDetail(data = {}) {
     order_status: effectiveStatus,
     raw_order_status: status,
     delivery_status: deliveryStatus,
-    order_status_desc: orderAfterSaleText || (effectiveStatus !== status ? formatOrderStatus(effectiveStatus) : (cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(effectiveStatus))),
+    verification_status: verificationStatus,
+    verify_status: verificationStatus,
+    order_status_desc: orderAfterSaleText || selfFetchStatusText || (effectiveStatus !== status ? formatOrderStatus(effectiveStatus) : (cleanBackendText(data.orderStatusText || data.order_status_text || baseInfo.orderStatusText || baseInfo.order_status_text || data.orderStatusDesc || data.statusText || data.status_text || baseInfo.orderStatusDesc || baseInfo.statusText || data.order_status_desc, "") || formatOrderStatus(effectiveStatus))),
     pay_status: payStatus,
     order_amount: firstDefined(amountInfo.payAmount, data.payAmount, baseInfo.orderAmount, data.order_amount),
     shop_amount: shopAmount,
@@ -1036,6 +1045,10 @@ function normalizeOrderDetail(data = {}) {
     cancel_time: baseInfo.cancelTime || data.cancel_time,
     order_cancel_time: baseInfo.expireTime || data.expireTime || data.order_cancel_time,
     delivery_type: deliveryType,
+    orderScene,
+    order_scene: orderScene,
+    categoryType: orderScene,
+    category_type: orderScene,
     order_type: baseInfo.orderType || data.order_type || 0,
     consignee: cleanEmptyBackendText(baseInfo.consignee || baseInfo.receiverName || pickupInfo.consignee || pickupInfo.receiverName || pickupInfo.contact || pickupInfo.contactName || pickupInfo.contact_name || pickupInfo.pickupName || pickupInfo.pickup_name || receiverInfo.consignee || receiverInfo.receiverName || data.consignee, ""),
     mobile: cleanEmptyBackendText(baseInfo.mobile || baseInfo.receiverMobile || pickupInfo.mobile || pickupInfo.receiverMobile || pickupInfo.telephone || pickupInfo.phone || pickupInfo.contactMobile || pickupInfo.contact_mobile || pickupInfo.pickupMobile || pickupInfo.pickup_mobile || receiverInfo.mobile || receiverInfo.receiverMobile || data.mobile, ""),
@@ -1383,11 +1396,36 @@ export async function orderBuy(data) {
   const cartItemIds = data.cartItemIds || goodsList.map((item) => item.cartItemId || item.cart_id).filter(Boolean);
   const isCartOrder = data.type === 'cart' || cartItemIds.length > 0;
   const pointsPayload = buildPointsPayload(data);
+  const categoryCandidates = [
+    data.categoryType,
+    data.category_type,
+    data.goodsCategoryType,
+    data.goods_category_type,
+    data.orderScene,
+    data.order_scene,
+    data.freightType,
+    data.freight_type,
+    data.orderChannel,
+    data.order_channel,
+    ...goodsList.flatMap((item = {}) => [
+      item.categoryType,
+      item.category_type,
+      item.goodsCategoryType,
+      item.goods_category_type,
+      item.orderScene,
+      item.order_scene,
+      item.freightType,
+      item.freight_type
+    ])
+  ].map((item) => String(item || '').toUpperCase());
+  const isOfflineOrder = categoryCandidates.includes('OFFLINE') || categoryCandidates.includes('OFFLINE_PICKUP') || categoryCandidates.includes('PICKUP');
+  const normalizedDeliveryType = isOfflineOrder ? 2 : (data.deliveryType || data.delivery_type);
+  const normalizedOrderChannel = isOfflineOrder ? 'OFFLINE_PICKUP' : (data.orderChannel || data.order_channel || '');
   const payload = compactPayload({
     submitToken: data.submitToken || data.submit_token || data.orderInfo?.submitToken || latestSubmitToken || '',
     source: data.source || (isCartOrder ? 'CART' : 'BUY_NOW'),
-    orderChannel: data.orderChannel || data.order_channel || '',
-    order_channel: data.order_channel || data.orderChannel || '',
+    orderChannel: normalizedOrderChannel,
+    order_channel: normalizedOrderChannel,
     goodsSource: data.goodsSource || data.goods_source || '',
     goods_source: data.goods_source || data.goodsSource || '',
     is1688: data.is1688 ?? data.is_1688,
@@ -1400,8 +1438,8 @@ export async function orderBuy(data) {
     coupon_ids: data.noCoupon || data.no_coupon ? [] : (data.coupon_ids || data.couponIds || (data.coupon_id ? [data.coupon_id] : [])),
     noCoupon: data.noCoupon || data.no_coupon,
     no_coupon: data.no_coupon || data.noCoupon,
-    deliveryType: data.deliveryType || data.delivery_type,
-    delivery_type: data.delivery_type || data.deliveryType,
+    deliveryType: normalizedDeliveryType,
+    delivery_type: normalizedDeliveryType,
     selffetchShopId: data.selffetchShopId || data.selffetch_shop_id || data.store_id,
     selffetch_shop_id: data.selffetch_shop_id || data.selffetchShopId || data.store_id,
     pickupLatitude: data.pickupLatitude || data.pickup_latitude,
@@ -1456,9 +1494,14 @@ export function getDelivery() {
 
 //订单列表
 export function getOrderList(data) {
+  const orderScene = data.orderScene || data.order_scene || data.scene || '';
   return request.get("miniapp/orders", {
     params: {
       status: normalizeOrderStatus(data.status || data.type),
+      orderScene,
+      order_scene: orderScene,
+      categoryType: orderScene,
+      category_type: orderScene,
       pageNo: data.pageNo || data.page_no || data.page,
       pageSize: data.pageSize || data.page_size || 10
     },

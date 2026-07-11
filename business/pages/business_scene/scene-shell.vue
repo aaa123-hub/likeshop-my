@@ -1589,10 +1589,11 @@ export default {
             }))
         },
         storeDetailBusinessHoursText() {
+            const statusText = this.getStreetOpenStatusLabel(this.storeDetailView.openStatus, this.storeDetailView.businessHours)
             if (this.storeDetailView.businessHours) {
-                return `营业时间：${this.storeDetailView.businessHours}`
+                return `${statusText || '营业时间'}：${this.storeDetailView.businessHours}`
             }
-            return this.getStreetOpenStatusLabel(this.storeDetailView.openStatus) || '营业时间待更新'
+            return statusText || '营业时间待更新'
         },
         storeShareTimeTextClass() {
             return String(this.storeDetailBusinessHoursText || '').length > 16 ? 'is-long' : ''
@@ -1616,7 +1617,7 @@ export default {
                 id: item.id || item.goods_id || item.goodsId || item.spuId || item.productId || index,
                 goods_id: item.goods_id || item.goodsId || item.spuId || item.productId || item.id || '',
                 activity_id: item.activity_id || item.activityId || item.groupActivityId || item.groupBuyActivityId || item.team_id || item.teamId || '',
-                name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || item.title || item.activityName || item.activity_name || '团购套餐',
+                name: this.resolveStoreDetailGroupName(item),
                 image: resolveImage(item.image || item.goods_image || item.cover || item.mainImageUrl, 'goods'),
                 meta: item.meta || item.subTitle || item.subtitle || item.summary || item.desc || item.description || item.goods_desc || item.goodsDesc || item.activityDesc || item.activity_desc || '',
                 tagText: item.tagText || item.tag_text || item.activityTag || item.activity_tag || item.label || item.labelText || '',
@@ -1697,6 +1698,13 @@ export default {
         }
     },
     methods: {
+        resolveStoreDetailGroupName(item = {}) {
+            const activity = item.activity || item.groupBuyActivity || item.groupActivity || {}
+            const product = item.product || item.spu || item.goods || item.goodsInfo || item.productInfo || item.spuInfo || activity.product || activity.spu || activity.goods || {}
+            const realName = product.goodsName || product.goods_name || product.spuName || product.spu_name || product.productName || product.product_name || product.name || product.title || item.goodsName || item.goods_name || item.spuName || item.spu_name || item.productName || item.product_name
+            if (realName && realName !== '团购套餐') return realName
+            return item.name || item.title || item.activityName || item.activity_name || '团购套餐'
+        },
         resolveServerImage(image, type = 'goods') {
             const value = String(image || '').trim()
             if (!value) return ''
@@ -2138,16 +2146,49 @@ export default {
         },
         normalizePageOptions(options = {}) {
             const normalized = { ...options }
-            const scene = normalized.scene ? decodeURIComponent(String(normalized.scene)) : ''
-            if (scene) {
-                scene.split(/[&;]/).forEach((part) => {
-                    const [key, value] = part.split('=')
-                    if (key && value !== undefined && normalized[key] === undefined) {
-                        normalized[key] = value
+            const appendParams = (raw = '') => {
+                String(raw || '').split(/[&;]/).forEach((part) => {
+                    if (!part) return
+                    const index = part.indexOf('=')
+                    if (index === -1) return
+                    const key = part.slice(0, index)
+                    const value = part.slice(index + 1)
+                    if (key && normalized[key] === undefined) {
+                        try {
+                            normalized[key] = decodeURIComponent(value || '')
+                        } catch (error) {
+                            normalized[key] = value || ''
+                        }
                     }
                 })
             }
+            const appendUrl = (raw = '') => {
+                const text = String(raw || '').trim()
+                if (!text) return
+                const queryIndex = text.indexOf('?')
+                if (queryIndex !== -1) appendParams(text.slice(queryIndex + 1))
+                const pathMatch = text.match(/\/miniapp\/shop\/([^/?#]+)/i)
+                if (pathMatch && !normalized.shopId) normalized.shopId = decodeURIComponent(pathMatch[1])
+                const compactMatch = text.match(/(?:shopId|shop_id|merchantShopId|merchant_shop_id|storeId|store_id|merchantId|merchant_id)[:=]([^&?#;/]+)/i)
+                if (compactMatch && !normalized.shopId) normalized.shopId = decodeURIComponent(compactMatch[1])
+            }
+            const q = normalized.q ? String(normalized.q) : ''
+            if (q) {
+                try {
+                    appendUrl(decodeURIComponent(q))
+                } catch (error) {
+                    appendUrl(q)
+                }
+            }
+            const scene = normalized.scene ? decodeURIComponent(String(normalized.scene)) : ''
+            if (scene) {
+                appendParams(scene)
+            }
             if (!normalized.shopId && normalized.shop_id) normalized.shopId = normalized.shop_id
+            if (!normalized.shopId && normalized.merchantShopId) normalized.shopId = normalized.merchantShopId
+            if (!normalized.shopId && normalized.merchant_shop_id) normalized.shopId = normalized.merchant_shop_id
+            if (!normalized.shopId && normalized.storeId) normalized.shopId = normalized.storeId
+            if (!normalized.shopId && normalized.store_id) normalized.shopId = normalized.store_id
             return normalized
         },
         appendShopId(url) {
@@ -2620,7 +2661,7 @@ export default {
         },
         mapStreetMerchant(item = {}, fallback = {}) {
             const shopId = item.shopId || item.id || fallback.shopId || ''
-            const statusLabel = this.getStreetOpenStatusLabel(item.openStatus)
+            const statusLabel = this.getStreetOpenStatusLabel(item.openStatus, item.businessHours || item.business_hours || item.openHours)
             const address = item.detailAddress || fallback.detailAddress || ''
             const metaParts = [statusLabel, address].filter(Boolean)
             return {
@@ -2672,12 +2713,27 @@ export default {
             }
             return text
         },
-        getStreetOpenStatusLabel(status) {
-            if (!status) return ''
-            if (status === 'OPEN') return '营业中'
-            if (status === 'CLOSED') return '未营业'
-            if (status === 'REST') return '休息中'
-            return status
+        inferOpenStatusFromHours(hours, status = '') {
+            const text = String(hours || '').trim()
+            if (!text) return String(status || '').toUpperCase()
+            if (/24\s*小时|全天|00[:：]00\s*[-~至到]\s*24[:：]00/i.test(text)) return 'OPEN'
+            const match = text.match(/(\d{1,2})[:：](\d{2})\s*(?:-|~|至|到)\s*(\d{1,2})[:：](\d{2})/)
+            if (!match) return String(status || '').toUpperCase()
+            const start = Math.max(0, Math.min(23, Number(match[1]) || 0)) * 60 + Math.max(0, Math.min(59, Number(match[2]) || 0))
+            const end = Math.max(0, Math.min(23, Number(match[3]) || 0)) * 60 + Math.max(0, Math.min(59, Number(match[4]) || 0))
+            const now = new Date()
+            const current = now.getHours() * 60 + now.getMinutes()
+            if (start === end) return 'OPEN'
+            return start < end
+                ? (current >= start && current < end ? 'OPEN' : 'CLOSED')
+                : (current >= start || current < end ? 'OPEN' : 'CLOSED')
+        },
+        getStreetOpenStatusLabel(status, hours = '') {
+            const normalized = this.inferOpenStatusFromHours(hours, status)
+            if (normalized === 'OPEN') return '营业中'
+            if (normalized === 'CLOSED') return '未营业'
+            if (normalized === 'REST') return '休息中'
+            return normalized || ''
         },
         onStreetSearch() {
             const keyword = (this.streetKeyword || '').trim()

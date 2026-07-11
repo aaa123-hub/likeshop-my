@@ -756,10 +756,13 @@ export default {
     },
     formatOrderStatusText(status) {
       const text = String(status || '')
-      if (/^submit-/i.test(text)) return '订单已提交'
-      const map = { CREATED: '待支付', WAIT_PAY: '待支付', PENDING_PAY: '待支付', UNPAID: '待支付', SUBMITTED: '订单已提交', SUBMIT: '订单已提交', PAID: '待发货', WAIT_SHIP: '待发货', WAIT_DELIVERY: '待发货', SHIPPED: '待收货', WAIT_RECEIVE: '待收货', DELIVERED: '待收货', COMPLETED: '已完成', SUCCESS: '已完成', FINISHED: '已完成', REFUNDING: '售后处理中', REFUNDED: '已退款', CANCELLED: '已关闭', CANCELED: '已关闭', CLOSED: '已关闭', CLOSE: '已关闭', CLOSED_ORDER: '已关闭', 0: '待支付', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已关闭' };
-      const mapped = map[text.toUpperCase()] || map[status];
-      return mapped || (isBackendCodeText(text) ? '订单处理中' : cleanBackendText(status, ''));
+      if (/^submit-/i.test(text)) return '待提交'
+      const normalized = text.toUpperCase()
+      const isSelfFetch = this.isSelfFetchOrder
+      if (isSelfFetch && ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', '1'].includes(normalized)) return '待核销'
+      const map = { CREATED: '待支付', WAIT_PAY: '待支付', PENDING_PAY: '待支付', UNPAID: '待支付', SUBMITTED: '待提交', SUBMIT: '待提交', PAID: '已支付', WAIT_SHIP: '待发货', WAIT_DELIVERY: '待发货', SHIPPED: '待收货', WAIT_RECEIVE: '待收货', DELIVERED: '已送达', COMPLETED: '已完成', SUCCESS: '已完成', FINISHED: '已完成', REFUNDING: '售后中', REFUNDED: '已退款', CANCELLED: '已取消', CANCELED: '已取消', CLOSED: '已关闭', CLOSE: '已关闭', CLOSED_ORDER: '已关闭', 0: '待支付', 1: '已支付', 2: '待发货', 3: '待收货', 4: '已完成' };
+      const mapped = map[normalized] || map[status];
+      return mapped || (isBackendCodeText(text) ? '未知状态' : cleanBackendText(status, ''));
     },
     formatRefundStatusText(status) {
       const cleaned = cleanBackendText(status, '')

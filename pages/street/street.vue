@@ -22,9 +22,9 @@
                 <swiper
                     v-if="streetCategoryPages.length"
                     class="street-service-swiper"
-                    :indicator-dots="streetCategoryPages.length > 1"
-                    indicator-color="rgba(55, 125, 242, 0.22)"
-                    indicator-active-color="#377df2"
+                    :indicator-dots="false"
+					indicator-color="rgba(55, 125, 242, 0.22)"
+					indicator-active-color="#377df2"
                     :autoplay="false"
                     :circular="false"
                 >
@@ -47,7 +47,7 @@
                         </view>
                     </swiper-item>
                 </swiper>
-                <view v-if="!streetCategories.length && !streetLoading" class="street-empty street-empty--grid">暂无分类</view>
+                <view v-if="!streetCategoryPages.length && !streetLoading" class="street-empty street-empty--grid">暂无分类</view>
             </view>
 
             <view class="street-merchant-list">
@@ -62,8 +62,8 @@
                         <view v-if="isEmptyImage(item.image)" class="street-merchant-card__image image-placeholder">无</view>
                         <image v-else class="street-merchant-card__image" :src="item.image" mode="aspectFill"></image>
                     </view>
-                        <view class="street-merchant-card__body">
-                            <view class="street-merchant-card__title line1">{{ item.name }}</view>
+                    <view class="street-merchant-card__body">
+                        <view class="street-merchant-card__title line1">{{ item.name }}</view>
                         <view class="street-merchant-card__rating" v-if="item.score">
                             <view class="street-merchant-card__stars">
                                 <image
@@ -100,7 +100,7 @@ export default {
     data() {
         return {
             streetKeyword: '',
-            streetSearchText: '输入关键词',
+            streetSearchText: '搜索商品/店铺',
             streetLoaded: false,
             streetLoading: false,
             navigating: false,
@@ -108,6 +108,7 @@ export default {
             streetStarIcon: streetAsset('searchlist_star.png'),
             streetTimeIcon: streetAsset('searchlist_time.png'),
             streetCategories: [],
+            backendCategoryPages: [],
             streetMerchants: []
         }
     },
@@ -128,6 +129,7 @@ export default {
     },
     computed: {
         streetCategoryPages() {
+            if (this.backendCategoryPages.length) return this.backendCategoryPages
             const pageSize = 8
             const list = Array.isArray(this.streetCategories) ? this.streetCategories : []
             const pages = []
@@ -143,27 +145,27 @@ export default {
             this.streetLoaded = true
             this.streetLoading = true
             try {
-                const res = await getStreetIndex({
-                    keyword: this.streetKeyword
-                })
+                const res = await getStreetIndex({ keyword: this.streetKeyword })
                 if (res.code != 1 || !res.data) {
                     this.streetCategories = []
+                    this.backendCategoryPages = []
                     this.streetMerchants = []
                     return
                 }
                 const data = res.data
                 const searchBox = data.searchBox || {}
                 const recommendedCategories = Array.isArray(data.recommendedCategories) ? data.recommendedCategories : []
+                const categoryPages = Array.isArray(data.categoryPages) ? data.categoryPages : []
                 const recommendedShops = Array.isArray(data.recommendedShops) ? data.recommendedShops : []
                 this.streetSearchText = searchBox.keyword || searchBox.placeholder || this.streetSearchText
-                this.streetCategories = recommendedCategories.length
-                    ? recommendedCategories.map((item, index) => this.mapStreetCategory(item, {}, index))
-                    : []
-                this.streetMerchants = recommendedShops.length
-                    ? recommendedShops.map((item) => this.mapStreetMerchant(item, {}))
-                    : []
+                this.streetCategories = recommendedCategories.map((item, index) => this.mapStreetCategory(item, {}, index))
+                this.backendCategoryPages = categoryPages
+                    .map(page => (Array.isArray(page) ? page : []).map((item, index) => this.mapStreetCategory(item, {}, index)))
+                    .filter(page => page.length)
+                this.streetMerchants = recommendedShops.map(item => this.mapStreetMerchant(item, {}))
             } catch (error) {
                 this.streetCategories = []
+                this.backendCategoryPages = []
                 this.streetMerchants = []
             } finally {
                 this.streetLoading = false
@@ -174,19 +176,19 @@ export default {
             return {
                 ...fallback,
                 ...item,
-                name: item.name || fallback.name || '',
-                image: resolveImage(item.image || fallback.image),
+                name: item.name || item.categoryName || fallback.name || '',
+                image: resolveImage(item.image || item.icon || item.iconUrl || fallback.image),
                 categoryId,
                 url: categoryId
                     ? `/business/pages/business_pages/street_goods?categoryId=${categoryId}`
                     : (fallback.url || '/business/pages/business_pages/street_goods'),
-                key: categoryId || item.name || fallback.name || index
+                key: categoryId || item.name || item.categoryName || fallback.name || index
             }
         },
         mapStreetMerchant(item = {}, fallback = {}) {
             const shopId = item.shop_id || item.shopId || item.merchantShopId || item.merchant_shop_id || item.id || fallback.shopId || ''
             const scoreValue = item.shop_score ?? item.shopScore ?? item.score ?? item.star ?? item.rating ?? fallback.score
-            const statusLabel = this.getStreetOpenStatusLabel(item.open_status || item.openStatus)
+            const statusLabel = this.getStreetOpenStatusLabel(item.open_status || item.openStatus, item.businessHours || item.business_hours || item.openHours)
             const address = item.detail_address || item.detailAddress || item.address || fallback.detailAddress || ''
             const metaParts = [statusLabel, address].filter(Boolean)
             return {
@@ -217,12 +219,27 @@ export default {
             if (Number.isNaN(score) || score <= 0) return 0
             return Math.max(1, Math.min(5, Math.round(score)))
         },
-        getStreetOpenStatusLabel(status) {
-            if (!status) return ''
-            if (status === 'OPEN') return '营业中'
-            if (status === 'CLOSED') return '未营业'
-            if (status === 'REST') return '休息中'
-            return status
+        inferOpenStatusFromHours(hours, status = '') {
+            const text = String(hours || '').trim()
+            if (!text) return String(status || '').toUpperCase()
+            if (/24\s*小时|全天|00[:：]00\s*[-~至到]\s*24[:：]00/i.test(text)) return 'OPEN'
+            const match = text.match(/(\d{1,2})[:：](\d{2})\s*(?:-|~|至|到)\s*(\d{1,2})[:：](\d{2})/)
+            if (!match) return String(status || '').toUpperCase()
+            const start = Math.max(0, Math.min(23, Number(match[1]) || 0)) * 60 + Math.max(0, Math.min(59, Number(match[2]) || 0))
+            const end = Math.max(0, Math.min(23, Number(match[3]) || 0)) * 60 + Math.max(0, Math.min(59, Number(match[4]) || 0))
+            const now = new Date()
+            const current = now.getHours() * 60 + now.getMinutes()
+            if (start === end) return 'OPEN'
+            return start < end
+                ? (current >= start && current < end ? 'OPEN' : 'CLOSED')
+                : (current >= start || current < end ? 'OPEN' : 'CLOSED')
+        },
+        getStreetOpenStatusLabel(status, hours = '') {
+            const normalized = this.inferOpenStatusFromHours(hours, status)
+            if (normalized === 'OPEN') return '营业中'
+            if (normalized === 'CLOSED') return '未营业'
+            if (normalized === 'REST') return '休息中'
+            return normalized || ''
         },
         onStreetSearch() {
             this.streetKeyword = (this.streetKeyword || '').trim()
@@ -241,26 +258,19 @@ export default {
         openStreetMerchant(event) {
             const index = Number(event && event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.index)
             const item = this.streetMerchants[index]
-            if (!item) return
-            if (!item.shopId && !item.url) {
-                return
-            }
+            if (!item || (!item.shopId && !item.url)) return
             this.goPage(item.url)
         },
         goPage(eventOrUrl) {
             const url = typeof eventOrUrl === 'string'
                 ? eventOrUrl
                 : eventOrUrl && eventOrUrl.currentTarget && eventOrUrl.currentTarget.dataset && eventOrUrl.currentTarget.dataset.url
-            if (!url) return
-            if (this.navigating) return
+            if (!url || this.navigating) return
             this.navigating = true
             const routePath = url.split('?')[0].replace(/^\//, '')
             const navigateFail = () => {
                 this.navigating = false
-                uni.showToast({
-                    title: '页面暂不可打开',
-                    icon: 'none'
-                })
+                uni.showToast({ title: '页面暂不可打开', icon: 'none' })
             }
             const navigateComplete = () => {
                 this.navigating = false
@@ -273,11 +283,7 @@ export default {
                 })
                 return
             }
-            uni.navigateTo({
-                url,
-                complete: navigateComplete,
-                fail: navigateFail
-            })
+            uni.navigateTo({ url, complete: navigateComplete, fail: navigateFail })
         }
     }
 }
@@ -291,239 +297,36 @@ export default {
     background: linear-gradient(180deg, #377df2 0%, #68a3f7 266rpx, #f8f8f8 266rpx, #f8f8f8 100%);
     box-sizing: border-box;
 }
-
-.street-header {
-    padding: calc(var(--page-safe-top) + 24rpx) 24rpx 20rpx;
-}
-
-.street-header__title {
-    color: #ffffff;
-    font-size: 36rpx;
-    font-weight: 500;
-    line-height: 64rpx;
-    text-align: center;
-}
-
-.street-search {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 65rpx;
-    margin-top: 13rpx;
-    padding: 0 18rpx 0 34rpx;
-    background: #ffffff;
-    border: 2rpx solid #ffffff;
-    border-radius: 33rpx;
-    box-shadow: 0 8rpx 24rpx rgba(24, 91, 192, 0.12);
-    box-sizing: border-box;
-}
-
-.street-search__input {
-    flex: 1;
-    min-width: 0;
-    height: 61rpx;
-    padding-right: 18rpx;
-    color: #222222;
-    font-size: 26rpx;
-    line-height: 61rpx;
-}
-
-.street-search__placeholder {
-    color: #b7b7b7;
-    font-size: 26rpx;
-}
-
-.street-search__icon {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56rpx;
-    height: 56rpx;
-}
-
-.street-search__icon-image {
-    width: 34rpx;
-    height: 34rpx;
-}
-
-.street-sheet {
-    min-height: calc(100vh - 266rpx);
-    margin-top: 20rpx;
-    background: #f8f8f8;
-    border-top-left-radius: 21rpx;
-    border-top-right-radius: 21rpx;
-    box-shadow: 0 -3rpx 16rpx rgba(224, 224, 224, 0.67);
-}
-
-.street-service-section {
-    padding: 48rpx 42rpx 0;
-}
-
-.street-service-swiper {
-    height: 318rpx;
-}
-
-.street-service-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    align-content: flex-start;
-    padding: 0;
-}
-
-.street-service-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 25%;
-    flex: 0 0 25%;
-    min-width: 0;
-    height: 132rpx;
-    margin-bottom: 28rpx;
-    box-sizing: border-box;
-}
-
-.street-service-item__icon-shell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 97rpx;
-    height: 84rpx;
-}
-
-.street-service-item__image {
-    width: 97rpx;
-    height: 84rpx;
-}
-
-.street-service-item__text {
-    margin-top: 18rpx;
-    color: #222222;
-    font-size: 26rpx;
-    line-height: 26rpx;
-    max-width: 132rpx;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.street-merchant-list {
-    padding: 6rpx 24rpx 24rpx;
-}
-
-.street-empty {
-    width: 100%;
-    padding: 52rpx 24rpx;
-    color: #9ca3af;
-    font-size: 26rpx;
-    line-height: 36rpx;
-    text-align: center;
-    box-sizing: border-box;
-}
-
-.street-empty--grid {
-    padding-top: 12rpx;
-    padding-bottom: 34rpx;
-}
-
-.street-merchant-card {
-    display: flex;
-    align-items: flex-start;
-    min-height: 226rpx;
-    margin-bottom: 26rpx;
-    background: #ffffff;
-    border-radius: 15rpx;
-    overflow: hidden;
-}
-
-.street-merchant-card__image-shell {
-    flex: none;
-    width: 189rpx;
-    height: 189rpx;
-    margin: 18rpx 0 0 19rpx;
-    border-radius: 10rpx;
-    background: #fff7f1;
-    overflow: hidden;
-}
-
-.street-merchant-card__image {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 189rpx;
-    height: 189rpx;
-    object-fit: cover;
-}
-
-.image-placeholder {
-    color: #9ca3af;
-    font-size: 24rpx;
-    line-height: 32rpx;
-    text-align: center;
-    background: #eef1f5;
-}
-
-.street-merchant-card__body {
-    flex: 1;
-    min-width: 0;
-    padding: 36rpx 24rpx 0 29rpx;
-}
-
-.street-merchant-card__title {
-    color: #222222;
-    font-size: 30rpx;
-    font-weight: 500;
-    line-height: 30rpx;
-}
-
-.street-merchant-card__rating {
-    display: flex;
-    align-items: center;
-    margin-top: 22rpx;
-}
-
-.street-merchant-card__stars {
-    display: flex;
-    align-items: center;
-}
-
-.street-merchant-card__star {
-    width: 24rpx;
-    height: 23rpx;
-    margin-right: 3rpx;
-}
-
-.street-merchant-card__score {
-    margin-left: 9rpx;
-    color: #f86821;
-    font-size: 24rpx;
-    font-weight: 500;
-    line-height: 24rpx;
-}
-
-.street-merchant-card__time-row {
-    display: flex;
-    align-items: center;
-    margin-top: 46rpx;
-}
-
-.street-merchant-card__time-icon {
-    width: 25rpx;
-    height: 25rpx;
-    margin-right: 6rpx;
-}
-
-.street-merchant-card__time {
-    color: #666666;
-    font-size: 26rpx;
-    font-weight: 500;
-    line-height: 26rpx;
-}
-
-.line1 {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+.street-header { padding: calc(var(--page-safe-top) + 24rpx) 24rpx 20rpx; }
+.street-header__title { color: #ffffff; font-size: 36rpx; font-weight: 500; line-height: 64rpx; text-align: center; }
+.street-search { display: flex; align-items: center; justify-content: space-between; height: 65rpx; margin-top: 13rpx; padding: 0 18rpx 0 34rpx; background: #ffffff; border: 2rpx solid #ffffff; border-radius: 33rpx; box-shadow: 0 8rpx 24rpx rgba(24, 91, 192, 0.12); box-sizing: border-box; }
+.street-search__input { flex: 1; min-width: 0; height: 61rpx; padding-right: 18rpx; color: #222222; font-size: 26rpx; line-height: 61rpx; }
+.street-search__placeholder { color: #b7b7b7; font-size: 26rpx; }
+.street-search__icon { flex: none; display: flex; align-items: center; justify-content: center; width: 56rpx; height: 56rpx; }
+.street-search__icon-image { width: 34rpx; height: 34rpx; }
+.street-sheet { min-height: calc(100vh - 266rpx); margin-top: 20rpx; background: #f8f8f8; border-top-left-radius: 21rpx; border-top-right-radius: 21rpx; box-shadow: 0 -3rpx 16rpx rgba(224, 224, 224, 0.67); }
+.street-service-section { padding: 48rpx 42rpx 0; }
+.street-service-swiper { height: 318rpx; }
+.street-service-grid { display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 0; }
+.street-service-item { display: flex; flex-direction: column; align-items: center; width: 25%; flex: 0 0 25%; min-width: 0; height: 132rpx; margin-bottom: 28rpx; box-sizing: border-box; }
+.street-service-item__icon-shell { display: flex; align-items: center; justify-content: center; width: 97rpx; height: 84rpx; }
+.street-service-item__image { width: 97rpx; height: 84rpx; }
+.street-service-item__text { margin-top: 18rpx; color: #222222; font-size: 26rpx; line-height: 26rpx; max-width: 132rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.street-merchant-list { padding: 6rpx 24rpx 24rpx; }
+.street-empty { width: 100%; padding: 52rpx 24rpx; color: #9ca3af; font-size: 26rpx; line-height: 36rpx; text-align: center; box-sizing: border-box; }
+.street-empty--grid { padding-top: 12rpx; padding-bottom: 34rpx; }
+.street-merchant-card { display: flex; align-items: flex-start; min-height: 226rpx; margin-bottom: 26rpx; background: #ffffff; border-radius: 15rpx; overflow: hidden; }
+.street-merchant-card__image-shell { flex: none; width: 189rpx; height: 189rpx; margin: 18rpx 0 0 19rpx; border-radius: 10rpx; background: #fff7f1; overflow: hidden; }
+.street-merchant-card__image { display: flex; align-items: center; justify-content: center; width: 189rpx; height: 189rpx; object-fit: cover; }
+.image-placeholder { color: #9ca3af; font-size: 24rpx; line-height: 32rpx; text-align: center; background: #eef1f5; }
+.street-merchant-card__body { flex: 1; min-width: 0; padding: 36rpx 24rpx 0 29rpx; }
+.street-merchant-card__title { color: #222222; font-size: 30rpx; font-weight: 500; line-height: 30rpx; }
+.street-merchant-card__rating { display: flex; align-items: center; margin-top: 22rpx; }
+.street-merchant-card__stars { display: flex; align-items: center; }
+.street-merchant-card__star { width: 24rpx; height: 23rpx; margin-right: 3rpx; }
+.street-merchant-card__score { margin-left: 9rpx; color: #f86821; font-size: 24rpx; font-weight: 500; line-height: 24rpx; }
+.street-merchant-card__time-row { display: flex; align-items: center; margin-top: 46rpx; }
+.street-merchant-card__time-icon { width: 25rpx; height: 25rpx; margin-right: 6rpx; }
+.street-merchant-card__time { color: #666666; font-size: 26rpx; font-weight: 500; line-height: 26rpx; }
+.line1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

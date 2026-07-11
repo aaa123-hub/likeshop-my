@@ -208,8 +208,23 @@ export default {
                     requestNo: `kyc-${Date.now()}`
                 })
                 if (res.code == 1) {
-                    uni.showToast({ title: '申请已提交', icon: 'success' })
-                    await this.refreshStatus()
+                    this.statusInfo = {
+                        ...(res.data || {}),
+                        kycStatus: 'PENDING_AUDIT',
+                        kyc_status: 'PENDING_AUDIT',
+                        auditStatus: 'PENDING_AUDIT',
+                        status: 'PENDING_AUDIT',
+                        realName: this.form.realName.trim(),
+                        certNo: this.form.certNo.trim(),
+                        certType: this.form.certType,
+                        certFrontUrl: this.form.certFrontUrl,
+                        certBackUrl: this.form.certBackUrl,
+                        lastSubmitTime: (res.data && (res.data.lastSubmitTime || res.data.last_submit_time)) || ''
+                    }
+                    uni.showToast({ title: '申请已提交，等待审核', icon: 'none' })
+                    setTimeout(() => {
+                        this.refreshStatus()
+                    }, 800)
                 } else {
                     uni.showToast({ title: localizeBackendText(res.msg || res.message, '提交失败'), icon: 'none' })
                 }

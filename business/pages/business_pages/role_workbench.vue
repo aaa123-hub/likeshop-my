@@ -116,8 +116,8 @@ import { mapGetters } from 'vuex'
 import Navbar from '@/components/navbar/navbar.vue'
 import { getPromotionInviteCode, getRoleWorkbench } from '@/api/user'
 import { getShareMnQrcode } from '@/api/app'
-import lPainter from '@/bundle_poster/components/lime-painter/components/l-painter/l-painter.vue'
-import lPainterQrcode from '@/bundle_poster/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode.vue'
+import lPainter from '@/components/lime-painter/components/l-painter/l-painter.vue'
+import lPainterQrcode from '@/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode.vue'
 import { localizeBackendText } from '@/utils/backend-text'
 
 export default {

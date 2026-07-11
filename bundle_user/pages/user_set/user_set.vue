@@ -2,6 +2,23 @@
     <view class="user-profile-container mt10">
         <navbar title="个人资料"></navbar>
         <view class="user-profile">
+            <!-- #ifdef MP-WEIXIN -->
+            <button class="user-avatar-box user-avatar-box--button column-center" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
+                <view class="column column-center">
+                    <image
+                        class="user-avatar"
+                        :src="
+                            userInfo.avatar != ''
+                                ? userInfo.avatar
+                                : 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/default_avatar.png'
+                        "
+                    >
+                    </image>
+                    <view class="muted xs">点击获取微信头像</view>
+                </view>
+            </button>
+            <!-- #endif -->
+            <!-- #ifndef MP-WEIXIN -->
             <view class="user-avatar-box column-center" @tap="chooseAvatarImage">
                 <view class="column column-center">
                     <image
@@ -16,6 +33,7 @@
                     <view class="muted xs">点击修改头像</view>
                 </view>
             </view>
+            <!-- #endif -->
             <view class="row-info row bdb-line">
                 <view class="label md">ID</view>
                 <view class="md row" style="flex: 1">{{ userInfo.sn }}</view>
@@ -544,16 +562,29 @@ export default {
         border-top-right-radius: 28rpx;
 
         .user-avatar-box {
+            width: 100%;
             padding: 30rpx;
             background-color: white;
             border-top-left-radius: 28rpx;
             border-top-right-radius: 28rpx;
+            line-height: normal;
+            box-sizing: border-box;
 
             .user-avatar {
                 width: 120rpx;
                 height: 120rpx;
                 border-radius: 50%;
             }
+        }
+
+        .user-avatar-box--button {
+            border: 0;
+            margin: 0;
+            color: inherit;
+        }
+
+        .user-avatar-box--button::after {
+            border: 0;
         }
 
         .row-info {

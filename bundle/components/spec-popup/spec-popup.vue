@@ -234,7 +234,7 @@ export default {
     // 选择的规格参数等
     specValueText() {
       if (!this.specList.length) {
-        return `已选择 ${this.checkedGoods.spec_value_str || this.checkedGoods.name || '默认'} ${this.goodsNum} 件`;
+        return `已选择 ${this.skuDisplayName(this.checkedGoods)} ${this.goodsNum} 件`;
       }
       let arr = this.checkedGoods.spec_value_ids?.split(",");
       let spec_str = "";
@@ -243,7 +243,7 @@ export default {
           if (item == "") spec_str += this.specList[index].name + ",";
         });
       if (this.checkedGoods?.stock != 0 && spec_str == "")
-        return `已选择 ${this.checkedGoods.spec_value_str} ${this.goodsNum} 件`;
+        return `已选择 ${this.skuDisplayName(this.checkedGoods)} ${this.goodsNum} 件`;
       else return `请选择 ${spec_str.slice(0, spec_str.length - 1)}`;
     },
     specImage() {
@@ -271,6 +271,12 @@ export default {
     },
   },
   methods: {
+    skuDisplayName(item = {}) {
+      const skuName = item.skuName || item.sku_name || item.skuTitle || item.sku_title || item.name || item.title;
+      const specText = item.spec_value_str || item.specValueStr || item.spec_value || item.specValue || '';
+      if (skuName && specText && skuName !== specText) return `${skuName}（${specText}）`;
+      return skuName || specText || '默认';
+    },
     initGoods(value = {}) {
       this.specList = value.goods_spec || [];
       let goodsItem = value.goods_item || [];

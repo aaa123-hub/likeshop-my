@@ -265,6 +265,10 @@ export default {
     orderType: {
       type: String,
     },
+    orderScene: {
+      type: String,
+      default: 'online'
+    },
   },
   created: function () {
     this.loadPaidOrderIds();
@@ -507,7 +511,7 @@ export default {
       if (this.isFetching) return;
       let { page, orderType, orderList, status } = this;
       const requestType = this.requestOrderType(orderType);
-      const requestKey = `${requestType || 'all'}:${page}`;
+      const requestKey = `${this.normalizedOrderScene()}:${requestType || 'all'}:${page}`;
       const now = Date.now();
       if (this.lastRequestKey === requestKey && now - this.lastRequestAt < 300) return;
       this.lastRequestKey = requestKey;
@@ -521,6 +525,7 @@ export default {
         do {
           data = await loadingFun(getOrderList, page, orderList, status, {
             type: requestType,
+            orderScene: this.normalizedOrderScene(),
           });
           if (!data) {
             if (!this.orderList.length && this.status === loadingType.LOADING) {
@@ -528,6 +533,7 @@ export default {
             }
             return;
           }
+          const beforeFilterCount = (data.dataList || []).length;
           page = data.page;
           status = data.status;
           orderList = data.dataList
@@ -535,7 +541,11 @@ export default {
               const ids = (uni.getStorageSync('ORDER_DELETED_IDS') || []).concat(this.deletedOrderIds)
               return !this.orderIdentityList(item).some((id) => ids.includes(id))
             })
+            .filter((item) => this.matchOrderScene(item))
             .filter((item) => this.shouldShowOrder(item));
+          if (!orderList.length && beforeFilterCount > 0 && status === loadingType.EMPTY) {
+            status = loadingType.LOADING;
+          }
           loadCount += 1;
         } while (this.shouldAutoLoadNextPage(orderType, orderList, status, loadCount));
 
@@ -552,10 +562,50 @@ export default {
     },
     requestOrderType(type) {
       const value = String(type || '');
-      return ['ship', 'delivery', 'ended'].includes(value) ? 'all' : type;
+      return value || 'all';
+    },
+    normalizedOrderScene() {
+      return this.orderScene === 'offline' ? 'offline' : 'online';
+    },
+    normalizeSceneText(value) {
+      return String(value || '').trim().replace(/[\s-]+/g, '_').toUpperCase();
+    },
+    matchOrderScene(item = {}) {
+      const scene = this.normalizedOrderScene();
+      const explicitScene = this.normalizeSceneText(
+        item.orderScene ||
+        item.order_scene ||
+        item.scene ||
+        item.bizScene ||
+        item.biz_scene ||
+        item.categoryType ||
+        item.category_type ||
+        item.goodsCategoryType ||
+        item.goods_category_type ||
+        item.productCategoryType ||
+        item.product_category_type
+      );
+      if (['ONLINE', 'MALL', 'ECOMMERCE', 'SHOP'].includes(explicitScene)) return scene === 'online';
+      if (['OFFLINE', 'STREET', 'LOCAL', 'STORE', 'BUSINESS_STREET', 'OFFLINE_PICKUP'].includes(explicitScene)) return scene === 'offline';
+      const orderChannel = this.normalizeSceneText(item.orderChannel || item.order_channel || item.channel);
+      const goodsSource = this.normalizeSceneText(item.goodsSource || item.goods_source);
+      const offlineSignals = [
+        orderChannel === 'OFFLINE_PICKUP',
+        orderChannel === 'OFFLINE',
+        orderChannel === 'STORE',
+        goodsSource === 'OFFLINE',
+        goodsSource === 'STREET',
+        goodsSource === 'LOCAL',
+        goodsSource === 'STORE',
+        this.isSelfFetchOrder(item)
+      ];
+      const isOffline = offlineSignals.some(Boolean);
+      return scene === 'offline' ? isOffline : !isOffline;
     },
     shouldAutoLoadNextPage(type, list, status, loadCount) {
-      return false;
+      if (loadCount >= 5) return false;
+      if (status === loadingType.FINISHED || status === loadingType.ERROR) return false;
+      return !list.length;
     },
     goPage(url) {
       uni.navigateTo({
@@ -725,9 +775,9 @@ export default {
     },
     isAfterSaleOrder(item = {}) {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
-      if (this.isRefundFinishedOrder(item)) return false;
       return Boolean(
         ['REFUNDING', 'AFTER_SALE', 'AFTER_SALES', 'AFTERSALE', 'REFUND_APPLIED', 'REFUND_PROCESSING'].includes(status) ||
+        this.isRefundFinishedOrder(item) ||
         item.after_sale_id ||
         item.afterSaleId ||
         item.refundNo ||
@@ -739,8 +789,17 @@ export default {
     shouldShowOrder(item = {}) {
       const type = String(this.orderType || 'all');
       if (type === 'pay') return !this.isAfterSaleOrder(item) && this.isPendingPayOrder(item);
-      if (type === 'ship') return !this.isAfterSaleOrder(item) && this.isWaitShipOrder(item);
+      if (type === 'ship') {
+        if (this.normalizedOrderScene() === 'offline') {
+          return !this.isAfterSaleOrder(item) && this.isPendingSelfFetchOrder(item);
+        }
+        return !this.isAfterSaleOrder(item) && this.isWaitShipOrder(item);
+      }
+      if (type === 'finish') {
+        return !this.isAfterSaleOrder(item) && this.isSelfFetchOrder(item) && (this.isVerifiedOrder(item) || this.isFinishedOrder(item));
+      }
       if (type === 'delivery') return !this.isAfterSaleOrder(item) && !this.isEndedOrder(item) && (this.isShippedOrder(item) || this.isPendingSelfFetchOrder(item));
+      if (type === 'afterSale') return this.isAfterSaleOrder(item);
       return true;
     },
     hasShippingSignal(item = {}) {
@@ -781,6 +840,8 @@ export default {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
       return Boolean(
         this.isSelfFetchOrder(item) &&
+        !this.isAfterSaleOrder(item) &&
+        !this.isEndedOrder(item) &&
         !this.isVerifiedOrder(item) &&
         (this.isPaidOrder(item) && this.isRawPendingPayOrder(item) || item.order_status == 1 || item.order_status == 2 || ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED'].includes(status))
       );
@@ -894,9 +955,12 @@ export default {
       this.goPage(`/bundle_order/pages/goods_reviews/goods_reviews?id=${encodeURIComponent(id)}&order_id=${encodeURIComponent(item.id || item.order_sn || '')}`)
     },
     formatOrderStatusText(item) {
+      if (this.isSelfFetchOrder(item) && this.isRefundFinishedOrder(item)) return '售后';
       if (this.isRefundFinishedOrder(item)) return '已退款';
       if (this.isAfterSaleOrder(item)) return '售后中';
       if (this.isExpiredPendingPayOrder(item)) return '已关闭';
+      if (this.isSelfFetchOrder(item) && (this.isVerifiedOrder(item) || this.isFinishedOrder(item))) return '已核销';
+      if (this.isSelfFetchOrder(item) && this.isPendingSelfFetchOrder(item)) return '待核销';
       if (this.isPaidOrder(item) && this.isRawPendingPayOrder(item)) return '待发货';
       const rawText = item.order_status_desc || item.orderStatusDesc || item.statusText || '';
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status || rawText);

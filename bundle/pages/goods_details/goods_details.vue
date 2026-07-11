@@ -40,7 +40,7 @@
 						separator-color="#FF2C3C" font-size="24" height="36" separator-size="26"></u-count-down>
 				</view>
 			</view>
-			<!-- 鎷煎洟 -->
+			<!-- 拼团 -->
 			<view class="group" v-show="goodsType == 2">
 				<view class="row info" style="height: 100%">
 					<view class="row-between ml20 white" style="flex: 1;">
@@ -149,13 +149,13 @@
 					<text class="option-row__text">{{ freightText }}</text>
 				</view>
 				<view v-if="showGoodsCouponEntry || showGoodsPointsEntry" class="option-panel__line option-panel__line--thin"></view>
-				<view v-if="showGoodsCouponEntry" class="option-row option-row--coupon" @tap="showGoodsCoupon = true">
+				<view v-if="showGoodsCouponEntry" class="option-row option-row--coupon" :class="{ 'option-row--disabled': !claimableGoodsCoupons.length }" @tap="openGoodsCouponPopup">
 					<view class="option-row__coupon-icon">券</view>
 					<view class="option-row__coupon-content">
 						<view class="option-row__coupon-title">优惠券</view>
 						<view class="option-row__coupon-text line1">{{ goodsCouponSummary }}</view>
 					</view>
-					<view class="option-row__coupon-action">领取</view>
+					<view :class="['option-row__coupon-action', !claimableGoodsCoupons.length ? 'option-row__coupon-action--disabled' : '']">{{ claimableGoodsCoupons.length ? '领取' : '已领完' }}</view>
 				</view>
 				<view v-if="showGoodsCouponEntry && showGoodsPointsEntry" class="option-panel__line option-panel__line--thin"></view>
 				<view v-if="showGoodsPointsEntry" class="option-row option-row--benefit" @tap="showGoodsPoints = true">
@@ -262,36 +262,6 @@
 				<view class="con empty-state" v-else>暂无评价</view>
 			</view>
 
-			<view class="group-record bg-white mt20" v-if="groupRecords.length">
-				<view class="group-record__head">
-					<view class="group-record__title">跟团记录</view>
-					<view class="group-record__summary">{{ groupFooterCount || groupRecords.length }}人已跟团</view>
-				</view>
-				<view v-for="(item, index) in groupRecords" :key="index" class="group-record__item">
-					<image v-if="item.avatar" class="group-record__avatar-image" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
-					<view v-else class="group-record__avatar">{{ item.initial }}</view>
-					<view class="group-record__content">
-						<view class="group-record__name">{{ item.name }}</view>
-						<view class="group-record__time">{{ item.time ? formatDisplayTime(item.time) : '刚刚跟团' }}</view>
-						<view class="group-record__meta" v-if="item.statusText || item.needText">{{ item.statusText || item.needText }}</view>
-					</view>
-					<view class="group-record__side">
-						<view class="group-record__plus">+{{ item.join || 1 }}</view>
-						<view class="group-record__side-text">参团</view>
-					</view>
-				</view>
-			</view>
-
-			<view class="group-record bg-white mt20" v-else>
-				<view class="group-record__head">
-					<view class="group-record__title">跟团记录</view>
-				</view>
-				<view class="group-record__empty">
-					<view class="group-record__empty-icon"></view>
-					<view>暂无跟团记录</view>
-					<view class="group-record__empty-desc">成为第一个跟团的人吧</view>
-				</view>
-			</view>
 			<view class="goods-extra bg-white mt20" v-if="goodsInfoRows.length">
 				<view class="goods-extra__title">商品信息</view>
 				<view class="goods-extra__grid">
@@ -326,7 +296,7 @@
 					</view>
 				</view>
 			</view>
-			<swiper v-if="teamFound.length" class="mt20 bg-white" autoplay="true" style="height: 240rpx;"
+			<swiper v-if="showTeamRecords" class="mt20 bg-white" autoplay="true" style="height: 240rpx;"
 				vertical="true" circular="true" :interval="5000">
 				<swiper-item v-for="(sitem, index) in teamFound" :key="index">
 					<view class="group-list">
@@ -372,18 +342,7 @@
 					<text class="xxs lighter">购物车</text>
 				</view>
 				<view class="footer-action" @tap="showSpecFun(0)">
-					<view class="footer-action__avatars">
-						<image
-							v-for="(avatar, index) in groupFooterAvatars"
-							:key="index"
-							:class="['footer-action__avatar', index === 1 ? 'footer-action__avatar--middle' : '']"
-							:src="avatar"
-							mode="aspectFill"
-						></image>
-					</view>
-					<view class="footer-action__count">{{ groupFooterCount }}人已跟团</view>
-					<image class="footer-action__divider" src="https://shengyuan.store/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png" mode="scaleToFill"></image>
-					<view class="footer-action__text">跟团买</view>
+					<view class="footer-action__text">立即购买</view>
 				</view>
 			</view>
 		</view>
@@ -482,7 +441,7 @@
 										:data-coupon-index="index"
 										:data-coupon-key="couponStableKey(item, index, 'claimable')"
 										data-coupon-list="claimable"
-										@tap.stop="receiveGoodsCouponByEvent"
+										@tap.stop="couponButtonDisabled(item) ? null : receiveGoodsCouponByEvent($event)"
 									>{{ couponButtonText(item) }}</view>
 									<view v-else class="coupon-receive-btn coupon-receive-btn--disabled">已领取</view>
 								</view>
@@ -717,8 +676,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				});
 			},
 			commentScore(item = {}) {
-				const score = Number(item.goods_rate || item.goods_comment || item.score || 5)
-				if (!score || score < 1) return 5
+				const rawScore = item.goods_rate || item.goods_comment || item.score
+				if (rawScore === '' || rawScore === null || rawScore === undefined) return 0
+				const score = Number(rawScore)
+				if (!score || score < 1) return 0
 				return Math.max(1, Math.min(5, Math.round(score)))
 			},
 			displayCommentSpec(item = {}) {
@@ -1182,6 +1143,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			couponButtonDisabled(item = {}) {
 				return Boolean(item.is_get || item.isGet || this.isCouponReceivedLocally(item) || !this.couponReceiveId(item) || this.receivingCouponId == this.couponReceiveId(item))
 			},
+			openGoodsCouponPopup() {
+				if (!this.claimableGoodsCoupons.length) return
+				this.goodsCouponTabIndex = 0
+				this.showGoodsCoupon = true
+			},
 			resolveCouponFromEvent(event = {}) {
 				const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
 				const listName = dataset.couponList || dataset.coupon_list || 'claimable'
@@ -1217,7 +1183,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					console.log('receiveGoodsCoupon empty item', item)
 					return uni.showToast({ title: '优惠券信息异常', icon: 'none' })
 				}
-				if (item.is_get || item.isGet) return
+				if (this.couponButtonDisabled(item)) return
 				if (!this.isLogin) return toLogin()
 				if (this.receivingCouponId) return
 				const id = this.couponReceiveId(item)
@@ -1257,6 +1223,19 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					if (value !== undefined && value !== null && value !== '') return value
 				}
 				return ''
+			},
+			normalizeGoodsCategoryType(detail = this.goodsDetail) {
+				const value = this.pickFirstValue(detail || {}, ['categoryType', 'category_type', 'goodsCategoryType', 'goods_category_type', 'productCategoryType', 'product_category_type', 'sceneType', 'scene_type'])
+				const text = String(value || '').toUpperCase()
+				return ['OFFLINE', 'OFFLINE_MALL', 'STREET'].includes(text) ? 'OFFLINE' : 'ONLINE'
+			},
+			normalizeGoodsDeliveryType(detail = this.goodsDetail) {
+				if (this.normalizeGoodsCategoryType(detail) === 'OFFLINE') return 2
+				const template = detail.freight_template || detail.freightTemplate || detail.shipping_template || detail.shippingTemplate || {}
+				const value = this.pickFirstValue({ ...template, ...detail }, ['delivery_type', 'deliveryType', 'shippingMethod', 'shipping_method'])
+				const text = String(value || '').toUpperCase()
+				if (value === 2 || text === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(text)) return 2
+				return 1
 			},
 			formatRichContent(value) {
 				if (Array.isArray(value)) {
@@ -1336,6 +1315,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					spec_value_ids: specIds,
 					spec_value_ids_arr: Array.isArray(item.spec_value_ids_arr) ? item.spec_value_ids_arr : String(specIds || '').split(',')
 				});
+			},
+			skuDisplayName(item = {}) {
+				const skuName = item.skuName || item.sku_name || item.skuTitle || item.sku_title || item.name || item.title
+				const specText = item.spec_value_str || item.specValueStr || item.spec_value || item.specValue || ''
+				if (skuName && specText && skuName !== specText) return `${skuName}（${specText}）`
+				return skuName || specText || '默认'
 			},
 			getDefaultCheckedGoods(goodsItem = []) {
 				const target = goodsItem.find(item => this.isSameSku(item, this.targetSkuId));
@@ -1560,10 +1545,20 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					team
 				} = this;
 				const checkoutPrice = this.resolveCheckoutPrice(skuDetail);
+				const categoryType = this.normalizeGoodsCategoryType(this.goodsDetail);
+				const deliveryType = this.normalizeGoodsDeliveryType(this.goodsDetail);
 				let goods = [{
 					item_id: itemId,
 					skuId: itemId,
 					goods_id: this.goodsDetail.goods_id || this.goodsDetail.goodsId || this.goodsDetail.id,
+					spuId: this.goodsDetail.spuId || this.goodsDetail.goods_id || this.goodsDetail.goodsId || this.goodsDetail.id,
+					categoryId: this.goodsDetail.categoryId || this.goodsDetail.category_id || '',
+					category_id: this.goodsDetail.category_id || this.goodsDetail.categoryId || '',
+					categoryType,
+					category_type: categoryType,
+					delivery_type: deliveryType,
+					deliveryType,
+					orderChannel: categoryType === 'OFFLINE' ? 'OFFLINE_PICKUP' : 'ONLINE',
 					goods_name: this.goodsDetail.goods_name || this.goodsDetail.name,
 					name: this.goodsDetail.name,
 					image: skuDetail.image || skuDetail.imageUrl || skuDetail.skuImage || skuDetail.skuImageUrl || this.goodsDetail.image || this.previewImages[0] || '',
@@ -1743,6 +1738,9 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			},
 			showGroupFooter() {
 				return true
+			},
+			showTeamRecords() {
+				return false
 			},
 			groupFooterCount() {
 				return this.team.joinedCount || this.team.joined_count || this.team.join_num || this.team.joinNum || this.team.salesCount || this.team.sales_count || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || this.goodsDetail.joinedCount || this.goodsDetail.joined_count || this.goodsDetail.sales_sum || this.goodsDetail.salesCount || 0
@@ -1959,7 +1957,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				const rows = [
 					{ label: '库存', value: detail.stock || detail.stockQty },
 					{ label: '销量', value: detail.sales_sum || detail.salesCount },
-					{ label: '跟团', value: this.groupFooterCount ? `${this.groupFooterCount}人已跟团` : '' },
 					{ label: '评价', value: this.comment.total || detail.comment_count || detail.commentCount },
 					{ label: '运费', value: this.freightText },
 					{ label: '服务标签', value: this.goodsServiceList },
@@ -1990,7 +1987,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				return this.formatRichContent(this.goodsDetail.goods_detail || this.goodsDetail.goodsDetail || this.goodsDetail.content || this.goodsDetail.detail || this.goodsDetail.detailJson || this.goodsDetail.detail_json || this.goodsDetail.richText || this.goodsDetail.rich_text || this.goodsDetail.description || this.goodsDetail.desc || '')
 			},
 			selectedSpecText() {
-				return this.checkedGoods.spec_value_str || this.checkedGoods.skuName || this.checkedGoods.name || '默认'
+				return this.skuDisplayName(this.checkedGoods)
 			},
 			freightText() {
 				const detail = this.goodsDetail || {}
@@ -3439,6 +3436,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			.footer-action {
 				display: flex;
 				align-items: center;
+				justify-content: center;
 				flex: 1;
 				min-width: 0;
 				height: 80rpx;
@@ -3489,7 +3487,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 			.footer-action__text {
 				flex: none;
-				margin-left: 30rpx;
 				font-size: 28rpx;
 				font-weight: 500;
 				line-height: 28rpx;

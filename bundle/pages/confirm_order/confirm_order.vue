@@ -47,7 +47,8 @@
                                 </view>
                             </template>
                             <template v-else>
-                                <view class="address-empty">下单前请填写收货地址</view>
+                                <view class="address-empty">请添加收货地址</view>
+                                <view class="address-action">去添加地址</view>
                             </template>
                         </view>
                         <image class="arrow-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png" mode="scaleToFill"></image>
@@ -368,6 +369,13 @@ export default {
         },
         currentDelivery() {
             return this.addressTabsList[this.addressTabsIndex] || this.addressTabsList[0] || { id: 1, sign: 'express', name: '快递配送' }
+        },
+        orderCategoryType() {
+            const list = (this.goodsLists && this.goodsLists.length ? this.goodsLists : this.goods) || []
+            const hasOffline = list.some(item => this.normalizeCategoryType(item) === 'OFFLINE')
+            const hasOnline = list.some(item => this.normalizeCategoryType(item) === 'ONLINE')
+            if (hasOffline && hasOnline) return 'MIXED'
+            return hasOffline ? 'OFFLINE' : 'ONLINE'
         },
         shopName() {
             return this.shopGroups[0] ? this.shopGroups[0].name : '商城自营'
@@ -866,6 +874,7 @@ export default {
                 if (!this.addressTabsList.length) {
                     this.addressTabsList = [{ id: 1, sign: 'express', name: '快递配送' }]
                 }
+                this.applyCategoryDeliveryRules()
                 if (!this.addressTabsList[this.addressTabsIndex]) {
                     this.addressTabsIndex = 0
                 }
@@ -967,6 +976,53 @@ export default {
             const text = String(value || '').toUpperCase()
             if (value === 2 || text === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(text)) return 2
             return 1
+        },
+        normalizeCategoryType(item = {}) {
+            const value = String(this.firstDefined(
+                item.categoryType,
+                item.category_type,
+                item.goodsCategoryType,
+                item.goods_category_type,
+                item.productCategoryType,
+                item.product_category_type,
+                item.sceneType,
+                item.scene_type,
+                ''
+            ) || '').toUpperCase()
+            if (['OFFLINE', 'OFFLINE_MALL', 'STREET'].includes(value)) return 'OFFLINE'
+            const deliveryType = this.normalizeDeliveryTypeValue(this.firstDefined(item.delivery_type, item.deliveryType, item.fulfillmentType, item.fulfillment_type))
+            return deliveryType === 2 ? 'OFFLINE' : 'ONLINE'
+        },
+        applyCategoryDeliveryRules() {
+            const type = this.orderCategoryType
+            if (type === 'MIXED') {
+                uni.showToast({ title: '线上商品和线下商品不能合并下单', icon: 'none' })
+                return
+            }
+            if (type === 'OFFLINE') {
+                this.addressTabsList = this.addressTabsList.filter(item => item.sign === 'store')
+                if (!this.addressTabsList.length) this.addressTabsList = [{ id: 2, sign: 'store', name: '门店自提' }]
+                this.addressTabsIndex = 0
+                return
+            }
+            this.addressTabsList = this.addressTabsList.filter(item => item.sign === 'express')
+            if (!this.addressTabsList.length) this.addressTabsList = [{ id: 1, sign: 'express', name: '快递配送' }]
+            this.addressTabsIndex = 0
+        },
+        validateCategoryDeliveryBeforeSubmit() {
+            if (this.orderCategoryType === 'MIXED') {
+                this.$toast({ title: '线上商品和线下商品不能合并下单' })
+                return false
+            }
+            if (this.orderCategoryType === 'OFFLINE' && this.currentDelivery.sign !== 'store') {
+                this.$toast({ title: '线下商品必须门店自提' })
+                return false
+            }
+            if (this.orderCategoryType === 'ONLINE' && this.currentDelivery.sign !== 'express') {
+                this.$toast({ title: '线上商品只能快递配送' })
+                return false
+            }
+            return true
         },
         safeText(value) {
             if (value === undefined || value === null) return ''
@@ -1298,6 +1354,8 @@ export default {
                 shopId: item.shopId || item.shop_id || item.storeId || item.store_id || original.shopId || original.shop_id || original.storeId || original.store_id || this.orderInfo.shopId || this.orderInfo.shop_id || '',
                 shop_name: item.shop_name || item.shopName || item.store_name || item.storeName || original.shop_name || original.shopName || original.store_name || original.storeName || this.orderInfo.shop_name || this.orderInfo.shopName || '商城自营',
                 shopName: item.shopName || item.shop_name || item.storeName || item.store_name || original.shopName || original.shop_name || original.storeName || original.store_name || this.orderInfo.shopName || this.orderInfo.shop_name || '商城自营',
+                categoryType: this.normalizeCategoryType({ ...original, ...item }),
+                category_type: this.normalizeCategoryType({ ...original, ...item }),
                 pointsDeductAmount: this.firstDefined(item.pointsDeductAmount, item.points_deduct_amount, original.pointsDeductAmount, original.points_deduct_amount),
                 points_deduct_amount: this.firstDefined(item.points_deduct_amount, item.pointsDeductAmount, original.points_deduct_amount, original.pointsDeductAmount),
                 maxDeductAmount: this.firstDefined(item.maxDeductAmount, item.max_deduct_amount, original.maxDeductAmount, original.max_deduct_amount),
@@ -1598,6 +1656,9 @@ export default {
             })
         },
         onSubmitOrder() {
+            if (!this.validateCategoryDeliveryBeforeSubmit()) {
+                return
+            }
             if (this.currentDelivery.sign === 'express' && !this.address.id) {
                 return this.$toast({ title: '请先选择收货地址' })
             }
@@ -1653,6 +1714,7 @@ export default {
                 this.orderInfo = data
                 const previewGoods = data.goods_lists || data.order_goods || data.itemList || data.items || []
                 this.goodsLists = (previewGoods.length ? previewGoods : this.goods).map(this.normalizePreviewGoods)
+                this.applyCategoryDeliveryRules()
                 this.syncDiscountData(data)
                 this.logPointsDiagnostics('订单预览返回')
                 if (this.ensureDefaultCoupon()) {
@@ -1799,6 +1861,11 @@ export default {
                 this.isFirstLoading = false
                 this.showLoading = false
                 return this.$toast({ title: '商品参数异常，请重新选择商品' })
+            }
+            if (!this.validateCategoryDeliveryBeforeSubmit()) {
+                this.isFirstLoading = false
+                this.showLoading = false
+                return
             }
             const orderFrom = {
                 action,
@@ -2083,6 +2150,20 @@ page {
     font-size: 24rpx;
     line-height: 32rpx;
     color: #666666;
+}
+
+.address-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 12rpx;
+    padding: 0 18rpx;
+    height: 46rpx;
+    border-radius: 23rpx;
+    background: #1769ff;
+    color: #ffffff;
+    font-size: 22rpx;
+    line-height: 46rpx;
 }
 
 .arrow-icon,

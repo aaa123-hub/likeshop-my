@@ -15,7 +15,7 @@
             <view class="subtitle">实名通过后选择角色，提交必要资料等待审核</view>
         </view>
 
-        <view class="kyc-gate" v-if="!isKycApproved">
+        <view class="kyc-gate" v-if="!isKycApproved && !kycRedirecting">
             <view>
                 <view class="kyc-gate__title">{{ kycGateTitle }}</view>
                 <view class="kyc-gate__desc">{{ kycGateDesc }}</view>
@@ -100,6 +100,20 @@
                 <text class="label">申请区域</text>
                 <view class="picker-value picker-value--placeholder">暂无可选区域</view>
             </view>
+            <view class="form-item form-item--map" v-if="needsAreaSelection">
+                <text class="label">地图定位</text>
+                <view class="map-picker">
+                    <view class="map-picker__text">
+                        <view :class="['map-picker__address', form.detailAddress ? '' : 'map-picker__address--placeholder']">
+                            {{ form.detailAddress || '请选择区域办公或经营位置' }}
+                        </view>
+                        <view class="map-picker__coord" v-if="form.longitude && form.latitude">
+                            经度 {{ form.longitude }} / 纬度 {{ form.latitude }}
+                        </view>
+                    </view>
+                    <view class="map-picker__btn" @tap="chooseApplyLocation">{{ form.longitude && form.latitude ? '重新选择' : '地图选点' }}</view>
+                </view>
+            </view>
             <view class="upgrade-tip" v-if="accountCredentialTip">
                 {{ accountCredentialTip }}
             </view>
@@ -162,10 +176,11 @@
 <script>
 import { mapGetters } from 'vuex'
 import Navbar from '@/components/navbar/navbar.vue'
-import { applyRoleApplication, getKycStatus, getOnboardingContext, getRoleApplications, getRoles } from '@/api/user'
+import { applyRoleApplication, getKycStatus, getMiniappRegions, getOnboardingContext, getRoleApplications, getRoles } from '@/api/user'
 import { prepay } from '@/api/app'
 import { wxpay } from '@/utils/pay'
 import { localizeBackendText, normalizeBackendCode, normalizeKycStatus } from '@/utils/backend-text'
+import { toLogin } from '@/utils/login'
 
 const roleOptions = [
     { label: '推广者', value: 'PROMOTER' },
@@ -209,6 +224,9 @@ export default {
                 cityName: '',
                 districtCode: '',
                 districtName: '',
+                detailAddress: '',
+                longitude: '',
+                latitude: '',
                 remark: '',
                 materialUrlsText: '',
                 agreementAccepted: false
@@ -220,6 +238,7 @@ export default {
             kycInfo: {},
             onboardingContext: {},
             readonlyFields: {},
+            kycRedirecting: false,
             submitting: false,
             pageReady: false,
             pageRefreshing: false
@@ -230,6 +249,13 @@ export default {
         currentApplication() {
             const item = this.applications.find((item) => this.normalizeRoleCode(item.roleCode) === this.selectedRoleCode)
             return item ? this.withPromoterCode(item) : null
+        },
+        currentUserId() {
+            const info = this.userInfo || {}
+            return info.user_id || info.userId || info.id || ''
+        },
+        hasLoginUser() {
+            return Boolean(this.isLogin && this.currentUserId)
         },
         currentRole() {
             return this.currentRoles.find((item) => this.normalizeRoleCode(item.roleCode) === this.selectedRoleCode) || null
@@ -493,14 +519,16 @@ export default {
             return normalizeKycStatus(this.kycInfo.kycStatus || this.kycInfo.kyc_status || 'NOT_SUBMITTED')
         },
         isKycApproved() {
-            return this.normalizedKycStatus === 'APPROVED'
+            return this.normalizedKycStatus === 'APPROVED' || this.hasApprovedApplyRoleRecord
         },
         kycGateTitle() {
+            if (!this.hasLoginUser) return '请先登录'
             if (this.normalizedKycStatus === 'PENDING_AUDIT') return '实名审核中'
             if (this.normalizedKycStatus === 'REJECTED') return '实名未通过'
             return '请先完成实名认证'
         },
         kycGateDesc() {
+            if (!this.hasLoginUser) return '登录后可继续提交实名认证和角色入驻资料。'
             if (this.kycGateTitle === '实名审核中') return '实名审核通过后可申请角色。'
             if (this.kycGateTitle === '实名未通过') return '请重新提交实名资料后再申请角色。'
             return '角色申请会使用实名通过后的姓名、证件和照片。'
@@ -516,6 +544,9 @@ export default {
         },
         hasApplyRoleRecord() {
             return this.currentRoles.length > 0 || this.applyRoleApplications.length > 0
+        },
+        hasApprovedApplyRoleRecord() {
+            return this.currentRoles.length > 0 || this.applyRoleApplications.some((item) => this.statusType(item.applicationStatus || item.auditStatus || item.status) === 'approved')
         },
         promoterInviteCode() {
             return this.userInfo.promoter_code || this.userInfo.promoterCode || this.userInfo.distribution_code || this.userInfo.distributionCode || this.inviteCode || ''
@@ -635,31 +666,42 @@ export default {
     },
     onLoad() {
         this.form.mobile = this.userInfo.mobile || ''
-        this.loadPageData().finally(() => {
+        const loadTask = this.hasLoginUser ? this.loadPageData() : Promise.resolve()
+        loadTask.finally(() => {
             this.pageReady = true
         })
     },
     onShow() {
+        if (this.kycRedirecting) return
         if (!this.pageReady) return
+        if (!this.hasLoginUser) return
         this.loadPageData()
     },
     methods: {
         async loadPageData() {
+            if (!this.hasLoginUser) {
+                this.mergeRoleOptions()
+                this.syncSelectedRole()
+                return
+            }
             if (this.pageRefreshing) return
             this.pageRefreshing = true
             try {
                 await this.loadOnboardingContext()
-                await Promise.all([this.loadKycStatus(), this.loadApplications()])
+                await this.loadApplications()
+                await Promise.all([this.loadKycStatus(), this.loadRegionOptions()])
                 this.mergeRoleOptions()
                 this.syncSelectedRole()
                 this.prefillBackendUsername()
+                this.redirectToKycIfNeeded()
             } finally {
                 this.pageRefreshing = false
             }
         },
         async loadOnboardingContext() {
+            if (!this.hasLoginUser) return
             try {
-                const res = await getOnboardingContext({ show: false })
+                const res = await getOnboardingContext({ userId: this.currentUserId, show: false })
                 if (res.code != 1 || !res.data) return
                 this.applyOnboardingContext(res.data)
             } catch (error) {}
@@ -699,6 +741,19 @@ export default {
                 this.form.confirmPassword = ''
             }
         },
+        async loadRegionOptions() {
+            if (this.areaOptions.length) return
+            try {
+                const res = await getMiniappRegions({ tree: true, show: false })
+                if (res.code == 1 && res.data) {
+                    const options = this.normalizeAreaOptions(res.data.areaOptions || res.data.area_options || res.data.regionOptions || res.data.region_options || res.data.tree || res.data.list || [])
+                    if (options.length) {
+                        this.areaOptions = options
+                        this.syncAreaPickerValueByForm()
+                    }
+                }
+            } catch (error) {}
+        },
         isReadonlyField(field) {
             return Boolean(this.readonlyFields && this.readonlyFields[field])
         },
@@ -717,6 +772,7 @@ export default {
             }
         },
         async loadKycStatus() {
+            if (!this.hasLoginUser) return
             const localKyc = this.localKycInfo()
             const cachedKyc = this.cachedKycInfo()
             const fallbackKyc = this.mergeKycInfo(this.mergeKycInfo(localKyc, cachedKyc), this.kycInfo)
@@ -727,10 +783,16 @@ export default {
                 if (localKyc.fromProfile && this.isKycInfoComplete(fallbackKyc)) return
             }
             try {
-                const res = await getKycStatus({ show: false })
+                const res = await getKycStatus({ userId: this.currentUserId, show: false })
                 if (res.code != 1) return
                 const remoteStatus = normalizeKycStatus((res.data || {}).kycStatus || (res.data || {}).kyc_status || 'NOT_SUBMITTED')
                 const currentStatus = normalizeKycStatus(this.kycInfo.kycStatus || this.kycInfo.kyc_status || 'NOT_SUBMITTED')
+                if ((currentStatus === 'APPROVED' || this.hasApprovedApplyRoleRecord) && remoteStatus === 'NOT_SUBMITTED') {
+                    this.kycInfo = this.mergeKycInfo(fallbackKyc, { kycStatus: 'APPROVED', kyc_status: 'APPROVED' })
+                    this.saveKycCache(this.kycInfo)
+                    this.applyKycToForm(true)
+                    return
+                }
                 if (currentStatus !== 'NOT_SUBMITTED' && remoteStatus === 'NOT_SUBMITTED') {
                     if (this.isKycApproved) this.applyKycToForm(true)
                     return
@@ -1240,6 +1302,7 @@ export default {
                 { label: '申请人', value: item.applicantName || item.applicant_name },
                 { label: '手机号', value: item.mobile },
                 { label: '申请区域', value: this.applicationAreaText(item) },
+                { label: '定位地址', value: item.detailAddress || item.detail_address },
                 { label: '押金', value: this.displayDepositText(item) },
                 { label: '押金状态', value: this.depositStatusLabel(item.depositStatus || item.payStatus) }
             ].filter((info) => info.value)
@@ -1287,7 +1350,24 @@ export default {
             }
         },
         goKyc() {
-            uni.navigateTo({ url: '/business/pages/business_pages/user_kyc' })
+            if (!this.hasLoginUser) {
+                toLogin()
+                return
+            }
+            if (this.kycRedirecting) return
+            this.kycRedirecting = true
+            uni.redirectTo({
+                url: '/business/pages/business_pages/user_kyc',
+                fail: () => {
+                    this.kycRedirecting = false
+                    uni.navigateTo({ url: '/business/pages/business_pages/user_kyc' })
+                }
+            })
+        },
+        redirectToKycIfNeeded() {
+            if (!this.hasLoginUser) return
+            if (this.isKycApproved || this.hasApprovedApplyRoleRecord || this.kycRedirecting) return
+            this.goKyc()
         },
         async payDeposit() {
             const application = this.currentApplication || {}
@@ -1356,6 +1436,9 @@ export default {
             this.form.cityName = application.cityName || application.city_name || application.city || ''
             this.form.districtCode = application.districtCode || application.district_code || ''
             this.form.districtName = application.districtName || application.district_name || application.district || ''
+            this.form.detailAddress = application.detailAddress || application.detail_address || application.address || this.form.detailAddress
+            this.form.longitude = application.longitude || application.lng || this.form.longitude
+            this.form.latitude = application.latitude || application.lat || this.form.latitude
             this.applyKycToForm(true)
             this.form.remark = application.remark || this.form.remark
             this.form.materialUrlsText = Array.isArray(application.materialUrls) ? application.materialUrls.join('\n') : (application.materialUrls || this.form.materialUrlsText)
@@ -1385,6 +1468,10 @@ export default {
             }
             if (this.needsAreaSelection && !this.selectedAreaText) {
                 uni.showToast({ title: this.hasAreaOptions ? '请选择申请区域' : '暂无可选区域，请联系平台配置', icon: 'none' })
+                return false
+            }
+            if (this.needsAreaSelection && (!this.form.longitude || !this.form.latitude)) {
+                uni.showToast({ title: '请选择地图定位', icon: 'none' })
                 return false
             }
             if (this.requiresBackendUsername && !this.form.username.trim()) {
@@ -1425,7 +1512,11 @@ export default {
                         : Array.isArray(source.children)
                             ? source.children
                             : []
-            return list.map((item) => this.normalizeAreaItem(item)).filter((item) => item.label)
+            const normalized = list.map((item) => this.normalizeAreaItem(item)).filter((item) => item.label)
+            if (normalized.length === 1 && String(normalized[0].value).toUpperCase() === 'CN' && normalized[0].children && normalized[0].children.length) {
+                return normalized[0].children
+            }
+            return normalized
         },
         normalizeAreaItem(item = {}) {
             if (typeof item === 'string') return { label: item, value: item, children: [] }
@@ -1496,6 +1587,29 @@ export default {
         },
         handleEmptyAreaTap() {
             uni.showToast({ title: '暂无可选区域，请联系平台配置', icon: 'none' })
+        },
+        chooseApplyLocation() {
+            const params = {}
+            const latitude = Number(this.form.latitude)
+            const longitude = Number(this.form.longitude)
+            if (!Number.isNaN(latitude) && !Number.isNaN(longitude) && latitude && longitude) {
+                params.latitude = latitude
+                params.longitude = longitude
+            }
+            uni.chooseLocation({
+                ...params,
+                success: (res) => {
+                    this.form.longitude = res.longitude || ''
+                    this.form.latitude = res.latitude || ''
+                    const address = [res.address, res.name].filter(Boolean).join(' ')
+                    if (address) this.form.detailAddress = address
+                },
+                fail: (error) => {
+                    const message = String((error && (error.errMsg || error.message)) || '')
+                    if (/cancel/i.test(message)) return
+                    uni.showToast({ title: '地图选点失败，请检查定位权限', icon: 'none' })
+                }
+            })
         },
         applicationAreaText(item = {}) {
             return [item.provinceName || item.province_name || item.province, item.cityName || item.city_name || item.city, item.districtName || item.district_name || item.district].filter(Boolean).join(' / ')
@@ -1743,6 +1857,13 @@ input, textarea, .picker-value { flex: 1; min-width: 0; color: #1f2937; font-siz
 input, .picker-value { min-height: 62rpx; line-height: 62rpx; text-align: right; }
 .picker-value--placeholder { color: #98a2b3; }
 textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ffffff; line-height: 40rpx; box-sizing: border-box; text-align: left; }
+.form-item--map { align-items: flex-start; }
+.map-picker { flex: 1; display: flex; align-items: center; gap: 16rpx; min-width: 0; }
+.map-picker__text { flex: 1; min-width: 0; text-align: right; }
+.map-picker__address { color: #1f2937; font-size: 27rpx; line-height: 38rpx; word-break: break-all; }
+.map-picker__address--placeholder { color: #98a2b3; }
+.map-picker__coord { margin-top: 6rpx; color: #7a8494; font-size: 22rpx; line-height: 32rpx; }
+.map-picker__btn { flex: none; height: 58rpx; padding: 0 20rpx; border-radius: 29rpx; color: #1688ff; background: #eef7ff; font-size: 24rpx; line-height: 58rpx; }
 .upgrade-tip { margin-top: 16rpx; padding: 18rpx 20rpx; border-radius: 18rpx; color: #176b55; background: #eefbf6; border: 1rpx solid #c7f0df; font-size: 24rpx; line-height: 36rpx; }
 .form-item--readonly {
     background: #f3f6fa;

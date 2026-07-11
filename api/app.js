@@ -335,6 +335,12 @@ export function queryPayment(data = {}) {
   return request.get(`miniapp/payments/${payOrderNo}`).then(normalizePaymentResponse);
 }
 
+export function syncWechatPayment(data = {}) {
+  const payOrderNo = data.payOrderNo || data.pay_order_no || data.pay_order_id || data.order_id;
+  if (!payOrderNo) return Promise.resolve({ code: 0, msg: "缺少支付单号", data: null });
+  return request.post(`miniapp/payments/${payOrderNo}/sync-wechat`, {}).then(normalizePaymentResponse);
+}
+
 //小程序订阅
 export function getMnpNotice(data) {
   return request.get("miniapp/messages/unread-count", { params: { bizType: data?.scene || data?.bizType } })

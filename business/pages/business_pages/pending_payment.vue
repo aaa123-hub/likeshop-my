@@ -245,9 +245,10 @@ export default {
     computed: {
         isSelfFetchOrder() {
             const order = this.order || {}
-            const type = String(this.firstDefined(order.delivery_type, order.deliveryType, order.deliveryMode, order.orderChannel, '')).toUpperCase()
+            const type = String(this.firstDefined(order.delivery_type, order.deliveryType, order.deliveryMode, order.orderChannel, order.order_channel, '')).toUpperCase()
+            const categoryType = this.orderCategoryType(order)
             if (order.delivery_type === 2 || order.deliveryType === 2 || order.delivery_type === '2' || order.deliveryType === '2') return true
-            return ['PICKUP', 'SELF_FETCH', 'SELFFETCH', 'STORE_PICKUP', 'OFFLINE_PICKUP'].includes(type)
+            return categoryType === 'OFFLINE' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP', 'OFFLINE_PICKUP'].includes(type)
         },
         selectedAddressTitle() {
             if (this.isSelfFetchOrder) {
@@ -282,7 +283,7 @@ export default {
             ))
         },
         addressPlaceholder() {
-            return this.isSelfFetchOrder ? '请选择自提地址' : '下单前请填写收货地址'
+            return this.isSelfFetchOrder ? '请选择自提门店' : '请选择收货地址'
         },
         shopNameText() {
             const order = this.order || {}
@@ -692,6 +693,41 @@ export default {
             if (['1', 'TRUE', 'YES', 'Y', 'ON', 'ENABLED'].includes(normalized)) return true
             return fallback
         },
+        orderCategoryType(order = {}) {
+            const candidates = [
+                order.categoryType,
+                order.category_type,
+                order.goodsCategoryType,
+                order.goods_category_type,
+                order.orderScene,
+                order.order_scene,
+                order.scene,
+                order.freightType,
+                order.freight_type
+            ]
+            const goods = order.order_goods || order.goods_lists || order.itemList || order.items || []
+            if (Array.isArray(goods)) {
+                goods.forEach((item = {}) => {
+                    candidates.push(item.categoryType, item.category_type, item.goodsCategoryType, item.goods_category_type, item.orderScene, item.order_scene, item.freightType, item.freight_type)
+                })
+            }
+            return String(this.firstDefined(...candidates, '')).toUpperCase()
+        },
+        isOfflineCategoryOrder(order = {}) {
+            const categoryType = this.orderCategoryType(order)
+            const channel = String(this.firstDefined(order.orderChannel, order.order_channel, '')).toUpperCase()
+            return categoryType === 'OFFLINE' || categoryType === 'PICKUP' || channel === 'OFFLINE_PICKUP'
+        },
+        normalizeOfflineOrderDelivery() {
+            if (!this.order || !this.isOfflineCategoryOrder(this.order)) return
+            this.$set(this.order, 'delivery_type', 2)
+            this.$set(this.order, 'deliveryType', 2)
+            this.$set(this.order, 'orderChannel', 'OFFLINE_PICKUP')
+            this.$set(this.order, 'order_channel', 'OFFLINE_PICKUP')
+            this.$set(this.order, 'freight', 0)
+            this.$set(this.order, 'freight_amount', 0)
+            uni.setStorageSync('pending_payment_order', this.order)
+        },
         formatAmount(value) {
             return this.numberValue(value).toFixed(2)
         },
@@ -780,6 +816,7 @@ export default {
             const cached = uni.getStorageSync('pending_payment_order')
             if (!this.order && cached) this.order = cached
             if (this.order) {
+                this.normalizeOfflineOrderDelivery()
                 this.applyOrderStore()
                 this.syncCouponData(this.order)
             }
@@ -789,6 +826,7 @@ export default {
                 const res = await getOrderDetail(orderId)
                 if (res.code == 1 && res.data) {
                     this.order = res.data
+                    this.normalizeOfflineOrderDelivery()
                     this.applyOrderStore()
                     this.syncCouponData(res.data)
                 }
@@ -1188,7 +1226,11 @@ export default {
             const orderId = this.currentOrderId()
             if (!orderId) return uni.showToast({ title: '订单信息异常', icon: 'none' })
             if (this.isSelfFetchOrder && !this.selectedAddressDetail && !this.selectedAddressTitle) {
-                return uni.showToast({ title: '请先选择自提地址', icon: 'none' })
+                return uni.showToast({ title: '请先选择自提门店', icon: 'none' })
+            }
+            if (!this.isSelfFetchOrder && !this.selectedAddressDetail && !this.selectedAddressTitle) {
+                uni.showToast({ title: '请先添加收货地址', icon: 'none' })
+                return this.handleAddressTap()
             }
             const query = [`from=order`, `order_id=${encodeURIComponent(orderId)}`]
             if (this.couponId) query.push(`coupon_id=${encodeURIComponent(this.couponId)}`)

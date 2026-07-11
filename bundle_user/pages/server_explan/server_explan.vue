@@ -1,7 +1,7 @@
 <template>
 <view>
 <!--pages/server_explan/server_explan.wxml-->
-<view class="main">
+<view :class="['main', { 'main--login-agreement': isLoginAgreementFlow }]">
   <view v-if="articleRows.length" class="legal-doc">
     <view v-if="articleMetaRows.length" class="legal-doc__meta-card">
       <view v-for="item in articleMetaRows" :key="item.label + item.value" class="legal-doc__meta-row">
@@ -24,6 +24,15 @@
   </view>
   <rich-text v-else-if="article_content" :nodes="article_content"></rich-text>
   <view v-else class="server-empty">暂无内容</view>
+</view>
+<view v-if="isLoginAgreementFlow" class="login-agreement-bar">
+  <button
+    class="login-agreement-bar__button"
+    :class="{ 'is-ready': hasReachedBottom, 'is-confirmed': readMarked }"
+    @tap="confirmLoginAgreement"
+  >
+    {{ loginAgreementButtonText }}
+  </button>
 </view>
 
 <!--<import src="/wxParse/wxParse.wxml"></import>-->
@@ -52,6 +61,7 @@ import { getServerProto, getPrivatePolicy } from '@/api/app';
 import { getLegalDocument } from '@/utils/legal-documents'
 
 const LOGIN_AGREEMENT_READ_PREFIX = 'LOGIN_AGREEMENT_READ_'
+const LOGIN_AGREEMENT_CONFIRM_PREFIX = 'LOGIN_AGREEMENT_CONFIRMED_'
 const LOGIN_AGREEMENT_TYPES = [0, 1]
 
 export default {
@@ -62,7 +72,9 @@ export default {
       articleMetaRows: [],
       articleSignRows: [],
       type: 0,
-      readMarked: false
+      readMarked: false,
+      source: '',
+      hasReachedBottom: false
     };
   },
 
@@ -74,10 +86,14 @@ export default {
    */
   onLoad: function (options) {
     let {
-      type
+      type,
+      from,
+      source
     } = options;
     type = parseInt(type); // 0 用户服务协议 1 隐私政策 2 交易纠纷处理 3 平台服务协议 4 入驻经营规范
     this.type = Number.isNaN(type) ? 0 : type;
+    this.source = from || source || '';
+    this.refreshReadMarked()
     const doc = getLegalDocument(this.type)
 
     uni.setNavigationBarTitle({
@@ -106,14 +122,30 @@ export default {
     }
   },
   onReachBottom() {
-    this.markDocumentRead()
+    this.hasReachedBottom = true
+    if (!this.isLoginAgreementFlow) this.markDocumentRead()
   },
   computed: {
     showSignRows() {
       return !LOGIN_AGREEMENT_TYPES.includes(this.type)
+    },
+    isLoginAgreementFlow() {
+      return this.source === 'login' && LOGIN_AGREEMENT_TYPES.includes(this.type)
+    },
+    loginAgreementButtonText() {
+      if (this.readMarked) return '已阅读并同意本协议'
+      return this.hasReachedBottom ? '我已阅读并同意本协议' : '请阅读全文'
     }
   },
   methods: {
+    refreshReadMarked() {
+      if (!LOGIN_AGREEMENT_TYPES.includes(this.type)) return
+      try {
+        const storageKey = this.isLoginAgreementFlow ? LOGIN_AGREEMENT_CONFIRM_PREFIX : LOGIN_AGREEMENT_READ_PREFIX
+        this.readMarked = Boolean(uni.getStorageSync(`${storageKey}${this.type}`))
+        if (this.readMarked) this.hasReachedBottom = true
+      } catch (error) {}
+    },
     localDocument() {
       return getLegalDocument(this.type)
     },
@@ -232,8 +264,26 @@ export default {
       if (this.readMarked || !LOGIN_AGREEMENT_TYPES.includes(this.type) || !this.articleRows.length) return
       this.readMarked = true
       try {
-        uni.setStorageSync(`${LOGIN_AGREEMENT_READ_PREFIX}${this.type}`, true)
+        const storageKey = this.isLoginAgreementFlow ? LOGIN_AGREEMENT_CONFIRM_PREFIX : LOGIN_AGREEMENT_READ_PREFIX
+        uni.setStorageSync(`${storageKey}${this.type}`, true)
       } catch (error) {}
+    },
+    confirmLoginAgreement() {
+      if (!this.hasReachedBottom) {
+        uni.showToast({
+          title: '请先上滑阅读全文',
+          icon: 'none'
+        })
+        return
+      }
+      this.markDocumentRead()
+      uni.showToast({
+        title: '已确认阅读',
+        icon: 'none'
+      })
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 300)
     },
     applyArticleContent(content) {
       const value = String(content || '').trim()
@@ -257,7 +307,10 @@ export default {
             .select('.main')
             .boundingClientRect((rect) => {
               const windowHeight = uni.getSystemInfoSync().windowHeight || 0
-              if (rect && windowHeight && rect.height <= windowHeight + 4) this.markDocumentRead()
+              if (rect && windowHeight && rect.height <= windowHeight + 4) {
+                this.hasReachedBottom = true
+                if (!this.isLoginAgreementFlow) this.markDocumentRead()
+              }
             })
             .exec()
         }, 80)
@@ -306,6 +359,10 @@ export default {
   line-height: 1.8;
   background: #f6f8fb;
   /* min-height: 100vh; */
+}
+
+.main--login-agreement {
+  padding-bottom: calc(156rpx + env(safe-area-inset-bottom));
 }
 
 .legal-doc {
@@ -458,6 +515,38 @@ export default {
   color: #999999;
   font-size: 28rpx;
   text-align: center;
+}
+
+.login-agreement-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: #f1f2f5;
+  box-shadow: 0 -8rpx 24rpx rgba(31, 41, 55, .08);
+  box-sizing: border-box;
+}
+
+.login-agreement-bar__button {
+  width: 100%;
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: #c9ced8;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 88rpx;
+}
+
+.login-agreement-bar__button::after {
+  border: 0;
+}
+
+.login-agreement-bar__button.is-ready,
+.login-agreement-bar__button.is-confirmed {
+  background: #ff4d3d;
 }
 
 @media screen and (max-width: 360px) {

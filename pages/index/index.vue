@@ -122,7 +122,7 @@
                         <view v-if="item.detailAddress || item.address" class="shop-card__address line2">{{ item.detailAddress || item.address }}</view>
                     </view>
                     <view class="shop-card__meta">
-                        <view class="shop-card__status">{{ item.openStatus === 'OPEN' ? '营业中' : '未营业' }}</view>
+                        <view class="shop-card__status">{{ shopOpenStatusText(item) }}</view>
                         <view v-if="item.shopScore" class="shop-card__score">{{ item.shopScore }}分</view>
                     </view>
                 </view>
@@ -242,7 +242,8 @@ export default {
             ].filter((item) => isRouteEnabled(item.url))
         }
     },
-    onLoad() {
+    onLoad(options = {}) {
+        this.handleLaunchScanOptions(options)
         this.getHomeFun()
     },
     onShow() {
@@ -258,6 +259,21 @@ export default {
         this.getHomeFun().finally(() => uni.stopPullDownRefresh())
     },
     methods: {
+        shopOpenStatusText(item = {}) {
+            const status = String(item.openStatus || item.open_status || '').toUpperCase()
+            if (status === 'OPEN') return '营业中'
+            if (status === 'REST') return '休息中'
+            return '未营业'
+        },
+        handleLaunchScanOptions(options = {}) {
+            const raw = options.q || options.scene || ''
+            if (!raw) return
+            const decoded = decodeURIComponent(String(raw))
+            const route = this.resolveMerchantScanRoute(decoded)
+            if (route) {
+                setTimeout(() => this.goPage(route), 80)
+            }
+        },
         async getHomeFun() {
             if (this.homeLoading) return Promise.resolve()
             this.homeLoading = true
@@ -356,16 +372,22 @@ export default {
             const params = this.scanParamsFromText(text)
             const scene = this.firstScanValue(params, ['scene', 'qrScene', 'qr_scene'])
             const sceneParams = scene ? this.scanParamsFromText(decodeURIComponent(scene)) : {}
+            const shortScene = this.parseShortPromotionScene(scene ? decodeURIComponent(scene) : text)
             const inviteCode = this.firstScanValue(params, ['inviteCode', 'invite_code', 'promoterCode', 'promoter_code', 'promotionCode', 'promotion_code', 'code']) ||
-                this.firstScanValue(sceneParams, ['inviteCode', 'invite_code', 'promoterCode', 'promoter_code', 'promotionCode', 'promotion_code', 'code'])
+                this.firstScanValue(sceneParams, ['inviteCode', 'invite_code', 'promoterCode', 'promoter_code', 'promotionCode', 'promotion_code', 'code']) ||
+                shortScene.inviteCode
             const ownerUserId = this.firstScanValue(params, ['ownerUserId', 'owner_user_id', 'promoterUserId', 'promoter_user_id', 'inviterUserId', 'inviter_user_id', 'uid']) ||
-                this.firstScanValue(sceneParams, ['ownerUserId', 'owner_user_id', 'promoterUserId', 'promoter_user_id', 'inviterUserId', 'inviter_user_id', 'uid'])
+                this.firstScanValue(sceneParams, ['ownerUserId', 'owner_user_id', 'promoterUserId', 'promoter_user_id', 'inviterUserId', 'inviter_user_id', 'uid']) ||
+                shortScene.ownerUserId
+            const roleCode = this.firstScanValue(params, ['roleCode', 'role_code', 'role', 'roleType', 'role_type']) ||
+                this.firstScanValue(sceneParams, ['roleCode', 'role_code', 'role', 'roleType', 'role_type']) ||
+                shortScene.roleCode
             if (!inviteCode && !ownerUserId) return {}
             return this.buildPromotionBindPayload({
                 inviteCode,
                 ownerUserId,
                 promoterUserId: ownerUserId,
-                roleCode: 'PROMOTER',
+                roleCode: roleCode || 'PROMOTER',
                 scene: 'PROMOTION_QR'
             }, text)
         },
@@ -396,6 +418,17 @@ export default {
                 scene: source.scene || 'PROMOTION_QR',
                 rawScene,
                 fanScene: 'PROMOTION_QR'
+            }
+        },
+        parseShortPromotionScene(scene = '') {
+            const match = String(scene || '').match(/^u([^_]+)_r([^_]+)_i(.+)$/)
+            if (!match) return {}
+            const roleMap = { M: 'MERCHANT', P: 'PROMOTER', A: 'AGENT', S: 'SUBSIDIARY', H: 'HQ' }
+            const shortRole = String(match[2] || '').toUpperCase()
+            return {
+                ownerUserId: match[1],
+                roleCode: roleMap[shortRole] || match[2] || '',
+                inviteCode: match[3] || ''
             }
         },
         scanParamsFromText(text = '') {

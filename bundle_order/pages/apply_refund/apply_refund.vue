@@ -52,18 +52,23 @@
           <view>{{ goods.goods_num }}</view>
         </view>
         <view class="refund-info row-between" v-if="!hasExistingAfterSale">
-          <view class="lable">退款金额</view>
+          <view class="lable">现金退款</view>
           <price-format
             color="#FF2C3C"
-            :price="
-              parseFloat(goods.total_pay_price) +
-              parseFloat(goods.refund_express_money)
-            "
+            :price="refundCashAmount"
             showSubscript="true"
             :subscriptSize="28"
             :firstSize="28"
             :secondSize="28"
           />
+        </view>
+        <view class="refund-info row-between" v-if="!hasExistingAfterSale && refundPointsAmount > 0">
+          <view class="lable">积分退还</view>
+          <view class="refund-points">¥{{ formatAmount(refundPointsAmount) }}</view>
+        </view>
+        <view class="refund-info row-between" v-if="!hasExistingAfterSale && refundPointsAmount > 0">
+          <view class="lable">合计权益</view>
+          <view class="refund-total">¥{{ formatAmount(refundTotalAmount) }}</view>
         </view>
         <view class="refund-info row-between" v-if="!hasExistingAfterSale" @tap="showPopup">
           <view class="lable">退款原因</view>
@@ -206,6 +211,15 @@ export default {
       this.showPop = false;
     },
 
+    amountValue(value) {
+      const number = Number(value)
+      return Number.isNaN(number) ? 0 : number
+    },
+
+    formatAmount(value) {
+      return this.amountValue(value).toFixed(2)
+    },
+
     cleanStatusText(value) {
       const text = String(value || '').trim()
       if (!text || ['none', 'null', 'undefined', 'nil', 'na', 'n/a', '-', '--'].includes(text.toLowerCase())) return ''
@@ -320,6 +334,9 @@ export default {
         reason: reason[reasonIndex],
         refund_type: optTyle,
         amount: parseFloat(goods.total_pay_price || 0) + parseFloat(goods.refund_express_money || 0),
+        refundCashAmount: this.refundCashAmount,
+        refundableCashAmount: this.refundCashAmount,
+        refundPointsAmount: this.refundPointsAmount,
         remark: remark,
         img: fileList.length <= 0 ? "" : (fileList[0].url || fileList[0].base_url),
       };
@@ -336,6 +353,17 @@ export default {
             title: "提交成功",
           });
           setTimeout(() => {
+            if (Number(optTyle) === refundOptType.REFUNDS) {
+              uni.redirectTo({
+                url: "/bundle_order/pages/input_express_info/input_express_info?id=" +
+                  afterSaleId +
+                  "&order_id=" +
+                  encodeURIComponent(this.orderId || "") +
+                  "&refundReason=" +
+                  encodeURIComponent(remark || ""),
+              });
+              return;
+            }
             uni.redirectTo({
               url:
                 "/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=" +
@@ -398,6 +426,32 @@ export default {
     },
   },
   computed: {
+    refundCashAmount() {
+      return this.amountValue(
+        this.goods.refund_cash_amount ??
+        this.goods.refundableCashAmount ??
+        this.goods.refundable_cash_amount ??
+        this.goods.actualPayAmount ??
+        this.goods.actual_pay_amount ??
+        this.goods.pay_amount ??
+        this.goods.payAmount ??
+        this.goods.total_pay_price
+      )
+    },
+    refundPointsAmount() {
+      return this.amountValue(
+        this.goods.refund_points_amount ??
+        this.goods.refundablePointsAmount ??
+        this.goods.refundable_points_amount ??
+        this.goods.pointsDeductAmount ??
+        this.goods.points_deduct_amount ??
+        this.goods.integralAmount ??
+        this.goods.integral_amount
+      )
+    },
+    refundTotalAmount() {
+      return this.refundCashAmount + this.refundPointsAmount
+    },
     hasExistingAfterSale() {
       return Boolean(this.existingAfterSale || this.goods.after_sale_id || this.cleanStatusText(this.goods.after_status_desc))
     },

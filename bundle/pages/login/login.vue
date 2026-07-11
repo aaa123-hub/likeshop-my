@@ -28,24 +28,41 @@
                     </view>
                 </view>
 
-                <view class="company-login__agree" @tap="changeChecked">
-                    <view class="company-login__checkbox" :class="{ 'is-checked': isAgree }">
-                        <text v-if="isAgree">✓</text>
-                    </view>
-                    <view class="company-login__agreement-text">
-                        已阅读并同意
+                <view class="company-login__agreement-list">
+                    <view class="company-login__agree">
                         <view
-                            class="company-login__link"
-                            @tap.stop="openAgreement(0)"
+                            class="company-login__checkbox"
+                            :class="{ 'is-checked': agreementCheckedState.service }"
+                            @tap="toggleAgreementChecked('service')"
                         >
-                            《服务协议》
+                            <text v-if="agreementCheckedState.service">✓</text>
                         </view>
-                        和
+                        <view class="company-login__agreement-text">
+                            已阅读并同意
+                            <view
+                                class="company-login__link"
+                                @tap.stop="openAgreement(0)"
+                            >
+                                《服务协议》
+                            </view>
+                        </view>
+                    </view>
+                    <view class="company-login__agree">
                         <view
-                            class="company-login__link"
-                            @tap.stop="openAgreement(1)"
+                            class="company-login__checkbox"
+                            :class="{ 'is-checked': agreementCheckedState.privacy }"
+                            @tap="toggleAgreementChecked('privacy')"
                         >
-                            《隐私政策》
+                            <text v-if="agreementCheckedState.privacy">✓</text>
+                        </view>
+                        <view class="company-login__agreement-text">
+                            已阅读并同意
+                            <view
+                                class="company-login__link"
+                                @tap.stop="openAgreement(1)"
+                            >
+                                《隐私政策》
+                            </view>
                         </view>
                     </view>
                 </view>
@@ -104,7 +121,7 @@ import Cache from '@/utils/cache'
 import { BACK_URL } from '@/config/cachekey'
 import { designAssets } from '@/utils/design-assets'
 
-const LOGIN_AGREEMENT_READ_PREFIX = 'LOGIN_AGREEMENT_READ_'
+const LOGIN_AGREEMENT_CONFIRM_PREFIX = 'LOGIN_AGREEMENT_CONFIRMED_'
 
 export default {
 	components: {
@@ -112,10 +129,13 @@ export default {
 		},
     data() {
         return {
-            isAgree: false,
             showModel: false,
             loginLoading: false,
             agreementReadState: {
+                service: false,
+                privacy: false
+            },
+            agreementCheckedState: {
                 service: false,
                 privacy: false
             },
@@ -131,12 +151,15 @@ export default {
         hasReadAllAgreements() {
             return Boolean(this.agreementReadState.service && this.agreementReadState.privacy)
         },
+        hasCheckedAllAgreements() {
+            return Boolean(this.agreementCheckedState.service && this.agreementCheckedState.privacy)
+        },
         agreementReadTip() {
-            if (this.hasReadAllAgreements) return '已阅读完成，可勾选后继续登录。'
+            if (this.hasReadAllAgreements) return '请勾选《服务协议》和《隐私政策》后继续登录。'
             const unread = []
             if (!this.agreementReadState.service) unread.push('服务协议')
             if (!this.agreementReadState.privacy) unread.push('隐私政策')
-            return `请先阅读完${unread.join('和')}，滑动至页面底部后再返回勾选。`
+            return `请先阅读完${unread.join('和')}，滑动至页面底部并点击确认后再返回勾选。`
         }
     },
     onLoad() {
@@ -159,31 +182,32 @@ export default {
             let service = false
             let privacy = false
             try {
-                service = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_READ_PREFIX}0`))
-                privacy = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_READ_PREFIX}1`))
+                service = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_CONFIRM_PREFIX}0`))
+                privacy = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_CONFIRM_PREFIX}1`))
             } catch (error) {}
             this.agreementReadState = { service, privacy }
-            if (!this.hasReadAllAgreements) this.isAgree = false
+            if (!service) this.agreementCheckedState.service = false
+            if (!privacy) this.agreementCheckedState.privacy = false
         },
         openAgreement(type) {
             this.showModel = false
             uni.navigateTo({
-                url: `/bundle_user/pages/server_explan/server_explan?type=${type}`
+                url: `/bundle_user/pages/server_explan/server_explan?type=${type}&from=login`
             })
         },
-        changeChecked() {
+        toggleAgreementChecked(key) {
             this.refreshAgreementReadState()
-            if (!this.hasReadAllAgreements) {
-                this.isAgree = false
+            const readDone = Boolean(this.agreementReadState[key])
+            if (!readDone) {
+                this.agreementCheckedState[key] = false
                 this.showModel = true
                 return
             }
-            this.isAgree = !this.isAgree
+            this.agreementCheckedState[key] = !this.agreementCheckedState[key]
         },
         handleAgreementModalConfirm() {
             this.showModel = false
             if (this.hasReadAllAgreements) {
-                this.isAgree = true
                 return
             }
             this.openAgreement(this.agreementReadState.service ? 1 : 0)
@@ -191,8 +215,7 @@ export default {
         async mnpLoginFun() {
             if (this.loginLoading) return
             this.refreshAgreementReadState()
-            if (!this.hasReadAllAgreements || !this.isAgree) {
-                this.isAgree = false
+            if (!this.hasReadAllAgreements || !this.hasCheckedAllAgreements) {
                 this.showModel = true
                 return
             }
@@ -443,10 +466,18 @@ page {
     color: #7b8496;
 }
 
-.company-login__agree {
+.company-login__agreement-list {
     margin-top: 34rpx;
+}
+
+.company-login__agree {
+    min-height: 42rpx;
     display: flex;
     align-items: flex-start;
+}
+
+.company-login__agree + .company-login__agree {
+    margin-top: 18rpx;
 }
 
 .company-login__checkbox {
@@ -454,7 +485,7 @@ page {
     width: 32rpx;
     height: 32rpx;
     margin-top: 2rpx;
-    border-radius: 50%;
+    border-radius: 8rpx;
     border: 2rpx solid #c6ccd8;
     display: flex;
     align-items: center;

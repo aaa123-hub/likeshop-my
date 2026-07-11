@@ -35,6 +35,7 @@
                             :class="['my-page__role-badge', 'my-page__role-badge--' + item.code.toLowerCase()]"
                         >{{ item.label }}</view>
                     </view>
+                    <view v-if="needsWechatProfile" class="my-page__profile-tip" @tap.stop="goLogin">完善微信资料</view>
                 </view>
                 <image
                     class="my-page__setting"
@@ -145,6 +146,31 @@
             </view>
         </view>
 
+        <view v-if="promotionModalVisible" class="promotion-modal">
+            <view class="promotion-modal__mask" @tap="closePromotionCode"></view>
+            <view class="promotion-sheet">
+                <view class="promotion-sheet__head">
+                    <view>
+                        <view class="promotion-sheet__title">{{ promotionRoleLabel }}推广码</view>
+                        <view class="promotion-sheet__subtitle">{{ promotionInviteCode || '正在生成推广码' }}</view>
+                    </view>
+                    <view class="promotion-sheet__close" @tap="closePromotionCode">×</view>
+                </view>
+                <view class="promotion-code-box">
+                    <image v-if="promotionQrImage" class="promotion-code-image" :src="promotionQrImage" mode="aspectFit" @tap="previewPromotionQr"></image>
+                    <l-painter v-else-if="promotionQrText" css="width: 360rpx; height: 360rpx; background: #ffffff;" custom-style="width: 360rpx; height: 360rpx;">
+                        <l-painter-qrcode css="width: 360rpx; height: 360rpx;" :text="promotionQrText"></l-painter-qrcode>
+                    </l-painter>
+                    <view v-else class="promotion-code-empty">{{ promotionLoading ? '加载中...' : (promotionError || '暂无推广码') }}</view>
+                </view>
+                <view class="promotion-code-tip">粉丝扫码后登录注册，系统会自动绑定到当前角色名下。</view>
+                <view class="promotion-code-actions">
+                    <button class="promotion-code-btn" open-type="share">分享</button>
+                    <button class="promotion-code-btn promotion-code-btn--primary" @tap="copyPromotionCode">复制推广码</button>
+                </view>
+            </view>
+        </view>
+
     </view>
 </template>
 
@@ -157,20 +183,28 @@ import { businessRoutes, openBusinessRoute } from '@/utils/business-routes'
 import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
 import { getMerchantQualificationStatus, getPromotionInviteCode, getRoleApplications, getRoles, inputInviteCode } from '@/api/user'
+import { getShareMnQrcode } from '@/api/app'
+import lPainter from '@/components/lime-painter/components/l-painter/l-painter.vue'
+import lPainterQrcode from '@/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode.vue'
 
 const SERVICE_QR_CODE = 'https://shengyuan.store/api/miniapp/files/miniapp/d748a229d2504aaeac129746548bc086/11.png'
 
 export default {
+    components: { lPainter, lPainterQrcode },
     data() {
         return {
             businessRoutes,
             designAssets,
             showServiceModal: false,
 			roleApplications: [],
-			roleList: [],
+            roleList: [],
             merchantQualification: {},
-			serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
-            serviceQrCode: SERVICE_QR_CODE
+            serviceHeroImage: 'https://shengyuan.store/api/miniapp/files/miniapp/732689fee36e4d7a9cfc4e2ba2c178b6/service-hero.png',
+            serviceQrCode: SERVICE_QR_CODE,
+            promotionModalVisible: false,
+            promotionLoading: false,
+            promotionInfo: {},
+            promotionError: ''
         }
     },
     onLoad() {
@@ -215,11 +249,108 @@ export default {
             }
             uni.navigateTo({ url: route.url })
         },
+        openRoleWorkbench(roleCode) {
+            const code = this.normalizeRoleCode(roleCode || this.primaryPromotionRoleCode || 'PROMOTER')
+            uni.navigateTo({ url: `/business/pages/business_pages/role_workbench?roleCode=${encodeURIComponent(code)}` })
+        },
+        async openPromotionCode(roleCode) {
+            const code = this.normalizeRoleCode(roleCode || this.primaryPromotionRoleCode || 'PROMOTER')
+            this.promotionModalVisible = true
+            this.promotionError = ''
+            this.promotionInfo = {
+                roleCode: code,
+                roleName: this.roleLabel(code)
+            }
+            this.promotionLoading = true
+            try {
+                const res = await getPromotionInviteCode({ roleCode: code, show: false })
+                if (res && res.code == 1) {
+                    const data = res.data || {}
+                    const inviteCode = data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.code || ''
+                    const scene = data.scene || this.buildPromotionScene(code, inviteCode)
+                    this.promotionInfo = {
+                        ...this.promotionInfo,
+                        ...data,
+                        roleCode: code,
+                        roleName: this.roleLabel(code),
+                        inviteCode,
+                        scene,
+                        qrcodeUrl: this.resolvePromotionQrUrl(data.qrcodeUrl || data.qrcode_url || data.posterUrl || data.poster_url || ''),
+                        qrText: data.qrText || data.qr_text || scene
+                    }
+                    await this.ensurePromotionQrImage()
+                } else {
+                    this.promotionError = (res && (res.msg || res.message)) || '推广码加载失败'
+                }
+            } catch (error) {
+                this.promotionError = '推广码加载失败'
+            } finally {
+                this.promotionLoading = false
+            }
+        },
+        buildPromotionScene(roleCode, inviteCode = '') {
+            const userId = this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || ''
+            const params = [`uid_${userId}`, `role=${this.normalizeRoleCode(roleCode)}`]
+            if (inviteCode) params.push(`invite_code=${inviteCode}`)
+            return params.join('&')
+        },
+        async ensurePromotionQrImage() {
+            if (this.promotionQrImage || !this.promotionInviteCode) return
+            try {
+                const res = await getShareMnQrcode({
+                    path: 'pages/index/index',
+                    pagePath: 'pages/index/index',
+                    scene: this.promotionScene,
+                    roleType: this.promotionRoleCode,
+                    roleCode: this.promotionRoleCode,
+                    userId: this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || '',
+                    inviteCode: this.promotionInviteCode
+                })
+                const data = res.data || {}
+                const image = data.posterUrl || data.poster_url || data.qrcodeUrl || data.qrcode_url || data.qrCode || data.qr_code || data.image || data.imageUrl || ''
+                if (image) {
+                    const resolvedImage = this.resolvePromotionQrUrl(image)
+                    this.promotionInfo = { ...this.promotionInfo, qrcodeUrl: resolvedImage, posterUrl: resolvedImage }
+                }
+            } catch (error) {}
+        },
+        resolvePromotionQrUrl(image) {
+            return image ? resolveImage(image, 'goods') : ''
+        },
+        closePromotionCode() {
+            this.promotionModalVisible = false
+        },
+        previewPromotionQr() {
+            if (!this.promotionQrImage) return
+            uni.previewImage({
+                urls: [this.promotionQrImage],
+                current: this.promotionQrImage
+            })
+        },
+        copyPromotionCode() {
+            const value = this.promotionInviteCode || this.promotionScene
+            if (!value) {
+                uni.showToast({ title: '暂无可复制内容', icon: 'none' })
+                return
+            }
+            uni.setClipboardData({
+                data: value,
+                success: () => uni.showToast({ title: '已复制', icon: 'success' })
+            })
+        },
         openFree(item) {
             openBusinessRoute(item)
         },
         openEntry(item) {
             if (!this.isLogin) return toLogin()
+            if (item.action === 'promotionCode') {
+                this.openPromotionCode(item.roleCode)
+                return
+            }
+            if (item.action === 'roleWorkbench') {
+                this.openRoleWorkbench(item.roleCode)
+                return
+            }
             if (item.action === 'scanFans') {
                 this.scanFansCode()
                 return
@@ -403,6 +534,20 @@ export default {
             ]
         },
         allianceEntries() {
+            const roles = this.approvedRoleEntries.filter(item => this.promotionRoleCodes.includes(this.normalizeRoleCode(item.code || item.roleCode)))
+            const entries = roles.map((item) => {
+                const code = this.normalizeRoleCode(item.code || item.roleCode)
+                return {
+                    name: `${this.roleLabel(code)}推广码`,
+                    action: 'promotionCode',
+                    roleCode: code,
+                    image: designAssets.myAllianceCode
+                }
+            })
+            entries.push({ name: '扫描粉丝码', action: 'scanFans', image: designAssets.myAllianceCode })
+            return entries
+        },
+        legacyAllianceEntries() {
             return [
                 { name: '推广码', url: '/business/pages/business_pages/intro_card', image: designAssets.myAllianceCode }
             ]
@@ -411,7 +556,7 @@ export default {
             return [
                 { name: `我的积分\n${this.userInfo.user_integral || 0}`, url: '/bundle_misc/pages/user_sign/user_sign', image: designAssets.myOrderPoints },
                 { name: '待领取\n线上订单', url: businessRoutes.pages.autoPoints.url, image: designAssets.myValueOnline, badge: this.pendingPointsCount },
-                { name: '待核销\n自提订单', url: '/bundle_order/pages/user_order/user_order?type=delivery', image: designAssets.myValueOffline },
+                { name: '待核销\n自提订单', url: '/bundle_order/pages/user_order/user_order?scene=offline&type=ship', image: designAssets.myValueOffline },
                 { name: '领取积分\n设置', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints }
             ]
         },
@@ -429,6 +574,10 @@ export default {
             const nickname = this.userInfo.nickname || this.userInfo.username || this.userInfo.mobile || ''
             return String(nickname).trim()
         },
+        needsWechatProfile() {
+            if (!this.isLogin) return false
+            return !this.userInfo.avatar || !this.displayNickname || !this.userInfo.mobile
+        },
         pendingPointsCount() {
             return this.userInfo.wait_points ?? this.userInfo.waitPoints ?? this.userInfo.pending_points ?? this.userInfo.pendingPoints ?? this.userInfo.wait_receive_points ?? this.userInfo.waitReceivePoints ?? 0
         },
@@ -440,10 +589,15 @@ export default {
             const profileRoles = this.normalizedRoles.filter(item => item.roleCode || item.role_code || item.role)
             const applicationRoles = this.roleApplications.filter(item => this.roleStatusType(item.applicationStatus || item.auditStatus || item.status) === 'approved')
                 .map(item => ({ ...item, roleCode: this.normalizeRoleCode(item.roleCode || item.role_code || item.role) }))
+            const merchantRole = this.isMerchantApproved ? [{
+                roleCode: 'MERCHANT',
+                roleName: this.roleLabel('MERCHANT'),
+                merchantId: this.currentMerchantId
+            }] : []
             const seen = new Set()
-            return profileRoles.concat(applicationRoles).filter((item) => {
+            return merchantRole.concat(profileRoles, applicationRoles).filter((item) => {
                 const code = this.normalizeRoleCode(item.roleCode || item.role_code || item.role)
-                if (!code || code === 'MERCHANT' || seen.has(code)) return false
+                if (!code || seen.has(code)) return false
                 seen.add(code)
                 item.roleCode = code
                 return true
@@ -474,7 +628,7 @@ export default {
         },
         showPromotionSection() {
             if (!this.isLogin) return false
-            return this.approvedRoleEntries.some(item => ['PROMOTER', 'AGENT', 'SUBSIDIARY'].includes(this.normalizeRoleCode(item.code || item.roleCode)))
+            return this.approvedRoleEntries.some(item => this.promotionRoleCodes.includes(this.normalizeRoleCode(item.code || item.roleCode)))
         },
         activeRoleApplication() {
             return this.roleApplications.find(item => this.roleStatusType(item.applicationStatus || item.auditStatus || item.status) !== 'default') || null
@@ -489,6 +643,32 @@ export default {
         },
         baseIdentityLabel() {
             return this.isMerchantApproved ? '商家' : '普通用户'
+        },
+        promotionRoleCodes() {
+            return ['MERCHANT', 'PROMOTER', 'AGENT', 'SUBSIDIARY', 'HQ']
+        },
+        primaryPromotionRoleCode() {
+            const role = this.approvedRoleEntries.find(item => this.promotionRoleCodes.includes(this.normalizeRoleCode(item.code || item.roleCode)))
+            return role ? this.normalizeRoleCode(role.code || role.roleCode) : ''
+        },
+        promotionRoleCode() {
+            return this.normalizeRoleCode(this.promotionInfo.roleCode || this.primaryPromotionRoleCode || 'PROMOTER')
+        },
+        promotionRoleLabel() {
+            return this.promotionInfo.roleName || this.roleLabel(this.promotionRoleCode)
+        },
+        promotionInviteCode() {
+            return this.promotionInfo.inviteCode || this.promotionInfo.invite_code || this.promotionInfo.promoterCode || this.promotionInfo.promoter_code || this.promotionInfo.code || ''
+        },
+        promotionScene() {
+            return this.promotionInfo.scene || this.buildPromotionScene(this.promotionRoleCode, this.promotionInviteCode)
+        },
+        promotionQrText() {
+            return this.promotionInfo.qrText || this.promotionInfo.qr_text || this.promotionInfo.shareUrl || this.promotionInfo.share_url || this.promotionScene
+        },
+        promotionQrImage() {
+            const image = this.promotionInfo.qrcodeUrl || this.promotionInfo.qrcode_url || this.promotionInfo.posterUrl || this.promotionInfo.poster_url || ''
+            return this.resolvePromotionQrUrl(image)
         },
         promoterEntryName() {
             return '角色申请'
@@ -636,6 +816,20 @@ export default {
     align-items: center;
     gap: 10rpx;
     margin-top: 10rpx;
+}
+
+.my-page__profile-tip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10rpx;
+    height: 38rpx;
+    padding: 0 16rpx;
+    border-radius: 19rpx;
+    color: #037dfa;
+    background: rgba(3, 125, 250, .1);
+    font-size: 22rpx;
+    line-height: 38rpx;
 }
 
 .my-page__identity-pill {
@@ -1193,4 +1387,120 @@ export default {
     text-overflow: ellipsis;
 }
 
+.promotion-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+}
+
+.promotion-modal__mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(13, 20, 34, .48);
+}
+
+.promotion-sheet {
+    position: absolute;
+    left: 24rpx;
+    right: 24rpx;
+    bottom: calc(24rpx + env(safe-area-inset-bottom));
+    padding: 30rpx 28rpx 32rpx;
+    border-radius: 28rpx;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.promotion-sheet__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20rpx;
+}
+
+.promotion-sheet__title {
+    color: #1d2433;
+    font-size: 34rpx;
+    font-weight: 700;
+    line-height: 46rpx;
+}
+
+.promotion-sheet__subtitle {
+    margin-top: 8rpx;
+    color: #7b8494;
+    font-size: 25rpx;
+    line-height: 34rpx;
+    word-break: break-all;
+}
+
+.promotion-sheet__close {
+    flex: none;
+    width: 52rpx;
+    height: 52rpx;
+    border-radius: 50%;
+    color: #7b8494;
+    background: #f2f5f9;
+    font-size: 36rpx;
+    line-height: 50rpx;
+    text-align: center;
+}
+
+.promotion-code-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 420rpx;
+    height: 420rpx;
+    margin: 30rpx auto 0;
+    border-radius: 24rpx;
+    background: #f7f9fc;
+    overflow: hidden;
+}
+
+.promotion-code-image {
+    width: 360rpx;
+    height: 360rpx;
+}
+
+.promotion-code-empty {
+    color: #8b96a8;
+    font-size: 26rpx;
+    line-height: 38rpx;
+}
+
+.promotion-code-tip {
+    margin-top: 24rpx;
+    color: #6f7a8c;
+    font-size: 24rpx;
+    line-height: 36rpx;
+    text-align: center;
+}
+
+.promotion-code-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18rpx;
+    margin-top: 26rpx;
+}
+
+.promotion-code-btn {
+    height: 76rpx;
+    margin: 0;
+    border: 0;
+    border-radius: 38rpx;
+    color: #1769ff;
+    background: #edf4ff;
+    font-size: 27rpx;
+    line-height: 76rpx;
+}
+
+.promotion-code-btn--primary {
+    color: #ffffff;
+    background: #1769ff;
+}
 </style>

@@ -86,7 +86,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 	import {
 		prepay,
 		getPayway,
-		queryPayment
+		queryPayment,
+		syncWechatPayment
 	} from '@/api/app'
 	import {
 		scanOfflinePayment
@@ -368,7 +369,24 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				this.hasPayResult = true
 				switch (result) {
 					case 'success':
-						if (this.payOrderNo) await this.confirmPaymentResult()
+						if (this.payOrderNo) {
+							const confirmed = await this.confirmPaymentResult()
+							if (!confirmed) {
+								this.$toast({ title: '支付确认中，请稍后查看订单' })
+								uni.$emit('payment', {
+									result: false,
+									pending: true,
+									order_id: this.order_id,
+									orderId: this.order_id,
+									orderNo: this.order_id,
+									order_no: this.order_id,
+									payOrderNo: this.payOrderNo,
+									pay_order_no: this.payOrderNo
+								})
+								this.goPayResult(false)
+								return
+							}
+						}
 						this.rememberPaidOrder()
 						uni.$emit('payment', {
 							result: true,
@@ -425,17 +443,34 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				this.timeout = 0
 				this.isExpired = true
 			},
+			waitPaymentConfirm(ms = 800) {
+				return new Promise((resolve) => setTimeout(resolve, ms))
+			},
+			isPaymentSuccessResponse(res = {}) {
+				const data = res.data || {}
+				const status = String(data.payStatus || data.pay_status || res.payStatus || res.pay_status || '').toUpperCase()
+				const tradeState = String(data.wechatTradeState || data.wechat_trade_state || res.wechatTradeState || res.wechat_trade_state || '').toUpperCase()
+				return res.code == 20001 || status === 'PAID' || status === 'SUCCESS' || tradeState === 'SUCCESS'
+			},
 			async confirmPaymentResult() {
-				try {
-					const res = await queryPayment({ payOrderNo: this.payOrderNo })
-					const status = String(res.data?.payStatus || res.data?.pay_status || '').toUpperCase()
-					if (res.code == 20001 || status === 'PAID' || status === 'SUCCESS') return true
-					console.warn('[payment] payment status is not synced yet:', res)
-					return false
-				} catch (error) {
-					console.warn('[payment] confirm payment result failed:', error)
-					return false
+				for (let attempt = 0; attempt < 3; attempt += 1) {
+					try {
+						const syncRes = await syncWechatPayment({ payOrderNo: this.payOrderNo })
+						if (this.isPaymentSuccessResponse(syncRes)) return true
+						console.warn('[payment] wechat payment is not synced yet:', syncRes)
+					} catch (error) {
+						console.warn('[payment] sync wechat payment failed:', error)
+					}
+					try {
+						const queryRes = await queryPayment({ payOrderNo: this.payOrderNo })
+						if (this.isPaymentSuccessResponse(queryRes)) return true
+						console.warn('[payment] payment status is not confirmed yet:', queryRes)
+					} catch (error) {
+						console.warn('[payment] query payment result failed:', error)
+					}
+					if (attempt < 2) await this.waitPaymentConfirm()
 				}
+				return false
 			}
 		},
 

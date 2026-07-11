@@ -253,8 +253,9 @@ export function menuJump(item) {
   }
 }
 
-export function uploadFile(path) {
+export function uploadFile(path, options = {}) {
   return new Promise((resolve, reject) => {
+    const fileType = options.fileType || options.type || "image";
     uni.uploadFile({
       url: `${baseURL}/api/miniapp/files/upload`,
       filePath: path,
@@ -263,7 +264,7 @@ export function uploadFile(path) {
         token: store.getters.token,
         Authorization: store.getters.token ? `Bearer ${store.getters.token}` : "",
       },
-      fileType: "image",
+      fileType,
       cloudPath: "",
       success: (res) => {
         let data;
