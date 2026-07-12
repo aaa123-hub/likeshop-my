@@ -52,7 +52,7 @@
         </view>
         <view class="goods-info" v-else>
           <view class="xs">
-            最低可砍至<text class="sm" style="color: #f95f2f"
+            最低可砍至<text class="sm" style="color: #d79a43"
               >¥{{ checkedGoods.activity_price }}</text
             >
           </view>
@@ -275,7 +275,7 @@ export default {
       const skuName = item.skuName || item.sku_name || item.skuTitle || item.sku_title || item.name || item.title;
       const specText = item.spec_value_str || item.specValueStr || item.spec_value || item.specValue || '';
       if (skuName && specText && skuName !== specText) return `${skuName}（${specText}）`;
-      return skuName || specText || '默认';
+      return skuName || specText || '规格待确认';
     },
     initGoods(value = {}) {
       this.specList = value.goods_spec || [];

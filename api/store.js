@@ -237,7 +237,7 @@ function normalizeArrayPayload(value) {
     return []
 }
 
-function normalizeCommentScore(value, fallback = 5) {
+function normalizeCommentScore(value, fallback = '') {
     var number = Number(value)
     if (Number.isNaN(number) || number <= 0) return fallback
     return Math.max(1, Math.min(5, Math.round(number)))
@@ -277,15 +277,15 @@ function normalizeGoodsListItem(item = {}) {
         goods_name: item.goods_name || item.spuName || item.productName || item.title || item.name,
         image: resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || (item.images && item.images[0]) || (item.goods_image && item.goods_image[0] && item.goods_image[0].uri), 'goods'),
         goods_image: resolveImage(item.goods_image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl || item.image, 'goods'),
-        price: item.price || item.salePrice || item.minPrice || item.payAmount || item.amount || item.market_price || item.min_price || 0,
-        market_price: item.market_price || item.marketPrice || item.originPrice || item.maxPrice || item.max_price || item.price || 0,
-        origin_price: item.origin_price || item.originPrice || item.market_price || 0,
+        price: firstDefined(item.price, item.salePrice, item.minPrice, item.payAmount, item.amount, item.min_price),
+        market_price: firstDefined(item.market_price, item.marketPrice, item.originPrice, item.maxPrice, item.max_price),
+        origin_price: firstDefined(item.origin_price, item.originPrice, item.market_price),
         shop_id: item.shop_id || item.shopId || item.merchantShopId || item.merchant_shop_id || '',
         shopId: item.shopId || item.shop_id || item.merchantShopId || item.merchant_shop_id || '',
         shop_name: item.shop_name || item.shopName || item.storeName || (item.shopInfo && item.shopInfo.shopName) || '',
         shopName: item.shopName || item.shop_name || item.storeName || (item.shopInfo && item.shopInfo.shopName) || '',
-        sales_sum: item.sales_sum || item.salesCount || item.sales_count || item.saleCount || item.virtualSales || 0,
-        comment_count: item.comment_count || item.commentCount || item.reviewCount || 0,
+        sales_sum: firstDefined(item.sales_sum, item.salesCount, item.sales_count, item.saleCount, item.virtualSales),
+        comment_count: firstDefined(item.comment_count, item.commentCount, item.reviewCount),
         score: item.score || item.star || item.goodsScore || item.productScore || item.shopScore || item.shop_score || item.commentScore || item.rating || '',
         unit: item.unit || item.unitName || '',
         category_name: item.category_name || item.categoryName || item.cateName || '',
@@ -297,7 +297,7 @@ function normalizeGoodsListItem(item = {}) {
 
 function normalizeSkuItem(item = {}, index = 0) {
     var specs = parseSpecJson(item.specJson || item.spec_json || item.spec)
-    var specValueStr = specs.map(function(spec) { return spec.valueName || spec.value || spec.name }).filter(Boolean).join(' / ') || item.skuName || '默认'
+    var specValueStr = specs.map(function(spec) { return spec.valueName || spec.value || spec.name }).filter(Boolean).join(' / ') || item.skuName || ''
     var skuName = item.sku_name || item.skuName || item.name || item.title || ''
     var displaySkuName = skuName && skuName !== specValueStr ? skuName : specValueStr
     var specValueIds = specs.map(function(spec, specIndex) {
@@ -315,10 +315,10 @@ function normalizeSkuItem(item = {}, index = 0) {
         sku_name: skuName || specValueStr,
         sku_code: item.sku_code || item.skuCode || '',
         name: displaySkuName,
-        price: item.price || item.salePrice || 0,
-        team_price: item.team_price || item.teamPrice || item.groupPrice || item.salePrice || item.price || 0,
-        market_price: item.market_price || item.marketPrice || item.originPrice || item.origin_price || item.originalPrice || item.original_price || item.linePrice || item.line_price || 0,
-        stock: valueOr(item.stock, valueOr(item.stockQty, valueOr(item.stockQuantity, 0))),
+        price: firstDefined(item.price, item.salePrice),
+        team_price: firstDefined(item.team_price, item.teamPrice, item.groupPrice, item.salePrice, item.price),
+        market_price: firstDefined(item.market_price, item.marketPrice, item.originPrice, item.origin_price, item.originalPrice, item.original_price, item.linePrice, item.line_price),
+        stock: firstDefined(item.stock, item.stockQty, item.stockQuantity),
         image,
         spec_value_str: displaySkuName || item.spec_value_str || specValueStr,
         spec_value: displaySkuName || item.spec_value || specValueStr,
@@ -372,10 +372,10 @@ function normalizeGoodsDetail(payload = {}, spuId) {
         goodsItem.push(normalizeSkuItem({
             id: detail.defaultSkuId || detail.skuId || detail.id || spuId,
             skuId: detail.defaultSkuId || detail.skuId || detail.id || spuId,
-            skuName: '默认',
-            salePrice: detail.minPrice || detail.price || 0,
-            marketPrice: detail.marketPrice || detail.originPrice || detail.maxPrice || detail.price || 0,
-            stockQty: valueOr(detail.stockQty, valueOr(detail.stock, 999)),
+            skuName: '',
+            salePrice: firstDefined(detail.minPrice, detail.price),
+            marketPrice: firstDefined(detail.marketPrice, detail.originPrice, detail.maxPrice),
+            stockQty: firstDefined(detail.stockQty, detail.stock),
             imageUrl: detail.mainImageUrl || detail.cover || detail.image || images[0]
         }))
     }
@@ -394,12 +394,12 @@ function normalizeGoodsDetail(payload = {}, spuId) {
     var marketingConfig = Object.assign({}, rawMarketingConfig, {
         pointsEnabled: normalizedPointsEnabled,
         points_enabled: normalizedPointsEnabled,
-        pointsDeductAmount: valueOr(pointsDeductAmount, 0),
-        points_deduct_amount: valueOr(pointsDeductAmount, 0),
-        pointsAmount: valueOr(pointsAmount, 0),
-        points_amount: valueOr(pointsAmount, 0),
-        giveIntegral: valueOr(giveIntegral, 0),
-        give_integral: valueOr(giveIntegral, 0)
+        pointsDeductAmount,
+        points_deduct_amount: pointsDeductAmount,
+        pointsAmount,
+        points_amount: pointsAmount,
+        giveIntegral,
+        give_integral: giveIntegral
     })
     var activities = (detail.activityList || detail.activity_list || detail.activities || []).map(function(item) {
         var ownerType = item.ownerType || item.owner_type || (item.subsidyEligible || item.subsidy_eligible ? 'PLATFORM' : (item.merchantId || item.merchant_id ? 'MERCHANT' : ''))
@@ -419,7 +419,7 @@ function normalizeGoodsDetail(payload = {}, spuId) {
     freightAmount = valueOr(freightAmount, detail.shipping_fee)
     freightAmount = valueOr(freightAmount, detail.postage)
     freightAmount = valueOr(freightAmount, freightTemplate.freightAmount)
-    freightAmount = valueOr(freightAmount, valueOr(freightTemplate.freight_amount, 0))
+    freightAmount = valueOr(freightAmount, freightTemplate.freight_amount)
     var freeShipping = valueOr(detail.freeShipping, detail.free_shipping)
     freeShipping = valueOr(freeShipping, detail.isFreeShipping)
     freeShipping = valueOr(freeShipping, detail.is_free_shipping)
@@ -444,12 +444,12 @@ function normalizeGoodsDetail(payload = {}, spuId) {
         goods_name: detail.goods_name || detail.spuName || detail.productName || detail.title || detail.name || '',
         image: resolveImage(detail.image || detail.mainImageUrl || detail.cover || images[0], 'goods'),
         video: detail.video || '',
-        price: detail.price || detail.minPrice || detail.salePrice || 0,
-        min_price: detail.min_price || detail.minPrice || detail.salePrice || 0,
-        max_price: detail.max_price || detail.maxPrice || detail.salePrice || detail.minPrice || 0,
-        market_price: detail.market_price || detail.marketPrice || detail.originPrice || detail.origin_price || detail.originalPrice || detail.original_price || detail.linePrice || detail.maxPrice || 0,
-        sales_sum: detail.sales_sum || detail.salesCount || detail.sales_count || detail.virtualSales || 0,
-        stock: valueOr(detail.stock, valueOr(detail.stockQty, goodsItem.reduce(function(sum, item) { return sum + Number(item.stock || 0) }, 0))),
+        price: firstDefined(detail.price, detail.minPrice, detail.salePrice),
+        min_price: firstDefined(detail.min_price, detail.minPrice, detail.salePrice),
+        max_price: firstDefined(detail.max_price, detail.maxPrice, detail.salePrice, detail.minPrice),
+        market_price: firstDefined(detail.market_price, detail.marketPrice, detail.originPrice, detail.origin_price, detail.originalPrice, detail.original_price, detail.linePrice, detail.maxPrice),
+        sales_sum: firstDefined(detail.sales_sum, detail.salesCount, detail.sales_count, detail.virtualSales),
+        stock: firstDefined(detail.stock, detail.stockQty, goodsItem.some(function(item) { return item.stock !== undefined && item.stock !== null && item.stock !== '' }) ? goodsItem.reduce(function(sum, item) { return sum + Number(item.stock || 0) }, 0) : ''),
         is_collect: valueOr(detail.is_collect, valueOr(detail.isCollect, valueOr(detail.collected, 0))),
         goods_image: images.length ? images.map(function(image) { return resolveImage(image, 'goods') }) : [resolveImage('', 'goods')],
         coupon_list: coupons,
@@ -460,9 +460,9 @@ function normalizeGoodsDetail(payload = {}, spuId) {
         pointsConfig: marketingConfig,
         activityList: activities,
         activity_list: activities,
-        order_give_integral: valueOr(giveIntegral, detail.order_give_integral || 0),
-        giveIntegral: valueOr(giveIntegral, detail.giveIntegral || 0),
-        give_integral: valueOr(giveIntegral, detail.give_integral || 0),
+        order_give_integral: firstDefined(giveIntegral, detail.order_give_integral),
+        giveIntegral: firstDefined(giveIntegral, detail.giveIntegral),
+        give_integral: firstDefined(giveIntegral, detail.give_integral),
         marketingSourceText: detail.marketingSourceText || detail.marketing_source_text || '',
         marketing_source_text: detail.marketingSourceText || detail.marketing_source_text || '',
         comment: commentSummary,
@@ -506,21 +506,21 @@ function normalizeCartItem(item = {}) {
         subtitle: item.subtitle || item.subTitle || item.sellingPoint || item.shortDesc || normalized.subtitle || '',
         img: image,
         image,
-        price: item.price || item.salePrice || item.unitPrice || normalized.price,
-        market_price: item.market_price || item.marketPrice || item.originPrice || normalized.market_price,
+        price: firstDefined(item.price, item.salePrice, item.unitPrice, normalized.price),
+        market_price: firstDefined(item.market_price, item.marketPrice, item.originPrice, normalized.market_price),
         goods_num: quantity,
         quantity,
         spec_value_str: item.spec_value_str || item.skuName || item.specValue || '',
-        item_stock: item.item_stock || item.stockQty || item.stock || 0,
+        item_stock: firstDefined(item.item_stock, item.stockQty, item.stock),
         unit: item.unit || item.unitName || normalized.unit || '',
         weight: item.weight || item.goodsWeight || item.netWeight || '',
-        sales_sum: item.sales_sum || item.salesCount || item.sales_count || normalized.sales_sum || 0,
+        sales_sum: firstDefined(item.sales_sum, item.salesCount, item.sales_count, normalized.sales_sum),
         service_tags: item.service_tags || item.serviceTags || item.tags || normalized.tags || [],
         status_text: item.status_text || item.statusText || item.cartStatusText || '',
         selected: valueOr(item.selected, valueOr(item.checked, 1)),
         cart_status: valueOr(item.cart_status, valueOr(item.cartStatus, 0)),
         shop_id: item.shop_id || item.shopId || normalized.shop_id,
-        shop_name: item.shop_name || item.shopName || normalized.shop_name || '商城自营'
+        shop_name: item.shop_name || item.shopName || normalized.shop_name || ''
     })
 }
 
@@ -540,7 +540,7 @@ function normalizeCommentItem(item = {}) {
     var appendComment = item.append_comment || item.appendComment || item.additionalComment || item.additional_comment || item.followComment || item.follow_comment || ''
     var anonymous = firstDefined(item.is_anonymous, item.isAnonymous, item.anonymous, item.anonymousFlag, item.anonymous_flag, 0)
     var isAnonymous = anonymous === true || anonymous === 1 || anonymous === '1' || String(anonymous).toLowerCase() === 'true' || String(anonymous).toUpperCase() === 'Y'
-    var nickname = item.nickname || item.userName || item.user_name || item.memberName || item.member_name || user.nickname || user.name || user.userName || '匿名用户'
+    var nickname = item.nickname || item.userName || item.user_name || item.memberName || item.member_name || user.nickname || user.name || user.userName || ''
     var specText = normalizeCommentSpecText(item.spec_value_str || item.specValueStr || item.skuName || item.sku_name || item.specValue || item.spec_value || sku.skuName || sku.name || '')
     var merchant = item.merchant || item.shop || item.store || {}
     return Object.assign({}, item, {
@@ -620,15 +620,15 @@ function normalizeCommentPage(data = {}) {
         page_size: data.pageSize || data.page_size || list.length || 10,
         total: total,
         comment: Array.isArray(categories) ? categories : [],
-        percent: data.percent || data.goodRate || data.good_rate || summary.percent || summary.goodRate || summary.good_rate || summary.goodsRate || summary.goods_rate || '100%'
+        percent: data.percent || data.goodRate || data.good_rate || summary.percent || summary.goodRate || summary.good_rate || summary.goodsRate || summary.goods_rate || ''
     })
 }
 
 function normalizeHomeActivity(item = {}) {
     return Object.assign({}, item, {
         id: item.id || item.activityId || item.activity_id || item.targetId || item.target_id || '',
-        title: item.title || item.name || item.activityName || item.activity_name || '热门活动',
-        name: item.name || item.title || item.activityName || item.activity_name || '热门活动',
+        title: item.title || item.name || item.activityName || item.activity_name || '',
+        name: item.name || item.title || item.activityName || item.activity_name || '',
         desc: item.desc || item.subTitle || item.subtitle || item.summary || item.description || item.activityDesc || item.activity_desc || '',
         cover: resolveImage(item.cover || item.image || item.imageUrl || item.image_url || item.pic || item.picUrl || item.banner, 'goods'),
         image: resolveImage(item.image || item.cover || item.imageUrl || item.image_url || item.pic || item.picUrl || item.banner, 'goods'),
@@ -722,9 +722,9 @@ function normalizeShopCommentItem(item = {}) {
     var score = firstDefined(item.score, item.star, item.rating, item.shopScore, item.serviceScore, '')
     return Object.assign({}, item, {
         id: item.id || item.commentId || item.reviewId || '',
-        name: item.name || item.nickname || item.userName || item.memberName || user.nickname || user.name || user.userName || '匿名用户',
+        name: item.name || item.nickname || item.userName || item.memberName || user.nickname || user.name || user.userName || '',
         date: item.date || item.create_time || item.createdAt || item.createTime || item.commentTime || item.evaluateTime || '',
-        content: item.content || item.comment || item.reviewContent || item.remark || item.evaluateContent || item.commentContent || '用户评价',
+        content: item.content || item.comment || item.reviewContent || item.remark || item.evaluateContent || item.commentContent || '',
         avatar: resolveImage(item.avatar || item.userAvatar || item.headimgurl || user.avatar || user.avatarUrl || user.headimgurl, 'avatar'),
         score: score === null || score === undefined ? '' : score
     })
@@ -737,8 +737,8 @@ function normalizeShopGroupItem(item = {}) {
     var goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || item.id || activity.goodsId || activity.spuId
     var price = valueOr(item.groupPrice, valueOr(item.group_price, valueOr(item.groupMinPrice, valueOr(item.group_min_price, valueOr(item.teamPrice, valueOr(item.team_price, valueOr(item.teamMinPrice, valueOr(item.team_min_price, valueOr(item.activityPrice, valueOr(item.activity_price, valueOr(item.salePrice, valueOr(item.sale_price, valueOr(item.minPrice, valueOr(item.min_price, valueOr(item.price, normalized.price)))))))))))))))
     var realName = product.goodsName || product.goods_name || product.spuName || product.spu_name || product.productName || product.product_name || product.name || product.title || item.goodsName || item.goods_name || item.spuName || item.spu_name || item.productName || item.product_name
-    var fallbackName = item.name || item.title || item.activityName || item.activity_name || normalized.name || '团购套餐'
-    if (!realName || realName === '团购套餐') realName = fallbackName
+    var fallbackName = item.name || item.title || item.activityName || item.activity_name || normalized.name || ''
+    if (!realName) realName = fallbackName
     return Object.assign({}, normalized, item, {
         id: goodsId || normalized.id,
         goods_id: goodsId || normalized.goods_id,
@@ -754,8 +754,8 @@ function normalizeShopGroupItem(item = {}) {
         meta: item.meta || item.subTitle || item.subtitle || item.summary || item.desc || item.description || item.goods_desc || item.goodsDesc || item.activityDesc || item.activity_desc || '',
         tagText: item.tagText || item.tag_text || item.activityTag || item.activity_tag || item.label || item.labelText || '',
         people: item.people || item.peopleNum || item.people_num || item.groupNum || item.group_num || activity.peopleNum || activity.people_num || '',
-        joined: item.joined || item.joinedCount || item.join_num || item.joinNum || item.sales_sum || item.salesCount || activity.joinedCount || 0,
-        sales_sum: item.sales_sum || item.salesCount || item.sales_count || item.joinedCount || item.joinNum || 0,
+        joined: firstDefined(item.joined, item.joinedCount, item.join_num, item.joinNum, item.sales_sum, item.salesCount, activity.joinedCount),
+        sales_sum: firstDefined(item.sales_sum, item.salesCount, item.sales_count, item.joinedCount, item.joinNum),
         stock: valueOr(item.stock, valueOr(item.stockQty, valueOr(item.stock_quantity, ''))),
         score: item.score || item.shopScore || item.commentScore || item.rating || ''
     })
@@ -831,11 +831,19 @@ function normalizeGoodsList(data = {}) {
 export function getHome(data = {}) {
     var lat = valueOr(data.lat, data.latitude)
     var lng = valueOr(data.lng, data.longitude)
+    var params = Object.assign({}, data)
+    if (lat !== undefined && lat !== null && lat !== '') params.lat = lat
+    else {
+        delete params.lat
+        delete params.latitude
+    }
+    if (lng !== undefined && lng !== null && lng !== '') params.lng = lng
+    else {
+        delete params.lng
+        delete params.longitude
+    }
     return request.get('miniapp/home/index', {
-        params: Object.assign({}, data, {
-            lat: lat !== undefined && lat !== null && lat !== '' ? lat : 23.1291,
-            lng: lng !== undefined && lng !== null && lng !== '' ? lng : 113.2644
-        })
+        params
     }).then(function(res) {
         if (res.code == 1) {
             return Object.assign({}, res, { data: normalizeHomeData(res.data || {}) })
@@ -964,6 +972,9 @@ export function getGoodsDetail(data) {
 
 export function getGoodsSearch(data = {}) {
     var categoryId = data.category_id || data.categoryId || data.thirdCategoryId || data.third_category_id || data.secondCategoryId || data.second_category_id
+    var sortType = data.sortType || data.sort_type
+    if (!sortType && data.price) sortType = data.price === 'asc' ? 'PRICE_ASC' : (data.price === 'desc' ? 'PRICE_DESC' : data.price)
+    if (!sortType && data.sales_sum) sortType = data.sales_sum === 'asc' ? 'SALES_ASC' : (data.sales_sum === 'desc' ? 'SALES_DESC' : data.sales_sum)
     return request.get('miniapp/search/products', {
         params: {
             keyword: data.keyword,
@@ -972,10 +983,14 @@ export function getGoodsSearch(data = {}) {
             thirdCategoryId: data.thirdCategoryId || data.third_category_id || categoryId,
             third_category_id: data.third_category_id || data.thirdCategoryId || categoryId,
             shopId: data.shop_id || data.shopId,
-            sortType: data.sortType || data.price || data.sales_sum,
+            sortType,
+            sort_type: sortType,
             minPrice: data.minPrice || data.min_price,
+            min_price: data.min_price || data.minPrice,
             maxPrice: data.maxPrice || data.max_price,
+            max_price: data.max_price || data.maxPrice,
             pageNo: data.page_no || data.pageNo,
+            page_no: data.page_no || data.pageNo,
             pageSize: data.page_size || data.pageSize
         }
     }).then(function(res) { return res.code == 1 ? Object.assign({}, res, { data: normalizeGoodsList(res.data || {}) }) : res })
@@ -983,11 +998,28 @@ export function getGoodsSearch(data = {}) {
 }
 
 export function getSearchpage(data) {
-    return getGoodsSearch(data)
+    return request.get('miniapp/search/page', { params: data || {} }).then(function(res) {
+        if (res.code != 1) return { code: 1, data: { hot_lists: [], history_lists: [] }, show: false }
+        var payload = res.data || {}
+        return Object.assign({}, res, {
+            data: Object.assign({}, payload, {
+                hot_lists: payload.hot_lists || payload.hotList || payload.hot || payload.hotKeywords || payload.hot_keywords || [],
+                history_lists: payload.history_lists || payload.historyList || payload.history || payload.historyKeywords || payload.history_keywords || []
+            })
+        })
+    }).catch(function() {
+        return { code: 1, data: { hot_lists: [], history_lists: [] } }
+    })
 }
 
 export function clearSearch() {
-    return Promise.resolve({ code: 1, data: [] })
+    return request.delete('miniapp/search/history').then(function(res) {
+        return res.code == 1 ? res : request.post('miniapp/search/history/clear', {})
+    }).then(function(res) {
+        return res.code == 1 ? res : { code: 1, data: [], show: false }
+    }).catch(function() {
+        return { code: 1, data: [], show: false }
+    })
 }
 
 export function getCommentList(data) {
@@ -1115,7 +1147,7 @@ export function getStoreList(data = {}) {
             shopId: item.shopId || id,
             selffetch_shop_id: item.selffetch_shop_id || id,
             selffetchShopId: item.selffetchShopId || id,
-            name: item.name || item.shop_name || item.shopName || item.storeName || '自提门店',
+            name: item.name || item.shop_name || item.shopName || item.storeName || '',
             shop_address: item.shop_address || item.address || item.detailAddress || item.detail_address || item.poiAddress || item.poiaddress || '',
             business_status: item.business_status ?? item.businessStatus ?? item.openStatus ?? item.status ?? 1,
             business_start_time: item.business_start_time || item.businessStartTime || item.openTime || '',

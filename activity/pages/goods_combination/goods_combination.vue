@@ -36,13 +36,14 @@
 								</view>
 								<view class="primary xxs mr10 ml10">{{item.people_num}}人团</view>
 							</view>
-							<view class="sale muted xs">已拼{{item.sales_sum}}件</view>
+							<view v-if="hasKnownValue(item.sales_sum)" class="sale muted xs">已拼{{item.sales_sum}}件</view>
 						</view>
 						<view class="info-footer row-between">
 							<view class="price row">
-								<price-format color="#FF2C3C" :subscript-size="26" :second-size="26" :first-size="34" :price="item.team_min_price"
+								<price-format v-if="hasKnownValue(item.team_min_price)" color="#a0610d" :subscript-size="26" :second-size="26" :first-size="34" :price="item.team_min_price"
 								 :weight="500"></price-format>
-								<price-format class="ml10" color="#999" :line-through="true" :subscript-size="24" :first-size="24" :second-size="24"
+								<text v-else class="price-pending">价格待确认</text>
+								<price-format v-if="hasKnownValue(item.min_price)" class="ml10" color="#999" :line-through="true" :subscript-size="24" :first-size="24" :second-size="24"
 								 :price="item.min_price"></price-format>
 							</view>
 							<button class="br60 btn white" size="sm" type="primary">去拼团</button>
@@ -102,6 +103,9 @@ loadingFun
 		},
 
 		methods: {
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== ''
+			},
 			async getGroupListFun() {
 
 				try {
@@ -130,7 +134,8 @@ loadingFun
 
 		.header .img {
 			display: block;
-			width: 750rpx;
+			width: 100%;
+			max-width: 750rpx;
 			height: 380rpx;
 		}
 
@@ -156,15 +161,23 @@ loadingFun
 							border-radius: 4rpx;
 							.group-img {
 								padding: 2rpx 6rpx;
-								background: linear-gradient(90deg, rgba(249, 95, 47, 1) 0%, rgba(255, 44, 60, 1) 100%);
+								background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
 								border-radius: 0 4rpx 4rpx 0;
 							}
 
 						}
-						.info-footer {.btn {
-							padding: 0 30rpx;
-							background-color: #F95F2F;
-						}}
+						.info-footer {
+							.price-pending {
+								color: #8b95a5;
+								font-size: 26rpx;
+								line-height: 42rpx;
+								white-space: nowrap;
+							}
+							.btn {
+								padding: 0 30rpx;
+								background-color: #d79a43;
+							}
+						}
 					}
 				}
 			}

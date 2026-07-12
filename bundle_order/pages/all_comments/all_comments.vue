@@ -5,9 +5,9 @@
                 <view class="summary-card">
                     <view class="summary-main">
                         <view class="summary-card__label">商品评价</view>
-                        <view class="summary-card__sub">共 {{ formatCount(totalCount || commentList.length) }} 条</view>
+                        <view class="summary-card__sub">共 {{ formatCount(totalCountText()) }} 条</view>
                     </view>
-                    <view class="summary-rate" v-if="percent">
+                    <view class="summary-rate" v-if="hasPercent()">
                         <view class="summary-card__percent">{{ formatPercent(percent) }}</view>
                         <view class="summary-rate__label">好评率</view>
                     </view>
@@ -41,7 +41,7 @@
                                     <view class="user-name line1">{{ displayNickname(item) }}</view>
                                     <view v-if="item.is_anonymous" class="anonymous-tag">匿名</view>
                                 </view>
-                                <view class="user-sub-row">
+                                <view class="user-sub-row" v-if="hasDisplayScore(item)">
                                     <view class="rate-row">
                                         <text
                                             v-for="star in 5"
@@ -54,7 +54,7 @@
                             </view>
                         </view>
                         <view class="meta-row" v-if="item.create_time || displaySpecText(item)">
-                            <text>{{ item.create_time || '刚刚' }}</text>
+                            <text v-if="item.create_time">{{ item.create_time }}</text>
                             <text v-if="displaySpecText(item)">{{ displaySpecText(item) }}</text>
                         </view>
                         <view class="tag-row" v-if="item.tags && item.tags.length">
@@ -102,15 +102,15 @@
                             </view>
                         </view>
                         <view class="score-detail" v-if="hasScoreDetail(item)">
-                            <view v-if="item.description_comment" class="score-detail__item">
+                            <view v-if="hasPositiveScore(item.description_comment)" class="score-detail__item">
                                 <text>描述相符</text>
                                 <text class="score-detail__value">{{ item.description_comment }}分</text>
                             </view>
-                            <view v-if="item.service_comment" class="score-detail__item">
+                            <view v-if="hasPositiveScore(item.service_comment)" class="score-detail__item">
                                 <text>服务态度</text>
                                 <text class="score-detail__value">{{ item.service_comment }}分</text>
                             </view>
-                            <view v-if="item.express_comment" class="score-detail__item">
+                            <view v-if="hasPositiveScore(item.express_comment)" class="score-detail__item">
                                 <text>配送服务</text>
                                 <text class="score-detail__value">{{ item.express_comment }}分</text>
                             </view>
@@ -167,7 +167,7 @@ export default {
             commentList: [],
             categoryList: [],
             percent: '',
-            totalCount: 0,
+            totalCount: '',
             isEmpty: true,
             isLoading: false
         }
@@ -247,14 +247,16 @@ export default {
                 page_no: page
             }).then((res) => {
                 if (res.code == 1) {
-                    let { list, more, total, percent, comment } = res.data
+                    const data = res.data || {}
+                    const list = Array.isArray(data.list) ? data.list : []
+                    const { more, total, percent, comment } = data
                     if (page === 1) {
                         this.categoryList = this.normalizeCategoryList(comment || [])
                     }
                     commentList.push(...list)
                     this.commentList = commentList
-                    this.totalCount = total || this.totalCount
-                    this.percent = percent || this.percent
+                    if (total !== undefined && total !== null && total !== '') this.totalCount = total
+                    if (percent !== undefined && percent !== null && percent !== '') this.percent = percent
                     this.page++
                     this.$nextTick(() => {
                         if (!more) {
@@ -282,8 +284,25 @@ export default {
             this.getCommentListFun()
         },
 
+        totalCountText() {
+            return this.totalCount !== '' && this.totalCount !== null && this.totalCount !== undefined
+                ? this.totalCount
+                : this.commentList.length
+        },
+
+        hasPercent() {
+            return this.percent !== '' && this.percent !== null && this.percent !== undefined
+        },
+
         hasScoreDetail(item = {}) {
-            return Boolean(item.description_comment || item.service_comment || item.express_comment)
+            return this.hasPositiveScore(item.description_comment)
+                || this.hasPositiveScore(item.service_comment)
+                || this.hasPositiveScore(item.express_comment)
+        },
+
+        hasPositiveScore(value) {
+            const score = Number(value)
+            return value !== undefined && value !== null && value !== '' && !Number.isNaN(score) && score > 0
         },
 
         hasFooterMeta(item = {}) {
@@ -291,22 +310,28 @@ export default {
         },
 
         normalizeCategoryList(list = []) {
-            return list
+            return (Array.isArray(list) ? list : [])
                 .filter((item) => item && item.count !== 0)
                 .map((item) => ({
                     ...item,
-                    name: item.name || item.title || item.label || '评价',
+                    name: item.name || item.title || item.label || '评价类型待确认',
                     id: item.id !== undefined && item.id !== null ? item.id : (item.type !== undefined && item.type !== null ? item.type : (item.value !== undefined && item.value !== null ? item.value : ''))
                 }))
         },
 
         displayNickname(item = {}) {
-            return item.is_anonymous ? '匿名用户' : (item.nickname || '匿名用户')
+            return item.is_anonymous ? '匿名用户' : (item.nickname || '未命名用户')
+        },
+
+        hasDisplayScore(item = {}) {
+            const value = item.goods_comment || item.goods_rate || item.score
+            const score = Number(value)
+            return value !== undefined && value !== null && value !== '' && !Number.isNaN(score) && score > 0
         },
 
         displayScore(item = {}) {
-            const score = Number(item.goods_comment || item.goods_rate || item.score || 5)
-            if (!score || score < 1) return 5
+            const score = Number(item.goods_comment || item.goods_rate || item.score)
+            if (!score || score < 1) return 0
             return Math.max(1, Math.min(5, Math.round(score)))
         },
 
@@ -347,12 +372,19 @@ export default {
     padding: 18rpx 0 48rpx;
     background: #f7f7f7;
     box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .all_comments {
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
+    box-sizing: border-box;
+
     .header {
         padding: 0 24rpx;
         margin-bottom: 14rpx;
+        box-sizing: border-box;
     }
 }
 
@@ -616,7 +648,7 @@ export default {
     margin-top: 18rpx;
     padding: 18rpx 20rpx;
     border-radius: 14rpx;
-    background: #f7f8fa;
+    background: #fff9f0;
 }
 
 .append-title,

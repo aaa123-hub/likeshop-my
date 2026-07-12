@@ -22,11 +22,11 @@
                         <view class="goods-name line2 nr">
                             {{activityObj.name}}
                         </view>
-                        <view class="xs" style="color: #F95F2F;">
-                            最低可砍至<text class="sm" style="line-height: 48rpx;">¥<text class="xl">{{activityObj.activity_price}}</text></text>
+                        <view class="xs" style="color: #d79a43;">
+                            最低可砍至<text v-if="hasKnownValue(activityObj.activity_price)" class="sm" style="line-height: 48rpx;">¥<text class="xl">{{activityObj.activity_price}}</text></text><text v-else>价格待确认</text>
                         </view>
                         <view class="xs muted">
-                            原价 <text style="text-decoration:line-through;">¥{{activityObj.price}}</text>
+                            原价 <text v-if="hasKnownValue(activityObj.price)" style="text-decoration:line-through;">¥{{activityObj.price}}</text><text v-else>价格待确认</text>
                         </view>
                     </view>
                 </navigator>
@@ -63,7 +63,7 @@
                             {{bargainObj.bargain_tips}}
                         </view>
                         <view class="mt10 white xxs">
-                            {{bargainObj.simple_tips || '邀请好友帮忙砍价 —— 砍至'+ bargainObj.current_price +'元即可发货'}}
+                            {{ bargainSimpleTips }}
                         </view>
                     </view>
                 </view>
@@ -80,7 +80,7 @@
                         </view>
                         <view class="row-between mt10">
                             <view class="xs muted">
-                                原价 ¥{{bargainObj.price || 0}}
+                                原价 <text v-if="hasKnownValue(bargainObj.price)">¥{{bargainObj.price}}</text><text v-else>价格待确认</text>
                             </view>
                             <view class="row" v-show="showCountDown" v-if="timestamp > 0">
                                 <u-count-down
@@ -100,15 +100,16 @@
                 <!-- 非被邀请状态 -->
                 <view class="bargain-panel" v-if="status != 5">
                     <view class="bargain-panel-header nr">
-                        已砍￥{{bargainObj.knife_price || 0}}，还差￥{{bargainObj.diff_price || 0}}
+                        已砍{{ moneyText(bargainObj.knife_price) }}，还差{{ moneyText(bargainObj.diff_price) }}
                     </view>
                     <view class="progress-container row">
                         <view class="progress">
-                            <view class="progress-bar" :style="{'width': precent + '%'}">
+                            <view class="progress-bar" :style="{'width': progressWidth}">
                             </view>
                         </view>
                         <view class="primary xs ml20">
-                            <text class="xxs">¥</text>{{bargainObj.activity_price}}
+                            <template v-if="hasKnownValue(bargainObj.activity_price)"><text class="xxs">¥</text>{{ bargainObj.activity_price }}</template>
+                            <text v-else>价格待确认</text>
                         </view>
                     </view>
                     <view class="nr lighter row-center" style="margin-top: 35rpx;" v-if="bargainObj.status != 0 && bargainObj != -1">
@@ -125,7 +126,7 @@
                     </view>
                     <view class="invite-btn-group row-between" v-if="bargainObj.direct_buy_btn">
                         <view class="buy-now-btn br60 md row-center" @tap="handleClickBuy">
-                            ¥{{bargainObj.current_price}}  直接购买
+                            {{ moneyText(bargainObj.current_price) }}  直接购买
                         </view>
                         <view class="invite-friend-btn white br60 md row-center" @tap="shareToBargain">
                             邀请好友帮砍价
@@ -157,7 +158,7 @@
                                     </view>
                                 </view>
                                 <view class="bargain-price xs primary">
-                                    ¥{{item.help_price || 0}}
+                                    {{ moneyText(item.help_price) }}
                                 </view>
                             </view>
                         </view>
@@ -199,7 +200,7 @@
                                 </view>
                             </view>
                             <view class="bargain-price xs primary">
-                                ¥{{item.help_price || 0}}
+                            {{ moneyText(item.help_price) }}
                             </view>
                         </view>
                     </view>
@@ -212,17 +213,17 @@
         <u-popup v-model="showBargainPop" mode="center">
             <view class="bargain-pop-container">
                 <view class="md normal bold row-center" style="padding-top: 64rpx;">
-                    恭喜您成功砍下<text class="primary lg">{{knifePrice || 0}}</text>元
+                    恭喜您成功砍下<text class="primary lg">{{ amountPlainText(knifePrice) }}</text>
                 </view>
                 <view class="bold md row-center" style="margin-top: 38rpx;" v-if="!isHelpKnife">
-                    还差<text class="ml20 differ-price primary">{{diffPrice || 0}}<text style="font-size: 40rpx;">元</text></text>
+                    还差<text class="ml20 differ-price primary">{{ amountPlainText(diffPrice) }}</text>
                 </view>
                 <view class="bold primary xxl row-center" style="margin-top: 38rpx;" v-else>
                     已为好友砍价成功
                 </view>
                 <view class="progress-container row-center">
                     <view class="progress">
-                        <view class="progress-bar" :style="{'width': precent + '%'}" />
+                        <view class="progress-bar" :style="{'width': progressWidth}" />
                     </view>
                 </view>
                 <view class="row-center">
@@ -259,7 +260,7 @@
 		<share-popup
 			v-model="showSharePop"
 			:share-id="bargainId"
-			pagePath="bundle/pages/bargain_process/bargain_process"
+			pagePath="activity/pages/bargain_process/bargain_process"
 			:config="{
 				avatar: userInfo.avatar,
 				nickname: userInfo.nickname,
@@ -301,15 +302,15 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                 activityObj: {},
                 bargainObj: {},
                 status: 1,
-                precent: 0,
+                precent: '',
                 timestamp: 0,
                 userSpecText: '请选择商品规格',
                 userSpec: {},
                 bargainId: -1,
                 activityId: -1,
                 // 砍价弹窗变量
-                knifePrice: 0,
-                diffPrice: 0,
+                knifePrice: '',
+                diffPrice: '',
                 isHelpKnife: false,
                 showCountDown: true,
                 showLoadingView: true,
@@ -318,9 +319,8 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
         },
         onLoad(options) {
             if (options && options.scene) {
-            	let scene = strToParams(decodeURIComponent(options.scene));
-				console.log('scenescene',scene)
-            	options.bargainId = scene.id;
+                let scene = strToParams(decodeURIComponent(options.scene));
+                options.bargainId = scene.id;
             }
 			if(options && options.id) {
 				options.bargainId = options.id
@@ -334,7 +334,6 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
             this.bargainId = options.bargainId;
             // 砍价活动ID
             this.activityId = options.activityId;
-            console.log(this.bargainId, this.activityId, "option")
             if(this.activityId && this.activityId != -1) {
                 this.$getBargainDetail(this.activityId);
             }
@@ -350,7 +349,7 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
         // #ifdef MP-WEIXIN
         onShareAppMessage() {
             return {
-                path: "bundle/pages/bargain_process/bargain_process?bargainId=" + this.bargainId,
+                path: "activity/pages/bargain_process/bargain_process?bargainId=" + this.bargainId,
                 title: this.bargainObj.share_titles || this.bargainObj.name,
 				imageUrl: this.bargainObj.image,
             }
@@ -359,9 +358,38 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
 
 		computed: {
 			...mapGetters(['userInfo']),
+            bargainSimpleTips() {
+                if (this.bargainObj.simple_tips) return this.bargainObj.simple_tips
+                if (this.hasKnownValue(this.bargainObj.current_price)) return `邀请好友帮忙砍价 —— 砍至${this.bargainObj.current_price}元即可发货`
+                return '邀请好友帮忙砍价'
+            },
+            progressWidth() {
+                return this.hasKnownValue(this.precent) ? `${this.precent}%` : '0%'
+            }
 		},
 
         methods: {
+            hasKnownValue(value) {
+                return value !== undefined && value !== null && value !== ''
+            },
+            amountPlainText(value) {
+                if (!this.hasKnownValue(value)) return '金额待确认'
+                const amount = Number(value)
+                if (Number.isNaN(amount)) return '金额待确认'
+                return `${amount}元`
+            },
+            moneyText(value) {
+                if (!this.hasKnownValue(value)) return '金额待确认'
+                const amount = Number(value)
+                if (Number.isNaN(amount)) return '金额待确认'
+                return `￥${amount}`
+            },
+            normalizeProgress(value) {
+                if (!this.hasKnownValue(value)) return ''
+                const progress = Number(value)
+                if (Number.isNaN(progress)) return ''
+                return Math.max(0, Math.min(progress * 100, 100))
+            },
             showSpecPop() {
                 this.showPop = true;
             },
@@ -388,7 +416,6 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                             shareDesc: this.activityObj.simple_tips
                         }
                         this.wxShare(options)
-                        console.log(options, "share-bargain-options1", location.href);
                     }
                 })
             },
@@ -407,12 +434,9 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                     if(res.code == 1) {
                         const data = res.data || {};
                         this.$toast({title: res.msg});
-                        this.knifePrice = data.knife_price || 0;
-                        this.diffPrice = data.diff_price || 0;
-                        this.precent = (data.progress || 0) * 100;
-                        if(this.precent > 100) {
-                            this.precent = 100
-                        }
+                        this.knifePrice = data.knife_price ?? ''
+                        this.diffPrice = data.diff_price ?? ''
+                        this.precent = this.normalizeProgress(data.progress)
                         this.showBargainPop = true;
                         this.bargainId = data.id;
                         this.showLoadingView = true;
@@ -433,13 +457,9 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                         this.status = data.status;
                         this.bargainObj = data;
                         timestamp = data.over_time || 0;
-                        this.precent = (data.progress || 0) * 100;
-                        if(this.precent > 100) {
-                            this.precent = 100
-                        }
+                        this.precent = this.normalizeProgress(data.progress)
                         this.showLoadingView = false;
                         this.timestamp = (timestamp - Math.floor(now_time));
-                        console.log('calc: ', timestamp, '-', Math.floor(now_time), '=', this.timestamp )
                         let url = location.href.replace(/activityId=\d*/g, "bargainId=" + id);
                         let options = {
                             shareTitle: this.bargainObj.share_titles || this.bargainObj.name,
@@ -448,7 +468,6 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                             shareDesc: this.bargainObj.share_intros || this.bargainObj.simple_tips
                         }
                         this.wxShare(options)
-                        console.log(options, "share-bargain-options2", url);
                         if(this.timestamp <= 0 || this.status == 1) {
                             // 砍价已结束
                             this.showCountDown = false;
@@ -473,11 +492,8 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                 }).then(res => {
                     if(res.code == 1) {
                         const data = res.data || {};
-                        this.knifePrice = data.knife_price || 0;
-                        this.precent = (data.progress || 0) * 100;
-                        if(this.precent > 100) {
-                            this.precent = 100
-                        }
+                        this.knifePrice = data.knife_price ?? ''
+                        this.precent = this.normalizeProgress(data.progress)
                         this.isHelpKnife = true;
                         this.showBargainPop = true;
                         this.$getBargainActivityDetail(this.bargainId)
@@ -510,7 +526,6 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                 let params = {
                     goods
                 }
-                console.log(goods, 'handleClickBuy')
                 uni.navigateTo({
                    url: '/bundle/pages/confirm_order/confirm_order?data=' + encodeURIComponent(JSON.stringify(params)) + "&bargain_launch_id=" + this.bargainObj.id
                 })
@@ -522,7 +537,7 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
 <style lang="scss">
     .bargain-process-container {
         .bargain-process-header {
-            background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_hometop.png);
+            background: linear-gradient(135deg, #a0610d 0%, #d79a43 58%, #ffe7bd 100%);
             height: 420rpx;
             background-size: 100% 100%;
             padding-top: 30rpx;
@@ -570,7 +585,7 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                         height: 20rpx;
                         border-radius: 50rpx;
                         .progress-bar {
-                            background: linear-gradient(90deg, #F95F2F 0%, #FF2C3C 100%);
+                            background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
                             transition: width .5s ease;
                             height: 100%;
                             width: 0%;
@@ -594,9 +609,9 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                     .buy-now-btn {
                         width: 316rpx;
                         height: 84rpx;
-                        color: #F95F2F;
+                        color: #d79a43;
                         font-size: 30rpx;
-                        background-color: rgba($color: #F95F2F, $alpha: 0.2);
+                        background-color: rgba($color: #d79a43, $alpha: 0.2);
                     }
                     .invite-friend-btn {
                         width: 316rpx;
@@ -695,7 +710,7 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
         .bargain-pop-container {
             width: 559rpx;
             height: 580rpx;
-            background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_kanjia.png);
+            background: linear-gradient(180deg, #fff8ed 0%, #fff1dc 100%);
             background-size: 100% 100%;
             .differ-price {
                 font-size: 58rpx;
@@ -711,14 +726,14 @@ import UCountDown from '@/activity/components/uview-ui/components/u-count-down/u
                     .progress-bar {
                         height: 100%;
                         width: 0%;
-                        background: linear-gradient(90deg, #FA444D 0%, #FD498F 100%);
+                        background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
                         border-radius: 50rpx;
                         transition: width .5s ease;
                     }
                 }
             }
             .invite-btn {
-                background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_button.png);
+                background: linear-gradient(90deg, #fff3d8 0%, #ffd99b 100%);
                 background-size: 100% 100%;
                 height: 106rpx;
                 color: #7B3200;

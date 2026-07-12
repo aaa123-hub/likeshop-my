@@ -20,8 +20,9 @@
 			</template>
 			<view v-if="!isFacePay" class="payment-header">
 				<view class="payment-header__label">订单支付金额</view>
-				<price-format class="u-skeleton-fillet" :subscript-size="40" :first-size="64" :second-size="40"
+				<price-format v-if="hasValidAmount" class="u-skeleton-fillet" :subscript-size="40" :first-size="64" :second-size="40"
 					:price="amount" :weight="600" />
+				<view v-else class="payment-amount-empty">金额待确认</view>
 				<view class="payment-count-down" v-if="timeout > 0">
 					<text>剩余支付时间</text>
 					<text class="payment-count-down__time">{{ formattedTimeout }}</text>
@@ -111,7 +112,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			return {
 				from: '', // 订单来源
 				order_id: '', // 订单ID
-				amount: 0, // 支付金额
+				amount: '', // 支付金额
 				timeout: 0, // 倒计时间戳
 				payway: '', // 支付方式
 				paywayList: [], // 支付方式列表
@@ -120,8 +121,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				couponId: '',
 				noCoupon: false,
 				useIntegral: false,
-				pointsAmount: 0,
-				pointsDeductAmount: 0,
+				pointsAmount: '',
+				pointsDeductAmount: '',
 				facePayCode: '',
 				shopId: '',
 
@@ -135,6 +136,20 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		},
 
 		methods: {
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== '' && !Number.isNaN(Number(value))
+			},
+			knownNumber(value) {
+				return this.hasKnownValue(value) ? Number(value) : ''
+			},
+			firstValidAmount(...values) {
+				for (const value of values) {
+					if (value === undefined || value === null || value === '') continue
+					const amount = Number(value)
+					if (!Number.isNaN(amount) && amount > 0) return amount
+				}
+				return ''
+			},
 			startCountdown(seconds) {
 				this.stopCountdown()
 				this.timeout = Math.max(Math.floor(Number(seconds) || 0), 0)
@@ -157,7 +172,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			// 更改支付方式
 			changePayway(value) {
 				if (this.isExpired || this.loadingPay || !value) return
-				this.payway = 'WECHAT_JSAPI'
+				this.payway = value
 			},
 			getPaywayValue(item) {
 				return item && (item.pay_way || item.payMethod || item.payWay) ? (item.pay_way || item.payMethod || item.payWay) : item
@@ -246,10 +261,11 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				}).then(data => {
 					this.loadingSkeleton = false
 					data = data || {}
-					this.amount = this.amount || data.order_amount || data.payAmount || 0
-					const wechatPayway = (data.pay || []).map((item, index) => this.normalizePaywayItem(item, index)).find(item => item.value === 'WECHAT_JSAPI')
-					this.paywayList = [wechatPayway || this.normalizePaywayItem({ id: 'WECHAT_JSAPI', name: '微信支付', pay_way: 'WECHAT_JSAPI', extra: '使用微信支付' })]
-					this.payway = 'WECHAT_JSAPI'
+					this.amount = this.firstValidAmount(this.amount, data.order_amount, data.orderAmount, data.pay_amount, data.payAmount)
+					this.paywayList = (data.pay || [])
+						.map((item, index) => this.normalizePaywayItem(item, index))
+						.filter(item => item.value)
+					this.payway = this.paywayList[0]?.value || ''
 					// 倒计时
 					const startTimestamp = new Date().getTime() / 1000
 					const rawEndTimestamp = data.cancel_time || data.cancelTime || data.expireTime || data.expire_time
@@ -269,8 +285,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					this.submitFacePay()
 					return
 				}
-				if (!this.isFacePay && Number(this.amount || 0) <= 0) {
-					this.goPayResult(true)
+				if (!this.isFacePay && !this.hasValidAmount) {
+					this.$toast({ title: '支付金额待确认' })
 					return
 				}
 				if (this.isExpired) {
@@ -293,14 +309,18 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					no_coupon: this.noCoupon,
 					use_integral: this.useIntegral,
 					usePoints: this.useIntegral,
-					pointsAmount: this.useIntegral ? this.pointsAmount : 0,
-					points_amount: this.useIntegral ? this.pointsAmount : 0,
-					pointsDeductAmount: this.useIntegral ? this.pointsDeductAmount : 0,
-					points_deduct_amount: this.useIntegral ? this.pointsDeductAmount : 0,
-					integral_num: this.useIntegral ? this.pointsAmount : 0,
-					integral_amount: this.useIntegral ? this.pointsDeductAmount : 0,
-					pay_way: 'WECHAT_JSAPI',
-					payMethod: 'WECHAT_JSAPI',
+					...(this.useIntegral && this.hasKnownValue(this.pointsAmount) ? {
+						pointsAmount: this.pointsAmount,
+						points_amount: this.pointsAmount,
+						integral_num: this.pointsAmount
+					} : {}),
+					...(this.useIntegral && this.hasKnownValue(this.pointsDeductAmount) ? {
+						pointsDeductAmount: this.pointsDeductAmount,
+						points_deduct_amount: this.pointsDeductAmount,
+						integral_amount: this.pointsDeductAmount
+					} : {}),
+					pay_way: this.payway,
+					payMethod: this.payway,
 					bizOrderNo: this.order_id,
 					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER',
 					amount: this.amount
@@ -457,16 +477,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					try {
 						const syncRes = await syncWechatPayment({ payOrderNo: this.payOrderNo })
 						if (this.isPaymentSuccessResponse(syncRes)) return true
-						console.warn('[payment] wechat payment is not synced yet:', syncRes)
 					} catch (error) {
-						console.warn('[payment] sync wechat payment failed:', error)
 					}
 					try {
 						const queryRes = await queryPayment({ payOrderNo: this.payOrderNo })
 						if (this.isPaymentSuccessResponse(queryRes)) return true
-						console.warn('[payment] payment status is not confirmed yet:', queryRes)
 					} catch (error) {
-						console.warn('[payment] query payment result failed:', error)
 					}
 					if (attempt < 2) await this.waitPaymentConfirm()
 				}
@@ -484,12 +500,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				if (!from && !order_id) throw new Error('页面参数有误')
 				this.from = from
 				this.order_id = order_id
-				this.amount = Number(options.amount || 0)
+				this.amount = this.firstValidAmount(options.amount)
 				this.couponId = options.coupon_id || options.couponId || ''
 				this.noCoupon = options.no_coupon === '1' || options.noCoupon === '1' || options.no_coupon === true || options.noCoupon === true
 				this.useIntegral = options.use_integral === '1' || options.usePoints === '1' || options.use_integral === true || options.usePoints === true
-				this.pointsAmount = Number(options.points_amount || options.pointsAmount || options.integral_num || 0)
-				this.pointsDeductAmount = Number(options.points_deduct_amount || options.pointsDeductAmount || options.integral_amount || 0)
+				this.pointsAmount = this.knownNumber(options.points_amount ?? options.pointsAmount ?? options.integral_num)
+				this.pointsDeductAmount = this.knownNumber(options.points_deduct_amount ?? options.pointsDeductAmount ?? options.integral_amount)
 				this.facePayCode = options.payOrderNo || options.pay_order_no || options.paymentNo || options.payment_no || options.code || ''
 				this.shopId = options.shopId || options.shop_id || ''
 				this.initPageData()
@@ -517,13 +533,17 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			isFacePay() {
 				return this.pageMode === 'facepay' || this.from === 'facepay'
 			},
+			hasValidAmount() {
+				return this.amount !== '' && this.amount !== null && this.amount !== undefined && Number(this.amount) > 0
+			},
 			submitDisabled() {
 				if (this.isFacePay) return this.loadingPay || this.loadingSkeleton || !this.payway
-				return this.loadingPay || this.loadingSkeleton || !this.payway || this.isExpired
+				return this.loadingPay || this.loadingSkeleton || !this.payway || this.isExpired || !this.hasValidAmount
 			},
 			submitText() {
 				if (this.isExpired) return '支付已超时'
 				if (!this.payway) return '暂无可用支付方式'
+				if (!this.isFacePay && !this.hasValidAmount) return '金额待确认'
 				return this.isFacePay ? '确认付款' : '立即支付'
 			}
 		}
@@ -535,7 +555,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 	page {
 		height: 100%;
 		padding: 0;
-		background: #f6f7fb;
+		background: #fff9f0;
 	}
 
 	.payment-pages {
@@ -543,7 +563,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		flex-direction: column;
 		min-height: 100%;
 		height: 100%;
-		background: #f6f7fb;
+		background: #fff9f0;
 
 		.payment {
 			display: flex;
@@ -573,7 +593,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				min-height: 330rpx;
 				padding: 34rpx 32rpx 72rpx;
 				box-sizing: border-box;
-				background: linear-gradient(135deg, #ff6a3c 0%, #ff2c3c 100%);
+				background: linear-gradient(135deg, #d79a43 0%, #a0610d 100%);
 				color: #FFFFFF;
 
 				&__label {
@@ -581,6 +601,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					font-size: 26rpx;
 					opacity: .86;
 				}
+			}
+
+			&-amount-empty {
+				font-size: 42rpx;
+				font-weight: 600;
+				line-height: 64rpx;
 			}
 
 
@@ -652,7 +678,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					transition: background-color .2s ease, border-color .2s ease;
 
 					&--active {
-						border-color: #ff6a3c;
+						border-color: #d79a43;
 						background: #fff8f6;
 					}
 
@@ -668,7 +694,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 						&--empty {
 							font-size: 26rpx;
 							font-weight: 600;
-							color: #ff2c3c;
+							color: #a0610d;
 							background: #ffe8e5;
 						}
 					}
@@ -706,8 +732,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					box-sizing: border-box;
 
 					&--active {
-						border-color: #ff3f33;
-						background: #ff3f33;
+						border-color: #a0610d;
+						background: #a0610d;
 
 						&::after {
 							position: absolute;
@@ -742,12 +768,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				&__time {
 					margin-right: 0;
 					font-weight: 600;
-					color: #ff2c3c;
+					color: #a0610d;
 				}
 
 				&--expired text {
 					margin-right: 0;
-					color: #ff2c3c;
+					color: #a0610d;
 				}
 			}
 
@@ -763,8 +789,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				font-weight: 600;
 				letter-spacing: 2rpx;
 				border-radius: 999rpx;
-				background: linear-gradient(90deg, #ff7a35 0%, #ff2c3c 100%);
-				box-shadow: 0 16rpx 34rpx rgba(255, 65, 55, .28);
+				background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
+				box-shadow: 0 16rpx 34rpx rgba(160, 97, 13, .24);
 				color: #FFFFFF;
 				overflow: hidden;
 
@@ -791,8 +817,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		height: 88rpx;
 		padding: 0 24rpx;
 		margin-right: 22rpx;
-		background: #f5f8ff;
-		border: 1rpx solid #e7edf9;
+		background: #fff8ed;
+		border: 1rpx solid #f0dcc0;
 		border-radius: 16rpx;
 	}
 

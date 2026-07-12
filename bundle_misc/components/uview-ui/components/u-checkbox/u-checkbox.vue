@@ -15,5 +15,5 @@ export default {
 </script>
 
 <style scoped>
-.u-checkbox-lite{display:inline-flex;align-items:center}.u-checkbox-lite__icon{width:32rpx;height:32rpx;margin-right:10rpx;border:2rpx solid #ddd;border-radius:50%;box-sizing:border-box}.u-checkbox-lite__icon.active{border-color:#2979ff;background:#2979ff}
+.u-checkbox-lite{display:inline-flex;align-items:center}.u-checkbox-lite__icon{width:32rpx;height:32rpx;margin-right:10rpx;border:2rpx solid #ddd;border-radius:50%;box-sizing:border-box}.u-checkbox-lite__icon.active{border-color:#a0610d;background:#a0610d}
 </style>

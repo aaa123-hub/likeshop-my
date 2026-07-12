@@ -85,7 +85,7 @@
             :show-title="false"
             @confirm="handleAgreementModalConfirm"
             @cancel="showModel = false"
-            confirm-color="#FF4D3D"
+            confirm-color="#a0610d"
         >
             <view class="company-login__modal">
                 <view>请先阅读并同意</view>
@@ -240,7 +240,7 @@ export default {
                 this.$toast({
                     title: error && error.message === 'wx.login timeout'
                         ? '微信登录凭证获取失败，请重试'
-                        : '登录失败，请检查接口服务'
+                        : '登录失败，请稍后重试'
                 })
             } finally {
                 this.loginLoading = false
@@ -309,7 +309,7 @@ export default {
 
 <style lang="scss">
 page {
-    background: #f7f8fb;
+    background: #fff9f0;
 }
 
 .company-login {
@@ -333,7 +333,7 @@ page {
     left: 0;
     width: 100%;
     height: 560rpx;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, #f7f8fb 88%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, #fff9f0 88%);
 }
 
 .company-login__nav {
@@ -390,7 +390,7 @@ page {
     width: 132rpx;
     height: 132rpx;
     border-radius: 38rpx;
-    background: linear-gradient(135deg, #ff7a45 0%, #ff4d3d 52%, #2f6bff 100%);
+    background: linear-gradient(135deg, #d79a43 0%, #a0610d 52%, #d79a43 100%);
     box-shadow: 0 18rpx 40rpx rgba(255, 91, 61, 0.25);
     display: flex;
     align-items: center;
@@ -497,8 +497,8 @@ page {
 }
 
 .company-login__checkbox.is-checked {
-    border-color: #ff4d3d;
-    background: #ff4d3d;
+    border-color: #a0610d;
+    background: #a0610d;
 }
 
 .company-login__agreement-text {
@@ -511,7 +511,7 @@ page {
 
 .company-login__link {
     display: inline-flex;
-    color: #ff4d3d;
+    color: #a0610d;
     font-weight: 600;
 }
 
@@ -520,7 +520,7 @@ page {
     width: 100%;
     height: 96rpx;
     border-radius: 48rpx;
-    background: linear-gradient(90deg, #ff7a45 0%, #ff4d3d 100%);
+    background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
     color: #ffffff;
     font-size: 32rpx;
     font-weight: 600;

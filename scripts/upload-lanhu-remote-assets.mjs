@@ -13,6 +13,11 @@ const mapPath = resolve(projectRoot, 'static/lanhu/uploaded-assets-map.json')
 const backupPath = resolve(projectRoot, 'static/lanhu/uploaded-assets.txt')
 
 const assets = [
+    ['developing_page_bg', '待开发 - 页面背景', 'https://lanhu-oss-proxy.lanhuapp.com/448c8d80dd5792f814b1a4171e188bc7'],
+    ['developing_shell_bg', '待开发 - 内容背景', 'https://lanhu-oss-proxy.lanhuapp.com/809d6be2fd0063dfe25759e14e78166d'],
+    ['developing_banner_bg', '待开发 - 提示标题背景', 'https://lanhu-oss-proxy.lanhuapp.com/1926b71406a317b9d3f8e0e3d9706501'],
+    ['developing_illustration', '待开发 - 提示插图', 'https://lanhu-oss-proxy.lanhuapp.com/107af76ebce3d6f8b998822ee39d3561'],
+    ['developing_button_bg', '待开发 - 返回首页按钮背景', 'https://lanhu-oss-proxy.lanhuapp.com/077667811064315e1526140a1324b1cf'],
     ['kyc_back_icon', '用户KYC - 返回图标', 'https://lanhu-oss-proxy.lanhuapp.com/097ab946dbaa04397e2e5764e5ce75da'],
     ['kyc_line_1', '用户KYC - 分割线1', 'https://lanhu-oss-proxy.lanhuapp.com/73a3a71052c4f23b4e7b446a6a600c80'],
     ['kyc_line_2', '用户KYC - 分割线2', 'https://lanhu-oss-proxy.lanhuapp.com/34db1a6092cd233ad20d0d9b92b5dda0'],
@@ -153,7 +158,7 @@ mkdirSync(dirname(mapPath), { recursive: true })
 writeFileSync(mapPath, `${JSON.stringify(assetMap, null, 2)}\n`)
 
 const backupLines = existsSync(backupPath) ? readFileSync(backupPath, 'utf8').replace(/\s*$/, '').split('\n') : []
-backupLines.push('', `# 用户KYC蓝湖图片上传 - ${new Date().toISOString()}`)
+backupLines.push('', `# 蓝湖远程图片上传 - ${new Date().toISOString()}`)
 for (const entry of entries) {
     backupLines.push(`[${entry.status}] ${entry.note}`)
     backupLines.push(`key: ${entry.key}`)

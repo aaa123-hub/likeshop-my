@@ -25,7 +25,7 @@ export default {
             if (
                 [
                     'bundle/pages/goods_details/goods_details',
-                    'bundle/pages/bargain_process/bargain_process'
+                    'activity/pages/bargain_process/bargain_process'
                 ].includes(route)
             ) {
                 return

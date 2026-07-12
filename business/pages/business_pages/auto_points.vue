@@ -168,7 +168,6 @@ export default {
                     })
                 }
             } catch (error) {
-                console.warn('load auto receive points failed', error)
             }
         },
         async saveSettings() {
@@ -204,8 +203,13 @@ export default {
     min-height: 100vh;
     padding-top: calc(var(--app-safe-top) + 24rpx);
     overflow: hidden;
-    background: #f6f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/d436eea929e84f17a7bbc5f609cc7188/auto-points-bg.png') no-repeat center top;
+    background: #fff9f0 url('https://shengyuan.store/api/miniapp/files/miniapp/d436eea929e84f17a7bbc5f609cc7188/auto-points-bg.png') no-repeat center top;
     background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.auto-points-page,
+.auto-points-page * {
     box-sizing: border-box;
 }
 
@@ -257,7 +261,9 @@ export default {
 .auto-points-section-title {
     display: flex;
     align-items: center;
-    margin: 45rpx 0 0 24rpx;
+    width: calc(100% - 48rpx);
+    max-width: 703rpx;
+    margin: 45rpx auto 0;
     color: #222222;
     font-size: 32rpx;
     font-weight: 500;
@@ -272,13 +278,14 @@ export default {
     width: 11rpx;
     height: 26rpx;
     margin-right: 18rpx;
-    background: #037dfa;
+    background: #a0610d;
 }
 
 .auto-points-card {
-    width: 703rpx;
+    width: calc(100% - 48rpx);
+    max-width: 703rpx;
     height: 201rpx;
-    margin: 34rpx 0 0 24rpx;
+    margin: 34rpx auto 0;
     overflow: hidden;
     background: #ffffff;
     border-radius: 15rpx;
@@ -310,7 +317,7 @@ export default {
 }
 
 .auto-points-switch.is-active {
-    background: #037dfa;
+    background: #a0610d;
 }
 
 .auto-points-switch__thumb {
@@ -331,28 +338,33 @@ export default {
 
 .auto-points-divider {
     display: block;
-    width: 702rpx;
+    width: 100%;
     height: 1rpx;
 }
 
 .auto-points-divider--standalone {
-    margin-left: 24rpx;
+    width: calc(100% - 48rpx);
+    max-width: 703rpx;
+    margin: 0 auto;
 }
 
 .auto-points-save {
     position: fixed;
-    left: 84rpx;
-    right: 84rpx;
+    left: 50%;
+    right: auto;
     bottom: calc(113rpx + env(safe-area-inset-bottom));
     display: flex;
     align-items: center;
     justify-content: center;
+    width: calc(100% - 168rpx);
+    max-width: 582rpx;
     height: 81rpx;
     color: #ffffff;
     font-size: 28rpx;
     font-weight: 500;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 40rpx;
+    transform: translateX(-50%);
 }
 
 .auto-points-save.is-disabled {

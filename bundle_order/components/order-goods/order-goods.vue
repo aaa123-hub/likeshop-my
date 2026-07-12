@@ -50,7 +50,7 @@
                                 </view>
                             </view>
                             <view class="vip-price row" v-if="(order_type === 1 || order_type === 2 || order_type === 3) && goodsPrice(item) !== ''">
-                                <view class="price-name xxs" style="background-color: #e74346">
+                                <view class="price-name xxs" style="background-color: #a0610d">
                                     <text v-if="order_type === 1">秒杀价</text>
                                     <text v-if="order_type === 2">拼团价</text>
                                     <text v-if="order_type === 3">砍价</text>
@@ -67,7 +67,7 @@
                                 </view>
                             </view>
                         </view>
-                        <view v-if="item.goods_num" class="goods-num sm">x{{ item.goods_num }}</view>
+                        <view v-if="goodsNumText(item)" class="goods-num sm">{{ goodsNumText(item) }}</view>
                     </view>
                 </view>
             </view>
@@ -146,10 +146,14 @@ export default {
             return value === undefined || value === null ? '' : value
         },
         goodsName(item = {}) {
-            return cleanEmptyBackendText(item.goods_name || item.name, '商品信息')
+            return cleanEmptyBackendText(item.goods_name || item.name, '商品待确认')
         },
         goodsSpec(item = {}) {
             return cleanEmptyBackendText(item.spec_value_str || item.spec_value, '')
+        },
+        goodsNumText(item = {}) {
+            const value = this.pickValue(item, ['goods_num', 'goodsNum', 'quantity', 'num'])
+            return value === '' ? '' : `x${value}`
         },
         showGoodsFooter(item) {
             return this.link && Boolean((this.showComment && item.comment_btn) || this.canApplyRefund(item) || this.afterStatusText(item))

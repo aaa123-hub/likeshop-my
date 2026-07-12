@@ -83,7 +83,7 @@
 	.u-index-anchor--active {
 		right: 0;
 		left: 0;
-		color: #2979ff;
+		color: #a0610d;
 		background-color: #fff;
 	}
 </style>

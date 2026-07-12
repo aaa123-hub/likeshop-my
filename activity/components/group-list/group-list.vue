@@ -7,7 +7,7 @@
 					<view v-else>
 						<view class="row" v-if="getTeamCountTime(item) >= 0">
 							<view class="sm mr10">距离结束</view>
-							<u-count-down :timestamp="getTeamCountTime(item)" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C" font-size="24"
+							<u-count-down :timestamp="getTeamCountTime(item)" color="#fff" bg-color="#a0610d" separator-color="#a0610d" font-size="24"
 							 height="36" separator-size="26" @end="reflesh"></u-count-down>
 						</view>
 					</view>
@@ -20,8 +20,9 @@
 				<order-goods :team="{need: item.need}" :list="[{name: item.name, spec_value_str: item.spec_value_str,image: item.spec_image,goods_num: item.total_num, goods_id: item.goods_id, goods_price: item.goods_price}]">
 				</order-goods>
 				<view class="all-price row-end">
-					<text class="muted xs">共{{item.total_num}}件商品，总金额：</text>
-					<price-format show-subscript :subscript-size="30" :first-size="30" :second-size="30" :price="item.order_amount"></price-format>
+					<text class="muted xs">{{ hasKnownValue(item.total_num) ? '共' + item.total_num + '件商品，' : '商品件数待确认，' }}总金额：</text>
+					<price-format v-if="hasKnownValue(item.order_amount)" show-subscript :subscript-size="30" :first-size="30" :second-size="30" :price="item.order_amount"></price-format>
+					<text v-else class="amount-pending">金额待确认</text>
 				</view>
 			</view>
 			<view class="group-footer row" v-if="item.pay_status == 0">
@@ -84,6 +85,9 @@ getUserGroup
 
 		},
 		methods: {
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== ''
+			},
 			reflesh() {
 				this.page = 1
 				this.groupList = []
@@ -157,11 +161,16 @@ getUserGroup
 				top: 105rpx;
 				padding: 4rpx 20rpx;
 				border-radius: 0 60rpx 60rpx 0;
-				background: linear-gradient(87deg, #F95F2F 0%, #FF2C3C 100%);
+				background: linear-gradient(87deg, #d79a43 0%, #a0610d 100%);
 			}
 			.all-price {
 				text-align: right;
 				padding: 0 24rpx 20rpx;
+				.amount-pending {
+					color: #8b95a5;
+					font-size: 26rpx;
+					line-height: 40rpx;
+				}
 			}
 			.group-footer {
 				height: 100rpx;

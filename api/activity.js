@@ -2,6 +2,10 @@ import request from '@/utils/request'
 import { orderBuy } from '@/api/order'
 import { resolveImage } from '@/utils/image-placeholder'
 
+function firstPresent(...values) {
+    return values.find(value => value !== undefined && value !== null && value !== '')
+}
+
 function normalizePage(data = {}, itemNormalizer) {
     const rawList = Array.isArray(data) ? data : (data.list || data.records || data.items || data.rows || data.content || [])
     const list = itemNormalizer ? rawList.map(itemNormalizer) : rawList
@@ -66,7 +70,7 @@ function normalizeActivityProduct(item = {}) {
         goods_name: item.goods_name || item.spuName || item.productName || item.title || item.name || '',
         shopName: item.shopName || item.shop_name || '',
         image: resolveImage(item.image || item.mainImageUrl || item.cover || item.imageUrl, 'goods'),
-        price: item.price || item.activityPrice || item.salePrice || item.minSalePrice || 0,
+        price: firstPresent(item.price, item.activityPrice, item.salePrice, item.minSalePrice),
         enabled: item.enabled !== false
     }
 }
@@ -107,7 +111,7 @@ function getActivityPage(params = {}, fallbackType) {
     }).then((res) => res.code == 1 ? { ...res, data: normalizePage(res.data || {}, normalizeActivity) } : res)
 }
 
-function unsupportedPage(message = '后端暂未提供该活动接口') {
+function unsupportedPage(message = '该活动暂未开放') {
     return Promise.resolve({
         code: 0,
         msg: message,
@@ -197,7 +201,7 @@ export function getBargainNumber() {
 }
 
 export function launchBargain() {
-    return unsupportedPage('后端暂未提供发起砍价接口')
+    return unsupportedPage('发起砍价暂未开放')
 }
 
 export function getBargainActivityList(data) {
@@ -213,9 +217,9 @@ export function getBargainPost(data) {
 }
 
 export function helpBargain() {
-    return unsupportedPage('后端暂未提供帮砍接口')
+    return unsupportedPage('帮砍暂未开放')
 }
 
 export function closeBargainOrder() {
-    return unsupportedPage('后端暂未提供关闭砍价订单接口')
+    return unsupportedPage('关闭砍价订单暂未开放')
 }

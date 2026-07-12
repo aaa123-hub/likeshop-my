@@ -1,8 +1,15 @@
 <template>
     <view class="kyc-page" :style="{ backgroundImage: `url(${kycAssets.pageBg})` }">
         <view class="kyc-hero" :style="{ backgroundImage: `url(${kycAssets.headerBg})` }">
-            <view class="kyc-back-btn" @tap="goBack">
-                <view class="kyc-back-arrow"></view>
+            <view class="kyc-nav">
+                <view class="kyc-back-btn" @tap="goBack">
+                    <view class="kyc-back-arrow"></view>
+                </view>
+                <view class="kyc-capsule">
+                    <view class="kyc-capsule__dot"></view>
+                    <view class="kyc-capsule__divider"></view>
+                    <view class="kyc-capsule__circle"></view>
+                </view>
             </view>
             <text class="kyc-title">用户KYC</text>
             <text class="kyc-subtitle">{{ heroSubtitle }}</text>
@@ -12,15 +19,6 @@
         <view class="kyc-card">
             <view v-if="loading" class="kyc-empty">加载中...</view>
             <template v-else>
-                <view :class="['status-box', 'status-box--' + statusType]">
-                    <view>
-                        <view class="status-title">{{ statusText }}</view>
-                        <view class="status-desc">{{ statusSubtitle }}</view>
-                        <view class="status-desc" v-if="statusMessage">{{ statusMessage }}</view>
-                        <view class="status-desc" v-if="statusInfo.lastSubmitTime">提交时间：{{ statusInfo.lastSubmitTime }}</view>
-                    </view>
-                </view>
-
                 <view class="form-row">
                     <text class="form-label">姓名</text>
                     <input class="form-input" v-model="form.realName" :disabled="readOnly" placeholder="请输入真实姓名" placeholder-class="placeholder" />
@@ -28,14 +26,14 @@
                 <view class="line"></view>
                 <view class="form-row">
                     <text class="form-label">证件类型</text>
-                    <view class="form-picker">身份证</view>
+                    <view class="form-picker">ID卡</view>
                 </view>
                 <view class="line"></view>
                 <view class="form-row">
                     <text class="form-label">证件号码</text>
                     <input class="form-input" v-model="form.certNo" :disabled="readOnly" placeholder="请输入证件号码" placeholder-class="placeholder" />
                 </view>
-                <view class="line"></view>
+                <view class="line line--last"></view>
 
                 <view class="photo-title">证件照片</view>
                 <view class="photo-list">
@@ -49,6 +47,13 @@
                             <image class="photo-plus-icon" :src="kycAssets.plusIcon" mode="aspectFit"></image>
                         </view>
                     </view>
+                </view>
+
+                <view v-if="showStatusBox" :class="['status-box', 'status-box--' + statusType]">
+                    <view class="status-title">{{ statusText }}</view>
+                    <view class="status-desc">{{ statusSubtitle }}</view>
+                    <view class="status-desc" v-if="statusMessage">{{ statusMessage }}</view>
+                    <view class="status-desc" v-if="statusInfo.lastSubmitTime">提交时间：{{ statusInfo.lastSubmitTime }}</view>
                 </view>
 
                 <button v-if="canSubmit" class="submit-btn" :loading="submitting" @tap="submit">{{ submitText }}</button>
@@ -123,6 +128,9 @@ export default {
         canSubmit() {
             return this.statusType === 'empty' || this.statusType === 'rejected'
         },
+        showStatusBox() {
+            return this.statusType !== 'empty' || Boolean(this.statusMessage)
+        },
         submitText() {
             return this.statusType === 'rejected' ? '重新提交申请' : '提交申请'
         }
@@ -152,10 +160,10 @@ export default {
                     this.statusInfo = res.data || {}
                     this.fillForm(this.statusInfo)
                 } else {
-                    this.applyStatusFallback(res.msg || res.message || '状态接口暂不可用')
+                    this.applyStatusFallback(res.msg || res.message || '认证状态暂不可用')
                 }
             } catch (error) {
-                this.applyStatusFallback((error && error.message) || '状态接口暂不可用')
+                this.applyStatusFallback((error && error.message) || '认证状态暂不可用')
             } finally {
                 this.loading = false
             }
@@ -239,36 +247,43 @@ export default {
 </script>
 
 <style lang="scss">
-.kyc-page { min-height: 100vh; background-color: #f5f7fb; background-repeat: no-repeat; background-position: center top; background-size: 100% 100%; overflow: hidden; }
-.kyc-hero { position: relative; height: 385rpx; padding: calc(var(--status-bar-height) + 41rpx) 24rpx 0; background-repeat: no-repeat; background-position: center top; background-size: 100% 277rpx; box-sizing: border-box; overflow: hidden; }
-.kyc-back-btn { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; border-radius: 50%; background: rgba(255, 255, 255, .86); box-shadow: 0 10rpx 26rpx rgba(3, 125, 250, .12); }
+.kyc-page { min-height: 100vh; background-color: #fff9f0; background-repeat: no-repeat; background-position: center top; background-size: 100% 100%; overflow: hidden; }
+.kyc-hero { position: relative; height: 385rpx; padding: calc(var(--status-bar-height) + 37rpx) 24rpx 0; background-repeat: no-repeat; background-position: center top; background-size: 100% 277rpx; box-sizing: border-box; overflow: hidden; }
+.kyc-nav { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; height: 91rpx; margin: 0 -24rpx; padding: 0 28rpx 0 24rpx; box-sizing: border-box; }
+.kyc-back-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; border-radius: 0; background: transparent; box-shadow: none; }
 .kyc-back-arrow { width: 18rpx; height: 18rpx; border-left: 4rpx solid #1f2937; border-bottom: 4rpx solid #1f2937; transform: rotate(45deg); margin-left: 6rpx; box-sizing: border-box; }
-.kyc-title { display: block; margin-top: 82rpx; color: #222222; font-size: 44rpx; font-weight: 700; line-height: 44rpx; }
+.kyc-capsule { display: flex; align-items: center; justify-content: space-around; width: 159rpx; height: 58rpx; padding: 0 18rpx; border: 1rpx solid transparent; border-radius: 29rpx; background: transparent; box-sizing: border-box; opacity: 0; }
+.kyc-capsule__dot { width: 44rpx; height: 12rpx; border-top: 6rpx dotted #222222; box-sizing: border-box; }
+.kyc-capsule__divider { width: 1rpx; height: 32rpx; background: rgba(0, 0, 0, .16); }
+.kyc-capsule__circle { width: 30rpx; height: 30rpx; border: 4rpx solid #222222; border-radius: 50%; box-sizing: border-box; }
+.kyc-title { display: block; margin-top: 46rpx; color: #222222; font-size: 44rpx; font-weight: 700; line-height: 44rpx; }
 .kyc-subtitle { position: absolute; left: 26rpx; top: 303rpx; z-index: 2; display: block; max-width: 360rpx; color: #222222; font-size: 26rpx; line-height: 26rpx; }
 .kyc-hero-img { position: absolute; right: 42rpx; top: 200rpx; z-index: 2; width: 226rpx; height: 184rpx; }
-.kyc-card { min-height: calc(100vh - 384rpx); margin-top: 0; padding: 36rpx 24rpx 64rpx; border: 2rpx solid #ffffff; border-radius: 30rpx 30rpx 0 0; background: #ffffff; box-sizing: border-box; position: relative; z-index: 1; }
+.kyc-card { min-height: 1241rpx; margin-top: 0; padding: 44rpx 24rpx 138rpx; border: 2rpx solid #ffffff; border-radius: 30rpx 30rpx 0 0; background: #ffffff; box-sizing: border-box; position: relative; z-index: 1; }
 .kyc-empty { padding: 90rpx 0; text-align: center; color: #999999; font-size: 28rpx; }
 .kyc-empty__title { display: block; color: #222222; font-size: 30rpx; font-weight: 600; line-height: 42rpx; }
 .kyc-empty__desc { display: block; margin: 12rpx auto 0; max-width: 600rpx; color: #888888; font-size: 25rpx; line-height: 38rpx; }
-.retry-btn { display: flex; align-items: center; justify-content: center; width: 260rpx; height: 72rpx; margin: 30rpx auto 0; border-radius: 36rpx; color: #ffffff; background: #037dfa; font-size: 26rpx; }
-.status-box { margin-bottom: 24rpx; padding: 22rpx 24rpx; border-radius: 20rpx; background: #f2f8ff; }
-.status-box--approved { background: #f0fff7; }
+.retry-btn { display: flex; align-items: center; justify-content: center; width: 260rpx; height: 72rpx; margin: 30rpx auto 0; border-radius: 36rpx; color: #ffffff; background: #a0610d; font-size: 26rpx; }
+.status-box { margin: 42rpx 2rpx 0; padding: 18rpx 24rpx; border-radius: 16rpx; background: #fff9f0; }
+.status-box--approved { background: #f4fff7; }
 .status-box--rejected { background: #fff5f3; }
-.status-title { color: #222222; font-size: 30rpx; font-weight: 600; line-height: 42rpx; }
-.status-desc { margin-top: 8rpx; color: #666666; font-size: 24rpx; line-height: 34rpx; }
-.form-row { display: flex; align-items: center; justify-content: space-between; min-height: 99rpx; padding: 0 2rpx 0 1rpx; box-sizing: border-box; }
+.status-title { color: #a0610d; font-size: 26rpx; font-weight: 500; line-height: 34rpx; }
+.status-desc { margin-top: 6rpx; color: #666666; font-size: 22rpx; line-height: 32rpx; }
+.form-row { display: flex; align-items: center; justify-content: space-between; height: 64rpx; padding: 0 2rpx 0 1rpx; box-sizing: border-box; }
 .form-label { flex: none; width: 170rpx; color: #222222; font-size: 28rpx; font-weight: 500; line-height: 28rpx; }
 .form-input, .form-picker { flex: 1; min-width: 0; color: #222222; font-size: 28rpx; line-height: 28rpx; text-align: right; }
-.placeholder { color: #bfbfbf; }
-.line { height: 1rpx; background: #eeeeee; }
-.photo-title { margin-top: 30rpx; color: #222222; font-size: 28rpx; font-weight: 500; line-height: 28rpx; }
-.photo-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24rpx; max-width: 100%; margin-top: 24rpx; }
+.placeholder { color: #bfbfbf; font-size: 24rpx; font-weight: 300; }
+.line { height: 1rpx; margin-bottom: 36rpx; background: #eeeeee; }
+.line--last { margin-bottom: 0; }
+.photo-title { margin-top: 41rpx; color: #222222; font-size: 28rpx; font-weight: 500; line-height: 28rpx; }
+.photo-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 47rpx; max-width: 648rpx; margin-top: 33rpx; }
 .photo-box { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 301 / 192; min-height: 176rpx; border-radius: 12rpx; background-repeat: no-repeat; background-position: center; background-size: 100% 100%; overflow: hidden; box-sizing: border-box; }
 .photo-box--filled { border: 1rpx solid #e5e9f0; background: #f8fafc; }
 .photo-img { display: block; width: 100%; height: 100%; }
 .photo-placeholder-icon { display: block; width: 69rpx; height: 69rpx; margin: 0; }
-.photo-plus-wrap { display: flex; align-items: center; justify-content: center; width: 67rpx; height: 67rpx; margin: 0; border-radius: 50%; background: #037dfa; }
+.photo-plus-wrap { display: flex; align-items: center; justify-content: center; width: 67rpx; height: 67rpx; margin: 0; border-radius: 50%; background: #a0610d; }
 .photo-plus-icon { width: 30rpx; height: 29rpx; }
-.submit-btn { display: flex; align-items: center; justify-content: center; width: 582rpx; max-width: 100%; height: 81rpx; margin: 56rpx auto 0; border-radius: 40rpx; color: #ffffff; background: #037dfa; font-size: 28rpx; font-weight: 500; line-height: 81rpx; }
-.submit-btn--plain { color: #037dfa; background: #edf7ff; }
+.submit-btn { display: flex; align-items: center; justify-content: center; width: 582rpx; max-width: 100%; height: 81rpx; margin: 420rpx auto 0; border-radius: 40rpx; color: #ffffff; background: #a0610d; font-size: 28rpx; font-weight: 500; line-height: 81rpx; }
+.status-box + .submit-btn { margin-top: 56rpx; }
+.submit-btn--plain { color: #a0610d; background: #fff9f0; }
 </style>

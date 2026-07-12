@@ -6,37 +6,40 @@
 					<view>
 						<image class="tips-icon" :src="getStatusImg"></image>
 					</view>
-					<view class="xl mt20 line1">{{widthdrawInfo.statusDesc}}</view>
+					<view class="withdraw-status-title xl mt20">{{ displayText(widthdrawInfo.statusDesc, '提现状态待确认') }}</view>
 				</view>
 				<view class="column-center mt10">
-					<price-format :price="widthdrawInfo.money" color="#FF2C3C" showSubscript subscriptSize="30"
+					<price-format v-if="hasKnownValue(widthdrawInfo.money)" :price="widthdrawInfo.money" color="#a0610d" showSubscript subscriptSize="30"
 						firstSize="46" secondSize="46" weight="500" />
+					<view v-else class="withdraw-money-empty">金额待确认</view>
 				</view>
 				<view class="info">
 					<view class="order-num row-between mt20">
 						<view class="ml20">流水号</view>
-						<view class="mr20">
-							{{widthdrawInfo.sn}}
+						<view class="mr20 info-value">
+							{{ displayText(widthdrawInfo.sn, '流水号待确认') }}
 						</view>
 					</view>
-					<view v-if="widthdrawInfo.create_time" class="order-time row-between mt20">
+					<view class="order-time row-between mt20">
 						<view class="ml20">提交时间</view>
-						<view class="mr20">{{widthdrawInfo.create_time}}</view>
+						<view class="mr20 info-value">{{ displayText(widthdrawInfo.create_time, '时间待确认') }}</view>
 					</view>
 					<view class="order-pay-type row-between mt20">
 						<view class="ml20">提现至</view>
-						<view class="mr20">{{widthdrawInfo.typeDesc}}</view>
+						<view class="mr20 info-value">{{ displayText(widthdrawInfo.typeDesc, '提现方式待确认') }}</view>
 					</view>
 					<view class="order-pay-money row-between mt20">
 						<view class="ml20">服务费</view>
-						<view class="mr20">
-							<price-format :price="widthdrawInfo.poundage" />
+						<view class="mr20 info-value">
+							<price-format v-if="hasKnownValue(widthdrawInfo.poundage)" :price="widthdrawInfo.poundage" />
+							<text v-else>金额待确认</text>
 						</view>
 					</view>
 					<view class="order-pay-money row-between mt20">
 						<view class="ml20">实际到账</view>
-						<view class="mr20">
-							<price-format :price="widthdrawInfo.left_money" />
+						<view class="mr20 info-value">
+							<price-format v-if="hasKnownValue(widthdrawInfo.left_money)" :price="widthdrawInfo.left_money" />
+							<text v-else>金额待确认</text>
 						</view>
 					</view>
 				</view>
@@ -103,12 +106,24 @@ getWithdrawDetail
 
 
 		methods: {
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== ''
+			},
+
+			displayText(value, fallback) {
+				return this.hasKnownValue(value) ? value : fallback
+			},
+
 			getWithdrawDetailFun() {
+				if (!this.id) {
+					this.widthdrawInfo = {}
+					return
+				}
 				getWithdrawDetail({
 					id: this.id
 				}).then(res => {
 					if (res.code == 1) {
-						this.widthdrawInfo = res.data
+						this.widthdrawInfo = res.data || {}
 					}
 				});
 			}
@@ -126,6 +141,7 @@ getWithdrawDetail
 					case 4:
 						return 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_payFail.png';
 				}
+				return 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_cashOut_wait.png';
 			}
 		}
 	};
@@ -144,6 +160,7 @@ getWithdrawDetail
 			padding-right: 20rpx;
 			padding-bottom: 40rpx;
 			position: relative;
+			box-sizing: border-box;
 
 			.tips-icon {
 				width: 112rpx;
@@ -160,18 +177,32 @@ getWithdrawDetail
 				.order-num {
 					align-items: flex-start;
 				}
+
+				.row-between {
+					gap: 20rpx;
+				}
+
+				.info-value {
+					min-width: 0;
+					flex: 1;
+					text-align: right;
+					word-break: break-all;
+					line-height: 1.5;
+				}
 			}
 
 			.opt-btn-contain {
 				margin-top: 40rpx;
 
 				.check-order-btn {
-					width: 650rpx;
+					width: 100%;
+					max-width: 650rpx;
 					height: 84rpx;
 				}
 
 				.go-back-btn {
-					width: 650rpx;
+					width: 100%;
+					max-width: 650rpx;
 					height: 84rpx;
 					border: solid 1rpx $color-primary;
 					box-sizing: border-box;
@@ -181,7 +212,21 @@ getWithdrawDetail
 	}
 
 	.line {
-		width: 650rpx;
+		width: calc(100% - 40rpx);
+		max-width: 650rpx;
 		border-top: 1px solid rgba(229, 229, 229, 1);
+	}
+
+	.withdraw-status-title {
+		max-width: 100%;
+		text-align: center;
+		word-break: break-all;
+		line-height: 1.4;
+	}
+
+	.withdraw-money-empty {
+		color: #a0610d;
+		font-size: 32rpx;
+		font-weight: 500;
 	}
 </style>

@@ -10,6 +10,11 @@ function firstDefined(...values) {
     return values.find((value) => !isEmptyBackendText(value))
 }
 
+function pickPresentValue(...values) {
+    const value = firstDefined(...values)
+    return value === undefined ? '' : value
+}
+
 function pickAfterSaleId(source = {}) {
     const value = firstDefined(
         source.afterSaleId,
@@ -367,9 +372,11 @@ function fakeUserInfo() {
         mobile: '',
         sex: 0,
         create_time: '',
-        user_money: 0,
-        user_integral: 0,
-        coupon: 0,
+        user_money: '',
+        user_integral: '',
+        coupon: '',
+        coupon_num: '',
+        couponNum: '',
         wait_pay: 0,
         wait_delivery: 0,
         wait_take: 0,
@@ -391,14 +398,16 @@ function normalizeUserProfile(data = {}) {
         id: data.id || data.userId,
         user_id: data.user_id || data.userId || data.id,
         avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar'),
-        nickname: data.nickname || data.nickName || data.userName || fakeUserInfo().nickname,
-        sn: data.sn || data.userNo || data.inviteCode || data.openId || fakeUserInfo().sn,
+        nickname: data.nickname || data.nickName || data.userName || '',
+        sn: data.sn || data.userNo || data.inviteCode || data.openId || '',
         mobile: data.mobile || data.phone || '',
         create_time: data.create_time || data.createTime || data.createdAt || data.registerTime || '暂未记录',
         sex: normalizeGenderForView(genderValue),
-        user_money: data.user_money ?? data.balance ?? data.walletBalance ?? data.wallet?.balance ?? 0,
-        user_integral: data.user_integral ?? data.userIntegral ?? data.availablePoints ?? data.available_points ?? data.points ?? data.pointsAccount?.availablePoints ?? 0,
-        coupon: data.coupon ?? data.couponCount ?? data.availableCouponCount ?? data.available_coupon_count ?? data.couponSummary?.availableCount ?? 0,
+        user_money: pickPresentValue(data.user_money, data.balance, data.walletBalance, data.wallet?.balance),
+        user_integral: pickPresentValue(data.user_integral, data.userIntegral, data.availablePoints, data.available_points, data.points, data.pointsAccount?.availablePoints),
+        coupon: pickPresentValue(data.coupon, data.couponCount, data.availableCouponCount, data.available_coupon_count, data.couponSummary?.availableCount),
+        coupon_num: pickPresentValue(data.coupon_num, data.couponNum, data.coupon, data.couponCount, data.availableCouponCount, data.available_coupon_count, data.couponSummary?.availableCount),
+        couponNum: pickPresentValue(data.couponNum, data.coupon_num, data.coupon, data.couponCount, data.availableCouponCount, data.available_coupon_count, data.couponSummary?.availableCount),
         gift_card_count: data.gift_card_count ?? data.giftCardCount ?? data.cardCount ?? data.giftCardSummary?.availableCount ?? 0,
         wait_pay: data.wait_pay ?? data.waitPay ?? 0,
         wait_delivery: data.wait_delivery ?? data.waitDelivery ?? 0,
@@ -408,9 +417,9 @@ function normalizeUserProfile(data = {}) {
         after_sale: data.after_sale ?? data.afterSale ?? 0,
         roles: data.roles || data.roleList || data.userRoles || [],
         role_applications: data.role_applications || data.roleApplications || data.applications || [],
-        distribution_code: data.distribution_code || data.distributionCode || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || fakeUserInfo().distribution_code,
-        promoter_code: data.promoter_code || data.promoterCode || data.promotionCode || data.promotion_code || data.distribution_code || data.distributionCode || data.inviteCode || fakeUserInfo().distribution_code,
-        next_level_tips: data.next_level_tips || data.nextLevelTips || '立即开通'
+        distribution_code: data.distribution_code || data.distributionCode || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.inviteCode || '',
+        promoter_code: data.promoter_code || data.promoterCode || data.promotionCode || data.promotion_code || data.distribution_code || data.distributionCode || data.inviteCode || '',
+        next_level_tips: data.next_level_tips || data.nextLevelTips || ''
     }
 }
 
@@ -548,40 +557,34 @@ function normalizeFavoriteProduct(item = {}) {
         name: target.name || target.spuName || target.productName || target.title || item.targetName || '',
         goods_name: target.goods_name || target.spuName || target.productName || target.title || item.targetName || '',
         image: resolveImage(target.image || target.mainImageUrl || target.cover || target.imageUrl || item.targetImage, 'goods'),
-        price: target.price || target.salePrice || target.minPrice || item.price || 0,
-        market_price: target.market_price || target.marketPrice || target.originPrice || target.price || 0
+        price: target.price ?? target.salePrice ?? target.minPrice ?? item.price ?? '',
+        market_price: target.market_price ?? target.marketPrice ?? target.originPrice ?? target.price ?? ''
     }
 }
 
 function normalizeWallet(res = {}) {
     const data = res.data || {}
-    const cachedUserInfo = Cache.get(USER_INFO) || {}
-    const balance = data.balance ?? data.user_money ?? cachedUserInfo.user_money ?? cachedUserInfo.balance ?? 0
+    const balance = data.balance ?? data.user_money ?? data.walletBalance ?? data.wallet_balance ?? data.wallet?.balance ?? ''
     const withdrawableAmount = data.withdrawableAmount ?? data.withdrawable_amount ?? data.able_withdraw ?? balance
-    const withdrawTypes = Array.isArray(data.type) && data.type.length
+    const withdrawTypes = Array.isArray(data.type)
         ? data.type
-        : [
-            { name: '账户余额', value: 1 },
-            { name: '微信零钱', value: 2 },
-            { name: '微信收款码', value: 3 },
-            { name: '支付宝', value: 4 },
-            { name: '银行卡', value: 5 }
-        ]
+        : (Array.isArray(data.withdrawTypes) ? data.withdrawTypes : [])
     return {
         ...res,
         data: {
             ...data,
             balance,
-            frozenAmount: data.frozenAmount || data.frozen_amount || 0,
+            frozenAmount: data.frozenAmount ?? data.frozen_amount ?? '',
             withdrawableAmount,
             currency: data.currency || 'CNY',
             user_money: balance,
-            frozen_amount: data.frozenAmount || data.frozen_amount || 0,
+            frozen_amount: data.frozenAmount ?? data.frozen_amount ?? '',
             withdrawable_amount: withdrawableAmount,
             able_withdraw: withdrawableAmount,
             poundage_percent: data.poundagePercent ?? data.poundage_percent ?? 0,
-            open_racharge: data.open_racharge ?? 1,
-            open_withdraw: data.open_withdraw ?? data.openWithdraw ?? 1,
+            open_racharge: data.open_racharge ?? data.open_recharge ?? data.openRecharge ?? 0,
+            open_recharge: data.open_recharge ?? data.openRecharge ?? data.open_racharge ?? 0,
+            open_withdraw: data.open_withdraw ?? data.openWithdraw ?? 0,
             type: withdrawTypes
         }
     }
@@ -622,16 +625,17 @@ function normalizeLedgerItem(item = {}) {
         item.commission_points,
         item.amount,
         item.money,
-        0
+        ''
     )
-    const balance = firstDefined(item.balanceAfter, item.balance_after, item.pointsAfter, item.points_after, item.pointAfter, item.point_after, item.availablePoints, item.available_points, item.remainingPoints, item.remaining_points, item.balance, item.left_amount, item.left_money, 0)
+    const balance = firstDefined(item.balanceAfter, item.balance_after, item.pointsAfter, item.points_after, item.pointAfter, item.point_after, item.availablePoints, item.available_points, item.remainingPoints, item.remaining_points, item.balance, item.left_amount, item.left_money, '')
+    const amountNumber = Number(amount)
     return {
         ...item,
         id: item.id || item.ledgerId || item.flowId,
         source_type: item.source_type || item.bizType || item.biz_type || item.type,
         type_desc: item.type_desc || item.bizTypeName || item.bizType || item.biz_type || item.title || item.desc,
         change_amount: amount,
-        change_type: item.change_type || (Number(amount) >= 0 ? 1 : 2),
+        change_type: item.change_type || (!Number.isNaN(amountNumber) && amountNumber >= 0 ? 1 : 2),
         left_amount: balance,
         left_money: balance,
         create_time: item.create_time || item.createTime || item.txnTime || item.txn_time || item.time,
@@ -639,6 +643,179 @@ function normalizeLedgerItem(item = {}) {
         order_no: item.order_no || item.orderNo || item.bizNo || item.biz_no || item.bizOrderNo || item.biz_order_no,
         status_text: item.status_text || item.statusText || item.statusName || item.status_name || item.status,
         remark: item.remark || item.memo || item.content || item.description || item.reason || ''
+    }
+}
+
+function normalizeTransferLedgerItem(item = {}) {
+    const ledger = normalizeLedgerItem(item)
+    const target = item.targetUser || item.target_user || item.transferUser || item.transfer_user || item.user || {}
+    const sn = cleanBackendText(firstDefined(
+        item.targetUserNo,
+        item.target_user_no,
+        item.targetSn,
+        item.target_sn,
+        item.transferTo,
+        item.transfer_to,
+        item.userSn,
+        item.user_sn,
+        target.sn,
+        target.userSn,
+        target.user_sn,
+        target.userNo,
+        target.user_no,
+        item.sn
+    ), '')
+    const nickname = cleanBackendText(firstDefined(
+        item.targetNickname,
+        item.target_nickname,
+        item.targetName,
+        item.target_name,
+        item.transferNickname,
+        item.transfer_nickname,
+        target.nickname,
+        target.nickName,
+        target.nick_name,
+        target.name,
+        item.nickname
+    ), '')
+    const avatar = firstDefined(
+        item.targetAvatar,
+        item.target_avatar,
+        item.transferAvatar,
+        item.transfer_avatar,
+        target.avatar,
+        target.headimgurl,
+        target.head_img,
+        item.avatar
+    )
+    const direction = firstDefined(item.direction, item.transferDirection, item.transfer_direction, item.type)
+    const directionText = String(direction || '').toLowerCase()
+    const changeType = directionText === 'in'
+        ? 1
+        : (directionText === 'out' ? 2 : ledger.change_type)
+
+    return {
+        ...ledger,
+        money: firstDefined(item.money, item.amount, ledger.change_amount, ''),
+        sn: sn || '',
+        nickname: nickname || '',
+        avatar: resolveImage(avatar, 'avatar'),
+        change_type: changeType,
+        type: direction || ledger.type,
+        direction: direction || ledger.direction
+    }
+}
+
+function withdrawStatusText(status) {
+    if (isEmptyBackendText(status)) return ''
+    if (status === 1 || status === '1') return '审核中'
+    if (status === 2 || status === '2') return '审核中'
+    if (status === 3 || status === '3') return '提现成功'
+    if (status === 4 || status === '4') return '提现失败'
+    const map = {
+        PENDING: '审核中',
+        APPLY: '审核中',
+        APPLIED: '审核中',
+        PROCESSING: '审核中',
+        AUDITING: '审核中',
+        APPROVED: '审核中',
+        SUCCESS: '提现成功',
+        PAID: '提现成功',
+        COMPLETED: '提现成功',
+        FAIL: '提现失败',
+        FAILED: '提现失败',
+        REJECT: '提现失败',
+        REJECTED: '提现失败',
+        CANCELLED: '已取消',
+        CANCELED: '已取消'
+    }
+    return cleanBackendText(map[String(status || '').toUpperCase()] || status, '')
+}
+
+function withdrawStatusCode(status) {
+    if (status !== undefined && status !== null && status !== '' && !Number.isNaN(Number(status))) return Number(status)
+    const map = {
+        PENDING: 1,
+        APPLY: 1,
+        APPLIED: 1,
+        PROCESSING: 2,
+        AUDITING: 2,
+        APPROVED: 2,
+        SUCCESS: 3,
+        PAID: 3,
+        COMPLETED: 3,
+        FAIL: 4,
+        FAILED: 4,
+        REJECT: 4,
+        REJECTED: 4,
+        CANCELLED: 4,
+        CANCELED: 4
+    }
+    return map[String(status || '').toUpperCase()] || ''
+}
+
+function withdrawTypeText(type) {
+    if (isEmptyBackendText(type)) return ''
+    const map = {
+        BALANCE: '账户余额',
+        WECHAT_BALANCE: '微信零钱',
+        WECHAT_QR: '微信收款码',
+        ALIPAY_QR: '支付宝收款码',
+        BANK_CARD: '银行卡',
+        1: '账户余额',
+        2: '微信零钱',
+        3: '微信收款码',
+        4: '支付宝收款码',
+        5: '银行卡'
+    }
+    return cleanBackendText(map[type] || map[String(type).toUpperCase()] || type, '')
+}
+
+function normalizeWithdrawRecord(item = {}) {
+    const ledger = normalizeLedgerItem(item)
+    const amount = firstDefined(
+        item.money,
+        item.withdrawAmount,
+        item.withdraw_amount,
+        item.amount,
+        item.applyAmount,
+        item.apply_amount,
+        ledger.change_amount,
+        ''
+    )
+    const poundage = firstDefined(item.poundage, item.fee, item.serviceFee, item.service_fee, item.charge, '')
+    const receivedAmount = firstDefined(
+        item.left_money,
+        item.receivedAmount,
+        item.received_amount,
+        item.arrivalAmount,
+        item.arrival_amount,
+        item.actualAmount,
+        item.actual_amount,
+        item.realAmount,
+        item.real_amount,
+        ''
+    )
+    const status = firstDefined(item.status, item.withdrawStatus, item.withdraw_status, item.auditStatus, item.audit_status, '')
+    const statusText = cleanBackendText(firstDefined(item.statusDesc, item.status_desc, item.statusText, item.status_text, item.auditStatusText, item.audit_status_text, withdrawStatusText(status)), '')
+    const type = firstDefined(item.accountType, item.account_type, item.withdrawType, item.withdraw_type, item.type, '')
+    const typeText = cleanBackendText(firstDefined(item.typeDesc, item.type_desc, item.accountTypeText, item.account_type_text, withdrawTypeText(type)), '')
+    return {
+        ...ledger,
+        ...item,
+        id: firstDefined(item.id, item.withdrawId, item.withdraw_id, item.applyId, item.apply_id, item.orderNo, item.order_no, ledger.id),
+        sn: cleanBackendText(firstDefined(item.sn, item.orderNo, item.order_no, item.withdrawNo, item.withdraw_no, item.bizOrderNo, item.biz_order_no, ledger.order_no), ''),
+        desc: cleanBackendText(firstDefined(item.desc, item.description, item.title, item.type_desc, ledger.type_desc), ''),
+        money: amount,
+        change_amount: amount,
+        left_money: receivedAmount,
+        poundage,
+        status: withdrawStatusCode(status),
+        status_text: statusText,
+        statusDesc: statusText,
+        typeDesc: typeText,
+        create_time: firstDefined(item.create_time, item.createTime, item.applyTime, item.apply_time, ledger.create_time, ''),
+        description: cleanBackendText(firstDefined(item.description, item.reason, item.rejectReason, item.reject_reason, item.remark, ledger.remark), '')
     }
 }
 
@@ -660,8 +837,8 @@ function normalizeLotteryRecord(item = {}) {
         ...normalizeMessageItem(item),
         ...item,
         id: item.id || item.recordId || item.prizeId,
-        title: item.title || item.prizeName || item.prize_name || item.name || '中奖记录',
-                    prize_name: item.prize_name || item.prizeName || item.name || '奖品',
+        title: item.title || item.prizeName || item.prize_name || item.name || '',
+        prize_name: item.prize_name || item.prizeName || item.name || '',
         prize_image: resolveImage(item.prize_image || item.prizeImage || item.image || item.cover, 'goods'),
         image: resolveImage(item.image || item.prizeImage || item.prize_image || item.cover, 'goods'),
         create_time: item.create_time || item.createTime || item.time || item.sendTime || '',
@@ -1011,7 +1188,7 @@ function paymentMethodText(method) {
 }
 
 function normalizePaymentRecord(item = {}) {
-    const amount = item.amount ?? item.payAmount ?? item.paidAmount ?? item.change_amount ?? 0
+    const amount = item.amount ?? item.payAmount ?? item.paidAmount ?? item.change_amount ?? ''
     const status = item.payStatus || item.status || item.pay_status
     const method = item.payMethod || item.pay_method || item.channelCode || item.channel_code
     const time = item.successTime || item.paidTime || item.create_time || item.createdAt || item.time || item.change_time || ''
@@ -1181,9 +1358,15 @@ export function applyAgain(data) {
 }
 
 export function getAccountLog(params) {
+    const direction = params?.direction || params?.changeType || params?.change_type || params?.type || ''
+    const bizType = params?.bizType || params?.source || ''
     return request.get('miniapp/wallet/ledger', {
         params: {
-            bizType: params?.bizType || params?.source || params?.type,
+            bizType,
+            type: direction,
+            direction,
+            changeType: direction,
+            change_type: direction,
             status: params?.status,
             payStatus: params?.payStatus || params?.status,
             startTime: params?.startTime,
@@ -1216,10 +1399,10 @@ export function recharge(data) {
             msg: res.msg || '充值成功',
             data: {
                 ...res.data,
-                give_integral: res.data?.give_integral || 0,
-                give_growth: res.data?.give_growth || 0,
-                money: res.data?.rechargeAmount || res.data?.money || 0,
-                balanceAfter: res.data?.balanceAfter || res.data?.balance_after || 0
+                give_integral: pickPresentValue(res.data?.give_integral, res.data?.giveIntegral, res.data?.rewardPoints, res.data?.points),
+                give_growth: pickPresentValue(res.data?.give_growth, res.data?.giveGrowth, res.data?.growthValue),
+                money: pickPresentValue(res.data?.rechargeAmount, res.data?.recharge_amount, res.data?.money, res.data?.amount),
+                balanceAfter: pickPresentValue(res.data?.balanceAfter, res.data?.balance_after, res.data?.user_money, res.data?.balance)
             }
         }
     })
@@ -1347,8 +1530,8 @@ export function getInviteInfo() {
                 code: data.allianceCode || data.code,
                 invite_code: data.allianceCode || data.code,
                 share_url: data.shareUrl,
-                order_count: data.summary?.orderCount || 0,
-                total_commission: data.summary?.totalCommission || 0
+                order_count: pickPresentValue(data.summary?.orderCount, data.summary?.order_count, data.orderCount, data.order_count),
+                total_commission: pickPresentValue(data.summary?.totalCommission, data.summary?.total_commission, data.totalCommission, data.total_commission)
             }
         }
     })
@@ -1440,16 +1623,16 @@ export function changeUserMobile(data) {
 export function getLevelList() {
     return request.get('miniapp/points/sign/rules').then((res) => {
         if (res.code != 1) return res
+        const data = res.data || {}
+        const levelList = data.level_list || data.levelList || data.levels || []
         return {
             ...res,
-            data: [
-                {
-                    id: 1,
-                    name: '\u666e\u901a\u4f1a\u5458',
-                    growth: res.data?.totalPoints || 0,
-                    current: true
-                }
-            ]
+            data: {
+                ...data,
+                user: data.user || data.userInfo || {},
+                growth_rule: data.growth_rule || data.growthRule || data.rule || '',
+                level_list: Array.isArray(levelList) ? levelList : []
+            }
         }
     })
 }
@@ -1480,13 +1663,13 @@ export function getUserFans(data) {
 
 function normalizeFanItem(item = {}) {
     const user = item.user || item.userInfo || item.fan || {}
-    const fansTeam = item.fans_team ?? item.teamCount ?? item.team_count ?? item.subFansCount ?? item.sub_fans_count ?? item.teamSize ?? 0
-    const fansOrder = item.fans_order ?? item.orderCount ?? item.order_count ?? item.orders ?? 0
-    const fansMoney = item.fans_money ?? item.totalProfit ?? item.total_profit ?? item.commissionAmount ?? item.commission_amount ?? item.amount ?? 0
+    const fansTeam = pickPresentValue(item.fans_team, item.teamCount, item.team_count, item.subFansCount, item.sub_fans_count, item.teamSize)
+    const fansOrder = pickPresentValue(item.fans_order, item.orderCount, item.order_count, item.orders)
+    const fansMoney = pickPresentValue(item.fans_money, item.totalProfit, item.total_profit, item.commissionAmount, item.commission_amount, item.amount)
     return {
         ...item,
         id: item.id || item.fanId || item.fan_id || item.userId || item.user_id || user.userId || user.id,
-        nickname: item.nickname || item.nickName || item.fanName || item.fan_name || item.userName || user.nickname || user.nickName || '粉丝用户',
+        nickname: item.nickname || item.nickName || item.fanName || item.fan_name || item.userName || user.nickname || user.nickName || '',
         avatar: resolveImage(item.avatar || item.avatarUrl || item.headimgurl || user.avatar || user.avatarUrl, 'avatar'),
         mobile: item.mobile || item.phone || user.mobile || user.phone || '',
         create_time: item.create_time || item.createTime || item.bindTime || item.bind_time || item.createdAt || '',
@@ -1523,11 +1706,39 @@ export function applyWithdraw(data) {
 }
 
 export function getWithdrawRecords(params) {
-    return getAccountLog(params)
+    return request.get('miniapp/wallet/ledger', {
+        params: {
+            bizType: params?.bizType || params?.source || params?.type || 'WITHDRAW',
+            status: params?.status,
+            payStatus: params?.payStatus || params?.status,
+            pageNo: params?.pageNo || params?.page_no || 1,
+            pageSize: params?.pageSize || params?.page_size || 10
+        }
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeWithdrawRecord) : res)
 }
 
 export function getWithdrawDetail(params) {
-    return getAccountLog(params)
+    const id = params?.id || params?.withdrawId || params?.withdraw_id
+    if (id) {
+        return request.get(`miniapp/wallet/withdraw/${id}`).then((res) => {
+            if (res.code == 1) return { ...res, data: normalizeWithdrawRecord(res.data || {}) }
+            return getWithdrawRecords({ ...params, pageNo: 1, pageSize: 20 }).then((fallbackRes) => {
+                if (fallbackRes.code != 1) return fallbackRes
+                const list = fallbackRes.data?.list || []
+                const matched = list.find((item = {}) => String(item.id) === String(id) || String(item.sn) === String(id)) || list[0] || {}
+                return { ...fallbackRes, data: normalizeWithdrawRecord(matched) }
+            })
+        }).catch(() => getWithdrawRecords({ ...params, pageNo: 1, pageSize: 20 }).then((fallbackRes) => {
+            if (fallbackRes.code != 1) return fallbackRes
+            const list = fallbackRes.data?.list || []
+            const matched = list.find((item = {}) => String(item.id) === String(id) || String(item.sn) === String(id)) || list[0] || {}
+            return { ...fallbackRes, data: normalizeWithdrawRecord(matched) }
+        }))
+    }
+    return getWithdrawRecords({ ...params, pageNo: 1, pageSize: 1 }).then((res) => {
+        if (res.code != 1) return res
+        return { ...res, data: normalizeWithdrawRecord(res.data?.list?.[0] || {}) }
+    })
 }
 
 export function getWithdrawConfig() {
@@ -1612,9 +1823,9 @@ export function getPointsAccount() {
             ...res,
             data: {
                 ...data,
-                available_points: data.availablePoints || data.available_points || 0,
-                frozen_points: data.frozenPoints || data.frozen_points || 0,
-                total_points: data.totalPoints || data.total_points || 0
+                available_points: pickPresentValue(data.availablePoints, data.available_points),
+                frozen_points: pickPresentValue(data.frozenPoints, data.frozen_points),
+                total_points: pickPresentValue(data.totalPoints, data.total_points)
             }
         }
     })
@@ -2522,16 +2733,16 @@ function normalizeWorkbenchData(data = {}, params = {}) {
     const merchant = data.merchantInfo || data.merchant_info || data.shopInfo || data.shop_info || {}
     const source = { ...metrics, ...points, ...invite, ...role, ...merchant, ...data }
     const roleCode = normalizeRoleCode(source.roleCode || source.role_code || source.role || params.roleCode || params.role_code || params.role || 'PROMOTER')
-    const availablePoints = firstDefined(source.availablePoints, source.available_points, source.pointsAvailable, source.points_available, source.points, source.integral, 0)
-    const frozenPoints = firstDefined(source.frozenPoints, source.frozen_points, source.pointsFrozen, source.points_frozen, source.freezePoints, source.freeze_points, 0)
-    const todayProfit = firstDefined(source.todayProfit, source.today_profit, source.todayEstimatedProfit, source.today_estimated_profit, source.todayIncome, source.today_income, source.todayCommission, source.today_commission, 0)
-    const monthProfit = firstDefined(source.monthProfit, source.month_profit, source.monthIncome, source.month_income, source.monthCommission, source.month_commission, 0)
-    const totalProfit = firstDefined(source.totalProfit, source.total_profit, source.totalIncome, source.total_income, source.totalCommission, source.total_commission, source.incomeAmount, source.income_amount, 0)
-    const fansCount = firstDefined(source.fansCount, source.fans_count, source.fanCount, source.fan_count, source.boundFansCount, source.bound_fans_count, source.consumerCount, source.consumer_count, 0)
-    const todayFans = firstDefined(source.todayFans, source.today_fans, source.todayFanCount, source.today_fan_count, source.newFansCount, source.new_fans_count, 0)
-    const merchantCount = firstDefined(source.merchantCount, source.merchant_count, source.boundMerchantCount, source.bound_merchant_count, source.shopCount, source.shop_count, source.storeCount, source.store_count, 0)
-    const orderCount = firstDefined(source.orderCount, source.order_count, source.orders, source.orderNum, source.order_num, 0)
-    const todayOrderCount = firstDefined(source.todayOrderCount, source.today_order_count, source.todayOrders, source.today_orders, 0)
+    const availablePoints = pickPresentValue(source.availablePoints, source.available_points, source.pointsAvailable, source.points_available, source.points, source.integral)
+    const frozenPoints = pickPresentValue(source.frozenPoints, source.frozen_points, source.pointsFrozen, source.points_frozen, source.freezePoints, source.freeze_points)
+    const todayProfit = pickPresentValue(source.todayProfit, source.today_profit, source.todayEstimatedProfit, source.today_estimated_profit, source.todayIncome, source.today_income, source.todayCommission, source.today_commission)
+    const monthProfit = pickPresentValue(source.monthProfit, source.month_profit, source.monthIncome, source.month_income, source.monthCommission, source.month_commission)
+    const totalProfit = pickPresentValue(source.totalProfit, source.total_profit, source.totalIncome, source.total_income, source.totalCommission, source.total_commission, source.incomeAmount, source.income_amount)
+    const fansCount = pickPresentValue(source.fansCount, source.fans_count, source.fanCount, source.fan_count, source.boundFansCount, source.bound_fans_count, source.consumerCount, source.consumer_count)
+    const todayFans = pickPresentValue(source.todayFans, source.today_fans, source.todayFanCount, source.today_fan_count, source.newFansCount, source.new_fans_count)
+    const merchantCount = pickPresentValue(source.merchantCount, source.merchant_count, source.boundMerchantCount, source.bound_merchant_count, source.shopCount, source.shop_count, source.storeCount, source.store_count)
+    const orderCount = pickPresentValue(source.orderCount, source.order_count, source.orders, source.orderNum, source.order_num)
+    const todayOrderCount = pickPresentValue(source.todayOrderCount, source.today_order_count, source.todayOrders, source.today_orders)
     const inviteCode = firstDefined(source.inviteCode, source.invite_code, source.promoterCode, source.promoter_code, source.promotionCode, source.promotion_code, source.distributionCode, source.distribution_code, source.code, '')
     const qrcodeUrl = firstDefined(source.qrcodeUrl, source.qrcode_url, source.qrCode, source.qr_code, source.qrcode, source.qr_code_url, source.image, source.imageUrl, '')
     const posterUrl = firstDefined(source.posterUrl, source.poster_url, source.poster, source.posterImage, source.poster_image, source.sharePoster, source.share_poster, '')
@@ -2667,15 +2878,15 @@ export function getSignList() {
                 ...data,
                 sign_list: Array.isArray(signList) ? signList.map((item, index) => ({
                     days: item.days || item.day || index + 1,
-                    integral: item.integral || item.points || item.rewardPoints || data.dailySignPoints || 0,
+                    integral: pickPresentValue(item.integral, item.points, item.rewardPoints, data.dailySignPoints),
                     status: item.status || item.signed || 0
                 })) : [],
                 user: {
                     ...(data.user || {}),
-                    user_integral: data.availablePoints ?? data.available_points ?? data.points ?? userInfo.user_integral ?? 0,
+                    user_integral: pickPresentValue(data.availablePoints, data.available_points, data.points, userInfo.user_integral),
                     avatar: data.avatar || userInfo.avatar || '',
-                    today_sign: data.todaySigned ?? data.today_sign ?? data.signedToday ?? 0,
-                    days: data.signDays ?? data.continuousDays ?? data.days ?? 0
+                    today_sign: pickPresentValue(data.todaySigned, data.today_sign, data.signedToday),
+                    days: pickPresentValue(data.signDays, data.continuousDays, data.days)
                 },
                 make_inegral: data.make_inegral || data.makeIntegral || []
             }
@@ -2691,10 +2902,10 @@ export function userSign() {
             ...res,
             data: {
                 ...data,
-                days: data.days || data.signDays || data.continuousDays || 1,
-                growth: data.growth || data.growthValue || 0,
-                integral: data.integral || data.points || data.rewardPoints || data.addPoints || 0,
-                totalPoints: data.totalPoints || data.availablePoints || data.available_points
+                days: pickPresentValue(data.days, data.signDays, data.continuousDays),
+                growth: pickPresentValue(data.growth, data.growthValue),
+                integral: pickPresentValue(data.integral, data.points, data.rewardPoints, data.addPoints),
+                totalPoints: pickPresentValue(data.totalPoints, data.availablePoints, data.available_points)
             }
         }
     })
@@ -2728,8 +2939,8 @@ export function getPrize(data) {
                     ...item,
                     id: item.id || item.prizeId || index,
                     prize_id: item.prize_id || item.prizeId || item.id,
-                    name: item.name || item.prizeName || item.prize_name || '奖品',
-                    prize_name: item.prize_name || item.prizeName || item.name || '奖品',
+                    name: item.name || item.prizeName || item.prize_name || '',
+                    prize_name: item.prize_name || item.prizeName || item.name || '',
                     image: resolveImage(item.image || item.prizeImage || item.prize_image, 'goods'),
                     prize_image: resolveImage(item.prize_image || item.prizeImage || item.image, 'goods'),
                     url: resolveImage(item.url || item.image || item.prizeImage || item.prize_image, 'goods')
@@ -2738,8 +2949,8 @@ export function getPrize(data) {
                     ...item,
                     text: item.text || item.content || item.title || item.prizeName || item.prize_name || ''
                 })),
-                surplus: data.surplus ?? data.remainingTimes ?? data.remainTimes ?? 0,
-                user_integral: data.user_integral ?? data.userIntegral ?? data.points ?? 0
+                surplus: data.surplus ?? data.remainingTimes ?? data.remainTimes ?? '',
+                user_integral: data.user_integral ?? data.userIntegral ?? data.points ?? ''
             }
         }
     })
@@ -2841,27 +3052,27 @@ export function getTransferRecent() {
         }
     }).then((res) => {
         if (res.code != 1) return res
-        const normalized = normalizePageResponse(res, normalizeLedgerItem)
+        const normalized = normalizePageResponse(res, normalizeTransferLedgerItem)
         return {
             ...normalized,
-            data: normalized.data.list.map((item) => ({
-                ...item,
-                sn: item.targetUserNo || item.target_user_no || item.sn || item.bizOrderNo || '',
-                nickname: item.targetNickname || item.target_nickname || item.nickname || item.type_desc || '转账用户',
-                avatar: resolveImage(item.targetAvatar || item.target_avatar || item.avatar, 'avatar')
-            }))
+            data: normalized.data.list
         }
     })
 }
 
 export function transferRecord(params) {
+    const direction = params?.direction || params?.transferDirection || params?.transfer_direction || params?.type || 'all'
     return request.get('miniapp/wallet/ledger', {
         params: {
-            bizType: params?.bizType || params?.type || 'TRANSFER',
+            bizType: params?.bizType || 'TRANSFER',
+            type: direction,
+            direction,
+            transferDirection: direction,
+            transfer_direction: direction,
             pageNo: params?.pageNo || params?.page_no || 1,
             pageSize: params?.pageSize || params?.page_size || 20
         }
-    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeLedgerItem) : res)
+    }).then((res) => res.code == 1 ? normalizePageResponse(res, normalizeTransferLedgerItem) : res)
 }
 
 export function send(data) {
@@ -2893,7 +3104,7 @@ export function transferToInfo(params) {
             data: {
                 ...data,
                 sn: data.sn || data.userNo || data.userSn || data.mobile,
-                nickname: data.nickname || data.nickName || data.userName || '转账用户',
+                nickname: data.nickname || data.nickName || data.userName || '',
                 avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar')
             }
         }

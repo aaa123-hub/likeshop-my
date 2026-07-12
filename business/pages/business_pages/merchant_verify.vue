@@ -109,11 +109,11 @@ export default {
 </script>
 
 <style lang="scss">
-.verify-page { min-height: 100vh; padding: 24rpx; background: #f6f8fb; box-sizing: border-box; }
+.verify-page { min-height: 100vh; padding: 24rpx; background: #fff9f0; box-sizing: border-box; }
 .panel, .form { margin-top: 24rpx; padding: 32rpx; border-radius: 20rpx; background: #ffffff; }
 .title { color: #222222; font-size: 34rpx; font-weight: 700; }
 .desc { margin-top: 12rpx; color: #777777; font-size: 26rpx; line-height: 38rpx; }
-.scan-btn, .submit-btn { margin-top: 28rpx; height: 84rpx; border-radius: 42rpx; color: #ffffff; background: #1677ff; font-size: 30rpx; line-height: 84rpx; }
+.scan-btn, .submit-btn { margin-top: 28rpx; height: 84rpx; border-radius: 42rpx; color: #ffffff; background: #a0610d; font-size: 30rpx; line-height: 84rpx; }
 .field { padding: 20rpx 0; border-bottom: 1rpx solid #edf0f5; }
 .field text { display: block; color: #555555; font-size: 24rpx; }
 .field input { margin-top: 12rpx; height: 56rpx; color: #222222; font-size: 28rpx; }

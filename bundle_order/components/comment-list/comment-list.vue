@@ -19,23 +19,25 @@
                         :src="item.image"
                     />
                     <view class="goods-desc">
-                        <view class="goods-name line2 nr">{{ item.goods_name }}</view>
+                        <view class="goods-name line2 nr">{{ goodsName(item) }}</view>
                         <view class="row-between mt20" v-show="!(type == 2)">
                             <price-format
-                                :price="item.goods_price"
+                                v-if="hasGoodsPrice(item)"
+                                :price="goodsPrice(item)"
                                 :showSubscript="true"
                                 :subscriptSize="26"
                                 :firstSize="30"
                                 :secondSize="30"
                             />
-                            <view class="nr">x{{ item.goods_num }}</view>
+                            <view v-else class="nr muted">金额待确认</view>
+                            <view class="nr">{{ goodsNumText(item) }}</view>
                         </view>
-                        <view v-show="!(type == 1)" class="row mt20">
+                        <view v-if="!(type == 1) && hasGoodsScore(item)" class="row mt20">
                             <view class="sm mr10">评分</view>
                             <u-rate
                                 :disabled="true"
-                                v-model="item.goods_comment"
-                                active-color="#FF2C3C"
+                                :value="goodsScore(item)"
+                                active-color="#a0610d"
                                 :size="24"
                             />
                         </view>
@@ -132,6 +134,29 @@ export default {
     },
 
     methods: {
+        goodsName(item = {}) {
+            return item.goods_name || item.goodsName || item.name || '商品待确认'
+        },
+        goodsPrice(item = {}) {
+            return item.goods_price ?? item.goodsPrice ?? item.price ?? ''
+        },
+        hasGoodsPrice(item = {}) {
+            const price = this.goodsPrice(item)
+            return price !== '' && price !== null && price !== undefined && !Number.isNaN(Number(price))
+        },
+        goodsNumText(item = {}) {
+            const value = item.goods_num ?? item.goodsNum ?? item.num ?? item.quantity ?? ''
+            const count = Number(value)
+            return value !== '' && !Number.isNaN(count) ? `x${count}` : '数量待确认'
+        },
+        goodsScore(item = {}) {
+            return item.goods_comment ?? item.goodsComment ?? item.goods_rate ?? item.goodsRate ?? item.score ?? ''
+        },
+        hasGoodsScore(item = {}) {
+            const value = this.goodsScore(item)
+            const score = Number(value)
+            return value !== '' && value !== null && value !== undefined && !Number.isNaN(score) && score > 0
+        },
         getOrderCommentListFun() {
             let { page, type, status, list } = this
 

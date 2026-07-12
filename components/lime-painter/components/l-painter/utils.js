@@ -295,7 +295,7 @@ export function pathToBase64(path) {
 			}
 			xhr.onreadystatechange = function() {
 				if(this.status === 0) {
-					console.error('图片跨域了，得后端处理咯')
+					console.error('图片跨域，暂时无法生成海报')
 				}
 			}
 			xhr.send();

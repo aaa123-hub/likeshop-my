@@ -8,6 +8,10 @@ function firstDefined(...values) {
   return values.find((value) => !isEmptyBackendText(value));
 }
 
+function hasKnownValue(value) {
+  return !isEmptyBackendText(value);
+}
+
 function numberValue(value, fallback = 0) {
   const number = Number(firstDefined(value, fallback));
   return Number.isNaN(number) ? fallback : number;
@@ -303,8 +307,7 @@ function normalizePointsFields(data = {}) {
     pointsInfo.availableIntegral,
     pointsInfo.available_integral,
     pointsInfo.points,
-    pointsInfo.integral,
-    0
+    pointsInfo.integral
   );
   const used = firstDefined(
     data.used,
@@ -380,8 +383,7 @@ function normalizePointsFields(data = {}) {
     pointsInfo.usablePoints,
     pointsInfo.usable_points,
     pointsInfo.usableIntegral,
-    pointsInfo.usable_integral,
-    0
+    pointsInfo.usable_integral
   );
   const deductAmount = firstDefined(
     data.deductAmount,
@@ -451,8 +453,7 @@ function normalizePointsFields(data = {}) {
     pointsInfo.integralDeductAmount,
     pointsInfo.integral_deduct_amount,
     pointsInfo.deductAmount,
-    pointsInfo.deduct_amount,
-    0
+    pointsInfo.deduct_amount
   );
   const maxDeductAmount = firstDefined(
     data.maxDeductAmount,
@@ -500,8 +501,7 @@ function normalizePointsFields(data = {}) {
     pointsInfo.maxPointsDeductAmount,
     pointsInfo.max_points_deduct_amount,
     pointsInfo.maxIntegralDeductAmount,
-    pointsInfo.max_integral_deduct_amount,
-    0
+    pointsInfo.max_integral_deduct_amount
   );
   const give = firstDefined(
     data.order_give_integral,
@@ -522,8 +522,7 @@ function normalizePointsFields(data = {}) {
     pointsInfo.giveIntegral,
     pointsInfo.give_integral,
     pointsInfo.rewardPoints,
-    pointsInfo.reward_points,
-    0
+    pointsInfo.reward_points
   );
   const enabled = firstDefined(
     data.integralSwitch,
@@ -559,8 +558,12 @@ function normalizePointsFields(data = {}) {
     pointsInfo.canUsePoints,
     pointsInfo.can_use_points
   );
-  const normalizedEnabled = enabled ?? (numberValue(deductAmount) > 0 || numberValue(used) > 0 || numberValue(available) > 0);
-  const normalizedInfo = {
+  const inferredEnabled = [available, used, deductAmount].some(value => numberValue(value) > 0) ? true : undefined;
+  const normalizedEnabled = enabled ?? inferredEnabled;
+  const integralLimit = data.integralLimit ?? data.integral_limit ?? baseInfo.integralLimit ?? baseInfo.integral_limit ?? orderInfo.integralLimit ?? orderInfo.integral_limit ?? pointsInfo.integralLimit ?? pointsInfo.integral_limit;
+  const integralConfig = data.integralConfig ?? data.integral_config ?? baseInfo.integralConfig ?? baseInfo.integral_config ?? orderInfo.integralConfig ?? orderInfo.integral_config ?? pointsInfo.integralConfig ?? pointsInfo.integral_config;
+  const integralDesc = firstDefined(data.integralDesc, data.integral_desc, baseInfo.integralDesc, baseInfo.integral_desc, orderInfo.integralDesc, orderInfo.integral_desc, pointsInfo.integralDesc, pointsInfo.integral_desc);
+  const normalizedInfo = compactPayload({
     ...pointsInfo,
     available,
     available_points: available,
@@ -591,20 +594,21 @@ function normalizePointsFields(data = {}) {
     points_enabled: normalizedEnabled,
     integralSwitch: normalizedEnabled,
     integral_switch: normalizedEnabled,
-    integral_limit: data.integralLimit ?? data.integral_limit ?? baseInfo.integralLimit ?? baseInfo.integral_limit ?? orderInfo.integralLimit ?? orderInfo.integral_limit ?? pointsInfo.integralLimit ?? pointsInfo.integral_limit ?? 0,
-    integralLimit: data.integralLimit ?? data.integral_limit ?? baseInfo.integralLimit ?? baseInfo.integral_limit ?? orderInfo.integralLimit ?? orderInfo.integral_limit ?? pointsInfo.integralLimit ?? pointsInfo.integral_limit ?? 0,
-    integral_config: data.integralConfig ?? data.integral_config ?? baseInfo.integralConfig ?? baseInfo.integral_config ?? orderInfo.integralConfig ?? orderInfo.integral_config ?? pointsInfo.integralConfig ?? pointsInfo.integral_config ?? 1,
-    integralConfig: data.integralConfig ?? data.integral_config ?? baseInfo.integralConfig ?? baseInfo.integral_config ?? orderInfo.integralConfig ?? orderInfo.integral_config ?? pointsInfo.integralConfig ?? pointsInfo.integral_config ?? 1,
-    integral_desc: data.integralDesc || data.integral_desc || baseInfo.integralDesc || baseInfo.integral_desc || orderInfo.integralDesc || orderInfo.integral_desc || pointsInfo.integralDesc || pointsInfo.integral_desc || "可使用积分抵扣订单金额",
-    integralDesc: data.integralDesc || data.integral_desc || baseInfo.integralDesc || baseInfo.integral_desc || orderInfo.integralDesc || orderInfo.integral_desc || pointsInfo.integralDesc || pointsInfo.integral_desc || "可使用积分抵扣订单金额"
-  };
-  return {
-    pointsInfo: normalizedInfo,
-    points_info: normalizedInfo,
-    pointsConfig: normalizedInfo,
-    points_config: normalizedInfo,
-    integralInfo: normalizedInfo,
-    integral_info: normalizedInfo,
+    integral_limit: integralLimit,
+    integralLimit,
+    integral_config: integralConfig,
+    integralConfig,
+    integral_desc: integralDesc,
+    integralDesc
+  });
+  const hasNormalizedInfo = Object.keys(normalizedInfo).length > 0;
+  return compactPayload({
+    pointsInfo: hasNormalizedInfo ? normalizedInfo : undefined,
+    points_info: hasNormalizedInfo ? normalizedInfo : undefined,
+    pointsConfig: hasNormalizedInfo ? normalizedInfo : undefined,
+    points_config: hasNormalizedInfo ? normalizedInfo : undefined,
+    integralInfo: hasNormalizedInfo ? normalizedInfo : undefined,
+    integral_info: hasNormalizedInfo ? normalizedInfo : undefined,
     user_integral: available,
     userIntegral: available,
     available_points: available,
@@ -633,7 +637,7 @@ function normalizePointsFields(data = {}) {
     integralConfig: normalizedInfo.integralConfig,
     integral_desc: normalizedInfo.integral_desc,
     integralDesc: normalizedInfo.integralDesc
-  };
+  });
 }
 
 function normalizeCouponItem(item = {}) {
@@ -1179,11 +1183,11 @@ function normalizeOrderTraces(data = {}) {
     },
     order: {
       image: goods.image || goods.goods_image || goods.goodsImage || detail.shop_logo || "",
-      count: detail.goods_num || (detail.order_goods || []).reduce((sum, item) => sum + Number(item.goods_num || 0), 0) || 1,
+      count: detail.goods_num || (detail.order_goods || []).reduce((sum, item) => sum + Number(item.goods_num || 0), 0) || "",
       tips: detail.order_status_desc || formatOrderStatus(detail.order_status),
       order_sn: detail.order_sn || detail.id || "",
-      shipping_name: expressName || "暂无物流公司",
-      invoice_no: expressNo || "暂无物流单号",
+      shipping_name: expressName,
+      invoice_no: expressNo,
       delivery_status: detail.delivery_status || "",
       shipped_time: shippedTime || "",
       pay_time: payTime || "",
@@ -1383,8 +1387,8 @@ function normalizeSubmitOrder(data = {}) {
     pay_order_no: data.pay_order_no || data.payOrderNo || '',
     orderStatus: firstDefined(data.orderStatus, data.order_status, 0),
     payStatus: firstDefined(data.payStatus, data.pay_status, ''),
-    order_amount: firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount, 0),
-    payAmount: firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount, 0),
+    order_amount: firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount),
+    payAmount: firstDefined(amountInfo.payAmount, data.payAmount, data.pay_amount, data.order_amount),
     expireTime: data.expireTime || data.cancel_time || 0,
   }
 }
@@ -1483,12 +1487,8 @@ export function delOrder(id) {
 export function getDelivery() {
   return Promise.resolve({
     code: 1,
-    msg: "使用默认配送方式",
-    data: {
-      is_express: 1,
-      is_selffetch: 1,
-      deliveryType: "MIXED"
-    }
+    msg: "",
+    data: {}
   });
 }
 
@@ -1584,18 +1584,38 @@ export function getVerifyLists(data) {
   });
 }
 // 核销详情
-export function verification(data) {
-  return request.post("miniapp/orders/" + data.id + "/verify", {
+export function verification(data = {}) {
+  const id = data.id || data.order_id || data.orderId;
+  const pickupCode = data.pickup_code || data.pickupCode || data.verify_code || data.verifyCode || data.code || '';
+  if (!id && pickupCode) {
+    return request.get("miniapp/orders/verify", {
+      params: {
+        ...data,
+        pickup_code: pickupCode,
+        pickupCode
+      }
+    });
+  }
+  if (!id) {
+    return Promise.resolve({ code: 0, msg: "核销订单待确认", show: false });
+  }
+  return request.post("miniapp/orders/" + id + "/verify", {
     ...data,
-    idempotentKey: data.idempotentKey || `order-verify-${data.id}-${Date.now()}`
+    id,
+    idempotentKey: data.idempotentKey || `order-verify-${id}-${Date.now()}`
   });
 }
 
 // 确认核销
-export function verificationConfirm(data) {
-  return request.post("miniapp/orders/" + data.id + "/verify/confirm", {
+export function verificationConfirm(data = {}) {
+  const id = data.id || data.order_id || data.orderId;
+  if (!id) {
+    return Promise.resolve({ code: 0, msg: "核销订单待确认", show: false });
+  }
+  return request.post("miniapp/orders/" + id + "/verify/confirm", {
     ...data,
-    idempotentKey: data.idempotentKey || `order-verify-confirm-${data.id}-${Date.now()}`
+    id,
+    idempotentKey: data.idempotentKey || `order-verify-confirm-${id}-${Date.now()}`
   });
 }
 //确认收货组件

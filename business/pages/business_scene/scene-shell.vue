@@ -6,6 +6,7 @@
             scene === 'feedback' ? 'business-scene--feedback' : '',
             scene === 'about-us' ? 'business-scene--about-us' : '',
             scene === 'activity-center' ? 'business-scene--activity-center' : '',
+            scene === 'activity-exchange' ? 'business-scene--activity-exchange' : '',
             scene === 'intro-card' ? 'business-scene--intro-card' : '',
             scene === 'recent-visits' ? 'business-scene--recent-visits' : ''
         ]"
@@ -91,10 +92,12 @@
                 <view class="feedback-page">
                     <view class="feedback-hero">
                         <view class="feedback-hero__top">
-                            <view class="feedback-back" @tap="goBack">
-                                <u-icon name="arrow-left" size="36" color="#222222"></u-icon>
+                            <view class="feedback-back" @tap="goBack"></view>
+                            <view class="feedback-capsule">
+                                <view class="feedback-capsule__dot"></view>
+                                <view class="feedback-capsule__divider"></view>
+                                <view class="feedback-capsule__circle"></view>
                             </view>
-                            <view class="feedback-menu-space"></view>
                         </view>
 
                         <view class="feedback-hero__body">
@@ -214,7 +217,11 @@
                                 <view class="store-detail-hero__back-icon"></view>
                             </view>
                             <view class="store-detail-hero__title">店铺详情</view>
-                            <view class="store-detail-hero__share" @tap="showStoreSharePopup = true">分享</view>
+                            <view class="store-detail-hero__share" @tap="showStoreSharePopup = true">
+                                <view class="store-detail-hero__share-dot"></view>
+                                <view class="store-detail-hero__share-divider"></view>
+                                <view class="store-detail-hero__share-circle"></view>
+                            </view>
                         </view>
                     </view>
 
@@ -226,18 +233,16 @@
                             <view class="store-detail-summary-card__title line1">{{ storeDetailView.shopName }}</view>
                             <view class="store-detail-summary-card__rating">
                                 <view class="store-detail-summary-card__stars">
-                                    <image
+                                    <text
                                         v-for="starIndex in 5"
                                         :key="starIndex"
                                         class="store-detail-summary-card__star"
-                                        :src="storeDetailStarIcon"
-                                        mode="aspectFit"
-                                    ></image>
+                                    >★</text>
                                 </view>
                                 <text class="store-detail-summary-card__score">{{ storeDetailView.shopScore }}</text>
                             </view>
                             <view class="store-detail-summary-card__time-row">
-                                <image class="store-detail-summary-card__time-icon" :src="storeDetailTimeIcon" mode="aspectFit"></image>
+                                <view class="store-detail-summary-card__time-icon"></view>
                                 <text class="store-detail-summary-card__time line1">{{ storeDetailBusinessHoursText }}</text>
                             </view>
                         </view>
@@ -248,7 +253,7 @@
                         <text class="store-detail-address-card__text line1">{{ storeDetailView.detailAddress }}</text>
                     </view>
 
-                    <view class="store-detail-tabs">
+                    <view :class="['store-detail-tabs', storeDetailActiveTab === 'group' ? 'store-detail-tabs--group' : '']">
                         <view
                             v-for="tab in storeDetailTabs"
                             :key="tab.key"
@@ -263,71 +268,103 @@
                     <view v-if="storeDetailActiveTab === 'detail'" class="store-detail-content-card">
                         <image class="store-detail-content-card__image" :src="storeDetailContentImage" mode="aspectFill"></image>
                         <view class="store-detail-content-card__fade"></view>
-                        <view class="store-detail-pay-btn" @tap="openStoreVerify">线下核销</view>
+                        <view class="store-detail-pay-btn" @tap="openStoreVerify">到店付款</view>
                     </view>
 
-                    <view v-else-if="storeDetailActiveTab === 'group'" class="store-detail-group-list">
-                        <view
-                            v-for="(item, index) in storeDetailGroupProducts"
-                            :key="item.key"
-                            class="store-detail-group-card"
-                            @tap="goStoreDetailGroupItem(item)"
-                        >
-                            <view class="store-detail-group-card__image-shell">
-                                <view v-if="isEmptyImage(item.image)" class="store-detail-group-card__image image-placeholder">无</view>
-                                <image v-else class="store-detail-group-card__image" :src="item.image" mode="aspectFill"></image>
-                            </view>
-                            <view class="store-detail-group-card__body">
-                                <view class="store-detail-group-card__title line1">{{ item.name }}</view>
-                                <view v-if="item.tagText || item.meta" class="store-detail-group-card__meta line1">
-                                    <text v-if="item.tagText" class="store-detail-group-card__tag">{{ item.tagText }}</text>
-                                    <text v-if="item.meta">{{ item.meta }}</text>
-                                </view>
-                                <view v-if="item.infoText" class="store-detail-group-card__info line1">{{ item.infoText }}</view>
-                                <view v-if="item.scoreText" class="store-detail-group-card__rating">
-                                    <view class="store-detail-group-card__stars">
-                                        <image
-                                            v-for="starIndex in 5"
-                                            :key="starIndex"
-                                            class="store-detail-group-card__star"
-                                            :src="storeDetailStarIcon"
-                                            mode="aspectFit"
-                                        ></image>
-                                    </view>
-                                    <text class="store-detail-group-card__score">{{ item.scoreText }}</text>
-                                </view>
-                                <view class="store-detail-group-card__price">
-                                    <text class="store-detail-group-card__price-value">{{ item.priceText }}</text>
-                                    <text v-if="item.marketPriceText" class="store-detail-group-card__market-price">{{ item.marketPriceText }}</text>
-                                </view>
-                            </view>
-                            <view class="store-detail-group-card__action-wrap" @tap.stop.prevent="goStoreDetailGroupItem(item)">
-                                <view class="store-detail-group-card__action">立即抢</view>
-                            </view>
-                        </view>
-                        <view v-if="!storeDetailGroupProducts.length" class="store-detail-media-empty">
-                            <image
-                                class="store-detail-media-empty__image"
-                                :src="storeDetailAlbumEmptyImage"
-                                mode="aspectFit"
-                            ></image>
-                            <view class="store-detail-media-empty__title">暂无团购</view>
-                            <view class="store-detail-media-empty__desc">商家暂未上架团购商品</view>
-                        </view>
-                    </view>
-
-                    <view v-else-if="storeDetailActiveTab === 'album'" class="store-detail-media-wrap">
-                        <view v-if="storeDetailAlbumImages.length" class="store-detail-album-grid">
+                    <view v-else-if="storeDetailActiveTab === 'group'" class="store-detail-group-panel">
+                        <view v-if="storeDetailGroupCategories.length" class="store-detail-category-card">
                             <view
-                                v-for="(item, index) in storeDetailAlbumImages"
-                                :key="index"
-                                class="store-detail-album-card"
-                                @tap="previewStoreDetailAlbum(index)"
+                                v-for="(item, index) in storeDetailGroupCategories"
+                                :key="item.key"
+                                :class="['store-detail-category-item', index === 0 ? 'store-detail-category-item--active' : '']"
                             >
-                                <image class="store-detail-album-card__image" :src="item.url" mode="aspectFill"></image>
+                                <view class="store-detail-category-item__thumb">
+                                    <image v-if="!isEmptyImage(item.image)" class="store-detail-category-item__image" :src="item.image" mode="aspectFill"></image>
+                                </view>
+                                <view class="store-detail-category-item__name line1">{{ item.name }}</view>
                             </view>
                         </view>
-                        <view v-else class="store-detail-media-empty">
+                        <view class="store-detail-group-list">
+                            <view
+                                v-for="(item, index) in storeDetailGroupProducts"
+                                :key="item.key"
+                                class="store-detail-group-card"
+                                @tap="goStoreDetailGroupItem(item)"
+                            >
+                                <view class="store-detail-group-card__image-shell">
+                                    <view v-if="isEmptyImage(item.image)" class="store-detail-group-card__image image-placeholder">无</view>
+                                    <image v-else class="store-detail-group-card__image" :src="item.image" mode="aspectFill"></image>
+                                </view>
+                                <view class="store-detail-group-card__body">
+                                    <view class="store-detail-group-card__title line1">{{ item.name }}</view>
+                                    <view v-if="item.tagText || item.meta" class="store-detail-group-card__meta line1">
+                                        <text v-if="item.tagText" class="store-detail-group-card__tag">{{ item.tagText }}</text>
+                                        <text v-if="item.meta">{{ item.meta }}</text>
+                                    </view>
+                                    <view v-if="item.infoText" class="store-detail-group-card__info line1">{{ item.infoText }}</view>
+                                    <view v-if="item.scoreText" class="store-detail-group-card__rating">
+                                        <view class="store-detail-group-card__stars">
+                                            <text
+                                                v-for="starIndex in 5"
+                                                :key="starIndex"
+                                                class="store-detail-group-card__star"
+                                            >★</text>
+                                        </view>
+                                        <text class="store-detail-group-card__score">{{ item.scoreText }}</text>
+                                    </view>
+                                    <view class="store-detail-group-card__price">
+                                        <text class="store-detail-group-card__price-value">{{ item.priceText }}</text>
+                                        <text v-if="item.marketPriceText" class="store-detail-group-card__market-price">{{ item.marketPriceText }}</text>
+                                    </view>
+                                </view>
+                                <view class="store-detail-quantity" @tap.stop.prevent>
+                                    <view class="store-detail-quantity__btn store-detail-quantity__btn--minus"></view>
+                                    <view class="store-detail-quantity__value">1</view>
+                                    <view class="store-detail-quantity__btn store-detail-quantity__btn--plus"></view>
+                                </view>
+                            </view>
+                            <view v-if="!storeDetailGroupProducts.length" class="store-detail-media-empty">
+                                <image
+                                    class="store-detail-media-empty__image"
+                                    :src="storeDetailAlbumEmptyImage"
+                                    mode="aspectFit"
+                                ></image>
+                                <view class="store-detail-media-empty__title">暂无团购</view>
+                                <view class="store-detail-media-empty__desc">商家暂未上架团购商品</view>
+                            </view>
+                        </view>
+                        <view class="store-detail-order-bar">
+                            <view class="store-detail-order-bar__label">合计金额：</view>
+                            <view class="store-detail-order-bar__price">{{ storeDetailGroupTotalText }}</view>
+                            <view class="store-detail-order-bar__button">确认下单</view>
+                        </view>
+                    </view>
+
+                    <view v-else-if="storeDetailActiveTab === 'album'" class="store-detail-album-panel">
+                        <view class="store-detail-album-section">
+                            <view class="store-detail-album-section__title">商家</view>
+                            <view v-if="storeDetailDisplayAlbumImages.length" class="store-detail-album-grid">
+                                <view
+                                    v-for="(item, index) in storeDetailDisplayAlbumImages"
+                                    :key="index"
+                                    class="store-detail-album-card"
+                                    @tap="previewStoreDetailAlbum(index)"
+                                >
+                                    <image class="store-detail-album-card__image" :src="item.url" mode="aspectFill"></image>
+                                </view>
+                            </view>
+                        </view>
+                        <view class="store-detail-album-section">
+                            <view class="store-detail-album-section__title">营业执照</view>
+                            <view
+                                v-if="storeDetailLicenseImage"
+                                class="store-detail-license-card"
+                                @tap="previewStoreDetailLicense"
+                            >
+                                <image class="store-detail-license-card__image" :src="storeDetailLicenseImage" mode="aspectFill"></image>
+                            </view>
+                        </view>
+                        <view v-if="!storeDetailDisplayAlbumImages.length && !storeDetailLicenseImage" class="store-detail-media-empty">
                             <image
                                 class="store-detail-media-empty__image"
                                 :src="storeDetailAlbumEmptyImage"
@@ -350,6 +387,7 @@
                                 <view class="store-detail-video-card__mask">
                                     <view class="store-detail-video-card__play"></view>
                                 </view>
+                                <view class="store-detail-video-card__duration">{{ item.durationText }}</view>
                                 <view class="store-detail-video-card__title line1">{{ item.title }}</view>
                             </view>
                         </view>
@@ -405,11 +443,11 @@
                         <view class="qr-shop-card__body">
                             <view class="qr-shop-card__name">{{ qrShopInfo.name }}</view>
                             <view class="qr-shop-card__rating">
-                                <image v-for="item in 3" :key="item" class="qr-shop-card__star" :src="streetStarIcon" mode="aspectFit"></image>
+                                <text v-for="item in 3" :key="item" class="qr-shop-card__star">★</text>
                                 <text class="qr-shop-card__score">{{ qrShopInfo.score }}</text>
                             </view>
                             <view class="qr-shop-card__time">
-                                <image class="qr-shop-card__time-icon" :src="streetTimeIcon" mode="aspectFit"></image>
+                                <view class="qr-shop-card__time-icon"></view>
                                 <text>{{ qrShopInfo.timeText }}</text>
                             </view>
                         </view>
@@ -510,7 +548,7 @@
                                 @confirm="onStreetSearch"
                             />
                             <view class="street-search__icon" @tap="onStreetSearch">
-                                <image class="street-search__icon-image" :src="streetSearchIcon" mode="aspectFit"></image>
+                                <view class="street-search__icon-lens"></view>
                             </view>
                         </view>
                     </view>
@@ -550,18 +588,16 @@
                                     <view class="street-merchant-card__title line1">{{ item.name }}</view>
                                     <view class="street-merchant-card__rating" v-if="item.score">
                                         <view class="street-merchant-card__stars">
-                                            <image
+                                            <text
                                                 v-for="starIndex in item.starCount"
                                                 :key="starIndex"
                                                 class="street-merchant-card__star"
-                                                :src="streetStarIcon"
-                                                mode="aspectFit"
-                                            ></image>
+                                            >★</text>
                                         </view>
                                         <text class="street-merchant-card__score">{{ item.score }}</text>
                                     </view>
                                     <view class="street-merchant-card__time-row">
-                                        <image class="street-merchant-card__time-icon" :src="streetTimeIcon" mode="aspectFit"></image>
+                                        <view class="street-merchant-card__time-icon"></view>
                                         <text class="street-merchant-card__time line1">{{ item.meta }}</text>
                                     </view>
                                 </view>
@@ -588,7 +624,7 @@
                             @confirm="onListSearch"
                         />
                         <view class="search-shell__icon" @tap="onListSearch">
-                            <image class="search-shell__icon-image" :src="streetSearchIcon" mode="aspectFit"></image>
+                            <view class="search-shell__icon-lens"></view>
                         </view>
                     </view>
                     <view class="merchant-list">
@@ -611,7 +647,7 @@
                                         <text>{{ item.scoreText }}分</text>
                                     </view>
                                 </view>
-                                <view class="merchant-list__time line1">{{ item.meta || item.shopName || '商街精选' }}</view>
+                                <view v-if="item.meta || item.shopName" class="merchant-list__time line1">{{ item.meta || item.shopName }}</view>
                                 <view class="merchant-list__tags">
                                     <text v-if="item.salesText" class="merchant-list__tag">{{ item.salesText }}</text>
                                     <text v-if="item.stockText" class="merchant-list__tag">{{ item.stockText }}</text>
@@ -633,7 +669,12 @@
                     <image class="intro-card-page-bg" src="https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png" mode="scaleToFill"></image>
                     <view class="intro-card-topbar">
                         <view class="intro-card-back" @tap="goBack"></view>
-                        <view class="intro-card-title">推广码</view>
+                        <view class="intro-card-title">推广二维码</view>
+                        <view class="intro-card-capsule">
+                            <view class="intro-card-capsule__dot"></view>
+                            <view class="intro-card-capsule__divider"></view>
+                            <view class="intro-card-capsule__circle"></view>
+                        </view>
                     </view>
 
                     <view class="intro-card-panel">
@@ -641,22 +682,21 @@
                         <view class="intro-card-user">
                             <image class="intro-card-avatar" :src="introCardInfo.avatar" mode="aspectFill"></image>
                             <view class="intro-card-info">
-                                <view class="intro-card-name">{{ introCardInfo.nickname }}</view>
+                                <view class="intro-card-name">{{ introCardNicknameText }}</view>
                                 <view class="intro-card-line">
-                                    <text class="intro-card-line__text">ID:{{ introCardInfo.userNo }}</text>
+                                    <text class="intro-card-line__text">ID:{{ introCardUserNoText }}</text>
                                     <image class="intro-card-copy" :src="introCardCopyIcon" mode="aspectFit" @tap="copyIntroCardText(introCardInfo.userNo)"></image>
                                 </view>
                                 <view class="intro-card-line intro-card-line--account">
-                                    <text class="intro-card-line__text">推广码:{{ introCardInfo.code }}</text>
+                                    <text class="intro-card-line__text">账户:{{ introCardCodeText }}</text>
                                     <image class="intro-card-copy" :src="introCardCopyIconAlt" mode="aspectFit" @tap="copyIntroCardText(introCardInfo.code)"></image>
                                 </view>
                             </view>
                         </view>
                         <view class="intro-card-qr intro-card-qr--code">
-                            <tki-qrcode cid="intro-card-qrcode" :val="introCardQrValue" :size="360" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
+                            <tki-qrcode v-if="introCardQrValue" cid="intro-card-qrcode" :val="introCardQrValue" :size="360" :onval="true" :load-make="true" :show-loading="false"></tki-qrcode>
+                            <view v-else class="intro-card-qr-empty">待生成</view>
                         </view>
-                        <view class="intro-card-tip">扫码绑定推广关系</view>
-                        <view class="intro-card-code-text">{{ introCardInfo.code }}</view>
                     </view>
                 </view>
             </template>
@@ -741,7 +781,7 @@
                                 <view class="payment-record-item__time">{{ item.create_time || item.change_time || '' }}</view>
                             </view>
                             <view :class="['payment-record-item__amount', item.change_type == 1 ? 'is-plus' : '']">
-                                {{ item.change_type == 1 ? '+' : '-' }}{{ formatPaymentRecordAmount(item.change_amount) }}
+                                {{ formatPaymentRecordAmountWithSign(item) }}
                             </view>
                         </view>
                     </view>
@@ -830,11 +870,11 @@
                         <view class="wallet-mode wallet-mode--ghost">
                             <view class="wallet-card wallet-card--solid">
                                 <view class="wallet-card__label">人民币账户（元）</view>
-                                <view class="wallet-card__amount">¥123.34</view>
+                                <view class="wallet-card__amount">{{ walletAccountAmountText || '--' }}</view>
                                 <view class="wallet-card__line"></view>
                                 <view class="wallet-card__row">
                                     <text>可提现金额</text>
-                                    <text>¥123.34</text>
+                                    <text>{{ walletWithdrawAmountText || '--' }}</text>
                                 </view>
                             </view>
                         </view>
@@ -922,11 +962,11 @@
                 <view class="wallet-mode">
                     <view class="wallet-card wallet-card--solid">
                         <view class="wallet-card__label">人民币账户（元）</view>
-                        <view class="wallet-card__amount">¥123.34</view>
+                        <view class="wallet-card__amount">{{ walletAccountAmountText || '--' }}</view>
                         <view class="wallet-card__line"></view>
                         <view class="wallet-card__row">
                             <text>可提现金额</text>
-                            <text>¥123.34</text>
+                            <text>{{ walletWithdrawAmountText || '--' }}</text>
                         </view>
                         <view class="wallet-card__withdraw" @tap="goPage('/bundle_user/pages/user_withdraw/user_withdraw?type=1&source=fiat_balance')">微信提现到余额</view>
                     </view>
@@ -980,14 +1020,58 @@
                 </view>
             </template>
 
+            <template v-else-if="scene === 'activity-exchange'">
+                <view class="activity-exchange-page">
+                    <view class="activity-exchange-hero">
+                        <view class="activity-exchange-status"></view>
+                        <view class="activity-exchange-nav">
+                            <view class="activity-exchange-back" @tap="goBack"></view>
+                            <view class="activity-exchange-title">积分兑换能量</view>
+                            <view class="activity-exchange-capsule">
+                                <view class="activity-exchange-capsule__dot"></view>
+                                <view class="activity-exchange-capsule__divider"></view>
+                                <view class="activity-exchange-capsule__circle"></view>
+                            </view>
+                        </view>
+
+                        <view class="activity-exchange-summary">
+                            <view class="activity-exchange-label">积分总数</view>
+                            <view class="activity-exchange-points">{{ activityExchangePoints }}</view>
+                            <view class="activity-exchange-desc">积分使用说明：1积分=0.08元/0.125能量</view>
+                        </view>
+
+                        <view class="activity-exchange-form">
+                            <view class="activity-exchange-input"></view>
+                            <button class="activity-exchange-button" @tap="openActivityExchange">兑换能量</button>
+                        </view>
+                    </view>
+
+                    <view class="activity-exchange-body">
+                        <view class="activity-exchange-rule">
+                            <view class="activity-exchange-rule__title">积分规则</view>
+                            <view class="activity-exchange-rule__content">
+                                <text>1 线上订单在确认收货后立即到账，未及时确认收货的订单，</text>
+                                <text>将在15天后自动确认收货，并且积分自动到账。</text>
+                                <text>2 线下成功消费的订单，积分立即自动到账</text>
+                            </view>
+                        </view>
+                        <button class="activity-exchange-detail" @tap="goPage('/bundle_misc/pages/sign_detail/sign_detail')">积分明细</button>
+                    </view>
+                </view>
+            </template>
+
             <template v-else-if="scene === 'about-us'">
                 <view class="about-us-page">
                     <view class="about-us-hero">
                         <view class="about-us-topbar">
                             <view class="about-us-back" @tap="goBack"></view>
+                            <view class="about-us-capsule">
+                                <view class="about-us-capsule__dot"></view>
+                                <view class="about-us-capsule__divider"></view>
+                                <view class="about-us-capsule__circle"></view>
+                            </view>
                         </view>
-                        <view class="about-us-logo">{{ aboutAppLogoText }}</view>
-                        <view class="about-us-version">V{{ aboutAppVersion }}</view>
+                        <image class="about-us-logo" :src="aboutLogo" mode="aspectFit"></image>
                     </view>
 
                     <view class="about-us-card">
@@ -1007,12 +1091,12 @@
 
             <template
                 v-else-if="
-                    scene === 'eco-app' ||
-                    scene === 'activity-exchange'
+                    scene === 'eco-app'
                 "
             >
                 <view class="card">
                     <view class="section-title">{{ sceneConfig.subtitle }}</view>
+                    <view v-if="!sceneConfig.items.length" class="empty-text">暂无可展示内容</view>
                     <view class="info-block" v-for="(item, index) in sceneConfig.items" :key="index">
                         <view class="info-block__title">{{ item.title }}</view>
                         <view class="info-block__desc">{{ item.desc }}</view>
@@ -1166,12 +1250,13 @@ export default {
 			feedbackUploadIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/e5d8d8724ebd49afbb6a747ff66f8d09/feedback-upload-icon.png',
 			paymentRecordFilterIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/bc6f6d87035c4c24923a1b29379ab7c7/b2636d4f8db726053805211c9457c120.png',
 			aboutArrowIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/6dcc63c37e6943bdbcf59e36cbe1ec28/d35bb9407ef16b8d704effe295ad7e27.png',
+			aboutLogo: 'https://shengyuan.store/api/miniapp/files/miniapp/9a00ed2e7a714b19ab4e1cfc4b825665/____________LOGO_2.png',
 			introCardCopyIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/62f0790376274645b017cc64e7cae6b8/intro-card-copy-icon.png',
 			introCardCopyIconAlt: 'https://shengyuan.store/api/miniapp/files/miniapp/0d49e91085034160aa0280bd63f498cb/intro-card-copy-alt-icon.png',
 			introCardInfo: {
-                nickname: '用户',
-                userNo: '--',
-                code: '--',
+                nickname: '',
+                userNo: '',
+                code: '',
                 avatar: resolveImage('', 'avatar'),
                 qrImage: ''
             },
@@ -1196,13 +1281,13 @@ export default {
             qrGoodsMarkIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
             feedbackTags: ['下载/加载问题', '体验功能', '平台问题', '新功能建议', '其他', '违规举报'],
             aboutMenuItems: [
-                { title: '服务协议', url: '/bundle_user/pages/server_explan/server_explan?type=0' },
+                { title: 'Cookie政策', url: '/bundle_user/pages/server_explan/server_explan?type=3' },
+                { title: '反洗钱与反恐融资政策', url: '/bundle_user/pages/server_explan/server_explan?type=4' },
+                { title: '服务条款', url: '/bundle_user/pages/server_explan/server_explan?type=0' },
+                { title: '关于我们', action: 'version' },
                 { title: '隐私政策', url: '/bundle_user/pages/server_explan/server_explan?type=1' },
-                { title: '平台服务协议', url: '/bundle_user/pages/server_explan/server_explan?type=3' },
-                { title: '入驻经营规范', url: '/bundle_user/pages/server_explan/server_explan?type=4' },
-                { title: '交易纠纷处理机制', url: '/bundle_user/pages/server_explan/server_explan?type=2' },
-                { title: '联系我们', action: 'contact' },
-                { title: '版本信息', action: 'version' }
+                { title: '消费者常见问题', url: '/bundle_user/pages/server_explan/server_explan?type=2' },
+                { title: '商家常见问题', action: 'contact' }
             ],
             activityCenterItems: [],
             recentVisitItems: [],
@@ -1212,8 +1297,6 @@ export default {
             ],
             merchantList: [],
             storeDetailAddressIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/78a66305c5c34a91bc0c6b60f8198b6f/store-address-icon.png'),
-            storeDetailStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
-            storeDetailTimeIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'),
             storeDetailAlbumEmptyImage: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp/78d88fcd23604d4ca9c5e3b1df0108d4/store-media-empty.png'),
             storeDetailLoadedShopId: '',
             storeDetailApiLoaded: false,
@@ -1243,9 +1326,6 @@ export default {
                 comments: [],
                 qrcodeInfo: {}
             },
-            streetSearchIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_menu_capsule.png'),
-            streetStarIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'),
-            streetTimeIcon: getDesignAsset('https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'),
             streetSearchText: '输入关键词',
             streetKeyword: '',
             listKeyword: '',
@@ -1257,9 +1337,9 @@ export default {
             streetCategories: [],
             walletRecords: [],
             paymentRecordSummary: {
-                totalAmount: '¥0.00',
-                totalCount: '0',
-                fiatAmount: '¥0.00'
+                totalAmount: '',
+                totalCount: '',
+                fiatAmount: ''
             },
             paymentRecordList: [],
             showPaymentFilter: false,
@@ -1268,27 +1348,6 @@ export default {
                 { label: '未支付', active: false },
                 { label: '已支付', active: true }
             ],
-            paymentDateColumns: {
-                years: [
-                    { label: '2024年', active: false },
-                    { label: '2025年', active: false },
-                    { label: '2026年', active: true }
-                ],
-                months: [
-                    { label: '2月', active: false },
-                    { label: '3月', active: false },
-                    { label: '4月', active: true },
-                    { label: '5月', active: false },
-                    { label: '6月', active: false }
-                ],
-                days: [
-                    { label: '20日', active: false },
-                    { label: '21日', active: false },
-                    { label: '22日', active: true },
-                    { label: '23日', active: false },
-                    { label: '24日', active: false }
-                ]
-            },
             sceneMap: {
                 feedback: {
                     title: '意见反馈',
@@ -1335,37 +1394,25 @@ export default {
                     title: '关于我们',
                     subtitle: '品牌介绍',
                     buttonText: '联系团队',
-                    items: [
-                        { title: '品牌愿景', desc: '专注打造更轻量的商城与商街体验。' },
-                        { title: '服务能力', desc: '支持零售、团购、支付、会员积分等业务模块。' }
-                    ]
+                    items: []
                 },
                 'activity-exchange': {
                     title: '活动中心-兑换',
                     subtitle: '积分兑换',
                     buttonText: '立即兑换',
-                    items: [
-                        { title: '礼品卡', desc: '100积分可兑换5元礼品卡。' },
-                        { title: '商城优惠券', desc: '支持满减券、折扣券、运费券。' }
-                    ]
+                    items: []
                 },
                 'activity-center': {
                     title: '活动中心',
                     subtitle: '热门活动',
                     buttonText: '立即参与',
-                    items: [
-                        { title: '签到赢积分', desc: '每日签到领取成长值与积分。' },
-                        { title: '邀请奖励', desc: '邀请好友下单可得活动奖励。' }
-                    ]
+                    items: []
                 },
                 'intro-card': {
                     title: '介绍名片',
                     subtitle: '商家名片',
                     buttonText: '保存名片',
-                    items: [
-                        { title: '商家名称', desc: 'XXXX 商业服务中心' },
-                        { title: '联系方式', desc: '188-8888-8888 / service@example.com' }
-                    ]
+                    items: []
                 },
                 'recent-visits': {
                     title: '最近访问'
@@ -1377,18 +1424,13 @@ export default {
                     title: '生态应用',
                     subtitle: '应用矩阵',
                     buttonText: '立即启用',
-                    items: [
-                        { title: '商家入驻', desc: '支持门店申请与资质审核。' },
-                        { title: '线下订单核销', desc: '支持扫码核销已支付自提订单。' }
-                    ]
+                    items: []
                 },
                 'user-kyc': {
                     title: '用户KYC',
-                    subtitle: '副标题副标题副标题副标题副标题',
+                    subtitle: '实名认证',
                     buttonText: '提交申请',
-                    items: [
-                        { title: '认证说明', desc: '提交真实资料后，预计 1-3 个工作日完成审核。' }
-                    ]
+                    items: []
                 }
             }
         }
@@ -1396,16 +1438,67 @@ export default {
     computed: {
         ...mapGetters(['userInfo']),
         isFullScene() {
-            return this.scene === 'street' || this.scene === 'store-detail' || this.scene === 'store-qr' || this.scene === 'goods-qr' || this.scene === 'user-kyc' || this.scene === 'feedback' || this.scene === 'about-us' || this.scene === 'activity-center' || this.scene === 'intro-card' || this.scene === 'recent-visits'
+            return this.scene === 'street' || this.scene === 'store-detail' || this.scene === 'store-qr' || this.scene === 'goods-qr' || this.scene === 'user-kyc' || this.scene === 'feedback' || this.scene === 'about-us' || this.scene === 'activity-center' || this.scene === 'activity-exchange' || this.scene === 'intro-card' || this.scene === 'recent-visits'
         },
         sceneConfig() {
             return this.sceneMap[this.scene] || this.sceneMap.feedback
         },
+        activityExchangePoints() {
+            const info = this.userInfo || {}
+            const value = info.user_integral ?? info.userIntegral ?? info.availablePoints ?? info.available_points ?? info.points ?? ''
+            if (value === undefined || value === null || value === '') return '待确认'
+            const number = Number(value)
+            if (Number.isNaN(number) || !Number.isFinite(number)) return '待确认'
+            return number % 1 === 0 ? String(number) : number.toFixed(2)
+        },
+        walletAccountAmountText() {
+            const info = this.userInfo || {}
+            const value = this.firstValidValue([
+                info.fiatAmount,
+                info.fiat_amount,
+                info.rmbAmount,
+                info.rmb_amount,
+                info.user_money,
+                info.userMoney,
+                info.money,
+                info.balance
+            ])
+            return this.formatOptionalCurrency(value)
+        },
+        walletWithdrawAmountText() {
+            const info = this.userInfo || {}
+            const value = this.firstValidValue([
+                info.withdrawAmount,
+                info.withdraw_amount,
+                info.availableWithdrawAmount,
+                info.available_withdraw_amount,
+                info.canWithdrawAmount,
+                info.can_withdraw_amount,
+                info.fiatWithdrawAmount,
+                info.fiat_withdraw_amount,
+                info.user_money,
+                info.userMoney,
+                info.money,
+                info.balance
+            ])
+            return this.formatOptionalCurrency(value)
+        },
+        paymentDateColumns() {
+            const now = new Date()
+            const year = now.getFullYear()
+            const month = now.getMonth() + 1
+            const day = now.getDate()
+            return {
+                years: [year - 2, year - 1, year].map(item => ({
+                    label: `${item}年`,
+                    active: item === year
+                })),
+                months: this.makeCenteredDateColumn(month, 12, '月'),
+                days: this.makeCenteredDateColumn(day, new Date(year, month, 0).getDate(), '日')
+            }
+        },
         aboutAppVersion() {
             return version || '1.0.0'
-        },
-        aboutAppLogoText() {
-            return (this.sceneConfig.title || '关于我们').slice(0, 4)
         },
         kycStatusText() {
             if (this.isKycEmpty) return ''
@@ -1508,7 +1601,7 @@ export default {
                 merchantId: shopBase.merchantId || shopBase.merchant_id || this.storeDetailData.merchantId || this.storeDetailData.merchant_id || '',
                 ownerUserId: shopBase.ownerUserId || shopBase.owner_user_id || shopBase.userId || shopBase.user_id || this.storeDetailData.ownerUserId || this.storeDetailData.owner_user_id || this.storeDetailData.userId || this.storeDetailData.user_id || '',
                 inviteCode: shopBase.inviteCode || shopBase.invite_code || shopBase.promoterCode || shopBase.promoter_code || this.storeDetailData.inviteCode || this.storeDetailData.invite_code || this.storeDetailData.promoterCode || this.storeDetailData.promoter_code || '',
-                shopName: shopBase.shopName || '店铺信息待更新',
+                shopName: shopBase.shopName || '店铺待确认',
                 shopScore: this.formatStreetScore(shopBase.shopScore, '暂无评分'),
                 businessHours: shopBase.businessHours || '',
                 detailAddress: shopBase.detailAddress || '门店信息更新中',
@@ -1518,6 +1611,10 @@ export default {
                 shopLogo: shopBase.shopLogo || shopBase.avatarUrl || resolveImage('', 'shop'),
                 contactPhone: shopBase.contactPhone || ''
             }
+        },
+        isStoreDetailPreview() {
+            const options = this.getCurrentPageOptions()
+            return options.preview === '1' || options.preview === 'true'
         },
         qrShopInfo() {
             return {
@@ -1530,13 +1627,13 @@ export default {
         qrGoodsInfo() {
             const options = this.getCurrentPageOptions()
             const firstGroup = this.storeDetailGroupProducts[0] || {}
-            const price = this.stripStoreDetailPriceSymbol(this.formatStoreDetailPriceText(options.price || options.minPrice || this.getStoreDetailGroupPriceValue(firstGroup) || 0))
+            const price = this.stripStoreDetailPriceSymbol(this.formatStoreDetailPriceText(options.price || options.minPrice || this.getStoreDetailGroupPriceValue(firstGroup)))
             const [main, decimal = '00'] = String(price).split('.')
             return {
                 id: options.goodsId || options.goods_id || options.id || this.storeDetailGroupProducts[0]?.goods_id || '',
                 image: resolveImage(options.image || this.storeDetailGroupProducts[0]?.image || '', 'goods'),
-                priceMain: main || '0',
-                priceDecimal: `.${decimal}`
+                priceMain: main || '',
+                priceDecimal: main ? `.${decimal}` : ''
             }
         },
         qrStoreValue() {
@@ -1546,6 +1643,7 @@ export default {
             return `${baseURL}${this.goodsQrLink()}`
         },
         storeDetailHeroImage() {
+            if (this.isStoreDetailPreview) return resolveImage('', 'shop')
             const image = this.storeDetailData.albums?.[0]?.url || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || ''
             return image ? resolveImage(image, 'goods') : this.storeDetailView.shopLogo
         },
@@ -1553,6 +1651,7 @@ export default {
             return this.storeDetailView.shopLogo || this.storeDetailHeroImage
         },
         storeDetailContentImage() {
+            if (this.isStoreDetailPreview) return resolveImage('', 'shop')
             const image = this.storeDetailData.detailImage || this.storeDetailData.detail_image || this.storeDetailData.cover || this.storeDetailData.image || this.storeDetailData.mainImageUrl || this.storeDetailData.albums?.[0]?.cover || this.storeDetailData.albums?.[0]?.url || ''
             return image ? resolveImage(image, 'shop') : this.storeDetailView.shopLogo
         },
@@ -1566,14 +1665,26 @@ export default {
                 }))
                 .filter(item => item.url)
         },
+        storeDetailDisplayAlbumImages() {
+            if (this.storeDetailAlbumImages.length) return this.storeDetailAlbumImages
+            return this.albumImages.map((url, index) => ({
+                id: `fallback-${index}`,
+                url
+            })).filter(item => item.url).slice(0, 3)
+        },
+        storeDetailLicenseImage() {
+            const image = this.storeDetailData.licenseImage || this.storeDetailData.license_image || this.storeDetailData.businessLicense || this.storeDetailData.business_license || this.storeDetailData.businessLicenseImage || this.storeDetailData.licenseUrl || this.storeDetailData.license_url || ''
+            return image ? resolveImage(image, 'shop') : ''
+        },
         storeDetailVideos() {
             return (this.storeDetailData.videos || [])
                 .map((item, index) => ({
                     ...item,
                     id: item.id || index,
-                    title: item.title || item.name || '门店视频',
+                    title: item.title || item.name || '',
                     cover: item.cover || item.image || this.storeDetailHeroImage,
-                    url: item.url || item.videoUrl || item.video || ''
+                    url: item.url || item.videoUrl || item.video || '',
+                    durationText: this.formatStoreDetailVideoDuration(item.duration || item.durationText || item.duration_text || item.videoDuration || item.video_duration)
                 }))
                 .filter(item => item.cover || item.url)
         },
@@ -1582,11 +1693,11 @@ export default {
             return comments.map((item, index) => ({
                 ...item,
                 id: item.id || item.commentId || item.reviewId || index,
-                name: item.name || item.nickname || item.userName || item.memberName || '匿名用户',
+                name: item.name || item.nickname || item.userName || item.memberName || '',
                 date: item.date || item.create_time || item.createdAt || item.createTime || '',
-                content: item.content || item.comment || item.reviewContent || item.remark || '暂无评价内容',
+                content: item.content || item.comment || item.reviewContent || item.remark || '',
                 avatar: item.avatar || item.userAvatar || item.headimgurl || ''
-            }))
+            })).filter(item => item.name || item.content || item.avatar)
         },
         storeDetailBusinessHoursText() {
             const statusText = this.getStreetOpenStatusLabel(this.storeDetailView.openStatus, this.storeDetailView.businessHours)
@@ -1603,7 +1714,7 @@ export default {
             const videoCount = this.storeDetailVideos.length
             return [
                 { key: 'detail', label: '商家详情', active: this.storeDetailActiveTab === 'detail' },
-                { key: 'group', label: '团购', active: this.storeDetailActiveTab === 'group', count: this.storeDetailGroupProducts.length },
+                { key: 'group', label: '产品', active: this.storeDetailActiveTab === 'group', count: this.storeDetailGroupProducts.length },
                 { key: 'album', label: '相册', active: this.storeDetailActiveTab === 'album', count: albumCount },
                 { key: 'video', label: '视频', active: this.storeDetailActiveTab === 'video', count: videoCount },
                 { key: 'comment', label: `评价(${this.storeDetailDisplayComments.length})`, active: this.storeDetailActiveTab === 'comment' }
@@ -1627,12 +1738,36 @@ export default {
                 marketPriceText: this.formatStoreDetailMarketPriceText(item.marketPriceText || item.market_price_text || item.originPriceText || item.origin_price_text || item.originalPriceText || item.original_price_text || item.marketPrice || item.market_price || item.originPrice || item.origin_price || item.originalPrice || item.original_price)
             }))
         },
+        storeDetailGroupCategories() {
+            const categories = this.storeDetailData.groupCategories || this.storeDetailData.categories || this.storeDetailData.goodsCategories || []
+            const source = categories.length ? categories : this.storeDetailGroupProducts.slice(0, 2)
+            return source.map((item, index) => ({
+                key: String(item.id || item.categoryId || item.category_id || item.key || index),
+                name: item.name || item.categoryName || item.category_name || item.title || item.goods_name || item.goodsName || '',
+                image: resolveImage(item.image || item.cover || item.icon || item.goods_image || item.mainImageUrl || '', 'goods')
+            }))
+        },
+        storeDetailGroupTotalText() {
+            const first = this.storeDetailGroupProducts[0]
+            if (!first) return ''
+            return first.priceText || this.formatStoreDetailPriceText(this.getStoreDetailGroupPriceValue(first))
+        },
         storeDetailPayUrl() {
             return ''
         },
+        introCardNicknameText() {
+            return this.introCardInfo.nickname || '昵称待完善'
+        },
+        introCardUserNoText() {
+            return this.introCardInfo.userNo || 'ID待生成'
+        },
+        introCardCodeText() {
+            return this.introCardInfo.code || '推广码待生成'
+        },
         introCardQrValue() {
-            const code = this.introCardInfo.code && this.introCardInfo.code !== '--' ? this.introCardInfo.code : 'DEFAULT_ALLIANCE_CODE'
+            const code = this.introCardInfo.code || ''
             const ownerUserId = this.userInfo.user_id || this.userInfo.userId || this.userInfo.id || this.introCardInfo.userId || this.introCardInfo.user_id || ''
+            if (!code && !ownerUserId) return ''
             return JSON.stringify({
                 type: 'PROMOTION_QR',
                 scene: 'PROMOTION_QR',
@@ -1698,12 +1833,34 @@ export default {
         }
     },
     methods: {
+        firstValidValue(values = []) {
+            return values.find(value => value !== '' && value !== null && value !== undefined)
+        },
+        formatOptionalCurrency(value) {
+            if (value === '' || value === null || value === undefined) return ''
+            const text = String(value).trim()
+            if (!text) return ''
+            if (/^[¥￥]/.test(text)) return text.replace(/^￥/, '¥')
+            const amount = Number(text)
+            if (Number.isNaN(amount)) return text
+            return `¥${Number.isInteger(amount) ? String(amount) : amount.toFixed(2)}`
+        },
+        makeCenteredDateColumn(value, max, suffix) {
+            const start = Math.max(1, Math.min(value - 2, max - 4))
+            return Array.from({ length: Math.min(5, max) }, (_, index) => {
+                const current = start + index
+                return {
+                    label: `${current}${suffix}`,
+                    active: current === value
+                }
+            })
+        },
         resolveStoreDetailGroupName(item = {}) {
             const activity = item.activity || item.groupBuyActivity || item.groupActivity || {}
             const product = item.product || item.spu || item.goods || item.goodsInfo || item.productInfo || item.spuInfo || activity.product || activity.spu || activity.goods || {}
             const realName = product.goodsName || product.goods_name || product.spuName || product.spu_name || product.productName || product.product_name || product.name || product.title || item.goodsName || item.goods_name || item.spuName || item.spu_name || item.productName || item.product_name
-            if (realName && realName !== '团购套餐') return realName
-            return item.name || item.title || item.activityName || item.activity_name || '团购套餐'
+            if (realName) return realName
+            return item.name || item.title || item.activityName || item.activity_name || ''
         },
         resolveServerImage(image, type = 'goods') {
             const value = String(image || '').trim()
@@ -1992,6 +2149,18 @@ export default {
             }
         },
         async loadIntroCard() {
+            const options = this.getCurrentPageOptions()
+            if (options.preview === '1' || options.preview === 'true') {
+                this.introCardInfo = {
+                    ...this.introCardInfo,
+                    nickname: '',
+                    userNo: '',
+                    code: '',
+                    avatar: resolveImage('', 'avatar'),
+                    qrImage: ''
+                }
+                return
+            }
             const res = await getInviteInfo()
             if (res.code != 1) {
                 await this.loadPromotionInviteCodeFallback()
@@ -2002,8 +2171,8 @@ export default {
                 ...this.introCardInfo,
                 ...data,
                 nickname: data.nickname || data.nickName || data.userName || data.name || this.introCardInfo.nickname,
-                userNo: data.userNo || data.user_no || data.sn || data.userId || data.user_id || '--',
-                code: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.code || data.allianceCode || '--',
+                userNo: data.userNo || data.user_no || data.sn || data.userId || data.user_id || '',
+                code: data.inviteCode || data.invite_code || data.promoterCode || data.promoter_code || data.promotionCode || data.promotion_code || data.code || data.allianceCode || '',
                 avatar: resolveImage(data.avatar || data.avatarUrl || data.headimgurl, 'avatar'),
                 qrImage: data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode ? resolveImage(data.qrImage || data.qrCodeUrl || data.qr_code_url || data.qrcode) : ''
             }
@@ -2067,6 +2236,10 @@ export default {
             })
         },
         copyIntroCardText(text) {
+            if (!text) {
+                uni.showToast({ title: '暂无可复制内容', icon: 'none' })
+                return
+            }
             copy(text)
         },
         openPaymentFilter() {
@@ -2113,22 +2286,40 @@ export default {
                     if (!expectedStatus) return true
                     return this.normalizePaymentRecordStatus(item) === expectedStatus
                 })
-                const totalAmount = this.paymentRecordList.reduce((sum, item) => {
-                    const amount = Number(item.change_amount ?? item.amount ?? item.changeAmount ?? item.money ?? 0)
+                const amountRecords = this.paymentRecordList.filter(item => this.hasPaymentRecordAmount(item.change_amount ?? item.amount ?? item.changeAmount ?? item.money))
+                const totalAmount = amountRecords.reduce((sum, item) => {
+                    const amount = Number(item.change_amount ?? item.amount ?? item.changeAmount ?? item.money)
                     return Number.isNaN(amount) ? sum : sum + Math.abs(amount)
                 }, 0)
+                const hasAmountData = amountRecords.length > 0 || res.data?.totalAmount !== undefined || res.data?.total_amount !== undefined || res.data?.fiatAmount !== undefined || res.data?.fiat_amount !== undefined
+                const summaryAmount = hasAmountData ? `¥${totalAmount.toFixed(2)}` : ''
                 this.paymentRecordSummary = {
-                    totalAmount: `¥${totalAmount.toFixed(2)}`,
-                    totalCount: String(res.data?.count || res.data?.total || this.paymentRecordList.length || 0),
-                    fiatAmount: `¥${totalAmount.toFixed(2)}`
+                    totalAmount: summaryAmount,
+                    totalCount: this.paymentRecordList.length || res.data?.count || res.data?.total ? String(res.data?.count || res.data?.total || this.paymentRecordList.length) : '',
+                    fiatAmount: summaryAmount
                 }
             } catch (error) {
-                console.error('[payment-record] load failed:', error)
             }
-        },        formatPaymentRecordAmount(value) {
-            const amount = Number(value || 0)
-            if (Number.isNaN(amount)) return value || '0.00'
+        },
+        formatPaymentRecordAmount(value) {
+            if (value === '' || value === null || value === undefined) return ''
+            const amount = Number(value)
+            if (Number.isNaN(amount)) return value || ''
             return Math.abs(amount).toFixed(2)
+        },
+        hasPaymentRecordAmount(value) {
+            const amount = Number(value)
+            return value !== '' && value !== null && value !== undefined && !Number.isNaN(amount)
+        },
+        hasKnownValue(value) {
+            return value !== '' && value !== null && value !== undefined
+        },
+        firstKnownValue(...values) {
+            return values.find(value => this.hasKnownValue(value))
+        },
+        formatPaymentRecordAmountWithSign(item = {}) {
+            if (!this.hasPaymentRecordAmount(item.change_amount)) return '金额待确认'
+            return `${item.change_type == 1 ? '+' : '-'}${this.formatPaymentRecordAmount(item.change_amount)}`
         },
         normalizePaymentRecordStatus(item = {}) {
             const raw = String(item.payStatus || item.pay_status || item.status || item.paymentStatus || item.payment_status || '').toUpperCase()
@@ -2230,11 +2421,65 @@ export default {
                 qrcodeInfo: {}
             }
         },
+        applyStoreDetailPreviewData() {
+            this.storeDetailData = {
+                ...this.storeDetailData,
+                shopBase: {
+                    shopId: 'preview',
+                    shopName: '',
+                    shopLogo: resolveImage('', 'shop'),
+                    shopScore: '',
+                    businessHours: '',
+                    detailAddress: '',
+                    openStatus: '',
+                    contactPhone: ''
+                },
+                comments: [],
+                groupBuyProducts: this.storeDetailData.groupBuyProducts && this.storeDetailData.groupBuyProducts.length ? this.storeDetailData.groupBuyProducts : [
+                    {
+                        id: 'preview-group-1',
+                        name: '',
+                        image: '',
+                        price: '',
+                        score: '',
+                        meta: ''
+                    },
+                    {
+                        id: 'preview-group-2',
+                        name: '',
+                        image: '',
+                        price: '',
+                        score: '',
+                        meta: ''
+                    }
+                ],
+                groupCategories: this.storeDetailData.groupCategories && this.storeDetailData.groupCategories.length ? this.storeDetailData.groupCategories : [
+                    { id: 'preview-category-1', name: '', image: '' },
+                    { id: 'preview-category-2', name: '', image: '' }
+                ],
+                albums: this.storeDetailData.albums && this.storeDetailData.albums.length ? this.storeDetailData.albums : [
+                    { id: 'preview-album-1', url: resolveImage('', 'shop') },
+                    { id: 'preview-album-2', url: resolveImage('', 'shop') },
+                    { id: 'preview-album-3', url: resolveImage('', 'shop') }
+                ],
+                videos: this.storeDetailData.videos && this.storeDetailData.videos.length ? this.storeDetailData.videos : [
+                    { id: 'preview-video', title: '', cover: resolveImage('', 'shop'), duration: '' }
+                ],
+                licenseImage: this.storeDetailData.licenseImage || resolveImage('', 'shop')
+            }
+            this.storeDetailLoadedShopId = 'preview'
+            this.storeDetailApiLoaded = true
+        },
         async loadStoreDetail() {
             const options = this.normalizePageOptions(this.getCurrentPageOptions())
             const shopId = options.shopId || options.shop_id || options.merchantShopId || options.merchant_shop_id || (this.scene === 'goods-qr' ? '' : options.id) || ''
             this.syncStoreDetailActiveTab()
             if (!shopId) {
+                if (options.preview === '1' || options.preview === 'true') {
+                    this.resetStoreDetailData('preview')
+                    this.applyStoreDetailPreviewData()
+                    return
+                }
                 if (!Object.keys(options).length) return
                 this.resetStoreDetailData('')
                 this.storeDetailLoadedShopId = ''
@@ -2268,7 +2513,6 @@ export default {
                 }
             } catch (error) {
                 this.storeDetailApiLoaded = true
-                console.error('[store-detail] load failed:', error)
             } finally {
                 this.storeDetailLoading = false
             }
@@ -2294,7 +2538,6 @@ export default {
                 this.storeDetailGroupPageNo = pageNo + 1
                 this.storeDetailGroupHasNext = Boolean(res.data.hasNext)
             } catch (error) {
-                console.error('[store-detail] group buy load failed:', error)
             } finally {
                 this.storeDetailGroupLoading = false
             }
@@ -2311,7 +2554,8 @@ export default {
             const people = item.peopleNum || item.people_num || item.groupNum || item.group_num
             const joined = item.joinedCount || item.join_num || item.joinNum || item.sales_sum || item.salesCount
             if (people || joined !== undefined) {
-                return `${people || '多人'}人团 · 已拼${joined || 0}件`
+                const joinedText = joined !== undefined && joined !== null && joined !== '' ? ` · 已拼${joined}件` : ''
+                return `${people || '多人'}人团${joinedText}`
             }
             if (item.sales_sum !== undefined) {
                 return `团购商品 · 已拼${item.sales_sum}件`
@@ -2334,20 +2578,32 @@ export default {
             const score = item.score ?? item.shopScore ?? item.commentScore ?? item.rating
             return score === '' || score === null || score === undefined ? '' : this.formatStreetScore(score, '')
         },
+        formatStoreDetailVideoDuration(value) {
+            if (value === '' || value === null || value === undefined) return ''
+            const text = String(value).trim()
+            if (!text) return ''
+            if (text.includes(':')) return text
+            const seconds = Number(text)
+            if (Number.isNaN(seconds)) return text
+            const minutes = Math.floor(seconds / 60)
+            const secs = Math.floor(seconds % 60)
+            return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+        },
         formatStoreDetailPrice(value) {
-            if (value === '' || value === null || value === undefined) return '0.00'
+            if (value === '' || value === null || value === undefined) return ''
             const price = Number(value)
             if (Number.isNaN(price)) return String(value)
             return Number.isInteger(price) ? String(price) : price.toFixed(2)
         },
         formatStoreDetailPriceText(value) {
-            if (value === '' || value === null || value === undefined) return '¥0.00'
+            if (value === '' || value === null || value === undefined) return ''
             const text = String(value).trim()
+            if (!text) return ''
             if (/^[¥￥]/.test(text)) return text
             return `¥${this.formatStoreDetailPrice(value)}`
         },
         stripStoreDetailPriceSymbol(value) {
-            return String(value || '0.00').replace(/^[¥￥]\s*/, '')
+            return String(value || '').replace(/^[¥￥]\s*/, '')
         },
         formatStoreDetailMarketPriceText(value) {
             if (value === '' || value === null || value === undefined) return ''
@@ -2397,10 +2653,18 @@ export default {
             uni.navigateTo({ url: `/bundle/pages/goods_details/goods_details?${params.join('&')}` })
         },
         previewStoreDetailAlbum(index = 0) {
-            if (!this.storeDetailAlbumImages.length) return
+            const images = this.storeDetailDisplayAlbumImages
+            if (!images.length) return
             uni.previewImage({
-                current: this.storeDetailAlbumImages[index]?.url || this.storeDetailAlbumImages[0].url,
-                urls: this.storeDetailAlbumImages.map(item => item.url)
+                current: images[index]?.url || images[0].url,
+                urls: images.map(item => item.url)
+            })
+        },
+        previewStoreDetailLicense() {
+            if (!this.storeDetailLicenseImage) return
+            uni.previewImage({
+                current: this.storeDetailLicenseImage,
+                urls: [this.storeDetailLicenseImage]
             })
         },
         previewStoreDetailVideo(item = {}) {
@@ -2556,7 +2820,7 @@ export default {
             if (this.isDrawableImage(cardBg)) {
                 ctx.drawImage(cardBg.path, 25, 29, 270, 94)
             } else {
-                ctx.setFillStyle('#037dfa')
+                ctx.setFillStyle('#a0610d')
                 this.drawCanvasRoundRect(ctx, 25, 29, 270, 94, 12)
                 ctx.fill()
             }
@@ -2770,7 +3034,6 @@ export default {
                 const list = res.data?.list || res.data?.records || res.data?.items || []
                 this.merchantList = list.map((item, index) => this.mapStreetGoodsItem(item, index))
             } catch (error) {
-                console.error('[street-goods] load failed:', error)
                 uni.showToast({ title: '商街商品加载失败', icon: 'none' })
             } finally {
                 this.streetGoodsLoading = false
@@ -2779,9 +3042,9 @@ export default {
         mapStreetGoodsItem(item = {}, index = 0) {
             const goodsId = item.goods_id || item.goodsId || item.spuId || item.productId || ''
             const shopId = item.shop_id || item.shopId || item.merchantShopId || item.merchant_shop_id || item.id || ''
-            const price = item.price || item.salePrice || item.sale_price || item.minPrice || item.min_price || item.groupPrice || item.group_price || item.teamPrice || item.team_price || 0
+            const price = this.firstKnownValue(item.price, item.salePrice, item.sale_price, item.minPrice, item.min_price, item.groupPrice, item.group_price, item.teamPrice, item.team_price)
             const marketPrice = item.marketPrice || item.market_price || item.originPrice || item.origin_price || item.originalPrice || item.original_price || ''
-            const sales = item.sales_sum || item.salesCount || item.sales_count || item.virtualSales || 0
+            const sales = this.firstKnownValue(item.sales_sum, item.salesCount, item.sales_count, item.virtualSales)
             const stock = item.stock ?? item.stockQty ?? item.stock_quantity ?? ''
             const score = item.score ?? item.shopScore ?? item.shop_score ?? item.commentScore ?? item.rating ?? ''
             const shopName = item.shop_name || item.shopName || item.storeName || item.shopInfo?.shopName || ''
@@ -2793,16 +3056,16 @@ export default {
                 id: goodsId || shopId || index,
                 goods_id: goodsId,
                 shopId,
-                name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || item.title || '商街商品',
+                name: item.name || item.goods_name || item.goodsName || item.spuName || item.productName || item.title || '',
                 subtitle: item.subtitle || item.subTitle || item.sellingPoint || item.shortDesc || item.description || '',
                 image: resolveImage(item.image || item.goods_image || item.cover || item.mainImageUrl || item.imageUrl || item.picUrl, 'goods'),
-                priceText: `¥${this.formatStoreDetailPrice(price)}`,
+                priceText: this.hasKnownValue(price) ? `¥${this.formatStoreDetailPrice(price)}` : '价格待确认',
                 marketPriceText: marketPrice ? `¥${this.formatStoreDetailPrice(marketPrice)}` : '',
                 scoreText: score === '' || score === null || score === undefined ? '' : String(this.formatStreetScore(score, '')).replace(/分$/, ''),
-                salesText: sales ? `${sales}人购买` : '',
+                salesText: this.hasKnownValue(sales) ? `${sales}人购买` : '',
                 stockText: stock !== '' && stock !== null && stock !== undefined ? `库存${stock}` : '',
                 distanceText: distance ? String(distance) : '',
-                meta: [shopName, statusLabel, businessTime].filter(Boolean).join(' · ') || '商街精选',
+                meta: [shopName, statusLabel, businessTime].filter(Boolean).join(' · '),
                 shopName,
                 url: goodsId
                     ? `/bundle/pages/goods_details/goods_details?id=${goodsId}${shopId ? `&shopId=${shopId}` : ''}`
@@ -2837,7 +3100,7 @@ export default {
 <style lang="scss">
 .business-scene {
     min-height: 100vh;
-    background: #f7f8fa;
+    background: #fff9f0;
 }
 
 .business-scene--user-kyc {
@@ -2845,16 +3108,20 @@ export default {
 }
 
 .business-scene--feedback {
-    background: #f2f2f2;
+    background: #fff9f3;
 }
 
 .business-scene--about-us {
-    background: #f7f8fb;
+    background: #fff9f0;
 }
 
 .business-scene--activity-center {
-    background: #f7f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/5d41b07208f5494697f46875f9eb5aaa/activity-center-bg.png') no-repeat center top;
+    background: #fff9f0 url('https://shengyuan.store/api/miniapp/files/miniapp/5d41b07208f5494697f46875f9eb5aaa/activity-center-bg.png') no-repeat center top;
     background-size: 100% 100%;
+}
+
+.business-scene--activity-exchange {
+    background: #fff8ee;
 }
 
 .business-scene--intro-card,
@@ -2961,9 +3228,13 @@ export default {
 }
 
 .qr-shop-card__star {
-    width: 52rpx;
+    width: 24rpx;
     height: 23rpx;
     margin-right: 3rpx;
+    color: #ffcf4a;
+    font-size: 22rpx;
+    line-height: 23rpx;
+    text-align: center;
 }
 
 .qr-shop-card__star:nth-child(3) {
@@ -2994,9 +3265,37 @@ export default {
 
 .qr-shop-card__time-icon {
     flex: none;
+    position: relative;
     width: 25rpx;
     height: 25rpx;
     margin-right: 6rpx;
+    border: 3rpx solid rgba(255, 255, 255, .9);
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.qr-shop-card__time-icon::before {
+    content: '';
+    position: absolute;
+    left: 9rpx;
+    top: 4rpx;
+    width: 3rpx;
+    height: 8rpx;
+    background: rgba(255, 255, 255, .9);
+    border-radius: 3rpx;
+}
+
+.qr-shop-card__time-icon::after {
+    content: '';
+    position: absolute;
+    left: 10rpx;
+    top: 10rpx;
+    width: 7rpx;
+    height: 3rpx;
+    background: rgba(255, 255, 255, .9);
+    border-radius: 3rpx;
+    transform: rotate(25deg);
+    transform-origin: left center;
 }
 
 .qr-store-panel,
@@ -3054,7 +3353,7 @@ export default {
     font-family: PingFangSC-Medium, sans-serif;
     font-weight: 500;
     line-height: 28rpx;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 40rpx;
     white-space: nowrap;
     padding: 0;
@@ -3141,66 +3440,95 @@ export default {
 
 .about-us-page {
     position: relative;
-    min-height: 100vh;
+    min-height: 1618rpx;
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
     overflow: hidden;
-    background: #f7f8fb;
+    background: #fff9f0;
     box-sizing: border-box;
 }
 
 .about-us-hero {
     position: relative;
     height: 750rpx;
-    padding-top: calc(var(--app-safe-top) + 24rpx);
-    background: linear-gradient(180deg, #1688ff 0%, #037dfa 54%, #f7f8fb 100%);
+    padding-top: calc(var(--app-safe-top) + 25rpx);
+    background: linear-gradient(180deg, #fff0dc 0%, #fff7ed 52%, rgba(255, 249, 240, 0) 100%);
     box-sizing: border-box;
 }
 
 .about-us-topbar {
     display: flex;
     align-items: center;
-    width: calc(100% - 48rpx);
-    height: 64rpx;
-    margin: 0 24rpx;
+    justify-content: space-between;
+    width: 748rpx;
+    height: 95rpx;
+    margin: 0;
 }
 
 .about-us-back {
     position: relative;
-    width: 48rpx;
-    height: 64rpx;
+    width: 40rpx;
+    height: 95rpx;
+    margin-left: 24rpx;
 }
 
 .about-us-back::after {
     content: '';
     position: absolute;
-    left: 8rpx;
-    top: 20rpx;
-    width: 18rpx;
-    height: 18rpx;
-    border-left: 4rpx solid #ffffff;
-    border-bottom: 4rpx solid #ffffff;
+    left: 0;
+    top: 44rpx;
+    width: 19rpx;
+    height: 19rpx;
+    border-left: 4rpx solid #222222;
+    border-bottom: 4rpx solid #222222;
     transform: rotate(45deg);
 }
 
-.about-us-logo {
-    margin-top: 80rpx;
-    color: #ffffff;
-    font-size: 55rpx;
-    font-weight: 600;
-    line-height: 60rpx;
-    text-align: center;
-    white-space: nowrap;
+.about-us-capsule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 168rpx;
+    height: 64rpx;
+    margin: 20rpx 22rpx 0 0;
+    border: 1rpx solid transparent;
+    border-radius: 32rpx;
+    background: transparent;
+    box-sizing: border-box;
+    opacity: 0;
 }
 
-.about-us-version {
-    margin-top: 25rpx;
-    color: #ffffff;
-    font-size: 26rpx;
-    line-height: 30rpx;
-    text-align: center;
-    white-space: nowrap;
+.about-us-capsule__dot {
+    width: 8rpx;
+    height: 8rpx;
+    margin-right: 8rpx;
+    border-radius: 50%;
+    background: #222222;
+    box-shadow: 18rpx 0 0 #222222, 36rpx 0 0 #222222;
+}
+
+.about-us-capsule__divider {
+    width: 1rpx;
+    height: 36rpx;
+    margin: 0 22rpx 0 42rpx;
+    background: rgba(34, 34, 34, .18);
+}
+
+.about-us-capsule__circle {
+    width: 34rpx;
+    height: 34rpx;
+    border: 4rpx solid #222222;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.about-us-logo {
+    position: absolute;
+    left: 261rpx;
+    top: 176rpx;
+    width: 228rpx;
+    height: 228rpx;
 }
 
 .about-us-card {
@@ -3208,10 +3536,11 @@ export default {
     left: 24rpx;
     right: 23rpx;
     top: 393rpx;
+    height: 668rpx;
     overflow: hidden;
-    background: #ffffff;
+    background: #fff9f0;
     border-radius: 15rpx;
-    box-shadow: 0 14rpx 34rpx rgba(20, 63, 107, 0.06);
+    box-shadow: none;
 }
 
 .about-us-row {
@@ -3219,7 +3548,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 97rpx;
+    height: 95rpx;
     padding: 0 33rpx 0 29rpx;
     box-sizing: border-box;
 }
@@ -3247,7 +3576,7 @@ export default {
     right: 0;
     bottom: 0;
     height: 1rpx;
-    background: #f0f0f0;
+    background: rgba(160, 97, 13, .14);
 }
 
 .activity-center-page {
@@ -3257,7 +3586,7 @@ export default {
     max-width: 750rpx;
     margin: 0 auto;
     overflow: hidden;
-    background: #f7f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/5d41b07208f5494697f46875f9eb5aaa/activity-center-bg.png') no-repeat center top;
+    background: #fff9f0 url('https://shengyuan.store/api/miniapp/files/miniapp/5d41b07208f5494697f46875f9eb5aaa/activity-center-bg.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
 }
@@ -3385,9 +3714,263 @@ export default {
     font-size: 26rpx;
     font-weight: 600;
     line-height: 30rpx;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 32rpx;
     white-space: nowrap;
+}
+
+.activity-exchange-page {
+    position: relative;
+    width: 100%;
+    max-width: 750rpx;
+    min-height: 1625rpx;
+    margin: 0 auto;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fff8ed 0%, #fff8ed 34%, #fff3df 100%);
+}
+
+.activity-exchange-hero {
+    position: relative;
+    width: 100%;
+    max-width: 750rpx;
+    height: 555rpx;
+    overflow: hidden;
+    background: linear-gradient(180deg, #fff8ee 0%, #fff0d9 100%);
+}
+
+.activity-exchange-hero::after {
+    display: none;
+}
+
+.activity-exchange-status {
+    width: 690rpx;
+    height: 26rpx;
+    margin: 28rpx 0 0 34rpx;
+    border-radius: 13rpx;
+}
+
+.activity-exchange-nav {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    width: 749rpx;
+    height: 96rpx;
+    margin-top: 24rpx;
+}
+
+.activity-exchange-back {
+    position: relative;
+    flex: none;
+    width: 64rpx;
+    height: 64rpx;
+    margin-left: 4rpx;
+}
+
+.activity-exchange-back::before {
+    content: '';
+    position: absolute;
+    left: 22rpx;
+    top: 20rpx;
+    width: 20rpx;
+    height: 20rpx;
+    border-left: 4rpx solid #222222;
+    border-bottom: 4rpx solid #222222;
+    transform: rotate(45deg);
+    box-sizing: border-box;
+}
+
+.activity-exchange-title {
+    flex: 1;
+    margin-left: 121rpx;
+    color: #222222;
+    font-size: 36rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 36rpx;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.activity-exchange-capsule {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex: none;
+    width: 168rpx;
+    height: 64rpx;
+    margin-right: 23rpx;
+    padding: 0 19rpx;
+    border: 1rpx solid transparent;
+    border-radius: 32rpx;
+    background: transparent;
+    box-sizing: border-box;
+    opacity: 0;
+}
+
+.activity-exchange-capsule__dot {
+    width: 46rpx;
+    height: 12rpx;
+    border-top: 6rpx dotted #222222;
+    box-sizing: border-box;
+}
+
+.activity-exchange-capsule__divider {
+    width: 1rpx;
+    height: 35rpx;
+    background: rgba(0, 0, 0, .16);
+}
+
+.activity-exchange-capsule__circle {
+    width: 31rpx;
+    height: 31rpx;
+    border: 4rpx solid #222222;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.activity-exchange-summary {
+    position: relative;
+    z-index: 1;
+    margin: 33rpx 0 0 23rpx;
+}
+
+.activity-exchange-label {
+    color: #666666;
+    font-size: 26rpx;
+    line-height: 26rpx;
+    white-space: nowrap;
+}
+
+.activity-exchange-points {
+    margin: 19rpx 0 0 3rpx;
+    color: #222222;
+    font-size: 55rpx;
+    font-family: AlimamaShuHeiTi-Bold, PingFangSC-Medium, sans-serif;
+    font-weight: 700;
+    line-height: 55rpx;
+    white-space: nowrap;
+}
+
+.activity-exchange-desc {
+    margin-top: 22rpx;
+    color: #4b4b4b;
+    font-size: 22rpx;
+    line-height: 22rpx;
+    white-space: nowrap;
+}
+
+.activity-exchange-form {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 12rpx;
+    justify-content: space-between;
+    width: calc(100% - 48rpx);
+    max-width: 702rpx;
+    height: 79rpx;
+    margin: 33rpx 0 0 24rpx;
+    box-sizing: border-box;
+}
+
+.activity-exchange-input {
+    flex: 1;
+    min-width: 0;
+    height: 79rpx;
+    background: #ffffff;
+    border-radius: 8rpx;
+}
+
+.activity-exchange-button,
+.activity-exchange-detail {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    color: #ffffff;
+    font-weight: 400;
+    background: #764213;
+    border: 0;
+    box-sizing: border-box;
+}
+
+.activity-exchange-button::after,
+.activity-exchange-detail::after {
+    display: none;
+}
+
+.activity-exchange-button {
+    width: 170rpx;
+    height: 79rpx;
+    border-radius: 8rpx;
+    font-size: 26rpx;
+    line-height: 26rpx;
+    white-space: nowrap;
+}
+
+.activity-exchange-body {
+    position: relative;
+    width: 100%;
+    max-width: 750rpx;
+    min-height: 1070rpx;
+}
+
+.activity-exchange-rule {
+    position: absolute;
+    left: 24rpx;
+    right: 24rpx;
+    top: -62rpx;
+    width: auto;
+    max-width: 703rpx;
+    height: 245rpx;
+    margin: 0 auto;
+    padding-top: 14rpx;
+    color: #764213;
+    background: linear-gradient(180deg, rgba(255, 249, 238, .98) 0%, rgba(255, 232, 196, .98) 100%);
+    border: 0;
+    border-radius: 16rpx;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.activity-exchange-rule__title {
+    color: #764213;
+    font-size: 26rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 26rpx;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.activity-exchange-rule__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 44rpx 0 0 17rpx;
+    color: #764213;
+    font-size: 26rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 49rpx;
+}
+
+.activity-exchange-rule__content text {
+    display: block;
+    white-space: nowrap;
+}
+
+.activity-exchange-detail {
+    position: relative;
+    top: 242rpx;
+    width: calc(100% - 188rpx);
+    max-width: 563rpx;
+    height: 88rpx;
+    margin: 0 auto;
+    border-radius: 44rpx;
+    font-size: 28rpx;
+    line-height: 28rpx;
 }
 
 .activity-exchange-modal {
@@ -3507,11 +4090,11 @@ export default {
 
 .intro-card-page {
     position: relative;
-    min-height: 100vh;
+    min-height: 1624rpx;
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
-    padding-top: calc(var(--app-safe-top) + 24rpx);
+    padding-top: calc(var(--app-safe-top) + 19rpx);
     background: #0d83ff url('https://shengyuan.store/api/miniapp/files/miniapp/8997886b278e4233a0184d4001823b24/intro-card-page-bg.png') no-repeat center top;
     background-size: 100% 100%;
     box-sizing: border-box;
@@ -3532,8 +4115,9 @@ export default {
     z-index: 1;
     display: flex;
     align-items: center;
-    height: 64rpx;
-    margin: 0 24rpx;
+    justify-content: space-between;
+    height: 93rpx;
+    margin: 0 29rpx 0 33rpx;
 }
 
 .intro-card-back {
@@ -3562,23 +4146,61 @@ export default {
     color: #ffffff;
     font-size: 36rpx;
     font-weight: 500;
-    line-height: 40rpx;
+    line-height: 36rpx;
     white-space: nowrap;
     transform: translate(-50%, -50%);
+}
+
+.intro-card-capsule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 159rpx;
+    height: 58rpx;
+    margin-top: 3rpx;
+    border: 1rpx solid transparent;
+    border-radius: 29rpx;
+    background: transparent;
+    box-sizing: border-box;
+    opacity: 0;
+}
+
+.intro-card-capsule__dot {
+    width: 8rpx;
+    height: 8rpx;
+    margin-right: 7rpx;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 17rpx 0 0 #ffffff, 34rpx 0 0 #ffffff;
+}
+
+.intro-card-capsule__divider {
+    width: 1rpx;
+    height: 32rpx;
+    margin: 0 20rpx 0 38rpx;
+    background: rgba(255, 255, 255, .36);
+}
+
+.intro-card-capsule__circle {
+    width: 32rpx;
+    height: 32rpx;
+    border: 4rpx solid #ffffff;
+    border-radius: 50%;
+    box-sizing: border-box;
 }
 
 .intro-card-panel {
     position: relative;
     z-index: 1;
-    width: 650rpx;
-    min-height: 820rpx;
-    margin: 156rpx auto 0;
-    padding: 45rpx 36rpx 50rpx;
+    width: 696rpx;
+    min-height: 933rpx;
+    margin: 207rpx auto 0;
+    padding: 45rpx 40rpx 50rpx;
     background: url('https://shengyuan.store/api/miniapp/files/miniapp/4a6ec42c3ad54de8a47300fb1a79d820/intro-card-panel-bg.png') no-repeat center top;
     background-size: 100% 100%;
     border-radius: 0;
     box-sizing: border-box;
-    box-shadow: 0 24rpx 70rpx rgba(18, 98, 200, 0.18);
+    box-shadow: none;
     overflow: hidden;
 }
 
@@ -3612,14 +4234,14 @@ export default {
 .intro-card-info {
     flex: 1;
     min-width: 0;
-    margin: 14rpx 0 0 30rpx;
+    margin: 18rpx 0 0 33rpx;
 }
 
 .intro-card-name {
     color: #ffffff;
     font-size: 34rpx;
-    font-weight: 600;
-    line-height: 36rpx;
+    font-weight: 500;
+    line-height: 34rpx;
     white-space: nowrap;
 }
 
@@ -3661,22 +4283,29 @@ export default {
     display: block;
     width: 372rpx;
     height: 372rpx;
-    margin: 118rpx auto 0;
+    margin: 184rpx auto 0;
     background: #ffffff;
-    border-radius: 18rpx;
+    border-radius: 0;
 }
 
 .intro-card-qr--code {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24rpx;
+    padding: 6rpx;
     color: #0d83ff;
     font-size: 34rpx;
     font-weight: 600;
     text-align: center;
     word-break: break-all;
     box-sizing: border-box;
+}
+
+.intro-card-qr-empty {
+    color: #9aa3af;
+    font-size: 28rpx;
+    font-weight: 400;
+    line-height: 40rpx;
 }
 
 .intro-card-tip {
@@ -3696,7 +4325,7 @@ export default {
     max-width: 480rpx;
     margin: 16rpx auto 0;
     padding: 12rpx 22rpx;
-    color: #037dfa;
+    color: #a0610d;
     font-size: 26rpx;
     line-height: 36rpx;
     text-align: center;
@@ -3832,33 +4461,30 @@ export default {
     font-size: 26rpx;
     font-weight: 600;
     line-height: 30rpx;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 29rpx;
     white-space: nowrap;
 }
 
 .recent-visits-btn--subscribed {
-    color: #037dfa;
+    color: #a0610d;
     background: #d0e7ff;
 }
 
 .feedback-page {
-    min-height: 100vh;
+    min-height: 1625rpx;
     width: 100%;
     max-width: 750rpx;
     margin: 0 auto;
     overflow-x: hidden;
-    background: #f2f2f2;
-    background-image: url('https://shengyuan.store/api/miniapp/files/miniapp/8cecc2f0ed3a4187a8803a2039ae7a05/e9e114d902b93769e318427edddce2a8.png');
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
+    background: #f5f1eb;
     box-sizing: border-box;
 }
 
 .feedback-hero {
-    min-height: 300rpx;
-    padding: calc(var(--app-safe-top) + 20rpx) 26rpx 20rpx;
-    background: #ffffff;
+    height: calc(396rpx + var(--app-safe-top));
+    padding: calc(var(--app-safe-top) + 25rpx) 0 42rpx;
+    background: #fff9f3;
     box-sizing: border-box;
 }
 
@@ -3866,29 +4492,80 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 52rpx;
+    width: 100%;
+    max-width: 750rpx;
+    height: 94rpx;
 }
 
 .feedback-back {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    width: 64rpx;
-    height: 52rpx;
+    width: 40rpx;
+    height: 94rpx;
+    margin-left: 26rpx;
 }
 
-.feedback-menu-space {
-    width: 144rpx;
-    height: 52rpx;
+.feedback-back::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 40rpx;
+    width: 19rpx;
+    height: 19rpx;
+    border-left: 4rpx solid #222222;
+    border-bottom: 4rpx solid #222222;
+    transform: rotate(45deg);
+}
+
+.feedback-capsule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 168rpx;
+    height: 64rpx;
+    margin: 22rpx 24rpx 0 0;
+    border: 1rpx solid transparent;
+    border-radius: 34rpx;
+    background: transparent;
+    box-sizing: border-box;
     flex: none;
+    opacity: 0;
+}
+
+.feedback-capsule__dot {
+    width: 8rpx;
+    height: 8rpx;
+    margin-right: 8rpx;
+    border-radius: 50%;
+    background: #222222;
+    box-shadow: 18rpx 0 0 #222222, 36rpx 0 0 #222222;
+}
+
+.feedback-capsule__divider {
+    width: 1rpx;
+    height: 36rpx;
+    margin: 0 22rpx 0 42rpx;
+    background: rgba(34, 34, 34, .18);
+}
+
+.feedback-capsule__circle {
+    width: 34rpx;
+    height: 34rpx;
+    border: 4rpx solid #222222;
+    border-radius: 50%;
+    box-sizing: border-box;
 }
 
 .feedback-hero__body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 72rpx;
-    padding: 0 30rpx 0 15rpx;
+    width: 638rpx;
+    height: 124rpx;
+    margin: 58rpx 0 0 41rpx;
+    padding: 0;
     box-sizing: border-box;
 }
 
@@ -3932,7 +4609,7 @@ export default {
     width: 100%;
     padding: 32rpx 37rpx;
     margin-bottom: 18rpx;
-    background: #ffffff;
+    background: #fff9f3;
     border-radius: 24rpx;
     box-sizing: border-box;
 }
@@ -3978,8 +4655,12 @@ export default {
 }
 
 .feedback-tag--active {
-    border-color: #037dfa;
-    background: rgba(3, 125, 250, 0.08);
+    border-color: #a0610d;
+    background: #fff7ec;
+}
+
+.feedback-tag--active .feedback-tag__text {
+    color: #a0610d;
 }
 
 .feedback-tag__text {
@@ -4003,7 +4684,7 @@ export default {
     justify-content: center;
     width: 52rpx;
     height: 36rpx;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 8rpx 0 8rpx 0;
 }
 
@@ -4019,7 +4700,8 @@ export default {
     height: 379rpx;
     margin-top: 27rpx;
     padding: 18rpx 21rpx 20rpx;
-    background: #f3f3f3;
+    background: #ffffff;
+    border: 1rpx solid #eac695;
     border-radius: 16rpx;
     box-sizing: border-box;
 }
@@ -4110,7 +4792,8 @@ export default {
     height: 99rpx;
     margin-top: 23rpx;
     padding: 0 22rpx;
-    background: #f3f3f3;
+    background: #ffffff;
+    border: 1rpx solid #eac695;
     border-radius: 16rpx;
     box-sizing: border-box;
 }
@@ -4136,8 +4819,9 @@ export default {
     font-family: PingFangSC-Medium, sans-serif;
     font-weight: 600;
     line-height: 28rpx;
-    background: #037dfa;
+    background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
     border-radius: 39rpx;
+    box-shadow: 0 12rpx 24rpx rgba(160, 97, 13, .18);
 }
 
 @media screen and (max-width: 360px) {
@@ -4175,9 +4859,9 @@ export default {
     overflow: hidden;
     height: 65rpx;
     padding: 0 18rpx 0 34rpx;
-    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #fff8ed 100%);
     border-radius: 33rpx;
-    box-shadow: 0 12rpx 30rpx rgba(31, 122, 244, 0.12);
+    box-shadow: 0 12rpx 30rpx rgba(160, 97, 13, 0.12);
     box-sizing: border-box;
 }
 
@@ -4205,9 +4889,35 @@ export default {
     height: 56rpx;
 }
 
-.search-shell__icon-image {
+.search-shell__icon-lens {
+    position: relative;
     width: 34rpx;
     height: 34rpx;
+}
+
+.search-shell__icon-lens::before {
+    content: '';
+    position: absolute;
+    left: 4rpx;
+    top: 3rpx;
+    width: 20rpx;
+    height: 20rpx;
+    border: 4rpx solid #a0610d;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.search-shell__icon-lens::after {
+    content: '';
+    position: absolute;
+    right: 3rpx;
+    bottom: 5rpx;
+    width: 13rpx;
+    height: 4rpx;
+    background: #a0610d;
+    border-radius: 4rpx;
+    transform: rotate(45deg);
+    transform-origin: right center;
 }
 
 .card,
@@ -4244,8 +4954,8 @@ export default {
 }
 
 .tag-item--active {
-    color: #1f7af4;
-    background: rgba(31, 122, 244, 0.12);
+    color: #a0610d;
+    background: rgba(160, 97, 13, 0.12);
 }
 
 .textarea {
@@ -4254,7 +4964,7 @@ export default {
     margin: 0 28rpx;
     padding: 24rpx;
     font-size: 28rpx;
-    background: #f7f8fa;
+    background: #fff9f0;
     border-radius: 18rpx;
 }
 
@@ -4270,7 +4980,7 @@ export default {
     width: 140rpx;
     height: 140rpx;
     margin-right: 20rpx;
-    background: #f7f8fa;
+    background: #fff8ed;
     border: 1rpx dashed #d9dce2;
     border-radius: 16rpx;
 }
@@ -4285,7 +4995,7 @@ export default {
     color: #ffffff;
     font-size: 32rpx;
     font-weight: 600;
-    background: #1f7af4;
+    background: #a0610d;
     border-radius: 44rpx;
 }
 
@@ -4299,7 +5009,7 @@ export default {
 .face-pay-page {
     min-height: 100vh;
     padding: 24rpx;
-    background: linear-gradient(180deg, #eef7ff 0%, #f6f8fb 360rpx, #f6f8fb 100%);
+    background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 360rpx, #fff9f0 100%);
     box-sizing: border-box;
 }
 
@@ -4311,8 +5021,8 @@ export default {
     padding: 34rpx 30rpx;
     border-radius: 28rpx;
     color: #ffffff;
-    background: linear-gradient(135deg, #155eef 0%, #12b981 100%);
-    box-shadow: 0 16rpx 38rpx rgba(23, 107, 255, .16);
+    background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
+    box-shadow: 0 16rpx 38rpx rgba(160, 97, 13, .16);
 }
 
 .face-pay-hero__title {
@@ -4376,9 +5086,9 @@ export default {
     margin-top: 20rpx;
     padding: 30rpx 28rpx;
     border-radius: 24rpx;
-    background: linear-gradient(135deg, #ffffff 0%, #f6fbff 100%);
-    border: 1rpx solid #dcecff;
-    box-shadow: 0 12rpx 30rpx rgba(21, 94, 239, .09);
+    background: linear-gradient(135deg, #ffffff 0%, #fff8ed 100%);
+    border: 1rpx solid #f0dcc0;
+    box-shadow: 0 12rpx 30rpx rgba(160, 97, 13, .09);
 }
 
 .face-pay-scan-card__icon {
@@ -4389,8 +5099,8 @@ export default {
     width: 102rpx;
     height: 102rpx;
     border-radius: 28rpx;
-    background: linear-gradient(135deg, #176bff, #03a6ff);
-    box-shadow: 0 12rpx 24rpx rgba(23, 107, 255, .22);
+    background: linear-gradient(135deg, #a0610d, #d79a43);
+    box-shadow: 0 12rpx 24rpx rgba(160, 97, 13, .22);
 }
 
 .face-pay-scan-card__title {
@@ -4506,10 +5216,10 @@ export default {
     margin-top: 30rpx;
     border-radius: 44rpx;
     color: #ffffff;
-    background: linear-gradient(135deg, #1688ff, #03a6ff);
+    background: linear-gradient(135deg, #a0610d, #d79a43);
     font-size: 30rpx;
     font-weight: 600;
-    box-shadow: 0 14rpx 28rpx rgba(22, 136, 255, .22);
+    box-shadow: 0 14rpx 28rpx rgba(160, 97, 13, .22);
 }
 
 .face-pay-submit--disabled {
@@ -4555,7 +5265,7 @@ export default {
     padding: 0 24rpx;
     color: #ffffff;
     font-size: 24rpx;
-    background: #1f7af4;
+    background: #a0610d;
     border-radius: 29rpx;
 }
 
@@ -4571,7 +5281,7 @@ export default {
 }
 
 .merchant-tab--active {
-    color: #1f7af4;
+    color: #a0610d;
     font-weight: 600;
 }
 
@@ -4603,7 +5313,7 @@ export default {
 .goods-card__price {
     padding: 0 18rpx 18rpx;
     font-size: 28rpx;
-    color: #1f7af4;
+    color: #a0610d;
     font-weight: 600;
 }
 
@@ -4655,7 +5365,7 @@ export default {
     margin-bottom: 18rpx;
     min-height: 220rpx;
     background: #ffffff;
-    border: 1rpx solid rgba(31, 122, 244, 0.06);
+    border: 1rpx solid rgba(160, 97, 13, 0.08);
     border-radius: 24rpx;
     box-shadow: 0 14rpx 36rpx rgba(24, 54, 104, 0.08);
 }
@@ -4679,7 +5389,7 @@ export default {
     width: 188rpx;
     height: 188rpx;
     border-radius: 20rpx;
-    background: #eef4ff;
+    background: #fff1dc;
 }
 
 .image-placeholder {
@@ -4804,7 +5514,7 @@ export default {
     color: #3570c7;
     font-size: 20rpx;
     line-height: 28rpx;
-    background: #eef6ff;
+    background: #fff1dc;
     border-radius: 999rpx;
 }
 
@@ -4851,10 +5561,10 @@ export default {
 
 .street-page {
     width: 100%;
-    max-width: 900rpx;
+    max-width: 750rpx;
     min-height: 100vh;
     margin: 0 auto;
-    background: linear-gradient(180deg, #377df2 0%, #68a3f7 266rpx, #f8f8f8 266rpx, #f8f8f8 100%);
+    background: linear-gradient(180deg, #a0610d 0%, #d79a43 266rpx, #fff9f0 266rpx, #fff9f0 100%);
     padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
     box-sizing: border-box;
 }
@@ -4885,6 +5595,7 @@ export default {
     transform: translateY(-50%);
     width: 168rpx;
     height: 64rpx;
+    opacity: 0;
 }
 
 .street-search {
@@ -4925,15 +5636,41 @@ export default {
     height: 56rpx;
 }
 
-.street-search__icon-image {
+.street-search__icon-lens {
+    position: relative;
     width: 34rpx;
     height: 34rpx;
+}
+
+.street-search__icon-lens::before {
+    content: '';
+    position: absolute;
+    left: 4rpx;
+    top: 3rpx;
+    width: 20rpx;
+    height: 20rpx;
+    border: 4rpx solid #a0610d;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.street-search__icon-lens::after {
+    content: '';
+    position: absolute;
+    right: 3rpx;
+    bottom: 5rpx;
+    width: 13rpx;
+    height: 4rpx;
+    background: #a0610d;
+    border-radius: 4rpx;
+    transform: rotate(45deg);
+    transform-origin: right center;
 }
 
 .street-sheet {
     min-height: calc(100vh - 266rpx);
     margin-top: 20rpx;
-    background: #f8f8f8;
+    background: #fff9f0;
     border-top-left-radius: 21rpx;
     border-top-right-radius: 21rpx;
     box-shadow: 0 -3rpx 16rpx rgba(224, 224, 224, 0.67);
@@ -5036,6 +5773,10 @@ export default {
     width: 24rpx;
     height: 23rpx;
     margin-right: 3rpx;
+    color: #ffb02e;
+    font-size: 22rpx;
+    line-height: 23rpx;
+    text-align: center;
 }
 
 .street-merchant-card__score {
@@ -5053,9 +5794,37 @@ export default {
 }
 
 .street-merchant-card__time-icon {
+    position: relative;
     width: 25rpx;
     height: 25rpx;
     margin-right: 6rpx;
+    border: 3rpx solid #9aa0a6;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.street-merchant-card__time-icon::before {
+    content: '';
+    position: absolute;
+    left: 9rpx;
+    top: 4rpx;
+    width: 3rpx;
+    height: 8rpx;
+    background: #9aa0a6;
+    border-radius: 3rpx;
+}
+
+.street-merchant-card__time-icon::after {
+    content: '';
+    position: absolute;
+    left: 10rpx;
+    top: 10rpx;
+    width: 7rpx;
+    height: 3rpx;
+    background: #9aa0a6;
+    border-radius: 3rpx;
+    transform: rotate(25deg);
+    transform-origin: left center;
 }
 
 .street-merchant-card__time {
@@ -5085,14 +5854,15 @@ export default {
 
 .store-detail-page {
     min-height: 100vh;
-    padding-bottom: 56rpx;
-    background: #f8f8f8;
+    padding-bottom: 84rpx;
+    background: #fff9f0;
 }
 
 .store-detail-hero {
     position: relative;
-    height: 411rpx;
+    height: 291rpx;
     overflow: hidden;
+    background: #000000;
 }
 
 .store-detail-hero__image,
@@ -5104,7 +5874,7 @@ export default {
 .store-detail-hero__mask {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.28);
+    background: rgba(0, 0, 0, 0.42);
 }
 
 .store-detail-hero__top {
@@ -5119,27 +5889,17 @@ export default {
     z-index: 5;
 }
 
-/* #ifdef MP-WEIXIN */
-.store-detail-hero__top {
-    right: 220rpx;
-}
-
-.store-detail-hero__share {
-    margin-right: 0;
-}
-/* #endif */
-
 .store-detail-hero__back {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 72rpx;
-    height: 72rpx;
+    width: 56rpx;
+    height: 56rpx;
     flex: none;
     color: #ffffff;
-    background: rgba(0, 0, 0, 0.28);
-    border-radius: 50%;
+    background: transparent;
+    border-radius: 0;
 }
 
 .store-detail-hero__back-icon {
@@ -5169,55 +5929,39 @@ export default {
 .store-detail-hero__share {
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-width: 104rpx;
-    height: 58rpx;
-    padding: 0 16rpx;
+    justify-content: space-around;
+    width: 168rpx;
+    height: 64rpx;
+    padding: 0 25rpx;
     flex: none;
-    color: #ffffff;
-    font-size: 24rpx;
-    font-weight: 500;
-    background: rgba(0, 0, 0, 0.28);
-    border: 1rpx solid rgba(255, 255, 255, 0.42);
-    border-radius: 999rpx;
-    box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.16);
-    backdrop-filter: blur(8px);
+    border: 1rpx solid rgba(255, 255, 255, 0.46);
+    border-radius: 32rpx;
+    background: rgba(0, 0, 0, 0.24);
     box-sizing: border-box;
+    opacity: 0;
 }
 
-.store-detail-hero__share-icon {
-    position: relative;
-    width: 28rpx;
-    height: 28rpx;
-    margin-right: 8rpx;
-}
-
-.store-detail-hero__share-icon::before,
-.store-detail-hero__share-icon::after {
-    content: '';
-    position: absolute;
+.store-detail-hero__share-dot {
+    width: 9rpx;
+    height: 9rpx;
     border-radius: 50%;
-    background: currentColor;
+    background: #ffffff;
+    box-shadow: 20rpx 0 0 #ffffff, 40rpx 0 0 #ffffff;
 }
 
-.store-detail-hero__share-icon::before {
-    left: 2rpx;
-    top: 10rpx;
-    width: 8rpx;
-    height: 8rpx;
-    box-shadow: 17rpx -8rpx 0 currentColor, 17rpx 12rpx 0 currentColor;
+.store-detail-hero__share-divider {
+    width: 1rpx;
+    height: 34rpx;
+    margin-left: 36rpx;
+    background: rgba(255, 255, 255, 0.38);
 }
 
-.store-detail-hero__share-icon::after {
-    left: 8rpx;
-    top: 9rpx;
-    width: 18rpx;
-    height: 2rpx;
-    border-radius: 2rpx;
-    background: currentColor;
-    box-shadow: 0 10rpx 0 currentColor;
-    transform: rotate(-25deg);
-    transform-origin: left center;
+.store-detail-hero__share-circle {
+    width: 30rpx;
+    height: 30rpx;
+    border: 3rpx solid #ffffff;
+    border-radius: 50%;
+    box-sizing: border-box;
 }
 
 .store-detail-hero__title {
@@ -5451,7 +6195,7 @@ export default {
     font-size: 28rpx;
     font-weight: 500;
     line-height: 81rpx;
-    background: #037dfa;
+    background: #a0610d;
     border: 0;
     border-radius: 40rpx;
 }
@@ -5467,7 +6211,7 @@ export default {
 .store-detail-summary-card,
 .store-detail-address-card {
     display: flex;
-    background: #ffffff;
+    background: #fff9f0;
     border-radius: 15rpx;
     margin: -82rpx 24rpx 0;
     position: relative;
@@ -5522,6 +6266,10 @@ export default {
     width: 24rpx;
     height: 23rpx;
     margin-right: 2rpx;
+    color: #ffb02e;
+    font-size: 22rpx;
+    line-height: 23rpx;
+    text-align: center;
 }
 
 .store-detail-summary-card__score {
@@ -5539,9 +6287,37 @@ export default {
 }
 
 .store-detail-summary-card__time-icon {
+    position: relative;
     width: 25rpx;
     height: 25rpx;
     margin-right: 6rpx;
+    border: 3rpx solid #9aa0a6;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.store-detail-summary-card__time-icon::before {
+    content: '';
+    position: absolute;
+    left: 9rpx;
+    top: 4rpx;
+    width: 3rpx;
+    height: 8rpx;
+    background: #9aa0a6;
+    border-radius: 3rpx;
+}
+
+.store-detail-summary-card__time-icon::after {
+    content: '';
+    position: absolute;
+    left: 10rpx;
+    top: 10rpx;
+    width: 7rpx;
+    height: 3rpx;
+    background: #9aa0a6;
+    border-radius: 3rpx;
+    transform: rotate(25deg);
+    transform-origin: left center;
 }
 
 .store-detail-summary-card__time {
@@ -5579,6 +6355,10 @@ export default {
     padding: 62rpx 24rpx 0;
 }
 
+.store-detail-tabs--group {
+    padding-top: 42rpx;
+}
+
 .store-detail-tab {
     position: relative;
     display: flex;
@@ -5597,7 +6377,7 @@ export default {
 }
 
 .store-detail-tab--active .store-detail-tab__label {
-    color: rgba(42, 122, 255, 1);
+    color: #a0610d;
 }
 
 .store-detail-tab__indicator {
@@ -5605,7 +6385,7 @@ export default {
     bottom: 0;
     width: 35rpx;
     height: 7rpx;
-    background: rgba(42, 122, 255, 1);
+    background: #a0610d;
     border-radius: 3rpx;
 }
 
@@ -5615,7 +6395,7 @@ export default {
     margin: 0 24rpx;
     border-radius: 15rpx;
     overflow: hidden;
-    background: #ffffff;
+    background: #fff9f0;
 }
 
 .store-detail-content-card__fade {
@@ -5624,19 +6404,20 @@ export default {
     right: 0;
     bottom: 0;
     height: 340rpx;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(248, 248, 248, 0.94) 58%, #f8f8f8 100%);
+    background: linear-gradient(180deg, rgba(255, 249, 240, 0) 0%, rgba(255, 249, 240, 0.94) 58%, #fff9f0 100%);
 }
 
 .store-detail-pay-btn {
     position: absolute;
-    left: 96rpx;
-    right: 96rpx;
+    left: 120rpx;
+    right: auto;
     bottom: 56rpx;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 510rpx;
     height: 81rpx;
-    background: rgba(3, 125, 250, 1);
+    background: linear-gradient(90deg, #c49355 0%, #a0610d 100%);
     border-radius: 40rpx;
     color: #ffffff;
     font-size: 28rpx;
@@ -5644,32 +6425,151 @@ export default {
     line-height: 28rpx;
 }
 
-.store-detail-group-list {
-    padding: 31rpx 24rpx 40rpx;
+.store-detail-group-panel {
+    padding: 17rpx 0 186rpx;
 }
 
-.store-detail-media-wrap {
+.store-detail-group-list {
+    padding: 0 24rpx 40rpx;
+}
+
+.store-detail-media-wrap,
+.store-detail-album-panel {
     min-height: 900rpx;
     padding: 24rpx 24rpx 40rpx;
 }
 
-.store-detail-album-grid,
+.store-detail-album-panel {
+    padding: 46rpx 0 40rpx;
+}
+
+.store-detail-media-wrap {
+    padding-top: 38rpx;
+}
+
+.store-detail-category-card {
+    position: relative;
+    min-height: 339rpx;
+    margin: 0 24rpx 22rpx;
+    padding: 83rpx 214rpx 24rpx 19rpx;
+    background: #fff9f0;
+    border-radius: 10rpx;
+    box-sizing: border-box;
+}
+
+.store-detail-category-card::before {
+    content: '';
+    position: absolute;
+    left: 6rpx;
+    top: 10rpx;
+    width: 237rpx;
+    height: 68rpx;
+    border-radius: 34rpx;
+    background: linear-gradient(90deg, rgba(160, 97, 13, 0.18), rgba(160, 97, 13, 0));
+}
+
+.store-detail-category-card::after {
+    content: '店内就餐';
+    position: absolute;
+    right: 20rpx;
+    top: 17rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 206rpx;
+    height: 63rpx;
+    color: #ffffff;
+    font-size: 24rpx;
+    font-weight: 500;
+    line-height: 24rpx;
+    background: linear-gradient(90deg, #c49355 0%, #a0610d 100%);
+    border-radius: 32rpx;
+}
+
+.store-detail-category-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    width: 227rpx;
+    margin-right: 19rpx;
+    vertical-align: top;
+}
+
+.store-detail-category-item__thumb {
+    width: 227rpx;
+    height: 168rpx;
+    background: #fff7f1;
+    border-radius: 20rpx;
+    overflow: hidden;
+}
+
+.store-detail-category-item__image {
+    width: 100%;
+    height: 100%;
+}
+
+.store-detail-category-item__name {
+    max-width: 227rpx;
+    margin-top: 23rpx;
+    color: #a0610d;
+    font-size: 32rpx;
+    font-weight: 500;
+    line-height: 32rpx;
+    text-align: center;
+}
+
+.store-detail-album-section {
+    margin-bottom: 53rpx;
+}
+
+.store-detail-album-section__title {
+    margin: 0 0 22rpx 25rpx;
+    color: #a0610d;
+    font-size: 32rpx;
+    font-weight: 500;
+    line-height: 32rpx;
+}
+
+.store-detail-album-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    width: calc(100% - 48rpx);
+    max-width: 719rpx;
+    margin: 0 auto;
+}
+
 .store-detail-video-grid {
     display: flex;
     flex-wrap: wrap;
-    margin: 0 -9rpx;
+    margin: 0;
 }
 
-.store-detail-album-card,
+.store-detail-album-card {
+    position: relative;
+    width: 241rpx;
+    height: 189rpx;
+    margin: 0 23rpx 18rpx 0;
+    overflow: hidden;
+    border-radius: 10rpx;
+    background: #fff7f1;
+}
+
+.store-detail-album-card:nth-child(3n) {
+    width: 191rpx;
+    margin-right: 0;
+}
+
 .store-detail-video-card {
     position: relative;
-    width: calc(50% - 18rpx);
-    height: 246rpx;
-    margin: 0 9rpx 18rpx;
+    width: 100%;
+    max-width: 703rpx;
+    height: 359rpx;
+    margin: 0 auto 18rpx;
     overflow: hidden;
     border-radius: 15rpx;
-    background: #f6f8fb;
-    box-shadow: 0 10rpx 24rpx rgba(34, 34, 34, 0.05);
+    background: #d5d5d5;
+    box-shadow: none;
 }
 
 .store-detail-album-card__image,
@@ -5679,45 +6579,69 @@ export default {
     display: block;
 }
 
+.store-detail-license-card {
+    margin-left: 28rpx;
+    width: 374rpx;
+    height: 272rpx;
+    overflow: hidden;
+    background: #fff8ed;
+    border-radius: 8rpx;
+}
+
+.store-detail-license-card__image {
+    width: 100%;
+    height: 100%;
+}
+
 .store-detail-video-card__mask {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.18);
+    background: rgba(0, 0, 0, 0.10);
 }
 
 .store-detail-video-card__play {
-    width: 64rpx;
-    height: 64rpx;
+    width: 61rpx;
+    height: 61rpx;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.95);
     position: relative;
 }
 
 .store-detail-video-card__play::after {
     content: '';
     position: absolute;
-    left: 26rpx;
-    top: 20rpx;
+    left: 25rpx;
+    top: 19rpx;
     width: 0;
     height: 0;
     border-top: 12rpx solid transparent;
     border-bottom: 12rpx solid transparent;
-    border-left: 18rpx solid #2a7aff;
+    border-left: 18rpx solid #a0610d;
 }
 
 .store-detail-video-card__title {
+    display: none;
+}
+
+.store-detail-video-card__duration {
     position: absolute;
-    left: 18rpx;
-    right: 18rpx;
-    bottom: 16rpx;
+    top: 12rpx;
+    right: 13rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 91rpx;
+    height: 45rpx;
+    padding: 0 14rpx;
     color: #ffffff;
-    font-size: 24rpx;
-    font-weight: 500;
-    line-height: 28rpx;
-    text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.28);
+    font-size: 26rpx;
+    line-height: 26rpx;
+    background: rgba(0, 0, 0, 0.70);
+    border-radius: 22rpx;
+    box-sizing: border-box;
 }
 
 .store-detail-media-empty {
@@ -5758,7 +6682,7 @@ export default {
     min-height: 185rpx;
     margin-bottom: 18rpx;
     padding: 25rpx 24rpx 24rpx;
-    background: #ffffff;
+    background: #fff9f0;
     border-radius: 13rpx;
     box-sizing: border-box;
 }
@@ -5803,18 +6727,20 @@ export default {
 }
 
 .store-detail-comment-card__content {
+    max-width: 527rpx;
     margin-top: 19rpx;
     color: #666666;
     font-size: 22rpx;
     line-height: 30rpx;
+    word-break: break-word;
 }
 
 .store-detail-group-card {
     position: relative;
     display: flex;
     min-height: 236rpx;
-    margin-bottom: 20rpx;
-    background: #ffffff;
+    margin-bottom: 17rpx;
+    background: #fff9f0;
     border-radius: 15rpx;
 }
 
@@ -5839,7 +6765,7 @@ export default {
 .store-detail-group-card__body {
     flex: 1;
     min-width: 0;
-    padding: 32rpx 184rpx 0 21rpx;
+    padding: 32rpx 164rpx 0 21rpx;
 }
 
 .store-detail-group-card__title {
@@ -5869,8 +6795,8 @@ export default {
     height: 32rpx;
     padding: 0 10rpx;
     border-radius: 16rpx;
-    background: rgba(245, 34, 34, 0.08);
-    color: #f52222;
+    background: rgba(160, 97, 13, 0.10);
+    color: #a0610d;
     font-size: 20rpx;
     line-height: 32rpx;
 }
@@ -5898,6 +6824,10 @@ export default {
     width: 24rpx;
     height: 23rpx;
     margin-right: 2rpx;
+    color: #ffb02e;
+    font-size: 22rpx;
+    line-height: 23rpx;
+    text-align: center;
 }
 
 .store-detail-group-card__score {
@@ -5912,7 +6842,7 @@ export default {
     display: flex;
     align-items: flex-end;
     margin-top: 27rpx;
-    color: rgba(245, 34, 34, 1);
+    color: #a0610d;
     line-height: 1;
 }
 
@@ -5938,7 +6868,7 @@ export default {
     justify-content: center;
     width: 160rpx;
     height: 62rpx;
-    background: rgba(3, 125, 250, 1);
+    background: linear-gradient(90deg, #c49355 0%, #a0610d 100%);
     border-radius: 31rpx;
     color: #ffffff;
     font-size: 24rpx;
@@ -5952,9 +6882,111 @@ export default {
     bottom: 18rpx;
 }
 
+.store-detail-quantity {
+    position: absolute;
+    right: 22rpx;
+    bottom: 23rpx;
+    display: flex;
+    align-items: center;
+    height: 51rpx;
+}
+
+.store-detail-quantity__btn {
+    position: relative;
+    width: 39rpx;
+    height: 39rpx;
+    border-radius: 50%;
+    background: #a0610d;
+}
+
+.store-detail-quantity__btn::before,
+.store-detail-quantity__btn--plus::after {
+    content: '';
+    position: absolute;
+    left: 10rpx;
+    top: 18rpx;
+    width: 19rpx;
+    height: 3rpx;
+    background: #ffffff;
+    border-radius: 3rpx;
+}
+
+.store-detail-quantity__btn--minus {
+    background: #d8b98f;
+}
+
+.store-detail-quantity__btn--plus::after {
+    transform: rotate(90deg);
+}
+
+.store-detail-quantity__value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 55rpx;
+    height: 51rpx;
+    margin: 0 17rpx;
+    color: #222222;
+    font-size: 30rpx;
+    font-weight: 500;
+    line-height: 30rpx;
+    background: #ffffff;
+    border-radius: 4rpx;
+}
+
+.store-detail-order-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: flex-start;
+    min-height: 178rpx;
+    padding: 51rpx 23rpx calc(24rpx + env(safe-area-inset-bottom));
+    background: #fdf4ea;
+    border-radius: 34rpx 34rpx 0 0;
+    box-shadow: 0 -2rpx 21rpx rgba(82, 82, 82, 0.08);
+    box-sizing: border-box;
+}
+
+.store-detail-order-bar__label {
+    margin-top: 11rpx;
+    color: #222222;
+    font-size: 28rpx;
+    font-weight: 500;
+    line-height: 28rpx;
+    white-space: nowrap;
+}
+
+.store-detail-order-bar__price {
+    flex: 1;
+    min-width: 0;
+    margin: 0 24rpx 0 17rpx;
+    color: #a0610d;
+    font-size: 50rpx;
+    font-weight: 500;
+    line-height: 50rpx;
+    white-space: nowrap;
+}
+
+.store-detail-order-bar__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 283rpx;
+    height: 81rpx;
+    color: #ffffff;
+    font-size: 28rpx;
+    font-weight: 500;
+    line-height: 28rpx;
+    background: linear-gradient(90deg, #c49355 0%, #a0610d 100%);
+    border-radius: 41rpx;
+}
+
 .user-kyc-page {
     min-height: 100vh;
-    background: linear-gradient(180deg, #ddecff 0%, #f3f7ff 34%, #f7f9fc 100%);
+    background: linear-gradient(180deg, #fff1dc 0%, #fff8ed 34%, #fff9f0 100%);
 }
 
 .user-kyc-page__hero {
@@ -6068,7 +7100,7 @@ export default {
 .user-kyc-page__illustration-sheet {
     position: absolute;
     border-radius: 24rpx;
-    box-shadow: 0 16rpx 28rpx rgba(74, 123, 192, 0.14);
+    box-shadow: 0 16rpx 28rpx rgba(160, 97, 13, 0.14);
 }
 
 .user-kyc-page__illustration-back {
@@ -6076,7 +7108,7 @@ export default {
     top: 16rpx;
     width: 170rpx;
     height: 176rpx;
-    background: linear-gradient(180deg, #f5f8ff 0%, #ffffff 100%);
+    background: linear-gradient(180deg, #fff8ed 0%, #ffffff 100%);
     transform: rotate(8deg);
 }
 
@@ -6085,7 +7117,7 @@ export default {
     top: 12rpx;
     width: 170rpx;
     height: 176rpx;
-    background: linear-gradient(180deg, #5ca6ff 0%, #1281f7 100%);
+    background: linear-gradient(180deg, #d79a43 0%, #a0610d 100%);
     transform: rotate(8deg);
 }
 
@@ -6094,8 +7126,8 @@ export default {
     top: 14rpx;
     width: 156rpx;
     height: 172rpx;
-    background: linear-gradient(180deg, #f4f7ff 0%, #ffffff 100%);
-    border: 1rpx solid rgba(187, 202, 234, 0.6);
+    background: linear-gradient(180deg, #fff8ed 0%, #ffffff 100%);
+    border: 1rpx solid rgba(234, 213, 184, 0.8);
     transform: rotate(-3deg);
 }
 
@@ -6111,9 +7143,9 @@ export default {
     color: #ffffff;
     font-size: 20rpx;
     font-weight: 700;
-    background: linear-gradient(180deg, #4da5ff 0%, #0b7bf6 100%);
+    background: linear-gradient(180deg, #d79a43 0%, #a0610d 100%);
     border-radius: 12rpx;
-    box-shadow: 0 8rpx 20rpx rgba(35, 124, 239, 0.34);
+    box-shadow: 0 8rpx 20rpx rgba(160, 97, 13, 0.28);
 }
 
 .user-kyc-page__illustration-line {
@@ -6185,8 +7217,8 @@ export default {
     flex-wrap: wrap;
     margin: 0 0 22rpx;
     padding: 20rpx;
-    background: #f7faff;
-    border: 1rpx solid #e8f0ff;
+    background: #fff8ed;
+    border: 1rpx solid #f0dcc0;
     border-radius: 24rpx;
 }
 
@@ -6216,8 +7248,8 @@ export default {
     margin-bottom: 12rpx;
     padding: 22rpx 24rpx;
     color: #202020;
-    background: #f5f8ff;
-    border: 1rpx solid #e7eefc;
+    background: #fff8ed;
+    border: 1rpx solid #f0dcc0;
     border-radius: 18rpx;
 }
 
@@ -6295,7 +7327,7 @@ export default {
     min-height: 190rpx;
     overflow: hidden;
     border-radius: 18rpx;
-    background: linear-gradient(135deg, #eff4fb 0%, #f8f9fd 52%, #eef4ff 100%);
+    background: linear-gradient(135deg, #fff8ed 0%, #fffdf8 52%, #fff1dc 100%);
 }
 
 .user-kyc-page__photo-card.is-filled {
@@ -6321,7 +7353,7 @@ export default {
 }
 
 .user-kyc-page__photo-card--back {
-    background: linear-gradient(135deg, #f3f6ff 0%, #f9faff 52%, #edf1ff 100%);
+    background: linear-gradient(135deg, #fff8ed 0%, #fffdf8 52%, #fff1dc 100%);
 }
 
 .user-kyc-page__photo-preview {
@@ -6394,7 +7426,7 @@ export default {
     width: 76rpx;
     height: 76rpx;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #dbe8ff 0%, #b8cdfb 60%, #a8bcf6 100%);
+    background: radial-gradient(circle at 30% 30%, #fff1dc 0%, #f3d2a7 60%, #d79a43 100%);
 }
 
 .user-kyc-page__photo-preview--certificate .user-kyc-page__photo-badge::after {
@@ -6430,8 +7462,8 @@ export default {
     justify-content: space-between;
     margin-top: 34rpx;
     padding: 22rpx;
-    background: linear-gradient(135deg, #f5f9ff 0%, #eef6ff 100%);
-    border: 1rpx solid #e3edff;
+    background: linear-gradient(135deg, #fff8ed 0%, #fff1dc 100%);
+    border: 1rpx solid #f0dcc0;
     border-radius: 20rpx;
 }
 
@@ -6458,7 +7490,7 @@ export default {
     flex: none;
     margin-left: 24rpx;
     padding: 10rpx 20rpx;
-    color: #0d79f5;
+    color: #a0610d;
     font-size: 24rpx;
     line-height: 34rpx;
     background: #ffffff;
@@ -6481,9 +7513,9 @@ export default {
     color: #ffffff;
     font-size: 34rpx;
     font-weight: 700;
-    background: linear-gradient(180deg, #1986ff 0%, #0d79f5 100%);
+    background: linear-gradient(180deg, #d79a43 0%, #a0610d 100%);
     border-radius: 49rpx;
-    box-shadow: 0 14rpx 30rpx rgba(17, 120, 239, 0.2);
+    box-shadow: 0 14rpx 30rpx rgba(160, 97, 13, 0.2);
 }
 
 @media screen and (max-width: 360px) {
@@ -6608,9 +7640,9 @@ export default {
     color: #ffffff;
     font-size: 32rpx;
     font-weight: 700;
-    background: linear-gradient(180deg, #1986ff 0%, #0d79f5 100%);
+    background: linear-gradient(180deg, #d79a43 0%, #a0610d 100%);
     border-radius: 46rpx;
-    box-shadow: 0 14rpx 30rpx rgba(17, 120, 239, 0.2);
+    box-shadow: 0 14rpx 30rpx rgba(160, 97, 13, 0.2);
 }
 
 .kyc-contract-popup__button.is-disabled {
@@ -6627,7 +7659,7 @@ export default {
     margin: 24rpx;
     padding: 28rpx;
     color: #ffffff;
-    background: linear-gradient(90deg, #1f7af4 0%, #5c8df1 100%);
+    background: linear-gradient(90deg, #a0610d 0%, #d79a43 100%);
     border-radius: 24rpx;
 }
 
@@ -6653,7 +7685,7 @@ export default {
     justify-content: center;
     height: 72rpx;
     margin-top: 24rpx;
-    color: #1f7af4;
+    color: #a0610d;
     font-size: 28rpx;
     font-weight: 600;
     border-radius: 36rpx;
@@ -6665,7 +7697,7 @@ export default {
 }
 
 .is-plus {
-    color: #1f7af4;
+    color: #a0610d;
 }
 
 .info-block,
@@ -6686,7 +7718,7 @@ export default {
     height: 72rpx;
     padding: 0 20rpx;
     font-size: 28rpx;
-    background: #f7f8fa;
+    background: #fff9f0;
     border-radius: 16rpx;
 }
 
@@ -6750,7 +7782,7 @@ export default {
     padding: 28rpx 24rpx 20rpx;
     color: #ffffff;
     border-radius: 20rpx;
-    background: linear-gradient(90deg, #0f83ff 0%, #6299ff 100%);
+    background: linear-gradient(90deg, #a0610d 0%, #d79a43 100%);
 }
 
 .payment-summary-card__head {
@@ -6928,8 +7960,8 @@ export default {
 .payment-record-empty__card::after {
     content: '';
     position: absolute;
-    right: -34rpx;
-    bottom: -20rpx;
+    left: 126rpx;
+    bottom: -14rpx;
     width: 72rpx;
     height: 12rpx;
     background: #d7dde6;
@@ -7118,7 +8150,7 @@ export default {
 
 .payment-filter-sheet__option--active {
     color: #ffffff;
-    background: #0f83ff;
+    background: #a0610d;
 }
 
 .payment-filter-sheet__date-row {
@@ -7192,14 +8224,14 @@ export default {
     color: #ffffff;
     font-size: 30rpx;
     font-weight: 600;
-    background: #0f83ff;
+    background: #a0610d;
     border-radius: 44rpx;
 }
 
 .payment-filter-sheet__action--ghost {
-    color: #0f83ff;
-    background: #edf5ff;
-    border: 2rpx solid #0f83ff;
+    color: #a0610d;
+    background: #fff1dc;
+    border: 2rpx solid #a0610d;
     margin-left: 0;
 }
 </style>

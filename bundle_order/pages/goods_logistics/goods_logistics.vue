@@ -32,11 +32,11 @@
 				<view class="goods">
 					<image v-if="parcelImage" class="goods-img" :src="parcelImage" mode="aspectFill" @error="onGoodsImageError"></image>
 					<view v-else class="goods-placeholder">商品</view>
-					<view class="count">共{{ order.count || 1 }}件</view>
+					<view class="count">{{ goodsCountText }}</view>
 				</view>
 				<view class="parcel-card__body">
 					<view class="parcel-card__name line1">{{ shippingCompanyName }}</view>
-					<view class="parcel-card__meta line1">订单编号：{{ order.order_sn || id || '-' }}</view>
+					<view class="parcel-card__meta line1">订单编号：{{ orderSnText }}</view>
 					<view class="parcel-card__number">
 						<text class="line1">快递单号：{{ order.invoice_no || '暂无物流单号' }}</text>
 						<view class="copy-btn" @tap="onCopy">复制</view>
@@ -121,6 +121,13 @@
 			firstTrace() {
 				return this.traceList[0] || []
 			},
+			goodsCountText() {
+				const count = this.order.count ?? this.order.goods_count ?? this.order.goodsCount ?? ''
+				return count === '' || count === null || count === undefined ? '件数待确认' : `共${count}件`
+			},
+			orderSnText() {
+				return this.order.order_sn || this.order.orderSn || this.id || '订单编号待确认'
+			},
 			hasLogisticsInfo() {
 				return Boolean(
 					this.finish.tips ||
@@ -133,8 +140,8 @@
 				const rows = [
 					{ label: '收货人', value: [this.take.contacts, this.take.mobile].filter(Boolean).join(' ') },
 					{ label: '收货地址', value: this.take.address },
-					{ label: '物流公司', value: this.shippingCompanyName && this.shippingCompanyName !== '暂无物流公司' ? this.shippingCompanyName : '' },
-					{ label: '物流单号', value: this.order.invoice_no && this.order.invoice_no !== '暂无物流单号' ? this.order.invoice_no : '' },
+					{ label: '物流公司', value: this.order.shipping_name ? this.shippingCompanyName : '' },
+					{ label: '物流单号', value: this.order.invoice_no || '' },
 					{ label: '发货时间', value: this.order.shipped_time },
 					{ label: '签收时间', value: this.order.finish_time }
 				]
@@ -197,7 +204,7 @@
 		methods: {
 			companyName(value = '') {
 				const raw = String(value || '').trim()
-				if (!raw || raw === '暂无物流公司') return '暂无物流公司'
+				if (!raw) return '暂无物流公司'
 				const key = raw.replace(/[\s_-]/g, '').toUpperCase()
 				const map = {
 					SF: '顺丰速运',
@@ -240,24 +247,24 @@
 						this.buy = data.buy || {}
 						this.delivery = data.delivery || {}
 						this.finish = data.finish || {}
-						this.order = data.order || { tips: '物流详情', shipping_name: '暂无物流公司', invoice_no: '暂无物流单号', count: 1 }
-						this.order.shipping_name = this.companyName(this.order.shipping_name || this.order.express_name || this.order.shipping_code || this.order.express_code)
+						this.order = data.order || {}
+						const rawCompany = this.order.shipping_name || this.order.express_name || this.order.shipping_code || this.order.express_code || ''
+						this.order.shipping_name = rawCompany ? this.companyName(rawCompany) : ''
 						this.take = data.take || {}
 						return
 					}
 					this.$toast({ title: (res && res.msg) || '物流信息加载失败' })
-					this.order = { tips: '物流详情', shipping_name: '暂无物流公司', invoice_no: '暂无物流单号', count: 1 }
+					this.order = {}
 				} catch (error) {
-					console.error('[goods-logistics] orderTraces failed:', error)
 					this.$toast({ title: '物流信息加载失败' })
-					this.order = { tips: '物流详情', shipping_name: '暂无物流公司', invoice_no: '暂无物流单号', count: 1 }
+					this.order = {}
 				} finally {
 					this.isFirstLoading = false
 				}
 			},
 
 			onCopy() {
-				if (!this.order.invoice_no || this.order.invoice_no === '暂无物流单号') {
+				if (!this.order.invoice_no) {
 					this.$toast({ title: '暂无可复制的物流单号' })
 					return
 				}
@@ -275,12 +282,16 @@
 .goods-logistics-page {
 	min-height: 100vh;
 	padding: 28rpx 24rpx 56rpx;
-	background: linear-gradient(180deg, #e9f4ff 0%, #f7f8fb 330rpx, #f7f8fb 100%);
+	background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 330rpx, #fff9f0 100%);
 	box-sizing: border-box;
+	overflow-x: hidden;
 }
 
 .goods-logistics {
+	max-width: 750rpx;
+	margin: 0 auto;
 	padding-top: 0;
+	box-sizing: border-box;
 }
 
 .logistics-hero,
@@ -289,7 +300,7 @@
 .timeline-card {
 	border-radius: 28rpx;
 	background: #ffffff;
-	box-shadow: 0 16rpx 40rpx rgba(24, 72, 132, .08);
+	box-shadow: 0 16rpx 40rpx rgba(129, 86, 34, .08);
 	box-sizing: border-box;
 }
 
@@ -298,8 +309,8 @@
 	align-items: center;
 	padding: 34rpx 30rpx;
 	color: #ffffff;
-	background: linear-gradient(135deg, #1677ff 0%, #35b7ff 100%);
-	box-shadow: 0 20rpx 48rpx rgba(22, 119, 255, .22);
+	background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
+	box-shadow: 0 20rpx 48rpx rgba(160, 97, 13, .22);
 }
 
 .logistics-hero__badge {
@@ -310,7 +321,7 @@
 	width: 78rpx;
 	height: 78rpx;
 	border-radius: 24rpx;
-	color: #1677ff;
+	color: #a0610d;
 	font-size: 36rpx;
 	font-weight: 800;
 	background: rgba(255, 255, 255, .95);
@@ -350,7 +361,7 @@
 	height: 152rpx;
 	border-radius: 22rpx;
 	overflow: hidden;
-	background: linear-gradient(135deg, #edf4ff, #f6f8fb);
+	background: linear-gradient(135deg, #fff1dc, #fff9f0);
 }
 
 .goods-img,
@@ -392,6 +403,7 @@
 	font-size: 31rpx;
 	font-weight: 800;
 	line-height: 40rpx;
+	word-break: break-all;
 }
 
 .parcel-card__meta {
@@ -399,6 +411,7 @@
 	color: #8b95a5;
 	font-size: 24rpx;
 	line-height: 34rpx;
+	word-break: break-all;
 }
 
 .parcel-card__number {
@@ -424,9 +437,9 @@
 	height: 44rpx;
 	margin-left: 16rpx;
 	border-radius: 999rpx;
-	color: #1677ff;
+	color: #a0610d;
 	font-size: 23rpx;
-	background: #eef6ff;
+	background: #fff1dc;
 }
 
 .info-card,
@@ -445,7 +458,7 @@
 	width: 8rpx;
 	height: 30rpx;
 	border-radius: 999rpx;
-	background: #1677ff;
+	background: #a0610d;
 }
 
 .section-head__title {
@@ -487,7 +500,7 @@
 .logistics-empty {
 	padding: 58rpx 20rpx 64rpx;
 	text-align: center;
-	background: #f8fafc;
+	background: #fff8ed;
 	border-radius: 22rpx;
 }
 
@@ -557,12 +570,12 @@
 	width: 26rpx;
 	height: 26rpx;
 	margin-top: 26rpx;
-	background: #1677ff;
-	box-shadow: 0 0 0 10rpx rgba(22, 119, 255, .12);
+	background: #a0610d;
+	box-shadow: 0 0 0 10rpx rgba(160, 97, 13, .12);
 }
 
 .timeline-item.is-active .timeline-content {
-	background: #eef6ff;
+	background: #fff1dc;
 }
 
 .timeline-title {

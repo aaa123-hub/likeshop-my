@@ -533,8 +533,8 @@ export default {
                 this.$toast({ title: errMsg && errMsg.includes('deny') ? '已取消手机号授权' : '未获取到手机号授权' })
                 return
             }
-            if (String(this.code || phoneCode || '').includes('mock')) {
-                this.$toast({ title: '微信绑定手机号请使用真机调试' })
+            if (String(this.code || phoneCode || '').toLowerCase().includes('mock')) {
+                this.$toast({ title: '暂未获取到有效手机号授权' })
                 return
             }
             let data = {

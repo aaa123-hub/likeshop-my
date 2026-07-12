@@ -3,10 +3,10 @@
 		<view class="list">
 			<view v-for="(item, index) in lists" :key="index" class="item bg-white">
 				<view class="row-between">
-					<view class="black mb10">{{item.desc}}</view>
-					<view class="xl primary">+{{item.total}}</view>
+					<view class="black mb10">{{ displayText(item.desc, '充值记录待确认') }}</view>
+					<view class="xl primary">{{ amountText(item.total) }}</view>
 				</view>
-				<view class="xs muted">{{item.create_time}}</view>
+				<view class="xs muted">{{ displayText(item.create_time, '时间待确认') }}</view>
 			</view>
 		</view>
 		<loading-footer :status="status" slotEmpty>
@@ -45,6 +45,12 @@
 		},
 
 		methods: {
+			displayText(value, fallback) {
+				return value === undefined || value === null || value === '' ? fallback : value
+			},
+			amountText(value) {
+				return value === undefined || value === null || value === '' ? '金额待确认' : `+${value}`
+			},
 			getRechargeRecordFun(type) {
 				let {
 					lists,

@@ -97,16 +97,15 @@ author: likeshop.cn.team //
             ))
           "
         >
-          <view style="flex: 1">
+          <view class="order-footer__timer">
             <view
-              class="primary sm row"
-              style="line-height: 26rpx"
+              class="primary sm row order-footer__timer-text"
               v-if="!isLocallyPaidOrder(item) && !isClosedOrder(item) && getCancelTime(item.order_cancel_time) > 0"
               ><u-count-down
                 separator="zh"
                 :timestamp="getCancelTime(item.order_cancel_time)"
-                separator-color="#FF2C3C"
-                color="#FF2C3C"
+                separator-color="#a0610d"
+                color="#a0610d"
                 :separator-size="26"
                 :font-size="26"
                 bg-color="transparent"
@@ -170,6 +169,7 @@ author: likeshop.cn.team //
               size="sm"
               hover-class="none"
               class="btn plain btn br60 primary red"
+              @tap.stop="goPickupCodePage(item)"
             >
               查看提货码
             </button>
@@ -187,11 +187,13 @@ author: likeshop.cn.team //
         </view>
       </navigator>
       <view v-if="showPlaceholder" class="order-placeholder column-center">
+        <image class="order-placeholder__image" :src="orderPlaceholderImage" mode="aspectFit"></image>
         <text class="lighter">{{ placeholderText }}</text>
       </view>
       <loading-footer v-else :status="footerStatus" :slot-empty="true" @refresh="reload">
         <view slot="empty" class="column-center order-placeholder">
-          <text class="lighter">暂无订单</text>
+          <image class="order-placeholder__image" :src="orderPlaceholderImage" mode="aspectFit"></image>
+          <text class="lighter">暂无数据</text>
         </view>
       </loading-footer>
     </view>
@@ -233,6 +235,7 @@ import LoadingFooter from '@/components/loading-footer/loading-footer.vue'
 import LoadingView from '@/components/loading-view/loading-view.vue'
 import OrderDialog from '@/bundle_order/components/order-dialog/order-dialog.vue'
 import { cleanBackendText, cleanEmptyBackendText, isBackendCodeText } from '@/utils/backend-text'
+import { getPlaceholderImage } from '@/utils/image-placeholder'
 export default {
   data() {
     return {
@@ -249,6 +252,7 @@ export default {
       pay_way: "",
       lastRequestKey: "",
       lastRequestAt: 0,
+      orderPlaceholderImage: getPlaceholderImage('order')
     };
   },
 
@@ -290,6 +294,9 @@ export default {
     uni.$off(["payment", "refreshorder"]);
   },
   methods: {
+    firstDefined(...values) {
+      return values.find(value => value !== undefined && value !== null && value !== '')
+    },
     reflesh() {
       this.page = 1;
       this.orderList = [];
@@ -553,7 +560,6 @@ export default {
         this.orderList = orderList;
         this.status = status;
       } catch (error) {
-        console.error('[order-list] getOrderListFun failed:', error);
         this.status = this.orderList.length ? loadingType.FINISHED : loadingType.ERROR;
       } finally {
         this.isFetching = false;
@@ -614,15 +620,21 @@ export default {
     },
     goodCount(goodLists) {
       let count = 0;
+      let hasCount = false;
       ;(goodLists || []).forEach((item) => {
-        count += Number(item.goods_num || item.quantity || item.num || 0);
+        const value = this.firstDefined(item.goods_num, item.goodsNum, item.quantity, item.num);
+        if (value === undefined) return;
+        const number = Number(value);
+        if (Number.isNaN(number)) return;
+        hasCount = true;
+        count += number;
       });
-      return count;
+      return hasCount ? count : '';
     },
     goodsCountText(item) {
-      const backendCount = item.goods_num || item.goodsNum || item.total_num || item.totalNum || item.goods_count || item.goodsCount || item.quantity;
-      const count = backendCount || this.goodCount(item.order_goods || item.goods_lists);
-      return count ? `共${count}件商品` : '';
+      const backendCount = this.firstDefined(item.goods_num, item.goodsNum, item.total_num, item.totalNum, item.goods_count, item.goodsCount, item.quantity);
+      const count = backendCount !== undefined ? backendCount : this.goodCount(item.order_goods || item.goods_lists);
+      return count !== undefined && count !== null && count !== '' ? `共${count}件商品` : '';
     },
     hasOrderAmount(item) {
       return this.orderAmount(item) !== undefined && this.orderAmount(item) !== null && this.orderAmount(item) !== '';
@@ -635,7 +647,8 @@ export default {
       return values.find((amount) => amount !== undefined && amount !== null && amount !== '' && !Number.isNaN(Number(amount)))
     },
     formatMoney(value) {
-      return this.moneyValue(value).toFixed(2)
+      const number = Number(value)
+      return Number.isNaN(number) ? '' : number.toFixed(2)
     },
     orderAmount(item) {
       return this.firstAmount(
@@ -738,9 +751,10 @@ export default {
     },
     goodsAmountSum(list = []) {
       const amount = (list || []).reduce((sum, goods = {}) => {
-        const count = Number(goods.goods_num || goods.quantity || goods.num || 1);
+        const rawCount = goods.goods_num ?? goods.goodsNum ?? goods.quantity ?? goods.num ?? '';
+        const count = Number(rawCount);
         const price = Number(goods.goods_price || goods.goodsPrice || goods.salePrice || goods.unitPrice || goods.price || 0);
-        if (!Number.isNaN(count) && !Number.isNaN(price) && price > 0) return sum + count * price;
+        if (rawCount !== '' && !Number.isNaN(count) && count > 0 && !Number.isNaN(price) && price > 0) return sum + count * price;
         const explicitAmount = Number(goods.total_price || goods.totalPrice || goods.totalAmount || goods.realAmount);
         return !Number.isNaN(explicitAmount) && explicitAmount > 0 ? sum + explicitAmount : sum;
       }, 0);
@@ -800,6 +814,8 @@ export default {
       }
       if (type === 'delivery') return !this.isAfterSaleOrder(item) && !this.isEndedOrder(item) && (this.isShippedOrder(item) || this.isPendingSelfFetchOrder(item));
       if (type === 'afterSale') return this.isAfterSaleOrder(item);
+      if (type === 'close' || type === 'closed') return !this.isAfterSaleOrder(item) && this.isClosedOrder(item);
+      if (type === 'ended') return !this.isAfterSaleOrder(item) && this.isEndedOrder(item);
       return true;
     },
     hasShippingSignal(item = {}) {
@@ -933,7 +949,13 @@ export default {
       return Boolean(!this.isSelfFetchOrder(item) && !this.isEndedOrder(item) && (item.take_btn || this.isReceivableOrder(item)))
     },
     showPickupButton(item = {}) {
-      return Boolean(this.isSelfFetchOrder(item) && !this.isPendingPayOrder(item) && !this.isClosedOrder(item) && !this.isVerifiedOrder(item) && item.pickup_btn)
+      return Boolean(
+        this.isSelfFetchOrder(item) &&
+        !this.isPendingPayOrder(item) &&
+        !this.isClosedOrder(item) &&
+        !this.isVerifiedOrder(item) &&
+        (item.pickup_btn || this.isPendingSelfFetchOrder(item) || this.pickupCode(item))
+      )
     },
     isReceivableOrder(item = {}) {
       if (item.receivable || item.can_confirm_receipt) return true
@@ -953,6 +975,14 @@ export default {
         return
       }
       this.goPage(`/bundle_order/pages/goods_reviews/goods_reviews?id=${encodeURIComponent(id)}&order_id=${encodeURIComponent(item.id || item.order_sn || '')}`)
+    },
+    goPickupCodePage(item = {}) {
+      const id = item.id || item.order_id || item.orderId || ''
+      if (!id) {
+        this.$toast({ title: '缺少订单信息' })
+        return
+      }
+      this.goPage(`/bundle/pages/order_details/order_details?id=${encodeURIComponent(id)}`)
     },
     formatOrderStatusText(item) {
       if (this.isSelfFetchOrder(item) && this.isRefundFinishedOrder(item)) return '售后';
@@ -1090,7 +1120,7 @@ export default {
     },
     selfFetchShopName(item = {}) {
       const shop = this.selfFetchShop(item)
-      return this.cleanPlainText(shop.name || shop.shopName || shop.shop_name || shop.storeName || item.shop_name || item.shopName, '自提门店')
+      return this.cleanPlainText(shop.name || shop.shopName || shop.shop_name || shop.storeName || item.shop_name || item.shopName, '门店待确认')
     },
     selfFetchShopAddress(item = {}) {
       const shop = this.selfFetchShop(item)
@@ -1170,7 +1200,7 @@ export default {
       return !this.orderList.length && (this.status === loadingType.EMPTY || this.status === loadingType.ERROR);
     },
     placeholderText() {
-      return this.status === loadingType.ERROR ? '加载失败，请稍后重试' : '暂无订单';
+      return this.status === loadingType.ERROR ? '加载失败，请稍后重试' : '暂无数据';
     },
     footerStatus() {
       if (this.isFetching) return loadingType.LOADING;
@@ -1183,17 +1213,17 @@ export default {
 <style lang="scss">
 .order-list {
   // min-height: calc(100vh - 80rpx);
-  padding: 10rpx 22rpx calc(32rpx + env(safe-area-inset-bottom));
+  padding: 0 24rpx calc(32rpx + env(safe-area-inset-bottom));
   overflow: hidden;
 
   .order-item {
     display: block;
     margin-top: 24rpx;
-    background: #ffffff;
-    border: 1rpx solid rgba(31, 122, 244, .08);
-    border-radius: 30rpx;
+    background: #fffaf5;
+    border: 0;
+    border-radius: 15rpx;
     overflow: hidden;
-    box-shadow: 0 16rpx 42rpx rgba(24, 54, 104, .1);
+    box-shadow: none;
 
     .order-header {
       display: flex;
@@ -1202,8 +1232,8 @@ export default {
       flex-wrap: wrap;
       min-height: 96rpx;
       padding: 20rpx 24rpx;
-      background: linear-gradient(135deg, #f4f9ff 0%, #ffffff 76%);
-      border-bottom: 1rpx solid #edf2f7;
+      background: #fffaf5;
+      border-bottom: 1rpx solid #f1e3d4;
       box-sizing: border-box;
     }
 
@@ -1258,8 +1288,8 @@ export default {
     }
 
     .order-status.is-active-status {
-      color: #1f7af4;
-      background: rgba(31, 122, 244, .08);
+      color: #a0610d;
+      background: #fff3e8;
     }
 
     .order-status.is-pay {
@@ -1298,7 +1328,7 @@ export default {
       min-width: 0;
       max-width: 100%;
       padding: 7rpx 13rpx;
-      background: #f6f8fb;
+      background: #fff8ed;
       border-radius: 999rpx;
     }
 
@@ -1405,6 +1435,19 @@ export default {
       gap: 14rpx;
       justify-content: flex-end;
 
+      .order-footer__timer {
+        flex: 1 1 220rpx;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .order-footer__timer-text {
+        max-width: 100%;
+        line-height: 26rpx;
+        flex-wrap: wrap;
+      }
+
       button {
         min-width: 140rpx;
         height: 60rpx;
@@ -1418,8 +1461,14 @@ export default {
         color: #536173;
 
         &.red {
-          border-color: $color-primary;
+          color: #a0610d;
+          border-color: #a0610d;
         }
+      }
+
+      .bg-primary {
+        border-color: #a0610d;
+        background: #a0610d;
       }
     }
   }
@@ -1458,8 +1507,21 @@ export default {
 }
 
 .order-placeholder {
-  min-height: 520rpx;
-  padding-top: 160rpx;
+  min-height: 560rpx;
+  padding-top: 276rpx;
   box-sizing: border-box;
+
+  .lighter {
+    margin-top: 20rpx;
+    color: #666666;
+    font-size: 32rpx;
+    font-weight: 500;
+    line-height: 40rpx;
+  }
+}
+
+.order-placeholder__image {
+  width: 502rpx;
+  height: 293rpx;
 }
 </style>

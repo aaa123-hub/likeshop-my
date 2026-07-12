@@ -146,7 +146,7 @@ image {
 
 .post-sale {
     min-height: 100vh;
-    background: #f7f8fa;
+    background: #fff9f0;
 
     .contain {
         padding-bottom: 24rpx;

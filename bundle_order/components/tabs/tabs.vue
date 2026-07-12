@@ -62,12 +62,12 @@
 					bgColor: '#fff',
 					fontSize: 26,
 					color: '#333',
-					activeColor: '#FF2C3C',
+					activeColor: '#a0610d',
 					itemWidth: 0,
 					underLinePadding: 10,
 					underLineWidth: 0,
 					underLineHeight: 4,
-					underLineColor: '#FF2C3C',
+					underLineColor: '#a0610d',
 				},
 			};
 		},
@@ -213,14 +213,14 @@
 						color: #333;
 
 						&._active {
-							color: #e54d42;
+							color: #a0610d;
 						}
 					}
 				}
 
 				._underline {
 					height: 4rpx;
-					background-color: #e54d42;
+					background-color: #a0610d;
 					border-radius: 6rpx;
 					transition: transform .5s;
 					position: absolute;

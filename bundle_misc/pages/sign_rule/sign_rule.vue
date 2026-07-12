@@ -1,22 +1,15 @@
 <template>
 <!--pages/sign_rule/sign_rule.wxml-->
 <view class="sign-rule-page">
-  <view class="rule-card">
-    <view class="rule-title">积分有效期</view>
-    <view class="rule-content">已领取积分自领取当日起计算，有效期为24个月。有效期届满仍未使用的积分将自动清零。</view>
+  <view v-if="ruleSections.length">
+    <view v-for="section in ruleSections" :key="section.title" class="rule-card">
+      <view class="rule-title">{{ section.title }}</view>
+      <view v-for="(line, index) in section.lines" :key="index" class="rule-content">{{ line }}</view>
+    </view>
   </view>
-
-  <view class="rule-card">
-    <view class="rule-title">积分提醒规则</view>
-    <view class="rule-content">
-      自积分领取当日起倒计时24个月为有效期，到期前一个月通过短信提醒用户即将失效的积分数量及失效时间。
-    </view>
-    <view class="rule-example">
-      例如：用户在2026年1月1日领取100积分，有效期至2028年1月1日，将在2027年12月1日短信提醒用户：“XX用户，您有XX积分将在X月X日23点前过期。”（短信内容待定）
-    </view>
-    <view class="rule-example">
-      用户在2026年1月2日领取100积分，有效期至2028年1月2日，将在2027年12月1日短信提醒用户：“XX用户，您有XX积分将在X月X日23点前过期。”（短信内容待定）
-    </view>
+  <view v-else class="rule-empty">
+    <view class="rule-empty__title">暂无积分规则</view>
+    <view class="rule-empty__desc">积分规则暂未开放，请稍后查看。</view>
   </view>
 </view>
 </template>
@@ -44,7 +37,7 @@ import { getSignRule } from "@/api/user.js";
 export default {
   data() {
     return {
-      rule: ""
+      ruleSections: []
     };
   },
 
@@ -63,9 +56,70 @@ export default {
     getSignRuleFun() {
       getSignRule().then(res => {
         if (res.code == 1) {
-          this.rule = res.data
+          this.ruleSections = this.normalizeRuleSections(res.data)
         }
       });
+    },
+
+    normalizeRuleSections(data) {
+      if (Array.isArray(data)) {
+        return data.map((item, index) => this.normalizeRuleSection(item, `规则${index + 1}`)).filter(item => item.lines.length)
+      }
+      if (typeof data === 'string') {
+        return this.normalizeRuleText(data, '积分规则')
+      }
+      if (!data || typeof data !== 'object') return []
+
+      const rawRules = data.rules || data.ruleList || data.list || []
+      if (Array.isArray(rawRules) && rawRules.length) {
+        return rawRules.map((item, index) => this.normalizeRuleSection(item, `规则${index + 1}`)).filter(item => item.lines.length)
+      }
+
+      const sections = []
+      const knownSections = [
+        ['积分规则', data.rule || data.signRule || data.sign_rule],
+        ['积分有效期', data.validityRule || data.validity_rule || data.expireRule || data.expire_rule],
+        ['积分提醒规则', data.noticeRule || data.notice_rule || data.remindRule || data.remind_rule]
+      ]
+      knownSections.forEach(([title, value]) => {
+        const normalized = this.normalizeRuleText(value, title)
+        if (normalized.length) sections.push(...normalized)
+      })
+      if (sections.length) return sections
+
+      return this.normalizeRuleSection(data, data.title || data.name || '积分规则').lines.length
+        ? [this.normalizeRuleSection(data, data.title || data.name || '积分规则')]
+        : []
+    },
+
+    normalizeRuleSection(item, fallbackTitle) {
+      if (typeof item === 'string') {
+        return {
+          title: fallbackTitle,
+          lines: this.splitRuleLines(item)
+        }
+      }
+      const title = item.title || item.name || item.label || fallbackTitle
+      const text = item.content || item.desc || item.description || item.rule || item.value || ''
+      return {
+        title,
+        lines: this.splitRuleLines(text)
+      }
+    },
+
+    normalizeRuleText(text, title) {
+      const lines = this.splitRuleLines(text)
+      return lines.length ? [{ title, lines }] : []
+    },
+
+    splitRuleLines(text) {
+      return String(text || '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .split(/\n+/)
+        .map(item => item.trim())
+        .filter(Boolean)
     }
 
   }
@@ -95,17 +149,34 @@ export default {
   line-height: 44rpx;
 }
 
-.rule-content,
-.rule-example {
+.rule-content {
   color: #666666;
   font-size: 28rpx;
   line-height: 44rpx;
 }
 
-.rule-example {
-  margin-top: 16rpx;
-  padding: 18rpx 20rpx;
-  background: #fafafa;
-  border-radius: 12rpx;
+.rule-content + .rule-content {
+  margin-top: 12rpx;
+}
+
+.rule-empty {
+  padding: 72rpx 32rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+  text-align: center;
+}
+
+.rule-empty__title {
+  color: #222222;
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 44rpx;
+}
+
+.rule-empty__desc {
+  margin-top: 12rpx;
+  color: #888888;
+  font-size: 26rpx;
+  line-height: 38rpx;
 }
 </style>

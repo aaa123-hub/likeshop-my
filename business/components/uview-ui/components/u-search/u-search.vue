@@ -7,5 +7,5 @@ export default { name: 'u-search', props: { value: String, placeholder: String }
 </script>
 
 <style scoped>
-.u-search-lite{display:flex;align-items:center;height:64rpx;padding:0 24rpx;border-radius:32rpx;background:#f5f5f5}.u-search-lite input{flex:1;height:64rpx;font-size:26rpx}
+.u-search-lite{display:flex;align-items:center;height:64rpx;padding:0 24rpx;border-radius:32rpx;background:#fff9f0}.u-search-lite input{flex:1;height:64rpx;font-size:26rpx}
 </style>

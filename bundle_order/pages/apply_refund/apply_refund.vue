@@ -12,8 +12,8 @@
             :src="goods.image"
           />
           <view class="goods-info">
-            <view class="nr line2">{{ goods.goods_name }}</view>
-            <view class="xs muted mt10">{{ goods.spec_value }}</view>
+            <view class="nr line2">{{ goodsNameText }}</view>
+            <view class="xs muted mt10">{{ goodsSpecText }}</view>
           </view>
         </view>
       </view>
@@ -49,18 +49,20 @@
         </view>
         <view class="refund-info row-between mt20" v-if="!hasExistingAfterSale">
           <view class="lable">数量</view>
-          <view>{{ goods.goods_num }}</view>
+          <view>{{ goodsNumText }}</view>
         </view>
         <view class="refund-info row-between" v-if="!hasExistingAfterSale">
           <view class="lable">现金退款</view>
           <price-format
-            color="#FF2C3C"
+            v-if="hasRefundCashAmount"
+            color="#a0610d"
             :price="refundCashAmount"
             showSubscript="true"
             :subscriptSize="28"
             :firstSize="28"
             :secondSize="28"
           />
+          <view v-else class="muted">金额待确认</view>
         </view>
         <view class="refund-info row-between" v-if="!hasExistingAfterSale && refundPointsAmount > 0">
           <view class="lable">积分退还</view>
@@ -74,7 +76,7 @@
           <view class="lable">退款原因</view>
           <view class="row">
             <text :class="'nr ' + (reasonIndex == -1 ? 'muted' : 'normal')">{{
-              reasonIndex == -1 ? "请选择" : reason[reasonIndex]
+              reasonText
             }}</text>
             <image
               class="icon-sm ml20"
@@ -117,6 +119,7 @@
         <view class="pop-header row-center md normal"> 退款原因 </view>
         <scroll-view style="height: 800rpx" :scroll-y="true">
           <view class="reason-box mt20">
+            <view v-if="!reason.length" class="reason-empty">退款原因待确认</view>
             <radio-group @change="radioChange">
               <label
                 v-for="(item, index) in reason"
@@ -280,6 +283,11 @@ export default {
           title: "请选择退款原因",
         });
       }
+      if (!this.hasRefundCashAmount) {
+        return this.$toast({
+          title: "退款金额待确认",
+        });
+      }
 
       const data = {
         id: this.afterSaleId,
@@ -333,7 +341,7 @@ export default {
         order_id: this.orderId,
         reason: reason[reasonIndex],
         refund_type: optTyle,
-        amount: parseFloat(goods.total_pay_price || 0) + parseFloat(goods.refund_express_money || 0),
+        amount: this.refundCashAmount + this.amountValue(goods.refund_express_money),
         refundCashAmount: this.refundCashAmount,
         refundableCashAmount: this.refundCashAmount,
         refundPointsAmount: this.refundPointsAmount,
@@ -428,7 +436,11 @@ export default {
   computed: {
     refundCashAmount() {
       return this.amountValue(
-        this.goods.refund_cash_amount ??
+        this.refundCashAmountRaw
+      )
+    },
+    refundCashAmountRaw() {
+      return this.goods.refund_cash_amount ??
         this.goods.refundableCashAmount ??
         this.goods.refundable_cash_amount ??
         this.goods.actualPayAmount ??
@@ -436,7 +448,19 @@ export default {
         this.goods.pay_amount ??
         this.goods.payAmount ??
         this.goods.total_pay_price
-      )
+    },
+    hasRefundCashAmount() {
+      const value = this.refundCashAmountRaw
+      return value !== undefined && value !== null && value !== '' && !Number.isNaN(Number(value))
+    },
+    goodsNameText() {
+      return this.goods.goods_name || this.goods.goodsName || this.goods.name || '商品待确认'
+    },
+    goodsSpecText() {
+      return this.goods.spec_value || this.goods.specValue || this.goods.sku_value || this.goods.skuValue || '规格待确认'
+    },
+    reasonText() {
+      return this.reasonIndex == -1 ? "请选择" : (this.reason[this.reasonIndex] || '退款原因待确认')
     },
     refundPointsAmount() {
       return this.amountValue(
@@ -451,6 +475,10 @@ export default {
     },
     refundTotalAmount() {
       return this.refundCashAmount + this.refundPointsAmount
+    },
+    goodsNumText() {
+      const value = this.goods.goods_num ?? this.goods.goodsNum ?? this.goods.quantity ?? this.goods.num ?? ''
+      return value === '' || value === null || value === undefined ? '数量待确认' : value
     },
     hasExistingAfterSale() {
       return Boolean(this.existingAfterSale || this.goods.after_sale_id || this.cleanStatusText(this.goods.after_status_desc))
@@ -469,7 +497,11 @@ export default {
 .apply-refund {
   min-height: 100vh;
   padding: 24rpx 24rpx 50rpx;
-  background: #f7f8fa;
+  background: #fff9f0;
+  max-width: 750rpx;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
 
   .goods {
     background-color: white;
@@ -481,6 +513,7 @@ export default {
       margin-left: 24rpx;
       flex: 1;
       min-width: 0;
+      word-break: break-all;
     }
   }
 }
@@ -560,7 +593,7 @@ export default {
       border-radius: 16rpx;
       padding: 20rpx;
       box-sizing: border-box;
-      background: #f7f8fa;
+      background: #fff8ed;
     }
   }
   .upload {
@@ -577,7 +610,7 @@ export default {
     margin-top: 32rpx;
     margin-left: 0;
     margin-right: 0;
-    box-shadow: 0 12rpx 24rpx rgba(255, 44, 60, 0.18);
+    box-shadow: 0 12rpx 24rpx rgba(160, 97, 13, 0.18);
   }
 }
 
@@ -591,7 +624,16 @@ export default {
     padding: 24rpx 20rpx;
     .reason-desc {
       line-height: 46rpx;
+      word-break: break-all;
     }
   }
+}
+
+.reason-empty {
+  padding: 56rpx 24rpx;
+  color: #999;
+  font-size: 26rpx;
+  line-height: 38rpx;
+  text-align: center;
 }
 </style>

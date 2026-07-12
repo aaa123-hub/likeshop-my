@@ -27,7 +27,7 @@
  * @property {Boolean} disabled 是否禁止用户操作（默认false）
  * @property {String Number} size 星星的大小，单位rpx（默认32）
  * @property {String} inactive-color 未选中星星的颜色（默认#b2b2b2）
- * @property {String} active-color 选中的星星颜色（默认#FA3534）
+ * @property {String} active-color 选中的星星颜色（默认#d79a43）
  * @property {String} active-icon 选中时的图标名，只能为uView的内置图标（默认star-fill）
  * @property {String} inactive-icon 未选中时的图标名，只能为uView的内置图标（默认star）
  * @property {String} gutter 星星之间的距离（默认10）
@@ -75,7 +75,7 @@ export default {
 		// 选中的颜色
 		activeColor: {
 			type: String,
-			default: '#FA3534'
+			default: '#d79a43'
 		},
 		// 星星之间的间距，单位rpx
 		gutter: {

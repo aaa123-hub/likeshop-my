@@ -9,7 +9,7 @@
 				<view class="goods-info">
 					<view class="goods-name line2">{{item.name}}</view>
 					<view class="price mt10 row">
-						<price-format color="#FF2C3C"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
+						<price-format color="#a0610d"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
 						<price-format class="muted" :firstSize="24" :secondSize="24" :subscript-size="24" line-through :price="item.market_price || item.activity_price"></price-format>
 					</view>
 				</view>
@@ -26,7 +26,7 @@
 					<text class="sale br60 xxs">已有{{item.sales_sum}}人购买</text>
 					<view class="row-between  mt10">
 						<view class="price mt10 row">
-							<price-format color="#FF2C3C"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
+							<price-format color="#a0610d"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
 							<price-format class="muted" :firstSize="24" :secondSize="24" :subscript-size="24" line-through :price="item.market_price"></price-format>
 						</view>
 						<image class="icon-md" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_go_red.png"></image>
@@ -47,7 +47,7 @@
 					<text class="sale br60 xxs">已有{{item.sales_sum}}人购买</text>
 					<view class="row-between  mt10">
 						<view class="price mt10 row">
-							<price-format color="#FF2C3C"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
+							<price-format color="#a0610d"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
 							<price-format class="muted" :firstSize="24" :secondSize="24" :subscript-size="24" line-through :price="item.market_price"></price-format>
 						</view>
 						<button type="primary" class="br60" size="xs">去购买</button>
@@ -73,7 +73,7 @@
 						<view>{{item.sales_sum}}人购买</view>
 					</view>
 					<view class="row-between  mt10">
-						<price-format color="#FF2C3C" :first-size="38" :subscript-size="26"  :second-size="26" :price="item.price"
+						<price-format color="#a0610d" :first-size="38" :subscript-size="26"  :second-size="26" :price="item.price"
 						 :weight="500"></price-format>
 						<button type="primary" class="br60" size="xs">立即抢购</button>
 					</view>
@@ -90,7 +90,7 @@
 					<view class="goods-name line2 mb10">{{item.name}}</view>
 					<view class="row-between mt10">
 						<view class="price mt10 row">
-							<price-format color="#FF2C3C"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
+							<price-format color="#a0610d"  class="mr10" :first-size="34" :second-size="26" :subscript-size="26" :price="item.price" :weight="500"></price-format>
 							<price-format class="muted" :firstSize="24" :secondSize="24" :subscript-size="24" line-through :price="item.market_price"></price-format>
 						</view>
 					</view>

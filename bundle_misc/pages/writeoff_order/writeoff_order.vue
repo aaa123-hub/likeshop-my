@@ -5,10 +5,10 @@
 		<view class="list">
 			<view class="item bg-white" v-for="(item, index) in orderList" :key="index">
 				<view class="row-between title">
-					<view>联系人：{{item.consignee}}</view>
-					<view :class="[item.verification_status == 0 ? 'primary' : 'muted']">{{item.verification_status_desc}}</view>
+					<view>联系人：{{ displayText(item.consignee, '联系人待确认') }}</view>
+					<view :class="[item.verification_status == 0 ? 'primary' : 'muted']">{{ displayText(item.verification_status_desc, '状态待确认') }}</view>
 				</view>
-				<order-goods :list="item.order_goods"></order-goods>
+				<order-goods :list="orderGoodsList(item)"></order-goods>
 			</view>
 		</view>
 		<loading-footer :status="status" :slot-empty="true" @refresh="reflesh">
@@ -33,8 +33,7 @@
 import UModal from '@/bundle_misc/components/uview-ui/components/u-modal/u-modal.vue'
 import UTabs from '@/bundle_misc/components/uview-ui/components/u-tabs/u-tabs.vue'
 	import {
-		getVerifyLists,
-		verification
+		getVerifyLists
 	} from '@/api/order'
 	import {
 		loadingType
@@ -88,12 +87,9 @@ import UTabs from '@/bundle_misc/components/uview-ui/components/u-tabs/u-tabs.vu
 				uni.scanCode({
 					scanType: ['qrCode'],
 					success: (res) => {
-						console.log(res)
 						this.toDetail(res.result)
 					},
-					fail: (res) => {
-						console.log(res)
-					}
+					fail: () => this.$toast({ title: '扫码未完成' })
 				});
 				// #endif
 
@@ -106,7 +102,8 @@ import UTabs from '@/bundle_misc/components/uview-ui/components/u-tabs/u-tabs.vu
 					current,
 					order
 				} = this;
-				const type = order[current].type
+				const currentOrder = order[current] || order[0] || {}
+				const type = currentOrder.type
 				const data = await loadingFun(getVerifyLists, page, orderList, status, {
 					type
 				})
@@ -116,14 +113,26 @@ import UTabs from '@/bundle_misc/components/uview-ui/components/u-tabs/u-tabs.vu
 				this.status = data.status
 			},
 			onConfirm() {
-				if(this.code === '') return this.$toast({title: '请输入核销码'})
-				this.toDetail(this.code)
+				const code = String(this.code || '').trim()
+				if(!code) return this.$toast({title: '请输入核销码'})
+				this.toDetail(code)
 			},
 			toDetail(code) {
+				const verifyCode = String(code || '').trim()
+				if (!verifyCode) return this.$toast({ title: '核销码待确认' })
 				this.code = ''
 				uni.navigateTo({
-					url: `/bundle_misc/pages/writeoff_detail/writeoff_detail?code=${code}`,
+					url: `/bundle_misc/pages/writeoff_detail/writeoff_detail?code=${encodeURIComponent(verifyCode)}`,
 				})
+			},
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== ''
+			},
+			displayText(value, fallback) {
+				return this.hasKnownValue(value) ? value : fallback
+			},
+			orderGoodsList(item = {}) {
+				return Array.isArray(item.order_goods) ? item.order_goods : []
 			}
 		},
 		async onLoad() {

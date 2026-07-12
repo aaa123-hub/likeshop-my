@@ -333,7 +333,7 @@ export function copy(str) {
 export function setTabbar() {
   uni.setTabBarStyle({
     color: "#666666",
-    selectedColor: "#1688ff",
+    selectedColor: "#a0610d",
     backgroundColor: "#ffffff",
   });
   return;

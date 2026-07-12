@@ -20,9 +20,9 @@ const state = {
 		navigation_setting: {}
 	},
 	userInfo: Cache.get(USER_INFO) || {
-		user_money: 0,
-		user_integral: 0,
-		coupon: 0
+		user_money: '',
+		user_integral: '',
+		coupon: ''
 	},
 	token: Cache.get(TOKEN) || null,
 	cartNum: Cache.get(CART_NUM) || 0,
@@ -45,9 +45,9 @@ const mutations = {
 	LOGOUT(state) {
 		state.token = undefined;
 		state.userInfo = {
-			user_money: 0,
-			user_integral: 0,
-			coupon: 0
+			user_money: '',
+			user_integral: '',
+			coupon: ''
 		}
 		state.cartNum = 0
 		Cache.remove(TOKEN);

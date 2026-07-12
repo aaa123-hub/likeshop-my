@@ -16,7 +16,7 @@
 					</view>
 					<view class="tip muted mt20 row">
 						提示：当前余额为
-						<text class="primary">￥{{userInfo.user_money || 0}}</text>
+						<text class="primary">{{ balanceText }}</text>
 					</view>
 				</view>
 				<button size="lg" :class="['btn white br60', showLoading ? 'is-disabled' : '']" :disabled="showLoading" @tap="rechargeRights">
@@ -36,11 +36,7 @@
 			<view class="content bg-white">
 				<image class="img-icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/recharge_success.png"></image>
 				<view class="xxl bold mt10">充值成功</view>
-				<view v-if="rechargeInfo.give_integral || rechargeInfo.give_growth" class="lg"
-					style="margin-top: 50rpx">恭喜您获得 <text><text class="primary"
-							v-if="rechargeInfo.give_integral">{{rechargeInfo.give_integral}}</text> 积分</text> <text
-						v-if="rechargeInfo.give_growth">+ <text
-							class="primary">{{rechargeInfo.give_growth}}</text>成长值</text></view>
+				<view class="lg recharge-reward">恭喜您获得 {{ rechargeRewardText }}</view>
 				<button class="br60 btn" type="primary" size="md" @tap="onShowPopup">好的，谢谢</button>
 			</view>
 		</u-popup>
@@ -73,10 +69,6 @@ import UPopup from '@/bundle_finance/components/uview-ui/components/u-popup/u-po
 	} from '@/api/user';
 
 export default {
-    onLoad() {
-        uni.showToast({ title: '礼品卡功能已下线', icon: 'none' })
-        setTimeout(() => uni.navigateBack({ delta: 1 }), 600)
-    },
 		data() {
 			return {
 				cardNo: '',
@@ -93,6 +85,22 @@ export default {
 			UPopup
 		},
 		props: {},
+		computed: {
+			balanceText() {
+				const value = this.userInfo.user_money ?? this.userInfo.balance ?? this.userInfo.walletBalance ?? ''
+				if (value === '' || value === null || value === undefined) return '余额待确认'
+				const amount = Number(value)
+				return Number.isNaN(amount) ? '余额待确认' : `￥${amount.toFixed(2)}`
+			},
+			rechargeRewardText() {
+				const integral = this.rechargeInfo.give_integral ?? this.rechargeInfo.giveIntegral
+				const growth = this.rechargeInfo.give_growth ?? this.rechargeInfo.giveGrowth
+				const parts = []
+				if (this.hasKnownNumber(integral)) parts.push(`${Number(integral)}积分`)
+				if (this.hasKnownNumber(growth)) parts.push(`${Number(growth)}成长值`)
+				return parts.length ? parts.join(' + ') : '奖励信息待确认'
+			}
+		},
 
 		/**
 		 * 生命周期函数--监听页面加载
@@ -123,6 +131,11 @@ export default {
 						this.userInfo = res.data
 					}
 				});
+			},
+			hasKnownNumber(value) {
+				if (value === undefined || value === null || value === '') return false
+				const amount = Number(value)
+				return !Number.isNaN(amount) && Number.isFinite(amount)
 			},
 
 			rechargeRights() {
@@ -172,7 +185,7 @@ export default {
 	.user-payment {
 		min-height: calc(100vh - var(--window-top));
 		padding: 24rpx 30rpx calc(40rpx + env(safe-area-inset-bottom));
-		background: #f6f7fb;
+		background: #fff9f0;
 		box-sizing: border-box;
 
 		.payment {
@@ -217,7 +230,7 @@ export default {
 			.input {
 				margin-top: 18rpx;
 				padding: 0 24rpx;
-				background: #f7f8fa;
+				background: #fff8ed;
 				border-radius: 18rpx;
 				border: 1rpx solid #edf0f5;
 				box-sizing: border-box;
@@ -239,7 +252,7 @@ export default {
 		}
 
 		.btn {
-			background: linear-gradient(79deg, rgba(249, 95, 47, 1) 0%, rgba(255, 44, 60, 1) 100%);
+			background: linear-gradient(79deg, #d79a43 0%, #a0610d 100%);
 			margin: 48rpx 0 30rpx;
 			border: 0;
 
@@ -271,7 +284,7 @@ export default {
 					.hot-recharge {
 						position: absolute;
 						padding: 2rpx 10rpx;
-						background: linear-gradient(180deg, #FF2C3C 0%, #F95F2F 100%);
+						background: linear-gradient(180deg, #d79a43 0%, #a0610d 100%);
 						border-radius: 0 10rpx 0 10rpx;
 						font-size: 20rpx;
 						top: 0;
@@ -314,6 +327,12 @@ export default {
 			width: 168rpx;
 			height: 118rpx;
 			display: inline-block;
+		}
+
+		.recharge-reward {
+			margin-top: 50rpx;
+			padding: 0 40rpx;
+			line-height: 42rpx;
 		}
 
 		.btn {

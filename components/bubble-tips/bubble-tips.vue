@@ -101,7 +101,7 @@
 				getBubbleLists().then(res => {
 					if (res.code == 1) {
 						const data = res.data || {};
-						this.list = Array.isArray(data.lists) ? data.lists : [];
+						this.list = (Array.isArray(data.lists) ? data.lists : []).filter(item => item && item.template);
 						const requestTime = (data.time || Math.floor(Date.now() / 1000)) * 1000;
 						Cache.set("bubbleList", JSON.stringify(this.list), 300);
 						Cache.set("requestTime", requestTime);
@@ -116,7 +116,7 @@
 				let requestTime = Cache.get("requestTime");
 				let currentTime = new Date();
 				this.index = Cache.get("currentIndex") || 0;
-				this.list = Cache.get("bubbleList") ? JSON.parse(Cache.get("bubbleList")) : [];
+				this.list = (Cache.get("bubbleList") ? JSON.parse(Cache.get("bubbleList")) : []).filter(item => item && item.template);
 				if (!this.list.length) {
 					this.showBubble = false;
 					this.currentList = [];

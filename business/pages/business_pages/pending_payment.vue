@@ -4,6 +4,11 @@
             <view class="nav-row">
                 <view class="back-icon" @tap="goBack"></view>
                 <text class="nav-title">待付款</text>
+                <view class="nav-capsule">
+                    <view class="nav-capsule__dot"></view>
+                    <view class="nav-capsule__divider"></view>
+                    <view class="nav-capsule__circle"></view>
+                </view>
             </view>
             <view class="tips-row">
                 <view class="tips-icon-wrap">
@@ -58,13 +63,14 @@
                             <view class="goods-info">
                                 <text class="goods-name">{{ goodsDisplayName(item) }}</text>
                                 <text v-if="goodsDisplaySpec(item)" class="goods-spec">{{ goodsDisplaySpec(item) }}</text>
-                                <view class="goods-price">
+                                <view v-if="goodsDisplayPriceText(item)" class="goods-price">
                                     <text class="price-symbol">¥</text>
                                     <text class="price-main">{{ splitAmount(goodsDisplayPrice(item)).main }}</text>
                                     <text class="price-decimal">{{ splitAmount(goodsDisplayPrice(item)).decimal }}</text>
                                 </view>
+                                <view v-else class="goods-price goods-price--pending">金额待确认</view>
                             </view>
-                            <text class="goods-num">X{{ goodsDisplayNum(item) }}</text>
+                            <text class="goods-num">{{ goodsDisplayNumText(item) }}</text>
                         </view>
                     </view>
                 </view>
@@ -83,7 +89,7 @@
             <view class="order-card price-card">
                 <view class="summary-row">
                     <text>商品总价</text>
-                    <text>{{ order.goodsAmount || '¥0.00' }}</text>
+                    <text>{{ goodsAmountText }}</text>
                 </view>
                 <view class="divider"></view>
                 <view class="summary-row">
@@ -109,8 +115,7 @@
                         <text class="points-desc">{{ pointsSummaryText }}</text>
                     </view>
                     <view class="points-value">
-                        <text class="points-num">{{ pointsInfo.available }}</text>
-                        <text class="points-unit">积分</text>
+                        <text class="points-num">{{ pointsInfo.availableText }}</text>
                     </view>
                 </view>
                 <template v-if="pointsInfo.enabled">
@@ -134,6 +139,13 @@
                         <text class="muted-text">{{ pointsInfo.used }}积分</text>
                     </view>
                 </template>
+                <template v-else-if="pointsInfo.hasUsed && pointsInfo.enabled">
+                    <view class="divider"></view>
+                    <view class="summary-row">
+                        <text>使用积分</text>
+                        <text class="muted-text">0积分</text>
+                    </view>
+                </template>
                 <template v-if="pointsInfo.give > 0">
                     <view class="divider"></view>
                     <view class="summary-row">
@@ -141,22 +153,27 @@
                         <text class="muted-text">+{{ pointsInfo.give }}积分</text>
                     </view>
                 </template>
+                <template v-else-if="pointsInfo.hasGive">
+                    <view class="divider"></view>
+                    <view class="summary-row">
+                        <text>预计到账积分</text>
+                        <text class="muted-text">0积分</text>
+                    </view>
+                </template>
             </view>
 
             <view class="pay-section">
                 <view class="section-title-row">
                     <view class="title-mark"></view>
-                    <text>选择付款方式</text>
+                    <text>付款方式</text>
                 </view>
                 <view class="pay-card">
-                    <view class="pay-item">
-                        <image
-                            class="pay-icon wechat"
-                            src="https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png"
-                            mode="scaleToFill"
-                        ></image>
-                        <text>微信支付</text>
-                        <view class="pay-radio"></view>
+                    <view class="pay-notice">
+                        <view class="pay-notice__icon"></view>
+                        <view class="pay-notice__body">
+                            <text class="pay-notice__title">继续付款后选择支付方式</text>
+                            <text class="pay-notice__desc">可用支付方式以支付页展示为准</text>
+                        </view>
                     </view>
                 </view>
             </view>
@@ -165,13 +182,20 @@
         <view v-else class="pending-empty">暂无待付款订单</view>
 
         <view v-if="order" class="bottom-bar">
+            <text class="goods-count">{{ goodsTotalCountText }}</text>
             <text class="total-label">合计：</text>
-            <view class="total-price">
-                <text class="total-symbol">¥</text>
-                <text class="total-main">{{ totalAmountParts.main }}</text>
-                <text class="total-decimal">{{ totalAmountParts.decimal }}</text>
+            <view class="total-stack">
+                <view class="total-price">
+                    <text class="total-symbol">¥</text>
+                    <text class="total-main">{{ totalAmountParts.main }}</text>
+                    <text class="total-decimal">{{ totalAmountParts.decimal }}</text>
+                </view>
+                <text v-if="bottomDeductText" class="bottom-deduct">{{ bottomDeductText }}</text>
             </view>
-            <view class="pay-button" @tap="handlePay">立即支付</view>
+            <view class="pay-button" @tap="handlePay">
+                <text class="pay-button__main">继续付款</text>
+                <text class="pay-button__sub">{{ paymentCountdownText }}</text>
+            </view>
         </view>
 
         <u-popup v-model="showCoupon" border-radius="18" mode="bottom" closeable>
@@ -287,7 +311,7 @@ export default {
         },
         shopNameText() {
             const order = this.order || {}
-            return this.safeText(order.shopName || order.shop_name, '店铺信息')
+            return this.safeText(order.shopName || order.shop_name, '店铺待确认')
         },
         goodsList() {
             const order = this.order || {}
@@ -301,7 +325,7 @@ export default {
                     const items = shop.itemList || shop.items || shop.goodsList || shop.goods_lists || shop.order_goods || []
                     return {
                         key: this.firstDefined(shop.shopId, shop.shop_id, shop.id, `shop_${index}`),
-                        name: this.safeText(this.firstDefined(shop.shopName, shop.shop_name, shop.name, shop.storeName, shop.store_name, this.shopNameText), '店铺信息'),
+                        name: this.safeText(this.firstDefined(shop.shopName, shop.shop_name, shop.name, shop.storeName, shop.store_name, this.shopNameText), '店铺待确认'),
                         items: Array.isArray(items) && items.length ? items : this.goodsList
                     }
                 })
@@ -313,7 +337,7 @@ export default {
                 if (!group) {
                     group = {
                         key: String(shopId || `shop_${index}`),
-                        name: this.safeText(this.firstDefined(item.shop_name, item.shopName, item.store_name, item.storeName, order.shop_name, order.shopName), '店铺信息'),
+                        name: this.safeText(this.firstDefined(item.shop_name, item.shopName, item.store_name, item.storeName, order.shop_name, order.shopName), '店铺待确认'),
                         items: []
                     }
                     groups.push(group)
@@ -327,15 +351,15 @@ export default {
                 items: [{
                     goods_name: this.goodsNameText,
                     spec_value_str: this.goodsSpecText,
-                    goods_price: this.firstDefined(order.goods_price, order.goodsPrice, order.price, order.payAmount, order.order_amount, 0),
-                    goods_num: this.firstDefined(order.goods_num, order.goodsNum, order.num, 1)
+                    goods_price: this.firstDefined(order.goods_price, order.goodsPrice, order.price, order.payAmount, order.order_amount, ''),
+                    goods_num: this.firstDefined(order.goods_num, order.goodsNum, order.num, '')
                 }]
             }]
         },
         goodsNameText() {
             const order = this.order || {}
             const firstGoods = (order.order_goods || order.goods_lists || [])[0] || {}
-            return this.safeText(order.goodsName || order.goods_name || firstGoods.goods_name || firstGoods.name, '商品信息')
+            return this.safeText(order.goodsName || order.goods_name || firstGoods.goods_name || firstGoods.name, '商品待确认')
         },
         goodsSpecText() {
             const order = this.order || {}
@@ -375,7 +399,7 @@ export default {
                 pointsInfo.can_use_points,
                 ''
             )
-            const available = this.numberValue(this.firstDefined(
+            const availableRaw = this.firstDefined(
                 order.user_integral,
                 order.userIntegral,
                 order.availablePoints,
@@ -410,10 +434,11 @@ export default {
                 pointsInfo.availableIntegral,
                 pointsInfo.available_integral,
                 pointsInfo.points,
-                pointsInfo.integral,
-                0
-            ))
-            const used = this.numberValue(this.firstDefined(
+                pointsInfo.integral
+            )
+            const hasAvailable = this.hasBackendValue(availableRaw)
+            const available = hasAvailable ? this.numberValue(availableRaw) : 0
+            const usedRaw = this.firstDefined(
                 order.pointsAmount,
                 order.points_amount,
                 order.usedPoints,
@@ -454,10 +479,11 @@ export default {
                 pointsInfo.maxUsablePoints,
                 pointsInfo.max_usable_points,
                 pointsInfo.usablePoints,
-                pointsInfo.usable_points,
-                0
-            ))
-            const backendDeductAmount = this.numberValue(this.firstDefined(
+                pointsInfo.usable_points
+            )
+            const hasUsed = this.hasBackendValue(usedRaw)
+            const used = hasUsed ? this.numberValue(usedRaw) : 0
+            const backendDeductAmountRaw = this.firstDefined(
                 order.pointsDeductAmount,
                 order.points_deduct_amount,
                 order.integralAmount,
@@ -491,10 +517,11 @@ export default {
                 pointsInfo.integralAmount,
                 pointsInfo.integral_amount,
                 pointsInfo.integralDeductAmount,
-                pointsInfo.integral_deduct_amount,
-                0
-            ))
-            const maxDeductAmount = this.numberValue(this.firstDefined(
+                pointsInfo.integral_deduct_amount
+            )
+            const hasBackendDeductAmount = this.hasBackendValue(backendDeductAmountRaw)
+            const backendDeductAmount = hasBackendDeductAmount ? this.numberValue(backendDeductAmountRaw) : 0
+            const maxDeductAmountRaw = this.firstDefined(
                 order.maxDeductAmount,
                 order.max_deduct_amount,
                 order.maxPointsDeductAmount,
@@ -512,9 +539,10 @@ export default {
                 pointsInfo.maxPointsDeductAmount,
                 pointsInfo.max_points_deduct_amount,
                 pointsInfo.maxIntegralDeductAmount,
-                pointsInfo.max_integral_deduct_amount,
-                0
-            ))
+                pointsInfo.max_integral_deduct_amount
+            )
+            const hasMaxDeductAmount = this.hasBackendValue(maxDeductAmountRaw)
+            const maxDeductAmount = hasMaxDeductAmount ? this.numberValue(maxDeductAmountRaw) : 0
             const exchangeRate = this.pointsExchangeRate(order, baseInfo, orderInfo, amountInfo, pointsInfo)
             const byPoints = exchangeRate > 0 ? available * exchangeRate : 0
             const deductCandidates = [
@@ -527,7 +555,7 @@ export default {
             const normalizedUsed = used > 0
                 ? Math.min(available || used, used)
                 : (deductAmount > 0 && exchangeRate > 0 ? Math.min(available, Math.ceil(deductAmount / exchangeRate)) : 0)
-            const give = this.numberValue(this.firstDefined(
+            const giveRaw = this.firstDefined(
                 order.order_give_integral,
                 order.giveIntegral,
                 order.give_integral,
@@ -542,24 +570,31 @@ export default {
                 pointsInfo.giveIntegral,
                 pointsInfo.give_integral,
                 pointsInfo.rewardPoints,
-                pointsInfo.reward_points,
-                0
-            ))
+                pointsInfo.reward_points
+            )
+            const hasGive = this.hasBackendValue(giveRaw)
+            const give = hasGive ? this.numberValue(giveRaw) : 0
             const hasAnyData = Boolean(
-                available > 0
-                || normalizedUsed > 0
-                || deductAmount > 0
-                || give > 0
+                hasAvailable
+                || hasUsed
+                || hasBackendDeductAmount
+                || hasMaxDeductAmount
+                || hasGive
                 || enabledValue !== ''
                 || Object.keys(pointsInfo || {}).length
             )
             const enabled = this.boolValue(enabledValue, available > 0 || used > 0 || deductAmount > 0)
             return {
                 available,
+                availableText: hasAvailable ? `${available}积分` : '积分待确认',
                 used: normalizedUsed,
                 deductAmount,
+                hasAvailable,
+                hasUsed,
+                hasGive,
+                hasBackendDeductAmount,
                 maxDeductAmount: maxDeductAmount > 0 ? Math.min(maxDeductAmount, this.orderAmountBeforePoints || maxDeductAmount) : 0,
-                maxDeductText: maxDeductAmount > 0 ? `¥${this.formatAmount(Math.min(maxDeductAmount, this.orderAmountBeforePoints || maxDeductAmount))}` : (exchangeRate > 0 && available > 0 ? `¥${this.formatAmount(deductAmount)}` : '后端未返回'),
+                maxDeductText: maxDeductAmount > 0 ? `¥${this.formatAmount(Math.min(maxDeductAmount, this.orderAmountBeforePoints || maxDeductAmount))}` : (exchangeRate > 0 && available > 0 ? `¥${this.formatAmount(deductAmount)}` : '待确认'),
                 give,
                 enabled,
                 hasAnyData
@@ -569,12 +604,13 @@ export default {
             return this.pointsInfo.enabled && (this.pointsInfo.used > 0 || this.pointsInfo.deductAmount > 0)
         },
         pointsSummaryText() {
+            if (!this.pointsInfo.hasAnyData) return '订单详情未返回积分抵扣数据'
             if (!this.pointsInfo.enabled) return '当前订单暂不支持积分抵扣'
             if (this.pointsInfo.deductAmount > 0 && this.pointsInfo.used > 0) return `已用${this.pointsInfo.used}积分抵扣¥${this.formatAmount(this.pointsInfo.deductAmount)}`
             if (this.pointsInfo.deductAmount > 0) return `已抵扣¥${this.formatAmount(this.pointsInfo.deductAmount)}`
             if (this.pointsInfo.used > 0) return `已使用${this.pointsInfo.used}积分`
-            if (this.pointsInfo.available > 0) return '有可用积分，待后端返回本单抵扣额'
-            if (!this.pointsInfo.hasAnyData) return '订单详情未返回积分抵扣数据'
+            if (this.pointsInfo.available > 0) return '有可用积分，抵扣金额待确认'
+            if (!this.pointsInfo.hasAvailable) return '可用积分待确认'
             return '暂无可用积分抵扣'
         },
         normalizedPointsInfo() {
@@ -638,6 +674,25 @@ export default {
             )
             return Math.max(this.numberValue(rawAmount) - this.effectiveDiscountAmount, 0)
         },
+        goodsAmountText() {
+            const order = this.order || {}
+            const amountInfo = order.amountInfo || order.amount_info || order.settlementAmount || order.settlement_amount || {}
+            const value = this.firstDefined(
+                order.goodsAmount,
+                order.goods_amount,
+                order.goods_price,
+                order.totalGoodsAmount,
+                order.total_goods_amount,
+                order.total_goods_price,
+                amountInfo.goodsAmount,
+                amountInfo.goods_amount,
+                amountInfo.totalGoodsAmount,
+                amountInfo.total_goods_amount,
+                ''
+            )
+            if (value === '') return '待确认'
+            return `¥${this.formatAmount(value)}`
+        },
         totalPayAmount() {
             const order = this.order || {}
             const amountInfo = order.amountInfo || order.amount_info || order.settlementAmount || order.settlement_amount || {}
@@ -659,6 +714,31 @@ export default {
         },
         totalAmountParts() {
             return this.splitAmount(this.totalPayAmount)
+        },
+        goodsTotalCount() {
+            return this.shopGroups.reduce((sum, shop) => {
+                const items = Array.isArray(shop.items) ? shop.items : []
+                return sum + items.reduce((itemSum, item) => {
+                    const num = this.goodsDisplayNum(item)
+                    return itemSum + (num > 0 ? num : 0)
+                }, 0)
+            }, 0)
+        },
+        goodsTotalCountText() {
+            return this.goodsTotalCount > 0 ? `共${this.goodsTotalCount}件` : '件数待确认'
+        },
+        bottomDeductText() {
+            if (this.pointsInfo.deductAmount > 0) return `积分抵扣:¥${this.formatAmount(this.pointsInfo.deductAmount)}`
+            if (this.effectiveDiscountAmount > 0) return `优惠抵扣:¥${this.formatAmount(this.effectiveDiscountAmount)}`
+            return ''
+        },
+        paymentCountdownText() {
+            const order = this.order || {}
+            const text = this.firstDefined(order.payLeftTimeText, order.pay_left_time_text, order.countdownText, order.countdown_text, order.expireTimeText, order.expire_time_text, '')
+            if (text) return String(text).startsWith('剩余') ? text : `剩余：${text}`
+            const seconds = this.numberValue(this.firstDefined(order.payLeftSeconds, order.pay_left_seconds, order.countdownSeconds, order.countdown_seconds, order.expireSeconds, order.expire_seconds, 0))
+            if (seconds > 0) return `剩余：${this.formatCountdown(seconds)}`
+            return '剩余：待确认'
         }
     },
     onLoad(options = {}) {
@@ -683,6 +763,9 @@ export default {
         numberValue(value) {
             const number = Number(value)
             return Number.isNaN(number) ? 0 : number
+        },
+        hasBackendValue(value) {
+            return value !== undefined && value !== null && value !== ''
         },
         boolValue(value, fallback = false) {
             if (value === undefined || value === null || value === '') return fallback
@@ -730,6 +813,14 @@ export default {
         },
         formatAmount(value) {
             return this.numberValue(value).toFixed(2)
+        },
+        formatCountdown(seconds) {
+            const total = Math.max(0, Math.floor(Number(seconds) || 0))
+            const hours = Math.floor(total / 3600)
+            const minutes = Math.floor((total % 3600) / 60)
+            const secs = total % 60
+            const pad = value => String(value).padStart(2, '0')
+            return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`
         },
         pointsExchangeRate(order = {}, baseInfo = {}, orderInfo = {}, amountInfo = {}, pointsInfo = {}) {
             const raw = this.numberValue(this.firstDefined(
@@ -795,16 +886,26 @@ export default {
             return this.firstDefined(item.image, item.image_str, item.goods_image, item.goodsImage, item.pic, item.cover, item.imageUrl, item.image_url, '')
         },
         goodsDisplayName(item = {}) {
-            return this.safeText(this.firstDefined(item.goods_name, item.goodsName, item.name, item.title, this.goodsNameText), '商品信息')
+            return this.safeText(this.firstDefined(item.goods_name, item.goodsName, item.name, item.title, this.goodsNameText), '商品待确认')
         },
         goodsDisplaySpec(item = {}) {
             return this.safeText(this.firstDefined(item.spec_value_str, item.specValueStr, item.spec_value, item.specValue, item.skuValue, item.sku_value, item.spec, ''))
         },
         goodsDisplayPrice(item = {}) {
-            return this.numberValue(this.firstDefined(item.original_price, item.originalPrice, item.goods_price, item.goodsPrice, item.price, item.sellPrice, item.sell_price, item.amount, 0))
+            const value = this.firstDefined(item.original_price, item.originalPrice, item.goods_price, item.goodsPrice, item.price, item.sellPrice, item.sell_price, item.amount, '')
+            return value === '' ? '' : this.numberValue(value)
+        },
+        goodsDisplayPriceText(item = {}) {
+            const value = this.goodsDisplayPrice(item)
+            return value === '' ? '' : this.formatAmount(value)
         },
         goodsDisplayNum(item = {}) {
-            return this.numberValue(this.firstDefined(item.goods_num, item.goodsNum, item.num, item.quantity, item.count, 1)) || 1
+            const value = this.firstDefined(item.goods_num, item.goodsNum, item.num, item.quantity, item.count, '')
+            return value === '' ? '' : this.numberValue(value)
+        },
+        goodsDisplayNumText(item = {}) {
+            const value = this.goodsDisplayNum(item)
+            return value === '' || value <= 0 ? '数量待确认' : `X${value}`
         },
         async initOrder(options = {}) {
             const encoded = this.firstDefined(options.order, options.data, options.detail)
@@ -1064,8 +1165,8 @@ export default {
             const longitude = info.longitude ?? info.lng ?? info.location?.longitude ?? ''
             const id = this.firstDefined(info.id, info.shop_id, info.shopId, info.selffetch_shop_id, info.selffetchShopId, latitude && longitude ? `map_${latitude}_${longitude}` : '')
             const orderId = this.currentOrderId()
-            const address = this.safeText(this.firstDefined(info.map_address, info.mapAddress, info.shop_address, info.address, info.detailAddress, info.detail_address, info.poiAddress, info.poiaddress, info.pickupAddress, info.name, ''))
-            const name = address || this.safeText(this.firstDefined(info.name, info.shop_name, info.shopName, info.storeName, info.pickupName, '地图选点地址'), '地图选点地址')
+            const address = this.safeText(this.firstDefined(info.map_address, info.mapAddress, info.shop_address, info.address, info.detailAddress, info.detail_address, info.poiAddress, info.poiaddress, info.pickupAddress, ''))
+            const name = this.safeText(this.firstDefined(info.name, info.shop_name, info.shopName, info.storeName, info.pickupName, ''), '')
             return {
                 ...info,
                 id,
@@ -1195,7 +1296,7 @@ export default {
             const longitude = res.longitude || ''
             const id = latitude && longitude ? `map_${latitude}_${longitude}` : ''
             const address = res.address || res.name || ''
-            const name = res.name || address || '地图选点地址'
+            const name = ''
             return {
                 id,
                 shop_id: id,
@@ -1266,12 +1367,12 @@ export default {
 <style lang="scss">
 page {
     min-height: 100%;
-    background: #f5f5f5;
+    background: #fff9f0;
 }
 
 .pending-page {
     min-height: 100vh;
-    background: #f5f5f5;
+    background: #fff9f0;
     color: #222222;
 }
 
@@ -1295,12 +1396,6 @@ page {
     height: calc(var(--app-safe-top) + 112rpx);
     padding-top: calc(var(--app-safe-top) + 48rpx);
 }
-
-/* #ifdef MP-WEIXIN */
-.nav-row {
-    padding-right: 220rpx;
-}
-/* #endif */
 
 .back-icon {
     position: relative;
@@ -1330,16 +1425,56 @@ page {
     line-height: 36rpx;
 }
 
+.nav-capsule {
+    position: absolute;
+    right: 23rpx;
+    bottom: 14rpx;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 168rpx;
+    height: 64rpx;
+    padding: 0 19rpx;
+    border: 1rpx solid transparent;
+    border-radius: 32rpx;
+    background: transparent;
+    box-sizing: border-box;
+    opacity: 0;
+}
+
+.nav-capsule__dot {
+    width: 46rpx;
+    height: 12rpx;
+    border-top: 6rpx dotted #222222;
+    box-sizing: border-box;
+}
+
+.nav-capsule__divider {
+    width: 1rpx;
+    height: 35rpx;
+    background: rgba(0, 0, 0, .16);
+}
+
+.nav-capsule__circle {
+    width: 31rpx;
+    height: 31rpx;
+    border: 4rpx solid #222222;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
 .tips-row {
     display: flex;
     align-items: center;
-    min-height: 84rpx;
-    margin: 14rpx 24rpx 0;
-    padding: 16rpx 24rpx;
-    border: 1rpx solid rgba(255, 158, 54, 0.16);
-    border-radius: 24rpx;
-    background: linear-gradient(135deg, #fff8ef 0%, #fffdf8 100%);
-    box-shadow: 0 6rpx 18rpx rgba(222, 125, 20, 0.06);
+    width: 100%;
+    max-width: 750rpx;
+    height: 96rpx;
+    margin: 0;
+    padding: 14rpx 46rpx 14rpx 24rpx;
+    border: 0;
+    border-radius: 0;
+    background: #f2decb;
+    box-shadow: none;
     box-sizing: border-box;
 }
 
@@ -1348,16 +1483,16 @@ page {
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 48rpx;
-    height: 48rpx;
-    border-radius: 16rpx;
-    background: rgba(255, 226, 190, 0.58);
+    width: 68rpx;
+    height: 68rpx;
+    border-radius: 0;
+    background: transparent;
     box-sizing: border-box;
 }
 
 .tips-icon {
-    width: 32rpx;
-    height: 32rpx;
+    width: 68rpx;
+    height: 68rpx;
 }
 
 .tips-copy {
@@ -1368,10 +1503,10 @@ page {
 
 .tips-text {
     display: block;
-    font-size: 23rpx;
-    font-weight: 500;
-    line-height: 34rpx;
-    color: #bf6618;
+    font-size: 24rpx;
+    font-weight: 400;
+    line-height: 24rpx;
+    color: #d16c13;
     white-space: normal;
 }
 
@@ -1388,8 +1523,8 @@ page {
 .order-card,
 .remark-card,
 .pay-card {
-    width: 703rpx;
-    background: #ffffff;
+    width: 100%;
+    background: #fdf4ea;
     border-radius: 15rpx;
     box-sizing: border-box;
 }
@@ -1522,7 +1657,7 @@ page {
 .goods-price {
     margin-top: 42rpx;
     font-weight: 500;
-    color: #ff1919;
+    color: #a0610d;
     white-space: nowrap;
 }
 
@@ -1640,21 +1775,12 @@ page {
 }
 
 .points-row--disabled .points-num,
-.points-row--disabled .points-unit,
 .points-row--disabled .points-desc {
     color: #999999;
 }
 
-.points-unit {
-    margin-left: 6rpx;
-    font-size: 22rpx;
-    font-weight: 400;
-    line-height: 22rpx;
-    color: #c97730;
-}
-
 .deduct-text {
-    color: #ff1919;
+    color: #a0610d;
 }
 
 .pay-section {
@@ -1674,7 +1800,7 @@ page {
     width: 11rpx;
     height: 29rpx;
     margin-right: 13rpx;
-    background: #037dfa;
+    background: #a0610d;
 }
 
 .pay-card {
@@ -1682,35 +1808,57 @@ page {
     margin-bottom: 41rpx;
 }
 
-.pay-item {
+.pay-notice {
     display: flex;
     align-items: center;
-    height: 108rpx;
-    padding: 0 40rpx 0 36rpx;
+    min-height: 132rpx;
+    padding: 0 36rpx;
+    box-sizing: border-box;
+}
+
+.pay-notice__icon {
+    position: relative;
+    flex: none;
+    width: 55rpx;
+    height: 55rpx;
+    margin-right: 24rpx;
+    border-radius: 50%;
+    background: #fff3e8;
+}
+
+.pay-notice__icon::before {
+    content: '';
+    position: absolute;
+    left: 17rpx;
+    top: 14rpx;
+    width: 16rpx;
+    height: 22rpx;
+    border-right: 5rpx solid #a0610d;
+    border-bottom: 5rpx solid #a0610d;
+    transform: rotate(45deg);
+    box-sizing: border-box;
+}
+
+.pay-notice__body {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.pay-notice__title {
+    color: #222222;
     font-size: 28rpx;
     font-weight: 500;
-    box-sizing: border-box;
+    line-height: 36rpx;
 }
 
-.pay-icon.wechat {
-    width: 47rpx;
-    height: 42rpx;
-    margin-right: 37rpx;
-}
-
-.pay-icon.bank {
-    width: 55rpx;
-    height: 43rpx;
-    margin-right: 30rpx;
-}
-
-.pay-radio {
-    width: 37rpx;
-    height: 37rpx;
-    margin-left: auto;
-    border: 3rpx solid #d6d6d6;
-    border-radius: 50%;
-    box-sizing: border-box;
+.pay-notice__desc {
+    margin-top: 10rpx;
+    color: #999999;
+    font-size: 24rpx;
+    font-weight: 400;
+    line-height: 32rpx;
 }
 
 .bottom-bar {
@@ -1725,22 +1873,37 @@ page {
     padding: 32rpx 24rpx 0;
     padding-bottom: env(safe-area-inset-bottom);
     border-radius: 34rpx 34rpx 0 0;
-    background: #ffffff;
+    background: #fdf4ea;
     box-shadow: 0 -2rpx 21rpx rgba(82, 82, 82, 0.08);
     box-sizing: content-box;
 }
 
+.goods-count {
+    margin-top: 37rpx;
+    color: #666666;
+    font-size: 28rpx;
+    line-height: 28rpx;
+    white-space: nowrap;
+}
+
 .total-label {
-    margin-top: 32rpx;
+    margin: 38rpx 0 0 15rpx;
     font-size: 28rpx;
     font-weight: 500;
     line-height: 28rpx;
+    white-space: nowrap;
+}
+
+.total-stack {
+    flex: 1;
+    min-width: 0;
+    margin-left: 19rpx;
 }
 
 .total-price {
-    margin: 20rpx 0 0 19rpx;
+    margin-top: 18rpx;
     font-weight: 500;
-    color: #ff1919;
+    color: #a0610d;
     white-space: nowrap;
 }
 
@@ -1755,18 +1918,40 @@ page {
     line-height: 50rpx;
 }
 
+.bottom-deduct {
+    display: block;
+    margin-top: 14rpx;
+    color: #a0610d;
+    font-size: 24rpx;
+    font-weight: 500;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
 .pay-button {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 282rpx;
+    width: 250rpx;
     height: 81rpx;
-    margin-left: auto;
+    margin: 0 16rpx 0 18rpx;
     border-radius: 40rpx;
-    background: #037dfa;
-    font-size: 28rpx;
+    background: #a0610d;
     font-weight: 500;
     color: #ffffff;
+}
+
+.pay-button__main {
+    font-size: 28rpx;
+    line-height: 28rpx;
+}
+
+.pay-button__sub {
+    margin-top: 9rpx;
+    font-size: 24rpx;
+    font-weight: 400;
+    line-height: 24rpx;
 }
 
 .coupon-popup {
@@ -1788,7 +1973,7 @@ page {
     height: 72rpx;
     margin-top: 20rpx;
     border-radius: 36rpx;
-    background: #f5f7fb;
+    background: #fff8ed;
     padding: 6rpx;
     box-sizing: border-box;
 }
@@ -1806,9 +1991,9 @@ page {
 
 .coupon-tab.is-active {
     background: #ffffff;
-    color: #037dfa;
+    color: #a0610d;
     font-weight: 600;
-    box-shadow: 0 4rpx 12rpx rgba(3, 125, 250, 0.08);
+    box-shadow: 0 4rpx 12rpx rgba(160, 97, 13, 0.12);
 }
 
 .coupon-scroll {
@@ -1885,8 +2070,8 @@ page {
 }
 
 .coupon-check--active {
-    border-color: #037dfa;
-    background: #037dfa;
+    border-color: #a0610d;
+    background: #a0610d;
 }
 
 .coupon-check--active::after {
@@ -1915,7 +2100,7 @@ page {
     height: 82rpx;
     margin-top: 8rpx;
     border-radius: 41rpx;
-    background: #037dfa;
+    background: #a0610d;
     color: #ffffff;
     font-size: 30rpx;
     font-weight: 600;

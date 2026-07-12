@@ -29,11 +29,12 @@
                         </view>
                         <view class="goods-info ml20">
                             <view class="goods-name line2 normal nr mb10">{{item.name}}</view>
-                            <view class="count-buy br60 xxs">累计{{item.sales_sum}}人购买</view>
+                            <view v-if="hasKnownValue(item.sales_sum)" class="count-buy br60 xxs">累计{{item.sales_sum}}人购买</view>
                             <view class="row-between mt10">
                                 <view class="row">
-                                    <price-format :price="item.price"  :subscript-size="26" :first-size="34" :second-size="26" color="#FF2C3C"></price-format >
-                                    <price-format  class="ml20" :price="item.market_price"  :subscript-size="24" :first-size="24" :second-size="24" color="#999999"></price-format>
+                                    <price-format v-if="hasKnownValue(item.price)" :price="item.price"  :subscript-size="26" :first-size="34" :second-size="26" color="#a0610d"></price-format >
+                                    <text v-else class="price-pending">价格待确认</text>
+                                    <price-format v-if="hasKnownValue(item.market_price)"  class="ml20" :price="item.market_price"  :subscript-size="24" :first-size="24" :second-size="24" color="#999999"></price-format>
                                 </view>
                                 <view class="buy-btn row-center br60">
                                     马上抢
@@ -92,6 +93,9 @@ export default {
   },
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
     async getActivityGoodsListsFun() {
 		let {
 			page,
@@ -110,7 +114,7 @@ export default {
 </script>
 <style>
 .activity-detail-contain .header {
-    background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/activity_detail_bg.png);
+    background: linear-gradient(135deg, #a0610d 0%, #d79a43 58%, #ffe7bd 100%);
     background-size: 100% 100%;
     height: 340rpx;
     width: 100%;
@@ -153,7 +157,14 @@ export default {
     padding: 0rpx 34rpx;
     height: 60rpx;
     color: white;
-    background: linear-gradient(90deg, #F95F2F 0%, #FF2C3C 100%);
+    background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
+}
+
+.activity-detail-contain .content .goods-container .goods-item  .goods-info .price-pending {
+    color: #8b95a5;
+    font-size: 26rpx;
+    line-height: 42rpx;
+    white-space: nowrap;
 }
 
 .goods-container .data-null {

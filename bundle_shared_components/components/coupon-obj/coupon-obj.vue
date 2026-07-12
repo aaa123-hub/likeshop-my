@@ -100,8 +100,10 @@ import PriceFormat from '@/bundle_shared_components/components/price-format/pric
 	.coupon-obj .coupon-item {
 		position: relative;
 		height: 160rpx;
-		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg.png);
+		background: linear-gradient(135deg, #fff8ed 0%, #fff1dc 100%);
 		background-size: 100% 100%;
+		border: 1rpx solid #f0dcc0;
+		border-radius: 18rpx;
 	}
 
 	.coupon-obj .coupon-item .price {

@@ -1,18 +1,15 @@
 <template>
     <view class="promoter-page">
-        <navbar title="角色申请" :background="{ background: '#ffffff' }" title-color="#222222"></navbar>
-        <view class="header">
-            <view class="title-row">
-                <view class="title">当前角色</view>
-                <view class="header-tags">
-                    <view
-                        v-for="item in headerRoleTags"
-                        :key="item.roleCode"
-                        :class="['header-tag', 'header-tag--' + roleTagType(item.roleCode)]"
-                    >{{ roleLabel(item.roleCode) }}</view>
-                </view>
+        <view class="promoter-nav">
+            <view class="promoter-nav__back" @tap="goBack">
+                <view class="promoter-nav__arrow"></view>
             </view>
-            <view class="subtitle">实名通过后选择角色，提交必要资料等待审核</view>
+            <view class="promoter-nav__title">渠道服务商</view>
+            <view class="promoter-nav__capsule">
+                <view class="promoter-nav__dot"></view>
+                <view class="promoter-nav__divider"></view>
+                <view class="promoter-nav__circle"></view>
+            </view>
         </view>
 
         <view class="kyc-gate" v-if="!isKycApproved && !kycRedirecting">
@@ -24,26 +21,24 @@
         </view>
 
         <view class="role-board" v-if="isKycApproved && !showApplyForm">
-            <view class="role-board__head">
-                <view>
-                    <view class="role-board__title">可申请角色</view>
-                </view>
-            </view>
             <view class="role-apply-list">
                 <view
                     v-for="item in roleApplyCards"
                     :key="item.roleCode"
-                    :class="['role-apply-card', 'role-apply-card--' + item.type, selectedRoleCode === item.roleCode ? 'role-apply-card--active' : '']"
+                    :class="['role-apply-card', 'role-apply-card--' + item.type, selectedRoleCode === item.roleCode ? 'role-apply-card--active' : '', item.disabled ? 'role-apply-card--disabled' : '']"
                     @tap="handleRoleCardAction(item)"
                 >
-                    <view class="role-apply-card__top">
-                        <view>
-                            <view class="role-apply-card__name">{{ item.label }}</view>
+                    <view class="role-apply-card__title">{{ item.label }}</view>
+                    <view class="role-apply-card__content">
+                        <view class="role-apply-card__body">
+                            <view class="role-apply-card__bar"></view>
                             <view class="role-apply-card__desc">{{ item.desc }}</view>
+                            <button class="role-apply-card__button" @tap.stop="handleRoleCardAction(item)">{{ item.actionText }}</button>
                         </view>
-                        <view :class="['role-apply-card__status', 'role-apply-card__status--' + item.type]">{{ item.statusText }}</view>
+                        <view :class="['role-apply-card__art', 'role-apply-card__art--' + roleTagType(item.roleCode)]"></view>
                     </view>
-                    <view class="role-apply-card__meta">
+                    <view v-if="item.timeText || item.statusText" class="role-apply-card__meta">
+                        <text>{{ item.statusText }}</text>
                         <text v-if="item.timeText">{{ item.timeText }}</text>
                     </view>
                     <view class="role-apply-card__remark" v-if="item.remark">{{ item.remark }}</view>
@@ -175,7 +170,6 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import Navbar from '@/components/navbar/navbar.vue'
 import { applyRoleApplication, getKycStatus, getMiniappRegions, getOnboardingContext, getRoleApplications, getRoles } from '@/api/user'
 import { prepay } from '@/api/app'
 import { wxpay } from '@/utils/pay'
@@ -183,18 +177,15 @@ import { localizeBackendText, normalizeBackendCode, normalizeKycStatus } from '@
 import { toLogin } from '@/utils/login'
 
 const roleOptions = [
-    { label: '推广者', value: 'PROMOTER' },
-    { label: '区域代理', value: 'AGENT' },
-    { label: '子公司', value: 'SUBSIDIARY' }
+    { label: '子公司', value: 'SUBSIDIARY' },
+    { label: '运营中心', value: 'AGENT' },
+    { label: '推广者', value: 'PROMOTER' }
 ]
 
 const APPLY_ROLE_CODES = roleOptions.map(item => item.value)
 const KYC_CACHE_PREFIX = 'PROMOTER_APPLY_KYC_INFO_'
 
 export default {
-    components: {
-        Navbar
-    },
     data() {
         return {
             roleOptions: roleOptions.map(item => ({ ...item })),
@@ -319,7 +310,7 @@ export default {
             return this.rolePickerRange.filter((role) => {
                 const roleCode = this.normalizeRoleCode(role.value)
                 return !(roleCode === 'PROMOTER' && this.hasApprovedPromoterRole)
-            }).map((role) => {
+            }).sort((a, b) => this.roleSortWeight(a.value) - this.roleSortWeight(b.value)).map((role) => {
                 const roleCode = this.normalizeRoleCode(role.value)
                 const application = this.applicationByRole(roleCode)
                 const statusType = this.statusType(application && application.applicationStatus)
@@ -344,7 +335,7 @@ export default {
                     desc: this.roleOptionDesc(roleCode),
                     type: statusType === 'default' ? this.roleTagType(roleCode) : statusType,
                     statusText: applied ? this.statusLabel(application.applicationStatus) : '可申请',
-                    depositText: this.displayDepositText({ ...application, roleCode }) || '押金以平台配置为准',
+                    depositText: this.displayDepositText({ ...application, roleCode }) || '押金以平台通知为准',
                     timeText: time ? `${approved ? '通过' : '申请'}：${time}` : '',
                     remark: application && !approved ? this.applicationAuditRemark(application) : '',
                     application,
@@ -556,7 +547,7 @@ export default {
         },
         selectedDepositText() {
             if (!this.requiresPrepayDeposit) return '无需押金'
-            if (this.roleDepositAmount === '') return '待平台配置'
+            if (this.roleDepositAmount === '') return '待平台确认'
             return this.moneyText(this.roleDepositAmount)
         },
         hasReadonlyKycMaterial() {
@@ -629,7 +620,7 @@ export default {
             return this.isKycApproved && !this.showApplyForm && this.hasApplyRoleRecord && !this.currentApplication
         },
         currentActionDesc() {
-            if (this.currentStatusType === 'approved') return '当前角色已开通，可使用后端返回的角色信息。'
+            if (this.currentStatusType === 'approved') return '当前角色已开通，可使用审核通过后的角色信息。'
             const descMap = {
                 deposit: '当前申请已进入押金缴纳环节，完成缴纳后继续等待审核。',
                 pending: '申请正在审核中，暂时无需重复提交资料。',
@@ -678,6 +669,14 @@ export default {
         this.loadPageData()
     },
     methods: {
+        goBack() {
+            const pages = getCurrentPages()
+            if (pages.length > 1) {
+                uni.navigateBack()
+                return
+            }
+            uni.switchTab({ url: '/pages/user/user' })
+        },
         async loadPageData() {
             if (!this.hasLoginUser) {
                 this.mergeRoleOptions()
@@ -1160,7 +1159,7 @@ export default {
                 MERCHANT: '商家',
                 USER: '普通用户',
                 PROMOTER: '推广者',
-                AGENT: '区域代理',
+                AGENT: '运营中心',
                 SUBSIDIARY: '子公司'
             }
             if (map[code]) return map[code]
@@ -1248,11 +1247,15 @@ export default {
         },
         roleOptionDesc(roleCode) {
             const map = {
-                PROMOTER: '适合推广获客和邀请分销',
-                AGENT: '适合区域渠道和门店拓展',
-                SUBSIDIARY: '适合子公司直营网点管理'
+                PROMOTER: '权益说明权益说明权益说明权益说明权益说明权益说明权益',
+                AGENT: '权益说明权益说明权益说明权益说明权益说明权益说明权益',
+                SUBSIDIARY: '权益说明权益说明权益说明权益说明权益说明权益说明权益'
             }
             return map[this.normalizeRoleCode(roleCode)] || '提交资料后等待平台审核'
+        },
+        roleSortWeight(roleCode) {
+            const map = { SUBSIDIARY: 1, AGENT: 2, PROMOTER: 3 }
+            return map[this.normalizeRoleCode(roleCode)] || 99
         },
         applicationAuditRemark(item = {}) {
             const raw = item.auditRemark || item.audit_remark || item.reviewRemark || item.review_remark || item.auditOpinion || item.audit_opinion || item.rejectReasonMessage || item.reject_reason_message || item.rejectReasonCode || item.reject_reason_code || item.approveRemark || item.approve_remark || item.remark || ''
@@ -1467,7 +1470,7 @@ export default {
                 return false
             }
             if (this.needsAreaSelection && !this.selectedAreaText) {
-                uni.showToast({ title: this.hasAreaOptions ? '请选择申请区域' : '暂无可选区域，请联系平台配置', icon: 'none' })
+                uni.showToast({ title: this.hasAreaOptions ? '请选择申请区域' : '暂无可选区域，请联系平台', icon: 'none' })
                 return false
             }
             if (this.needsAreaSelection && (!this.form.longitude || !this.form.latitude)) {
@@ -1586,7 +1589,7 @@ export default {
             return Boolean((code && String(item.value) === String(code)) || (name && item.label === name))
         },
         handleEmptyAreaTap() {
-            uni.showToast({ title: '暂无可选区域，请联系平台配置', icon: 'none' })
+            uni.showToast({ title: '暂无可选区域，请联系平台', icon: 'none' })
         },
         chooseApplyLocation() {
             const params = {}
@@ -1625,7 +1628,7 @@ export default {
             if (!this.requiresPrepayDeposit) return { depositPayOrderNo: '', depositBizOrderNo: '' }
             await this.ensureRoleConfig()
             if (this.roleDepositAmount === '' || Number(this.roleDepositAmount) < 0) {
-                throw new Error('该角色押金金额未配置，请联系平台')
+                throw new Error('该角色押金金额待确认，请联系平台')
             }
             if (Number(this.roleDepositAmount) === 0) return { depositPayOrderNo: '', depositBizOrderNo: '' }
             const bizOrderNo = this.buildPreApplyOrderNo()
@@ -1713,8 +1716,16 @@ export default {
 </script>
 
 <style lang="scss">
-.promoter-page { min-height: 100vh; padding: 24rpx 24rpx 48rpx; background: linear-gradient(180deg, #eef7ff 0%, #f6f7fb 360rpx, #f6f7fb 100%); box-sizing: border-box; }
-.header { padding: 34rpx 30rpx; border-radius: 28rpx; color: #ffffff; background: linear-gradient(135deg, #176bff 0%, #18c59f 100%); box-shadow: 0 18rpx 42rpx rgba(22, 136, 255, .2); }
+.promoter-page { min-height: 100vh; padding: calc(var(--status-bar-height) + 21rpx) 24rpx 48rpx; background: linear-gradient(180deg, #fff8ed 0%, #fff4e6 100%); box-sizing: border-box; }
+.promoter-nav { position: relative; display: flex; align-items: center; justify-content: center; height: 98rpx; margin: 0 -24rpx 39rpx; padding: 0 24rpx; box-sizing: border-box; }
+.promoter-nav__back { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; width: 86rpx; height: 98rpx; }
+.promoter-nav__arrow { width: 18rpx; height: 18rpx; border-left: 4rpx solid #222222; border-bottom: 4rpx solid #222222; transform: rotate(45deg); box-sizing: border-box; }
+.promoter-nav__title { color: #222222; font-size: 36rpx; font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif; font-weight: 500; line-height: 36rpx; white-space: nowrap; }
+.promoter-nav__capsule { position: absolute; right: 24rpx; top: 24rpx; display: flex; align-items: center; justify-content: space-around; width: 168rpx; height: 64rpx; padding: 0 19rpx; border: 1rpx solid transparent; border-radius: 32rpx; background: transparent; box-sizing: border-box; opacity: 0; }
+.promoter-nav__dot { width: 46rpx; height: 12rpx; border-top: 6rpx dotted #222222; box-sizing: border-box; }
+.promoter-nav__divider { width: 1rpx; height: 35rpx; background: rgba(0, 0, 0, .16); }
+.promoter-nav__circle { width: 31rpx; height: 31rpx; border: 4rpx solid #222222; border-radius: 50%; box-sizing: border-box; }
+.header { padding: 34rpx 30rpx; border-radius: 28rpx; color: #ffffff; background: linear-gradient(135deg, #a0610d 0%, #c8872e 100%); box-shadow: 0 18rpx 42rpx rgba(160, 97, 13, .2); }
 .title-row { display: flex; align-items: center; gap: 16rpx; min-width: 0; }
 .title { font-size: 40rpx; font-weight: 700; line-height: 56rpx; }
 .header-tags { display: flex; flex-wrap: wrap; gap: 10rpx; min-width: 0; }
@@ -1729,70 +1740,70 @@ export default {
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
 .card-title { color: #222222; font-size: 30rpx; font-weight: 600; }
 .card-subtitle { margin-top: 6rpx; color: #888888; font-size: 23rpx; }
-.card-count { flex: none; padding: 8rpx 16rpx; border-radius: 999rpx; color: #1688ff; background: #eef7ff; font-size: 23rpx; }
+.card-count { flex: none; padding: 8rpx 16rpx; border-radius: 999rpx; color: #a0610d; background: #fff1dc; font-size: 23rpx; }
 .role-list { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 18rpx; }
 .role-chip { min-width: 150rpx; padding: 16rpx 20rpx; border-radius: 20rpx; border: 1rpx solid #e6eaf0; background: #f7f9fc; box-sizing: border-box; }
-.role-chip--active { border-color: #1688ff; background: #eef7ff; }
+.role-chip--active { border-color: #a0610d; background: #fff1dc; }
 .role-chip--readonly { border-color: #e7ebf0; background: #f9fafc; }
 .role-chip__name { display: block; color: #222222; font-size: 27rpx; font-weight: 600; }
 .role-chip__meta { display: block; margin-top: 6rpx; color: #888888; font-size: 22rpx; }
 .empty-state { text-align: center; }
 .empty-state__title { color: #222222; font-size: 30rpx; font-weight: 600; }
 .empty-state__desc { margin-top: 10rpx; color: #777777; font-size: 25rpx; line-height: 38rpx; }
-.empty-state__btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 22rpx; height: 68rpx; padding: 0 36rpx; border-radius: 34rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); font-size: 27rpx; }
+.empty-state__btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 22rpx; height: 68rpx; padding: 0 36rpx; border-radius: 34rpx; color: #ffffff; background: linear-gradient(135deg, #a0610d, #c8872e); font-size: 27rpx; }
 .kyc-gate, .apply-entry { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-top: 22rpx; padding: 28rpx; border-radius: 24rpx; background: #ffffff; box-shadow: 0 12rpx 34rpx rgba(31, 58, 94, .08); box-sizing: border-box; }
 .kyc-gate { border: 1rpx solid #ffd2a8; background: linear-gradient(135deg, #fff8ef, #ffffff); }
 .kyc-gate__title, .apply-entry__title { color: #222222; font-size: 30rpx; font-weight: 600; line-height: 42rpx; }
 .kyc-gate__desc { margin-top: 8rpx; color: #8a5a22; font-size: 24rpx; line-height: 36rpx; }
-.kyc-gate__btn, .apply-entry__btn { flex: none; height: 64rpx; padding: 0 28rpx; border-radius: 32rpx; color: #ffffff; background: #1688ff; font-size: 26rpx; line-height: 64rpx; }
-.apply-entry { border: 1rpx solid #cce5ff; background: linear-gradient(135deg, #eef8ff, #ffffff); }
-.apply-entry__btn { background: linear-gradient(135deg, #1688ff, #03a6ff); }
-.role-board { margin-top: 22rpx; padding: 24rpx; border-radius: 26rpx; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); box-shadow: 0 14rpx 36rpx rgba(31, 58, 94, .07); border: 1rpx solid rgba(221, 230, 242, .75); }
+.kyc-gate__btn, .apply-entry__btn { flex: none; height: 64rpx; padding: 0 28rpx; border-radius: 32rpx; color: #ffffff; background: #a0610d; font-size: 26rpx; line-height: 64rpx; }
+.apply-entry { border: 1rpx solid #f1d7b9; background: linear-gradient(135deg, #fff7ec, #ffffff); }
+.apply-entry__btn { background: linear-gradient(135deg, #a0610d, #c8872e); }
+.role-board { margin-top: 0; padding: 0; border-radius: 0; background: transparent; box-shadow: none; border: 0; }
 .role-board__head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
 .role-board__title { color: #172033; font-size: 31rpx; font-weight: 700; line-height: 44rpx; }
-.role-apply-list { display: flex; flex-direction: column; gap: 16rpx; margin-top: 20rpx; }
-.role-apply-card { position: relative; padding: 24rpx 24rpx 22rpx 28rpx; border-radius: 22rpx; border: 1rpx solid #e8eef7; background: rgba(255, 255, 255, .92); box-sizing: border-box; overflow: hidden; box-shadow: 0 8rpx 22rpx rgba(30, 54, 92, .045); }
-.role-apply-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 8rpx; background: #c9d4e5; }
-.role-apply-card--promoter::before { background: #f59e0b; }
-.role-apply-card--agent::before { background: #7c3aed; }
-.role-apply-card--subsidiary::before { background: #2563eb; }
-.role-apply-card--approved::before { background: #10a66a; }
-.role-apply-card--pending::before { background: #1677ff; }
-.role-apply-card--deposit::before { background: #d48806; }
-.role-apply-card--rejected::before { background: #e34d59; }
-.role-apply-card--cancelled::before { background: #8a96a6; }
-.role-apply-card--active { border-color: #9ccfff; background: linear-gradient(135deg, #f2f8ff, #ffffff); box-shadow: 0 12rpx 28rpx rgba(22, 136, 255, .1); }
-.role-apply-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14rpx; min-width: 0; }
-.role-apply-card__top > view:first-child { flex: 1; min-width: 0; }
-.role-apply-card__name { color: #172033; font-size: clamp(26rpx, 4vw, 31rpx); font-weight: 700; line-height: 1.35; word-break: keep-all; }
-.role-apply-card__desc { margin-top: 6rpx; color: #667085; font-size: clamp(21rpx, 3.2vw, 23rpx); line-height: 1.5; word-break: break-all; }
-.role-apply-card__status { flex: none; max-width: 180rpx; min-height: 42rpx; padding: 7rpx 16rpx; border-radius: 23rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 22rpx; font-weight: 600; line-height: 28rpx; text-align: center; box-sizing: border-box; word-break: keep-all; }
-.role-apply-card__status--approved { color: #10a66a; background: rgba(16, 166, 106, .13); }
-.role-apply-card__status--pending { color: #1677ff; background: rgba(22, 119, 255, .12); }
-.role-apply-card__status--deposit { color: #d48806; background: rgba(250, 173, 20, .16); }
-.role-apply-card__status--rejected, .role-apply-card__status--cancelled { color: #e34d59; background: rgba(227, 77, 89, .12); }
-.role-apply-card__status--promoter { color: #b45309; background: rgba(245, 158, 11, .14); }
-.role-apply-card__status--agent { color: #6d28d9; background: rgba(124, 58, 237, .12); }
-.role-apply-card__status--subsidiary { color: #1d4ed8; background: rgba(37, 99, 235, .12); }
-.role-apply-card__meta { display: flex; flex-wrap: wrap; gap: 8rpx 16rpx; margin-top: 14rpx; color: #667085; font-size: 22rpx; line-height: 32rpx; }
-.role-apply-card__remark { margin-top: 12rpx; color: #5f6b7a; font-size: 23rpx; line-height: 34rpx; }
+.role-apply-list { display: flex; flex-direction: column; align-items: center; gap: 23rpx; width: 100%; margin-top: 0; }
+.role-apply-card { position: relative; width: 100%; max-width: 703rpx; min-height: 294rpx; padding: 42rpx 42rpx 22rpx 39rpx; border-radius: 12rpx 12rpx 147rpx 147rpx; border: 0; background: #ffffff; box-sizing: border-box; overflow: hidden; box-shadow: none; }
+.role-apply-card--active { background: #ffffff; box-shadow: 0 10rpx 28rpx rgba(160, 97, 13, .08); }
+.role-apply-card--disabled .role-apply-card__button { background: rgba(160, 97, 13, .45); }
+.role-apply-card__title { color: #222222; font-size: 34rpx; font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif; font-weight: 500; line-height: 34rpx; white-space: nowrap; }
+.role-apply-card__content { display: flex; gap: 18rpx; justify-content: space-between; margin-top: 16rpx; }
+.role-apply-card__body { flex: 1; min-width: 0; max-width: 432rpx; padding-top: 4rpx; box-sizing: border-box; }
+.role-apply-card__bar { width: 41rpx; height: 5rpx; margin-left: 5rpx; background: #a0610d; }
+.role-apply-card__desc { width: 100%; margin: 26rpx 0 0 2rpx; color: #666666; font-size: 24rpx; font-weight: 400; line-height: 35rpx; word-break: break-all; box-sizing: border-box; }
+.role-apply-card__button { display: flex; align-items: center; justify-content: center; width: 228rpx; height: 70rpx; margin: 19rpx 0 0 0; padding: 0; color: #ffffff; background: #a0610d; border: 0; border-radius: 35rpx; font-size: 26rpx; font-weight: 400; line-height: 26rpx; white-space: nowrap; box-sizing: border-box; }
+.role-apply-card__button::after { display: none; }
+.role-apply-card--agent .role-apply-card__button { width: 253rpx; }
+.role-apply-card__art { position: relative; flex: none; margin-top: 0; }
+.role-apply-card__art--promoter { width: 111rpx; height: 132rpx; margin-right: 28rpx; }
+.role-apply-card__art--agent { width: 129rpx; height: 121rpx; margin-right: 9rpx; }
+.role-apply-card__art--subsidiary { width: 141rpx; height: 141rpx; margin-right: 1rpx; }
+.role-apply-card__art::before,
+.role-apply-card__art::after { content: ''; position: absolute; box-sizing: border-box; }
+.role-apply-card__art--subsidiary::before { left: 13rpx; top: 18rpx; width: 96rpx; height: 91rpx; border-radius: 18rpx; background: linear-gradient(180deg, #ffd99b, #c9892c); box-shadow: 20rpx 18rpx 0 rgba(160, 97, 13, .22); }
+.role-apply-card__art--subsidiary::after { left: 42rpx; top: 0; width: 70rpx; height: 141rpx; border-radius: 35rpx 35rpx 20rpx 20rpx; border: 8rpx solid #a0610d; background: rgba(255, 246, 228, .85); }
+.role-apply-card__art--agent::before { left: 0; top: 20rpx; width: 112rpx; height: 82rpx; border-radius: 41rpx; background: linear-gradient(135deg, #f2c16d, #a0610d); transform: rotate(-12deg); }
+.role-apply-card__art--agent::after { right: 0; top: 6rpx; width: 66rpx; height: 66rpx; border-radius: 50%; border: 10rpx solid #fff1d8; background: #a0610d; box-shadow: -42rpx 73rpx 0 -14rpx #c48a3d; }
+.role-apply-card__art--promoter::before { left: 7rpx; top: 0; width: 83rpx; height: 83rpx; border-radius: 50%; background: linear-gradient(180deg, #f8d38c, #a0610d); box-shadow: 27rpx 49rpx 0 -8rpx rgba(160, 97, 13, .42); }
+.role-apply-card__art--promoter::after { left: 0; bottom: 0; width: 111rpx; height: 54rpx; border-radius: 27rpx 27rpx 12rpx 12rpx; background: #fff1d8; border: 8rpx solid #a0610d; }
+.role-apply-card__meta { display: flex; flex-wrap: wrap; gap: 8rpx 16rpx; margin-top: 8rpx; color: #9a6b2a; font-size: 20rpx; line-height: 28rpx; }
+.role-apply-card__remark { margin-top: 6rpx; color: #a0610d; font-size: 21rpx; line-height: 30rpx; }
 .role-apply-card--rejected .role-apply-card__remark { color: #e34d59; }
-.role-apply-card__hint { margin-top: 12rpx; color: #1677ff; font-size: 23rpx; line-height: 32rpx; }
+.role-apply-card__hint { display: none; }
 .status-card { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18rpx; overflow: hidden; }
 .status-card::after { content: ''; position: absolute; right: -58rpx; top: -58rpx; width: 172rpx; height: 172rpx; border-radius: 50%; background: rgba(255, 255, 255, .55); }
 .status-card--deposit { background: linear-gradient(135deg, #fff7e6, #ffffff); border: 1rpx solid #ffd89a; }
-.status-card--pending { background: linear-gradient(135deg, #eaf4ff 0%, #f8fcff 58%, #ffffff 100%); border: 1rpx solid #b9dcff; box-shadow: 0 18rpx 46rpx rgba(22, 119, 255, .14); }
+.status-card--pending { background: linear-gradient(135deg, #fff1dc 0%, #fff8ed 58%, #ffffff 100%); border: 1rpx solid #ead5b8; box-shadow: 0 18rpx 46rpx rgba(160, 97, 13, .14); }
 .status-card--approved { background: linear-gradient(135deg, #e8fff4, #ffffff); border: 1rpx solid #9ee8c0; }
 .status-card--rejected { background: linear-gradient(135deg, #fff0f0, #ffffff); border: 1rpx solid #ffc2c2; }
 .status-card--cancelled { background: linear-gradient(135deg, #f2f3f5, #ffffff); border: 1rpx solid #dcdfe6; }
 .status-main { position: relative; z-index: 1; flex: 1; min-width: 0; }
 .status-title-row { display: flex; align-items: center; gap: 14rpx; min-width: 0; }
-.status-icon { flex: none; width: 52rpx; height: 52rpx; border-radius: 18rpx; background: linear-gradient(135deg, #1688ff, #18c59f); box-shadow: 0 10rpx 18rpx rgba(22, 136, 255, .2); }
+.status-icon { flex: none; width: 52rpx; height: 52rpx; border-radius: 18rpx; background: linear-gradient(135deg, #a0610d, #c8872e); box-shadow: 0 10rpx 18rpx rgba(160, 97, 13, .18); }
 .status-icon::after { content: ''; display: block; width: 20rpx; height: 10rpx; margin: 17rpx 0 0 15rpx; border-left: 4rpx solid #ffffff; border-bottom: 4rpx solid #ffffff; transform: rotate(-45deg); }
 .status-title { color: #222222; font-size: 32rpx; font-weight: 700; line-height: 44rpx; }
-.status-value { position: relative; z-index: 1; flex: none; padding: 12rpx 20rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 26rpx; font-weight: 600; }
+.status-value { position: relative; z-index: 1; flex: none; padding: 12rpx 20rpx; border-radius: 999rpx; color: #a0610d; background: rgba(160, 97, 13, .1); font-size: 26rpx; font-weight: 600; }
 .status-card--deposit .status-value { color: #d48806; background: rgba(250, 173, 20, .14); }
-.status-card--pending .status-value { color: #ffffff; background: linear-gradient(135deg, #1677ff, #19b6ff); box-shadow: 0 10rpx 22rpx rgba(22, 119, 255, .24); }
+.status-card--pending .status-value { color: #ffffff; background: linear-gradient(135deg, #a0610d, #c8872e); box-shadow: 0 10rpx 22rpx rgba(160, 97, 13, .24); }
 .status-card--approved .status-value { color: #10a66a; background: rgba(16, 166, 106, .12); }
 .status-card--rejected .status-value { color: #e34d59; background: rgba(227, 77, 89, .12); }
 .status-card--cancelled .status-value { color: #7a7f8a; background: rgba(122, 127, 138, .12); }
@@ -1801,14 +1812,14 @@ export default {
 .status-pending-flow { display: flex; align-items: center; gap: 10rpx; margin-top: 20rpx; padding: 16rpx; border-radius: 18rpx; background: rgba(255, 255, 255, .72); }
 .status-flow-step { flex: none; color: #8a96a6; font-size: 22rpx; line-height: 32rpx; white-space: nowrap; }
 .status-flow-step.is-done { color: #18a058; }
-.status-flow-step.is-active { color: #1677ff; font-weight: 700; }
-.status-flow-line { flex: 1; min-width: 24rpx; height: 2rpx; background: linear-gradient(90deg, rgba(24, 160, 88, .5), rgba(22, 119, 255, .28)); }
+.status-flow-step.is-active { color: #a0610d; font-weight: 700; }
+.status-flow-line { flex: 1; min-width: 24rpx; height: 2rpx; background: linear-gradient(90deg, rgba(24, 160, 88, .5), rgba(160, 97, 13, .28)); }
 .focus-card { display: flex; gap: 18rpx; }
 .focus-card--deposit { background: #fffaf0; }
-.focus-card--pending { background: #f2f8ff; }
+.focus-card--pending { background: #fff8ed; }
 .focus-card--approved { background: #f2fff8; }
 .focus-card--rejected { background: #fff6f6; }
-.focus-card--cancelled { background: #f7f8fa; }
+.focus-card--cancelled { background: #f8f1e8; }
 .focus-item { flex: 1; min-width: 0; padding: 20rpx; border-radius: 18rpx; background: rgba(255, 255, 255, .76); }
 .focus-label { display: block; color: #888888; font-size: 23rpx; }
 .focus-value { display: block; margin-top: 10rpx; color: #222222; font-size: 30rpx; font-weight: 600; line-height: 42rpx; word-break: break-all; }
@@ -1818,10 +1829,10 @@ export default {
 .approved-title { color: #12352a; font-size: 32rpx; font-weight: 700; line-height: 44rpx; }
 .approved-desc { margin-top: 8rpx; color: #5d776e; font-size: 24rpx; line-height: 36rpx; }
 .approved-tag { flex: none; height: 52rpx; padding: 0 20rpx; border-radius: 26rpx; font-size: 25rpx; font-weight: 600; line-height: 52rpx; }
-.approved-tag--merchant { color: #1769ff; background: rgba(23, 105, 255, .1); }
+.approved-tag--merchant { color: #a0610d; background: rgba(160, 97, 13, .1); }
 .approved-tag--promoter { color: #b26a00; background: rgba(255, 159, 28, .16); }
 .approved-tag--agent { color: #0c8f61; background: rgba(24, 197, 159, .15); }
-.approved-tag--subsidiary { color: #1769ff; background: rgba(23, 105, 255, .12); }
+.approved-tag--subsidiary { color: #a0610d; background: rgba(160, 97, 13, .12); }
 .approved-tag--user, .approved-tag--default { color: #6b7280; background: rgba(107, 114, 128, .12); }
 .info-item { display: flex; justify-content: space-between; gap: 20rpx; padding: 14rpx 0; border-top: 1rpx solid #f0f1f3; }
 .info-label { flex: none; color: #999999; font-size: 24rpx; }
@@ -1830,24 +1841,24 @@ export default {
 .action-desc { margin-top: 10rpx; color: #666666; font-size: 25rpx; line-height: 38rpx; }
 .action-buttons { display: flex; gap: 18rpx; margin-top: 22rpx; }
 .action-btn { flex: 1; height: 76rpx; line-height: 76rpx; border-radius: 38rpx; font-size: 28rpx; }
-.action-btn--primary { color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); box-shadow: 0 10rpx 22rpx rgba(22, 136, 255, .18); }
-.action-btn--plain { color: #1688ff; background: #eef7ff; }
+.action-btn--primary { color: #ffffff; background: linear-gradient(135deg, #a0610d, #c8872e); box-shadow: 0 10rpx 22rpx rgba(160, 97, 13, .18); }
+.action-btn--plain { color: #a0610d; background: #fff1dc; }
 .form-card { padding: 30rpx; }
 .form-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; margin-bottom: 22rpx; }
 .form-title { color: #222222; font-size: 32rpx; font-weight: 700; line-height: 44rpx; }
-.form-subtitle { margin-top: 6rpx; color: #1688ff; font-size: 24rpx; line-height: 34rpx; }
-.form-close { flex: none; height: 56rpx; padding: 0 22rpx; border-radius: 28rpx; color: #5f6b7a; background: #f0f3f8; font-size: 24rpx; line-height: 56rpx; }
-.role-select { margin-bottom: 20rpx; padding: 22rpx; border-radius: 20rpx; background: linear-gradient(180deg, #f7fbff, #ffffff); border: 1rpx solid #e1efff; box-sizing: border-box; }
+.form-subtitle { margin-top: 6rpx; color: #a0610d; font-size: 24rpx; line-height: 34rpx; }
+.form-close { flex: none; height: 56rpx; padding: 0 22rpx; border-radius: 28rpx; color: #5f6b7a; background: #fff8ed; font-size: 24rpx; line-height: 56rpx; }
+.role-select { margin-bottom: 20rpx; padding: 22rpx; border-radius: 20rpx; background: linear-gradient(180deg, #fff8ed, #ffffff); border: 1rpx solid #f0dcc0; box-sizing: border-box; }
 .role-select__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10rpx 18rpx; }
 .role-select__title { color: #222222; font-size: 29rpx; font-weight: 700; }
-.role-select__current { flex: none; max-width: 100%; color: #1688ff; font-size: 24rpx; line-height: 34rpx; }
+.role-select__current { flex: none; max-width: 100%; color: #a0610d; font-size: 24rpx; line-height: 34rpx; }
 .role-select__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; margin-top: 18rpx; }
 .role-select__option { position: relative; min-height: 146rpx; padding: 20rpx 16rpx 18rpx; border-radius: 18rpx; border: 2rpx solid #e5ebf2; background: #ffffff; box-sizing: border-box; overflow: hidden; }
-.role-select__option--active { border-color: #1688ff; background: linear-gradient(135deg, #eef7ff, #ffffff); box-shadow: 0 10rpx 24rpx rgba(22, 136, 255, .14); }
+.role-select__option--active { border-color: #a0610d; background: linear-gradient(135deg, #fff7ec, #ffffff); box-shadow: 0 10rpx 24rpx rgba(160, 97, 13, .14); }
 .role-select__name { padding-right: 34rpx; color: #222222; font-size: 27rpx; font-weight: 700; line-height: 38rpx; word-break: keep-all; }
 .role-select__desc { margin-top: 8rpx; color: #7a8594; font-size: 21rpx; line-height: 30rpx; word-break: break-all; }
 .role-select__check { position: absolute; right: 14rpx; top: 16rpx; width: 28rpx; height: 28rpx; border-radius: 50%; border: 2rpx solid #d6dee9; background: #ffffff; box-sizing: border-box; }
-.role-select__option--active .role-select__check { border-color: #1688ff; background: #1688ff; }
+.role-select__option--active .role-select__check { border-color: #a0610d; background: #a0610d; }
 .role-select__option--active .role-select__check::after { content: ''; position: absolute; left: 8rpx; top: 4rpx; width: 9rpx; height: 15rpx; border-right: 3rpx solid #ffffff; border-bottom: 3rpx solid #ffffff; transform: rotate(45deg); }
 .form-item { display: flex; align-items: center; min-height: 96rpx; margin-top: 16rpx; padding: 18rpx 20rpx; border: 1rpx solid #edf1f6; border-radius: 18rpx; background: #f8fafc; box-sizing: border-box; }
 .form-item:first-of-type { margin-top: 0; }
@@ -1863,7 +1874,7 @@ textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ff
 .map-picker__address { color: #1f2937; font-size: 27rpx; line-height: 38rpx; word-break: break-all; }
 .map-picker__address--placeholder { color: #98a2b3; }
 .map-picker__coord { margin-top: 6rpx; color: #7a8494; font-size: 22rpx; line-height: 32rpx; }
-.map-picker__btn { flex: none; height: 58rpx; padding: 0 20rpx; border-radius: 29rpx; color: #1688ff; background: #eef7ff; font-size: 24rpx; line-height: 58rpx; }
+.map-picker__btn { flex: none; height: 58rpx; padding: 0 20rpx; border-radius: 29rpx; color: #a0610d; background: #fff1dc; font-size: 24rpx; line-height: 58rpx; }
 .upgrade-tip { margin-top: 16rpx; padding: 18rpx 20rpx; border-radius: 18rpx; color: #176b55; background: #eefbf6; border: 1rpx solid #c7f0df; font-size: 24rpx; line-height: 36rpx; }
 .form-item--readonly {
     background: #f3f6fa;
@@ -1877,7 +1888,7 @@ textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ff
 .kyc-material__photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18rpx; margin-top: 18rpx; }
 .kyc-material__photo { width: 100%; height: 180rpx; border-radius: 14rpx; background: #edf1f6; }
 .agreement-row { display: flex; align-items: center; gap: 14rpx; margin-top: 22rpx; color: #666666; font-size: 24rpx; line-height: 34rpx; }
-.submit-btn { margin-top: 30rpx; height: 88rpx; color: #ffffff; background: linear-gradient(135deg, #1688ff, #03a6ff); border-radius: 44rpx; font-size: 30rpx; box-shadow: 0 14rpx 28rpx rgba(22, 136, 255, .22); }
+.submit-btn { margin-top: 30rpx; height: 88rpx; color: #ffffff; background: linear-gradient(135deg, #a0610d, #c8872e); border-radius: 44rpx; font-size: 30rpx; box-shadow: 0 14rpx 28rpx rgba(160, 97, 13, .22); }
 .history { padding: 14rpx; }
 .history-title { margin-bottom: 8rpx; color: #1f2937; font-size: 26rpx; font-weight: 700; }
 .history-item { position: relative; padding: 10rpx 12rpx 10rpx 18rpx; border: 1rpx solid #edf1f6; border-radius: 12rpx; background: #fbfcff; box-sizing: border-box; overflow: hidden; }
@@ -1898,9 +1909,9 @@ textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ff
 .history-desc__label { display: inline; font-weight: 700; line-height: 28rpx; }
 .history-desc__label::after { content: '：'; }
 .history-desc__value { display: inline; line-height: 28rpx; word-break: break-all; }
-.history-status { flex: none; padding: 3rpx 10rpx; border-radius: 999rpx; color: #1688ff; background: rgba(22, 136, 255, .1); font-size: 19rpx; font-weight: 600; line-height: 26rpx; }
+.history-status { flex: none; padding: 3rpx 10rpx; border-radius: 999rpx; color: #a0610d; background: rgba(160, 97, 13, .1); font-size: 19rpx; font-weight: 600; line-height: 26rpx; }
 .history-status--deposit { color: #d48806; background: rgba(250, 173, 20, .14); }
-.history-status--pending { color: #1677ff; background: rgba(22, 119, 255, .12); }
+.history-status--pending { color: #a0610d; background: rgba(160, 97, 13, .12); }
 .history-status--approved { color: #10a66a; background: rgba(16, 166, 106, .12); }
 .history-status--rejected { color: #e34d59; background: rgba(227, 77, 89, .12); }
 .history-status--cancelled { color: #7a7f8a; background: rgba(122, 127, 138, .12); }
@@ -1909,12 +1920,14 @@ textarea { height: 168rpx; padding: 16rpx; border-radius: 16rpx; background: #ff
 .agreement-sheet { position: absolute; left: 34rpx; right: 34rpx; top: 12vh; padding: 30rpx; border-radius: 28rpx; background: #ffffff; box-sizing: border-box; }
 .agreement-title { color: #222222; font-size: 34rpx; font-weight: 700; text-align: center; }
 .agreement-content { height: 520rpx; margin-top: 24rpx; padding: 22rpx; border-radius: 18rpx; background: #f7f9fc; color: #555555; font-size: 26rpx; line-height: 42rpx; box-sizing: border-box; }
-.agreement-btn { margin-top: 24rpx; height: 78rpx; border-radius: 39rpx; color: #ffffff; background: #1688ff; font-size: 28rpx; line-height: 78rpx; }
+.agreement-btn { margin-top: 24rpx; height: 78rpx; border-radius: 39rpx; color: #ffffff; background: #a0610d; font-size: 28rpx; line-height: 78rpx; }
 .agreement-btn--disabled { background: #c7d0dc; }
 
 @media screen and (max-width: 360px) {
     .promoter-page { padding-left: 18rpx; padding-right: 18rpx; }
-    .header, .form-card, .status-card, .focus-card, .info-card, .action-card, .history, .empty-state, .role-board { padding-left: 22rpx; padding-right: 22rpx; }
+    .header, .form-card, .status-card, .focus-card, .info-card, .action-card, .history, .empty-state { padding-left: 22rpx; padding-right: 22rpx; }
+    .promoter-nav { margin-left: 0; margin-right: 0; }
+    .role-apply-card { width: 100%; }
     .title-row, .status-card, .kyc-gate, .apply-entry { align-items: flex-start; flex-direction: column; }
     .status-value, .kyc-gate__btn, .apply-entry__btn { align-self: flex-start; }
     .status-pending-flow { width: 100%; box-sizing: border-box; overflow-x: auto; }

@@ -166,11 +166,12 @@
             "ignore" : [
                 { "value" : "static/lanhu/designs", "type" : "folder" },
                 { "value" : "static/lanhu/slices", "type" : "folder" },
+                { "value" : "static/lanhu/assets", "type" : "folder" },
                 { "value" : "static/lanhu/uploaded-assets.txt", "type" : "file" },
                 { "value" : "static/lanhu/uploaded-assets-map.json", "type" : "file" },
                 { "value" : "static/lanhu/LANHU_PAGE_MAP.md", "type" : "file" },
-                { "value" : "static/lanhu/asset-rename-map.json", "type" : "file" },
-                { "value" : "static/images", "type" : "folder" }
+                { "value" : "static/lanhu/LANHU_FUNCTION_DIFF_AUDIT.md", "type" : "file" },
+                { "value" : "static/lanhu/asset-rename-map.json", "type" : "file" }
             ]
         },
         "requiredPrivateInfos" : [ "getLocation", "chooseLocation", "chooseAddress" ],

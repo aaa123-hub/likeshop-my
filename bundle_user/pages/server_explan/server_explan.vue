@@ -357,7 +357,7 @@ export default {
   color: #333333;
   font-size: 26rpx;
   line-height: 1.8;
-  background: #f6f8fb;
+  background: #fff9f0;
   /* min-height: 100vh; */
 }
 
@@ -546,7 +546,7 @@ export default {
 
 .login-agreement-bar__button.is-ready,
 .login-agreement-bar__button.is-confirmed {
-  background: #ff4d3d;
+  background: #a0610d;
 }
 
 @media screen and (max-width: 360px) {

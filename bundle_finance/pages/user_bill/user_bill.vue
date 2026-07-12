@@ -8,10 +8,10 @@
                     <view class="bill-list bg-white">
                         <view class="bill-item row-between">
                             <view>
-                                <view class="black mb10">{{item.source_type}}</view>
-                                <view class="xs muted">{{item.create_time}}</view>
+                                <view class="bill-title black mb10">{{ displayText(item.source_type || item.type_desc, '账单类型待确认') }}</view>
+                                <view class="bill-time xs muted">{{ displayText(item.create_time, '时间待确认') }}</view>
                             </view>
-                            <view :class="'lg ' + (item.change_type == 1 ? 'income' : '')">{{item.change_amount}}</view>
+                            <view :class="'bill-amount lg ' + (isIncome(item) ? 'income' : '')">{{ amountText(item) }}</view>
                         </view>
                     </view>
                 </view>
@@ -28,11 +28,11 @@
                     <view class="bill-list bg-white">
                         <view class="bill-item row-between">
                             <view>
-                                <view class="black mb10">{{item.source_type}}</view>
-                                <view class="xs muted">{{item.create_time}}</view>
+                                <view class="bill-title black mb10">{{ displayText(item.source_type || item.type_desc, '账单类型待确认') }}</view>
+                                <view class="bill-time xs muted">{{ displayText(item.create_time, '时间待确认') }}</view>
                             </view>
 
-                            <view class="lg">{{item.change_amount}}</view>
+                            <view class="bill-amount lg">{{ amountText(item) }}</view>
                         </view>
                     </view>
                 </view>
@@ -49,10 +49,10 @@
                     <view class="bill-list bg-white">
                         <view class="bill-item row-between">
                             <view>
-                                <view class="black mb10">{{item.source_type}}</view>
-                                <view class="xs muted">{{item.create_time}}</view>
+                                <view class="bill-title black mb10">{{ displayText(item.source_type || item.type_desc, '账单类型待确认') }}</view>
+                                <view class="bill-time xs muted">{{ displayText(item.create_time, '时间待确认') }}</view>
                             </view>
-                            <view class="lg income">{{item.change_amount}}</view>
+                            <view class="bill-amount lg income">{{ amountText(item) }}</view>
                         </view>
                     </view>
                 </view>
@@ -106,7 +106,8 @@ export default {
    * 生命周期函数--监听页面加载
    */
   onLoad: function (options) {
-    this.active = parseInt(options.type);
+    const active = parseInt(options.type || 0);
+    this.active = Number.isNaN(active) ? 0 : active;
 
     this.getAccountLogFun(this.active);
   },
@@ -117,6 +118,23 @@ export default {
   },
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
+    isIncome(item = {}) {
+      const value = item.direction ?? item.change_type ?? item.changeType ?? item.type
+      const text = String(value).toLowerCase()
+      return value == 1 || text === 'in' || text === 'income'
+    },
+    amountText(item = {}) {
+      const value = item.change_amount ?? item.money ?? item.amount
+      if (!this.hasKnownValue(value)) return '金额待确认'
+      const amount = String(value).replace(/^[+-]/, '')
+      return `${this.isIncome(item) ? '+' : '-'}${amount}`
+    },
     onChange(e) {
       this.active = e;
       this.cleanStatus();
@@ -131,14 +149,14 @@ export default {
     },
 
     getAccountLogFun(type) {
-      let changeType = 0;
-      changeType = type == 0 ? 0 : type == 1 ? 2 : 1;
+      let changeType = 'all';
+      changeType = type == 0 ? 'all' : type == 1 ? 'out' : 'in';
       let {
         lists,
         loadingStatus,
         page
       } = this;
-      loadingFun(getAccountLog, page, lists, loadingStatus, { source: 1, type: changeType}).then(res => {
+      loadingFun(getAccountLog, page, lists, loadingStatus, { direction: changeType }).then(res => {
           if(res) {
               this.page = res.page;
               this.lists = res.dataList
@@ -162,8 +180,24 @@ export default {
                 .bill-item {
                     padding: 20rpx 30rpx;
                     border-bottom: $solid-border;
+                    gap: 20rpx;
+                    align-items: flex-start;
+                    box-sizing: border-box;
                     .income {
                         color: $color-primary;
+                    }
+                    .bill-title,
+                    .bill-time {
+                        max-width: 440rpx;
+                        word-break: break-all;
+                        line-height: 1.4;
+                    }
+                    .bill-amount {
+                        flex: none;
+                        max-width: 220rpx;
+                        text-align: right;
+                        word-break: break-all;
+                        line-height: 1.4;
                     }
                 }
             }

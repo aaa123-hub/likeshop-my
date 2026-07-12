@@ -62,7 +62,7 @@
 					// 字体颜色
 					color: '#333',
 					// 激活字体颜色
-					activeColor: '#FF2C3C',
+					activeColor: '#a0610d',
 					// item宽度 0为自动
 					itemWidth: 0,
 					// 下划线左右边距，文字宽度加边距 rpx
@@ -72,7 +72,7 @@
 					// 下划线高度 rpx
 					underLineHeight: 4,
 					// 下划线颜色
-					underLineColor: '#FF2C3C',
+					underLineColor: '#a0610d',
 				},
 			};
 		},
@@ -233,14 +233,14 @@
 						color: #333;
 
 						&._active {
-							color: #e54d42;
+							color: #a0610d;
 						}
 					}
 				}
 
 				._underline {
 					height: 4rpx;
-					background-color: #e54d42;
+					background-color: #a0610d;
 					border-radius: 6rpx;
 					transition: transform .5s;
 					position: absolute;

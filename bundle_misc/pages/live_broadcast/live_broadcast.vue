@@ -10,16 +10,17 @@
 					}">
 						<u-icon v-if="item.status == 101" name="play-right-fill" size="24"></u-icon>
 						<text v-else class="circel"></text>
-						<text class="ml10">{{ item.live_status }}</text>
+						<text class="ml10">{{ displayText(item.live_status, '状态待确认') }}</text>
 					</view>
-					<view class="tips line1">{{ item.name }}</view>
+					<view class="tips line1">{{ displayText(item.name, '直播间待确认') }}</view>
 				</view>
 				<view class="info">
 					<view class="md">
-						主播：{{ item.anchor_name }}
-						<text class="xs">｜直播商品：{{item.goods}}件</text>
+						主播：{{ displayText(item.anchor_name, '主播待确认') }}
+						<text v-if="hasKnownValue(item.goods)" class="xs">｜直播商品：{{item.goods}}件</text>
+						<text v-else class="xs">｜直播商品待确认</text>
 					</view>
-					<view class="muted xs mt20">直播时间：{{item.start_time}} 至 {{item.end_time}}</view>
+					<view class="muted xs mt20">{{ liveTimeText(item) }}</view>
 				</view>
 			</view>
 		</view>
@@ -62,7 +63,25 @@ import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vu
 		},
 
 		methods: {
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== ''
+			},
+			displayText(value, fallback) {
+				return this.hasKnownValue(value) ? value : fallback
+			},
+			liveTimeText(item = {}) {
+				if (this.hasKnownValue(item.start_time) && this.hasKnownValue(item.end_time)) {
+					return `直播时间：${item.start_time} 至 ${item.end_time}`
+				}
+				if (this.hasKnownValue(item.start_time)) return `直播开始：${item.start_time}`
+				if (this.hasKnownValue(item.end_time)) return `直播结束：${item.end_time}`
+				return '直播时间待确认'
+			},
 			navigateTo(item) {
+				if (!this.hasKnownValue(item.roomid)) {
+					this.$toast({ title: '直播间信息待确认' })
+					return
+				}
 				const roomId = [item.roomid];
 				wx.navigateTo({
 					url: `plugin-private://wx2b03c6e691cd7370/pages/live-player-plugin?room_id=${roomId}`
@@ -127,7 +146,7 @@ import UIcon from '@/bundle_misc/components/uview-ui/components/u-icon/u-icon.vu
 						background: #ccc;
 						padding: 8rpx 20rpx;
 						&.active{
-							background: linear-gradient(#ff2c3c 0%, #f95f2f 100%);
+							background: linear-gradient(#a0610d 0%, #d79a43 100%);
 						}
 						.circel {
 							display: inline-block;

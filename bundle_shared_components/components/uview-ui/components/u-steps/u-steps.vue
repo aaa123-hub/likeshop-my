@@ -53,7 +53,7 @@
  * @property {Number String} current 设置当前处于第几步
  * @property {String} active-color 已完成步骤的激活颜色，如设置，type值会失效
  * @property {String} un-active-color 未激活的颜色，用于表示未完成步骤的颜色（默认#606266）
- * @example <u-steps :list="numList" active-color="#fa3534"></u-steps>
+ * @example <u-steps :list="numList" active-color="#d65f2e"></u-steps>
  */
 export default {
 	name: 'u-steps',
@@ -83,7 +83,7 @@ export default {
 		// 激活步骤的颜色
 		activeColor: {
 			type: String,
-			default: '#2979ff'
+			default: '#a0610d'
 		},
 		// 未激活的颜色
 		unActiveColor: {

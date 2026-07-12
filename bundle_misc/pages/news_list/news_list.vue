@@ -9,25 +9,26 @@
         </view>
         <tabs :active="active" @change="changeActive" v-if="categoryList.length">
             <tab title="全部"></tab>
-            <tab v-for="(item, index) in categoryList" :key="index" :title="item.name" ></tab>
+            <tab v-for="(item, index) in categoryList" :key="index" :title="displayText(item.name, '分类待确认')" ></tab>
         </tabs>
         <view class="main">
             <view class="article-list">
                 <view v-for="(item, index) in newsList" :key="index" :data-id="item.id" class="article-item bg-white" @tap="goPage">
                     <view class="row">
                         <view class="info">
-                            <view class="title lg line2 mb20">{{ item.title }}</view>
+                            <view class="title lg line2 mb20">{{ displayText(item.title, '资讯标题待确认') }}</view>
                             <view class="lighter line2">
-                                <view>{{ item.synopsis }}</view>
+                                <view>{{ displayText(item.synopsis, '资讯摘要待确认') }}</view>
                             </view>
                         </view>
-                        <image width="240rpx" height="180rpx" lazy-load class="img ml20" :src="item.image" />
+                        <image v-if="hasKnownValue(item.image)" width="240rpx" height="180rpx" lazy-load class="img ml20" :src="item.image" />
+                        <view v-else class="img article-image-placeholder ml20">图片待确认</view>
                     </view>
                     <view class="row-between mt20">
-                        <view class="xs muted">发布时间: {{item.create_time}}</view>
+                        <view class="xs muted">{{ publishTimeText(item.create_time) }}</view>
                         <view class="row">
                             <!-- <image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_see.png"></image> -->
-                            <view class="ml10 xs muted">{{ item.visit }}人浏览</view>
+                            <view class="ml10 xs muted">{{ visitText(item.visit) }}</view>
                         </view>
                     </view>
                 </view>
@@ -125,7 +126,6 @@ export default {
       }).then(res => {
         if (res.code == 1) {
             this.categoryList = res.data
-            console.log(this.categoryList)
             this.getArticleListFun();
         }
       });
@@ -140,7 +140,8 @@ export default {
       } = this;
 
 	  // active是选中的分类索引，索引0是全部，索引1开始才是的分类列表的数据
-	  let id = active ? this.categoryList[active - 1].id : '';
+	  const currentCategory = active ? this.categoryList[active - 1] : null;
+	  let id = currentCategory ? currentCategory.id : '';
 
       loadingFun(getArticleList, page, newsList, status, {
         type: this.type,
@@ -158,9 +159,29 @@ export default {
       let {
         id
       } = e.currentTarget.dataset;
+      if (!this.hasKnownValue(id)) {
+        this.$toast({ title: '资讯信息待确认' })
+        return
+      }
       uni.navigateTo({
         url: `/bundle_misc/pages/news_details/news_details?id=${id}&type=${this.type}`
       });
+    },
+
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
+
+    publishTimeText(value) {
+      return this.hasKnownValue(value) ? `发布时间: ${value}` : '发布时间待确认'
+    },
+
+    visitText(value) {
+      return this.hasKnownValue(value) ? `${value}人浏览` : '浏览数待确认'
     }
 
   }
@@ -186,6 +207,14 @@ export default {
                     width: 240rpx;
                     height: 180rpx;
                     flex: none;
+                }
+                .article-image-placeholder {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #f5f7fa;
+                    color: #8b95a5;
+                    font-size: 24rpx;
                 }
             }
             &:last-of-type {

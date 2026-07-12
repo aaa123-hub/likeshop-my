@@ -6,6 +6,11 @@
         <view v-if="isLogin && cartType === 1" class="shop-cart-page__manage" @tap="toggleManageMode">
           {{ isManageMode ? '完成' : '管理' }}
         </view>
+        <view class="shop-cart-page__capsule">
+          <view class="shop-cart-page__capsule-dot"></view>
+          <view class="shop-cart-page__capsule-divider"></view>
+          <view class="shop-cart-page__capsule-circle"></view>
+        </view>
       </view>
 
       <view v-if="isLogin" class="shop-cart-page__content">
@@ -19,7 +24,7 @@
               >
                 <view v-if="item.selected == 1 && item.cart_status == 0" class="cart-check__mark"></view>
               </view>
-              <text class="cart-card__shop-name line1">{{ item.shop_name || '商城自营' }}</text>
+              <text class="cart-card__shop-name line1">{{ item.shop_name || item.shopName || '店铺待确认' }}</text>
               <text v-if="item.cart_status != 0" class="cart-card__invalid">已失效</text>
             </view>
 
@@ -40,13 +45,13 @@
                 <view class="cart-card__info">
                   <view class="cart-card__name line2" @tap="goGoodsDetail(item)">{{ item.name }}</view>
                   <view v-if="item.subtitle" class="cart-card__subtitle line1">{{ item.subtitle }}</view>
-                  <view class="cart-card__spec line1" @tap="goGoodsDetail(item)">{{ item.spec_value_str || '默认规格' }}</view>
+                  <view v-if="item.spec_value_str" class="cart-card__spec line1" @tap="goGoodsDetail(item)">{{ item.spec_value_str }}</view>
                   <view v-if="formatCartTags(item).length" class="cart-card__tags">
                     <text v-for="tag in formatCartTags(item)" :key="tag" class="cart-card__tag line1">{{ tag }}</text>
                   </view>
                   <view class="cart-card__meta">
                     <text v-if="item.sales_sum">已售{{ item.sales_sum }}</text>
-                    <text v-if="getItemStock(item) < 999999">库存{{ getItemStock(item) }}</text>
+                    <text v-if="hasItemStock(item)">库存{{ getItemStock(item) }}</text>
                     <text v-if="item.unit">单位：{{ item.unit }}</text>
                     <text v-if="item.weight">{{ item.weight }}</text>
                   </view>
@@ -78,7 +83,7 @@
                       />
                       <button
                         class="cart-stepper__btn cart-stepper__btn--plus"
-                        :class="{ 'is-disabled': !isCartItemAvailable(item) || item.goods_num >= getItemStock(item) }"
+                        :class="{ 'is-disabled': !isCartItemAvailable(item) || (hasItemStock(item) && item.goods_num >= getItemStock(item)) }"
                         @tap.stop="changeItemCount(index, 1)"
                       >
                         <view class="cart-stepper__icon cart-stepper__icon--plus"></view>
@@ -115,28 +120,33 @@
           <view class="cart-check" :class="{ 'is-checked': isSelectedAll }">
             <view v-if="isSelectedAll" class="cart-check__mark"></view>
           </view>
-          <text class="cart-footer__check-text">已选{{ selectedCount }}件</text>
+          <text class="cart-footer__check-text">全选</text>
         </view>
         <view v-if="!isManageMode" class="cart-footer__price">
-          <text class="cart-footer__price-label">合计：</text>
-          <text class="cart-footer__price-value">¥{{ totalPriceText }}</text>
+          <view class="cart-footer__price-line">
+            <text class="cart-footer__price-label">合计：</text>
+            <text class="cart-footer__price-value">¥{{ totalPriceText }}</text>
+          </view>
+          <text class="cart-footer__selected">已选{{ selectedCount }}件</text>
         </view>
       </view>
       <view v-if="isManageMode" class="cart-footer__delete" :class="{ disabled: nullSelect }" @tap="deleteSelectedGoods">删除</view>
-      <view v-else class="cart-footer__pay" :class="{ disabled: nullSelect }" @tap="goToConfirm">立即支付</view>
+      <view v-else class="cart-footer__pay" :class="{ disabled: nullSelect }" @tap="goToConfirm">去结算</view>
     </view>
 
     <u-modal
       v-model="delPopup"
       :showCancelButton="true"
       confirm-text="狠心删除"
-      confirm-color="#FF2C3C"
+      confirm-color="#a0610d"
       :show-title="false"
       @confirm="goodsDelete"
       @cancel="changeDelPopup"
     >
       <view class="cart-delete-dialog">
-        <image class="cart-delete-dialog__icon" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
+        <view class="cart-delete-dialog__icon">
+          <view class="cart-delete-dialog__icon-mark"></view>
+        </view>
         <view class="cart-delete-dialog__text">确认删除该商品吗？</view>
       </view>
     </u-modal>
@@ -317,8 +327,12 @@ export default {
       if (!stock) return false;
       return Number(item.goods_num || 1) >= stock;
     },
+    hasItemStock(item = {}) {
+      return item.item_stock !== undefined || item.stock !== undefined;
+    },
     getItemStock(item = {}) {
-      return Number(item.item_stock || item.stock || 999999);
+      const stock = Number(item.item_stock ?? item.stock ?? 0);
+      return Number.isNaN(stock) ? 0 : stock;
     },
     formatPrice(value) {
       return Number(value || 0).toFixed(2).split('.');
@@ -381,17 +395,17 @@ export default {
       const item = this.cartLists[index];
       if (!item || !this.isCartItemAvailable(item)) return;
       const currentCount = Number(item.goods_num || item.quantity || 1);
-      const stock = Number(item.item_stock || item.stock || 0);
+      const stock = this.getItemStock(item);
       let nextValue = currentCount + step;
       if (nextValue < 1) return;
-      if (stock && nextValue > stock) return;
+      if (this.hasItemStock(item) && nextValue > stock) return;
       this.updateCartItemCount(index, nextValue, true);
     },
     normalizeCartCount(value, item = {}) {
       let nextValue = parseInt(value, 10);
       if (!nextValue || Number.isNaN(nextValue) || nextValue < 1) nextValue = 1;
-      const stock = Number(item.item_stock || item.stock || 0);
-      if (stock && nextValue > stock) nextValue = stock;
+      const stock = this.getItemStock(item);
+      if (this.hasItemStock(item) && stock > 0 && nextValue > stock) nextValue = stock;
       return nextValue;
     },
     onCountInput(event, index) {
@@ -515,7 +529,7 @@ export default {
 .shop-cart-page {
   --page-safe-top: var(--status-bar-height, 44rpx);
   min-height: 100vh;
-  background: #f6f7fb;
+  background: linear-gradient(180deg, #fff9f0 0%, #fffdf8 100%);
 }
 
 .shop-cart-page__screen {
@@ -531,10 +545,11 @@ export default {
 }
 
 .shop-cart-page__top {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  padding: calc(var(--page-safe-top) + 18rpx) 180rpx 28rpx 28rpx;
+  padding: calc(var(--page-safe-top) + 23rpx) 180rpx 24rpx 25rpx;
 }
 
 /* #ifdef MP-WEIXIN */
@@ -546,9 +561,9 @@ export default {
 .shop-cart-page__title {
   min-width: 0;
   color: #232323;
-  font-size: 40rpx;
-  font-weight: 600;
-  line-height: 56rpx;
+  font-size: 36rpx;
+  font-weight: 500;
+  line-height: 36rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -557,16 +572,48 @@ export default {
 .shop-cart-page__manage {
   flex: none;
   margin-left: 22rpx;
-  color: #0d7cf2;
+  color: #a0610d;
   font-size: 28rpx;
   line-height: 44rpx;
   white-space: nowrap;
 }
 
-.shop-cart-page__menu {
-  width: 258rpx;
-  height: 68rpx;
-  flex-shrink: 0;
+.shop-cart-page__capsule {
+  position: absolute;
+  right: 24rpx;
+  top: calc(var(--page-safe-top) + 22rpx);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 168rpx;
+  height: 64rpx;
+  padding: 0 19rpx;
+  border: 1rpx solid transparent;
+  border-radius: 32rpx;
+  background: transparent;
+  box-sizing: border-box;
+  opacity: 0;
+}
+
+.shop-cart-page__capsule-dot {
+  width: 46rpx;
+  height: 12rpx;
+  border-top: 6rpx dotted #222222;
+  box-sizing: border-box;
+}
+
+.shop-cart-page__capsule-divider {
+  width: 1rpx;
+  height: 35rpx;
+  background: rgba(0, 0, 0, .16);
+}
+
+.shop-cart-page__capsule-circle {
+  width: 31rpx;
+  height: 31rpx;
+  border: 4rpx solid #222222;
+  border-radius: 50%;
+  box-sizing: border-box;
 }
 
 .shop-cart-page__content {
@@ -580,28 +627,28 @@ export default {
 
 .cart-card {
   position: relative;
-  padding: 20rpx 0 18rpx;
-  margin-bottom: 22rpx;
-  border-radius: 24rpx;
-  background: #ffffff;
-  box-shadow: 0 10rpx 26rpx rgba(20, 40, 80, 0.04);
+  padding: 24rpx 0 34rpx;
+  margin-bottom: 20rpx;
+  border-radius: 15rpx;
+  background: #fff9f0;
+  box-shadow: none;
 }
 
 .cart-card__shop {
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 0 24rpx;
+  padding: 0 25rpx;
 }
 
 .cart-card__shop-name {
   flex: 1;
   min-width: 0;
-  margin-left: 20rpx;
+  margin-left: 15rpx;
   color: #222222;
   font-size: 28rpx;
-  font-weight: 600;
-  line-height: 40rpx;
+  font-weight: 500;
+  line-height: 28rpx;
 }
 
 .cart-card__invalid {
@@ -613,12 +660,12 @@ export default {
 .cart-card__goods {
   display: flex;
   align-items: flex-start;
-  margin-top: 20rpx;
-  padding: 0 24rpx;
+  margin-top: 33rpx;
+  padding: 0 17rpx 0 25rpx;
 }
 
 .cart-card__goods-check {
-  margin-top: 42rpx;
+  margin-top: 50rpx;
 }
 
 .cart-card__body {
@@ -626,15 +673,15 @@ export default {
   flex: 1;
   align-items: flex-start;
   min-width: 0;
-  margin-left: 18rpx;
+  margin-left: 22rpx;
 }
 
 .cart-card__image-wrap {
   flex: none;
-  width: 166rpx;
-  height: 166rpx;
-  border-radius: 18rpx;
-  background: #f0f3f8;
+  width: 157rpx;
+  height: 157rpx;
+  border-radius: 8rpx;
+  background: #a5a5a5;
   overflow: hidden;
 }
 
@@ -646,7 +693,7 @@ export default {
   height: 100%;
   color: #a8b0bf;
   font-size: 24rpx;
-  background: #f0f3f8;
+  background: #a5a5a5;
 }
 
 .cart-card__info {
@@ -654,22 +701,22 @@ export default {
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  min-height: 166rpx;
-  margin-left: 20rpx;
+  min-height: 158rpx;
+  margin-left: 21rpx;
 }
 
 .cart-card__name {
   color: #222222;
   font-size: 28rpx;
-  font-weight: 600;
-  line-height: 38rpx;
+  font-weight: 500;
+  line-height: 28rpx;
 }
 
 .cart-card__spec {
-  margin-top: 10rpx;
-  color: #a0a0a0;
-  font-size: 22rpx;
-  line-height: 30rpx;
+  margin-top: 20rpx;
+  color: #999999;
+  font-size: 20rpx;
+  line-height: 20rpx;
 }
 
 .cart-card__subtitle {
@@ -690,11 +737,11 @@ export default {
 .cart-card__tag {
   max-width: 150rpx;
   padding: 0 10rpx;
-  color: #1677ff;
+  color: #a0610d;
   font-size: 20rpx;
   line-height: 30rpx;
   border-radius: 15rpx;
-  background: #eef6ff;
+  background: #fff0dc;
   box-sizing: border-box;
 }
 
@@ -723,7 +770,7 @@ export default {
 }
 
 .cart-card__price {
-  color: #ff2c3c;
+  color: #a0610d;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -738,11 +785,11 @@ export default {
 
 .cart-card__price-symbol,
 .cart-card__price-decimal {
-  font-size: 26rpx;
+  font-size: 24rpx;
 }
 
 .cart-card__price-main {
-  font-size: 38rpx;
+  font-size: 35rpx;
 }
 
 .cart-card__num {
@@ -750,7 +797,7 @@ export default {
   display: inline-flex;
   align-items: center;
   height: 50rpx;
-  margin-left: 12rpx;
+  margin-left: 11rpx;
   overflow: visible;
   border-radius: 0;
   background: transparent;
@@ -762,19 +809,19 @@ export default {
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 38rpx;
-  height: 38rpx;
-  border: 2rpx solid #d3dbe8;
-  border-radius: 12rpx;
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #dfdfdf;
+  border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 4rpx 12rpx rgba(20, 40, 80, 0.08);
+  box-shadow: none;
   box-sizing: border-box;
   overflow: hidden;
 
   &.is-checked {
-    border-color: #1677ff;
-    background: #1677ff;
-    box-shadow: 0 6rpx 16rpx rgba(22, 119, 255, 0.24);
+    border-color: #a0610d;
+    background: #a0610d;
+    box-shadow: none;
   }
 
   &.is-disabled {
@@ -783,8 +830,8 @@ export default {
 }
 
 .cart-check__mark {
-  width: 18rpx;
-  height: 10rpx;
+  width: 16rpx;
+  height: 9rpx;
   border-left: 4rpx solid #ffffff;
   border-bottom: 4rpx solid #ffffff;
   transform: rotate(-45deg) translate(1rpx, -1rpx);
@@ -795,14 +842,15 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60rpx;
-  height: 50rpx;
+  width: 39rpx;
+  height: 39rpx;
   margin: 0;
   padding: 0;
   color: #323233;
   font-size: 0;
-  line-height: 50rpx;
-  background: #f2f3f5;
+  line-height: 39rpx;
+  background: #a0610d;
+  border-radius: 50%;
   border: 0;
   box-sizing: border-box;
 }
@@ -815,7 +863,7 @@ export default {
   position: relative;
   width: 22rpx;
   height: 22rpx;
-  color: inherit;
+  color: #fee4cd;
 }
 
 .cart-stepper__icon::before,
@@ -836,28 +884,29 @@ export default {
 }
 
 .cart-stepper__btn.is-disabled {
-  color: #c8c9cc;
-  background: #f7f8fa;
+  color: #fee4cd;
+  background: rgba(160, 97, 13, 0.55);
 }
 
 .cart-stepper__btn--minus {
-  border-radius: 8rpx 0 0 8rpx;
+  border-radius: 50%;
 }
 
 .cart-stepper__btn--plus {
-  border-radius: 0 8rpx 8rpx 0;
+  border-radius: 50%;
 }
 
 .cart-stepper__input {
-  width: 70rpx;
-  height: 50rpx;
-  min-height: 50rpx;
-  margin: 0 6rpx;
+  width: 55rpx;
+  height: 51rpx;
+  min-height: 51rpx;
+  margin: 0 18rpx;
   padding: 0;
   color: #323233;
-  font-size: 24rpx;
+  font-size: 30rpx;
   text-align: center;
-  background: #f2f3f5;
+  background: #ffffff;
+  border-radius: 4rpx;
   box-sizing: border-box;
 }
 
@@ -879,13 +928,13 @@ export default {
   width: 220rpx;
   height: 76rpx;
   border-radius: 38rpx;
-  border: 2rpx solid #0d7cf2;
-  color: #0d7cf2;
+  border: 2rpx solid #a0610d;
+  color: #a0610d;
   font-size: 28rpx;
 }
 
 .cart-empty__btn--login {
-  background: #0d7cf2;
+  background: #a0610d;
   color: #ffffff;
 }
 
@@ -898,10 +947,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: calc(96rpx + env(safe-area-inset-bottom));
-  padding: 10rpx 20rpx 0;
-  background: #ffffff;
-  box-shadow: 0 -8rpx 28rpx rgba(17, 24, 39, 0.06);
+  min-height: calc(113rpx + env(safe-area-inset-bottom));
+  padding: 16rpx 44rpx 16rpx 24rpx;
+  background: #fff9f0;
+  border-radius: 21rpx 21rpx 0 0;
+  box-shadow: 0 -3rpx 16rpx rgba(224, 224, 224, 0.67);
   box-sizing: border-box;
 }
 
@@ -910,63 +960,77 @@ export default {
   align-items: center;
   flex: 1;
   min-width: 0;
-  margin-right: 12rpx;
+  margin-right: 20rpx;
 }
 
 .cart-footer__check {
   display: flex;
   align-items: center;
   flex: none;
-  max-width: 132rpx;
+  max-width: 124rpx;
 }
 
 .cart-footer__check-text {
   margin-left: 8rpx;
-  color: #8a8a8a;
-  font-size: 22rpx;
+  color: #222222;
+  font-size: 24rpx;
   white-space: nowrap;
 }
 
 .cart-footer__price {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: flex-start;
   flex: 1;
   min-width: 0;
-  margin-left: 10rpx;
+  margin-left: 43rpx;
   white-space: nowrap;
+}
+
+.cart-footer__price-line {
+  display: flex;
+  align-items: baseline;
+  max-width: 100%;
 }
 
 .cart-footer__price-label {
   flex: none;
   color: #232323;
-  font-size: 22rpx;
+  font-size: 24rpx;
 }
 
 .cart-footer__price-value {
   min-width: 0;
-  color: #ff2c2c;
-  font-size: 30rpx;
-  font-weight: 600;
+  color: #a0610d;
+  font-size: 33rpx;
+  font-weight: 500;
   line-height: 44rpx;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.cart-footer__selected {
+  margin: 8rpx 0 0 4rpx;
+  color: #999999;
+  font-size: 24rpx;
+  line-height: 24rpx;
 }
 
 .cart-footer__pay {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 184rpx;
-  height: 68rpx;
-  border-radius: 38rpx;
-  background: #0d7cf2;
+  width: 259rpx;
+  height: 81rpx;
+  border-radius: 40rpx;
+  background: #a0610d;
   color: #ffffff;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
 
   &.disabled {
-    background: #d7dbe2;
+    background: rgba(160, 97, 13, 0.45);
     color: #ffffff;
   }
 }
@@ -975,10 +1039,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 184rpx;
-  height: 68rpx;
-  border-radius: 38rpx;
-  background: #ff2c3c;
+  width: 259rpx;
+  height: 81rpx;
+  border-radius: 40rpx;
+  background: #a0610d;
   color: #ffffff;
   font-size: 28rpx;
   font-weight: 600;
@@ -995,8 +1059,50 @@ export default {
 }
 
 .cart-delete-dialog__icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 104rpx;
   height: 104rpx;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #fff0dc;
+  box-sizing: border-box;
+}
+
+.cart-delete-dialog__icon::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 19rpx;
+  width: 0;
+  height: 0;
+  border-left: 31rpx solid transparent;
+  border-right: 31rpx solid transparent;
+  border-bottom: 58rpx solid #ff9900;
+  transform: translateX(-50%);
+}
+
+.cart-delete-dialog__icon-mark {
+  position: relative;
+  z-index: 1;
+  width: 8rpx;
+  height: 30rpx;
+  margin-top: 18rpx;
+  border-radius: 8rpx;
+  background: #ffffff;
+}
+
+.cart-delete-dialog__icon-mark::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -13rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #ffffff;
 }
 
 .cart-delete-dialog__text {

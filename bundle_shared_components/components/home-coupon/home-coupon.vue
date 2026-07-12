@@ -52,7 +52,7 @@
 			</scroll-view>
 		</view>
 		<view class="row-center mt20" v-if="list.length > 2">
-			<cu-progress progressBarColor="#FF2C3C" :left="progressPer"></cu-progress>
+			<cu-progress progressBarColor="#a0610d" :left="progressPer"></cu-progress>
 		</view>
 	</view>
 </template>
@@ -167,7 +167,7 @@ getRect
 </script>
 <style lang="scss">
 	.every-day-coupon {
-		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon.png);
+		background: linear-gradient(135deg, #fff8ed 0%, #ffe7bd 100%);
 		background-size: 100% 100%;
 		background-repeat: no-repeat;
 		height: 264rpx;
@@ -192,11 +192,11 @@ getRect
 				width: 326rpx;
 				flex: none;
 				position: relative;
-				background: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon_red.png);
+				background: linear-gradient(135deg, #fffdf8 0%, #fff1dc 100%);
 				background-size: 100% 100%;
 
 				&.recieve {
-					background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon_gray.png);
+					background: linear-gradient(135deg, #f8f1e8 0%, #f2e5d5 100%);
 
 					.coupon-right {
 						background-color: #E5E5E5;

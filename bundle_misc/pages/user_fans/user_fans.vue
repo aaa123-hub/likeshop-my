@@ -20,22 +20,22 @@
             <view class="sort-bar-item row-center nr" @tap="sortStatusChange" data-sort-type="0">
                 <view :class="sortType == 0 ? 'item-active' : ''">团队排序</view>
                 <view class="column">
-                    <trigonometry direction="up" :color="fansSort == 'asc' ? '#FF2C3C' : '#585858'" size="small"></trigonometry>
-                    <trigonometry :color="fansSort == 'desc' ? '#FF2C3C' : '#585858'" size="small"></trigonometry>
+                    <trigonometry direction="up" :color="fansSort == 'asc' ? '#a0610d' : '#585858'" size="small"></trigonometry>
+                    <trigonometry :color="fansSort == 'desc' ? '#a0610d' : '#585858'" size="small"></trigonometry>
                 </view>
             </view>
             <view class="sort-bar-item row-center nr" @tap="sortStatusChange" data-sort-type="1">
                 <view :class="sortType == 1 ? 'item-active' : ''">金额排序</view>
                 <view class="column">
-                    <trigonometry direction="up" :color="moneySort == 'asc' ? '#FF2C3C' : '#585858'" size="small"></trigonometry>
-                    <trigonometry :color="moneySort == 'desc' ? '#FF2C3C' : '#585858'" size="small"></trigonometry>
+                    <trigonometry direction="up" :color="moneySort == 'asc' ? '#a0610d' : '#585858'" size="small"></trigonometry>
+                    <trigonometry :color="moneySort == 'desc' ? '#a0610d' : '#585858'" size="small"></trigonometry>
                 </view>
             </view>
             <view class="sort-bar-item row-center nr" @tap="sortStatusChange" data-sort-type="2">
                 <view :class="sortType == 2 ? 'item-active' : ''">订单排序</view>
                 <view class="column">
-                    <trigonometry direction="up" :color="orderSort == 'asc' ? '#FF2C3C' : '#585858'" size="small"></trigonometry>
-                    <trigonometry :color="orderSort == 'desc' ? '#FF2C3C' : '#585858'" size="small"></trigonometry>
+                    <trigonometry direction="up" :color="orderSort == 'asc' ? '#a0610d' : '#585858'" size="small"></trigonometry>
+                    <trigonometry :color="orderSort == 'desc' ? '#a0610d' : '#585858'" size="small"></trigonometry>
                 </view>
             </view>
         </view>
@@ -51,7 +51,7 @@
                         <image :src="item.avatar" round width="100%" height="100%" />
                     </view>
                     <view class="fans-info ml10">
-                        <view class="fans-name row">{{item.nickname}}</view>
+                        <view class="fans-name row">{{ item.nickname || '未命名粉丝' }}</view>
                         <view class="row lighter mt5">
                             <view>{{item.mobile}}</view>
                             <view class="ml20">{{item.create_time}}</view>
@@ -59,9 +59,9 @@
                     </view>
                 </view>
                 <view class="column xs">
-                    <view class="msg"><text class="primary">{{item.fans_team}} </text>人</view>
-                    <view class="mt5 msg"><text>{{item.fans_order}} </text>单</view>
-                    <view class="mt5 msg"><text>{{item.fans_money}} </text>元</view>
+                    <view class="msg"><text class="primary">{{ formatCount(item.fans_team) }} </text>{{ hasKnownNumber(item.fans_team) ? '人' : '' }}</view>
+                    <view class="mt5 msg"><text>{{ formatCount(item.fans_order) }} </text>{{ hasKnownNumber(item.fans_order) ? '单' : '' }}</view>
+                    <view class="mt5 msg"><text>{{ formatMoney(item.fans_money) }}</text></view>
                 </view>
             </view>
             <loading-footer :status="loadingStatus" slotEmpty>
@@ -132,7 +132,6 @@ export default {
 
   methods: {
     onSearch() {
-      console.log(this.keyword);
       this.cleanStatus();
       this.getUserFansFun();
     },
@@ -179,6 +178,17 @@ export default {
       const code = String(roleCode || '').toUpperCase()
       const map = { HEADQUARTERS: 'HQ', OPERATION_CENTER: 'AGENT', AREA_AGENT: 'AGENT', COUNTY_AGENT: 'AGENT' }
       return map[code] || code
+    },
+    hasKnownNumber(value) {
+      if (value === undefined || value === null || value === '') return false
+      const number = Number(value)
+      return !Number.isNaN(number) && Number.isFinite(number)
+    },
+    formatCount(value) {
+      return this.hasKnownNumber(value) ? String(Number(value)) : '待确认'
+    },
+    formatMoney(value) {
+      return this.hasKnownNumber(value) ? `${Number(value).toFixed(2)}元` : '金额待确认'
     },
 
     // 清理状态

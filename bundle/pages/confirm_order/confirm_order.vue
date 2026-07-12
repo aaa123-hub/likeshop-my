@@ -4,7 +4,7 @@
             <view class="page-head">
                 <view class="nav-row">
                     <view class="back-icon" @tap="goBack"></view>
-                    <text class="nav-title">待付款</text>
+                    <text class="nav-title">确认订单</text>
                 </view>
                 <view class="tips-row">
                     <image
@@ -12,7 +12,7 @@
                         src="https://shengyuan.store/api/miniapp/files/miniapp/af8480d8856d4f44839745edb33b090f/ff33c2922125b8c5475cc7e97121c885.png"
                         mode="scaleToFill"
                     ></image>
-                    <text class="tips-text">温馨提示：请确认订单信息、收货地址和支付方式后再完成付款</text>
+                    <text class="tips-text">温馨提示：请确认订单信息和收货方式后再提交订单</text>
                 </view>
             </view>
 
@@ -127,7 +127,7 @@
                                         ></price-format>
                                     </view>
                                 </view>
-                                <text class="goods-num">X{{ item.goods_num || item.num || 1 }}</text>
+                                <text class="goods-num">{{ goodsDisplayNumText(item) }}</text>
                             </view>
                         </view>
                     </view>
@@ -153,7 +153,7 @@
                 <view class="order-card price-card">
                     <view class="summary-row">
                         <text>商品总价</text>
-                        <text>¥{{ orderInfo.total_goods_price || '0.00' }}</text>
+                        <text>{{ goodsTotalText }}</text>
                     </view>
                     <view class="divider"></view>
                     <view class="summary-row">
@@ -191,7 +191,7 @@
                         <view class="points-detail-row">
                             <view class="points-detail-item">
                                 <text class="points-detail-label">当前积分</text>
-                                <text class="points-detail-value">{{ userIntegral }}积分</text>
+                                <text class="points-detail-value">{{ userIntegralText }}</text>
                             </view>
                             <view class="points-detail-item">
                                 <text class="points-detail-label">最多抵扣</text>
@@ -199,7 +199,7 @@
                             </view>
                             <view class="points-detail-item">
                                 <text class="points-detail-label">预计使用</text>
-                                <text class="points-detail-value">{{ pointsAmount || 0 }}积分</text>
+                                <text class="points-detail-value">{{ pointsAmountText }}</text>
                             </view>
                         </view>
                     </template>
@@ -213,14 +213,10 @@
 
                 <view class="pay-section">
                     <view class="pay-card">
-                        <view class="pay-item" :class="{ active: payWay === 'WECHAT_JSAPI' }" @tap="selectPayWay('WECHAT_JSAPI')">
-                            <image
-                                class="pay-icon"
-                                src="https://shengyuan.store/api/miniapp/files/miniapp/2d6eda26285643b8aada027e1d657532/34f5d621b59abc567bcabd522381293f.png"
-                                mode="scaleToFill"
-                            ></image>
-                            <text>微信支付</text>
-                            <view class="pay-badge">当前支付方式</view>
+                        <view class="pay-item pay-item--deferred">
+                            <view class="pay-icon pay-icon--deferred"></view>
+                            <text>提交订单后选择支付方式</text>
+                            <view class="pay-badge">以支付页为准</view>
                         </view>
                     </view>
                 </view>
@@ -239,7 +235,7 @@
                         ></price-format>
                     </view>
                 </view>
-                <button class="pay-btn" hover-class="none" @tap="onSubmitOrder">立即支付</button>
+                <button class="pay-btn" hover-class="none" @tap="onSubmitOrder">提交订单</button>
             </view>
         </view>
         <loading-view v-if="showLoading" background-color="transparent" :size="50"></loading-view>
@@ -354,7 +350,6 @@ export default {
             receivingCouponId: '',
             couponManuallyCleared: false,
             pointsFallback: {},
-            payWay: 'WECHAT_JSAPI',
             bargainLaunchId: -1,
             addressTabsIndex: 0,
             addressTabsList: [
@@ -378,7 +373,7 @@ export default {
             return hasOffline ? 'OFFLINE' : 'ONLINE'
         },
         shopName() {
-            return this.shopGroups[0] ? this.shopGroups[0].name : '商城自营'
+            return this.shopGroups[0] ? this.shopGroups[0].name : '店铺待确认'
         },
         shopLogo() {
             return this.shopGroups[0] ? this.shopGroups[0].logo : ''
@@ -389,7 +384,7 @@ export default {
             if (Array.isArray(shopOrders) && shopOrders.length) {
                 return shopOrders.map((shop, index) => {
                     const items = shop.itemList || shop.items || shop.goodsList || shop.goods_lists || shop.order_goods || []
-                    const name = this.firstDefined(shop.shopName, shop.shop_name, shop.storeName, shop.store_name, shop.name, this.orderInfo.shopName, this.orderInfo.shop_name, '商城自营')
+                    const name = this.firstDefined(shop.shopName, shop.shop_name, shop.storeName, shop.store_name, shop.name, this.orderInfo.shopName, this.orderInfo.shop_name, '店铺待确认')
                     const logo = this.resolveOrderImage(this.firstDefined(shop.shopLogo, shop.shop_logo, shop.logo, shop.logoUrl, shop.storeLogo, ''), 'avatar')
                     return {
                         key: String(this.firstDefined(shop.shopId, shop.shop_id, shop.id, `shop_${index}`)),
@@ -405,7 +400,7 @@ export default {
                 if (!group) {
                     group = {
                         key: shopId || `shop_${index}`,
-                        name: this.firstDefined(item.shop_name, item.shopName, item.store_name, item.storeName, this.orderInfo.shop_name, this.orderInfo.shopName, '商城自营'),
+                        name: this.firstDefined(item.shop_name, item.shopName, item.store_name, item.storeName, this.orderInfo.shop_name, this.orderInfo.shopName, '店铺待确认'),
                         logo: this.resolveOrderImage(this.firstDefined(item.shop_logo, item.shopLogo, item.shopLogoUrl, item.storeLogo, this.orderInfo.shop_logo, this.orderInfo.shopLogo, ''), 'avatar'),
                         items: []
                     }
@@ -415,7 +410,7 @@ export default {
             })
             return groups.length ? groups : [{
                 key: 'default',
-                name: this.firstDefined(this.orderInfo.shop_name, this.orderInfo.shopName, '商城自营'),
+                name: this.firstDefined(this.orderInfo.shop_name, this.orderInfo.shopName, '店铺待确认'),
                 logo: this.resolveOrderImage(this.firstDefined(this.orderInfo.shop_logo, this.orderInfo.shopLogo, ''), 'avatar'),
                 items: this.goodsLists
             }]
@@ -427,7 +422,15 @@ export default {
             if (!this.address.id && this.currentDelivery.sign === 'express') {
                 return '填写地址后自动计算运费'
             }
-            return `¥${this.orderInfo.shipping_price || '0.00'}`
+            const value = this.firstDefined(this.orderInfo.shipping_price, this.orderInfo.freightAmount, this.orderInfo.freight_amount)
+            if (value === undefined || value === null || value === '') return '待确认'
+            return `¥${this.moneyValue(value).toFixed(2)}`
+        },
+        goodsTotalText() {
+            const value = this.firstDefined(this.orderInfo.total_goods_price, this.orderInfo.goodsAmount, this.orderInfo.goods_amount, this.orderInfo.totalGoodsPrice, this.orderInfo.total_goods_amount)
+            if (value !== undefined && value !== null && value !== '') return `¥${this.moneyValue(value).toFixed(2)}`
+            if (this.goodsListsAmount > 0) return `¥${this.goodsListsAmount.toFixed(2)}`
+            return '待确认'
         },
         addressText() {
             const fullAddress = this.address.fullAddress || this.address.full_address || this.address.addressText || this.address.address_text
@@ -492,9 +495,10 @@ export default {
         goodsListsAmount() {
             const list = this.goodsLists && this.goodsLists.length ? this.goodsLists : (this.goods || [])
             return list.reduce((sum, item = {}) => {
-                const count = Number(this.firstDefined(item.goods_num, item.quantity, item.num, 1))
+                const countValue = this.firstDefined(item.goods_num, item.goodsNum, item.quantity, item.num)
+                const count = Number(countValue)
                 const price = Number(this.goodsDisplayPrice(item))
-                return sum + (Number.isNaN(count) || Number.isNaN(price) ? 0 : count * price)
+                return sum + (countValue === undefined || countValue === null || countValue === '' || Number.isNaN(count) || Number.isNaN(price) ? 0 : count * price)
             }, 0)
         },
         orderAmountBeforePoints() {
@@ -675,9 +679,10 @@ export default {
             if (this.backendMaxPointsDeductAmount > 0) return `¥${Math.min(this.backendMaxPointsDeductAmount, this.orderAmountBeforePoints || this.backendMaxPointsDeductAmount).toFixed(2)}`
             if (this.pointsDeductAmount > 0) return `¥${this.pointsDeductAmount.toFixed(2)}`
             if (this.pointsExchangeRate > 0 && this.userIntegral > 0) return `¥${this.fallbackPointsDeductAmount.toFixed(2)}`
-            return '¥0.00'
+            return '待计算'
         },
         fallbackPointsDeductAmount() {
+            if (!this.hasUserIntegral) return 0
             if (!this.pointsFeatureEnabled || this.userIntegral <= 0) return 0
             if (this.pointsUseLimit > 0 && this.userIntegral < this.pointsUseLimit) return 0
             if (this.pointsExchangeRate <= 0) return 0
@@ -690,6 +695,7 @@ export default {
         integralText() {
             const userIntegral = this.userIntegral
             if (!this.pointsFeatureEnabled) return '当前订单暂不支持'
+            if (!this.hasUserIntegral) return '可用积分待确认'
             if (userIntegral <= 0) return '暂无可用积分'
             if (!this.hasBackendPointsDeductAmount && this.pointsDeductAmount <= 0) return '待计算抵扣额'
             if (!this.canUseIntegral) return `${userIntegral}积分，不满足抵扣条件`
@@ -699,6 +705,7 @@ export default {
         },
         pointsHelpText() {
             if (!this.pointsFeatureEnabled) return '当前订单暂不可用'
+            if (!this.hasUserIntegral) return '可用积分待确认'
             if (!this.canUseIntegral) return '未满足积分抵扣条件'
             if (this.pointsDeductAmount > 0) return `勾选后应付金额减少¥${this.pointsDeductAmount.toFixed(2)}`
             return '勾选后将按订单规则试算抵扣'
@@ -751,14 +758,15 @@ export default {
         },
         canUseIntegral() {
             if (!this.pointsFeatureEnabled) return false
+            if (!this.hasUserIntegral) return false
             return this.userIntegral > 0 && this.pointsDeductAmount > 0 && this.userIntegral >= this.pointsUseLimit
         },
-        userIntegral() {
+        userIntegralRaw() {
             const data = this.orderInfo || {}
             const pointsInfo = this.normalizedPointsInfo
             const pointsAccount = data.pointsAccount || data.points_account || {}
             const fallback = this.pointsFallback || {}
-            const totalPoints = this.firstDefined(
+            return this.firstDefined(
                 data.user_integral,
                 data.userIntegral,
                 data.availablePoints,
@@ -800,17 +808,59 @@ export default {
                 data.pointsAmount,
                 data.points_amount,
                 data.integralNum,
-                data.integral_num,
-                0
+                data.integral_num
             )
-            return this.moneyValue(totalPoints)
+        },
+        hasUserIntegral() {
+            return this.userIntegralRaw !== undefined && this.userIntegralRaw !== null && this.userIntegralRaw !== ''
+        },
+        userIntegral() {
+            if (!this.hasUserIntegral) return 0
+            return this.moneyValue(this.userIntegralRaw)
+        },
+        userIntegralText() {
+            return this.hasUserIntegral ? `${this.userIntegral}积分` : '积分待确认'
+        },
+        hasBackendPointsAmount() {
+            const data = this.orderInfo || {}
+            const pointsInfo = this.normalizedPointsInfo
+            const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
+            const value = this.firstDefined(
+                pointsInfo.pointsAmount,
+                pointsInfo.points_amount,
+                pointsInfo.used,
+                pointsInfo.usedPoints,
+                pointsInfo.used_points,
+                pointsInfo.integralNum,
+                pointsInfo.integral_num,
+                amountInfo.pointsAmount,
+                amountInfo.points_amount,
+                amountInfo.used,
+                amountInfo.usedPoints,
+                amountInfo.used_points,
+                amountInfo.integralNum,
+                amountInfo.integral_num,
+                data.pointsAmount,
+                data.points_amount,
+                data.used,
+                data.usedPoints,
+                data.used_points,
+                data.integralNum,
+                data.integral_num
+            )
+            return value !== undefined && value !== null && value !== ''
+        },
+        pointsAmountText() {
+            if (this.pointsAmount > 0) return `${this.pointsAmount}积分`
+            if (this.hasBackendPointsAmount || (this.hasUserIntegral && this.pointsDeductAmount > 0 && this.pointsExchangeRate > 0)) return '0积分'
+            return '积分待确认'
         },
         pointsAmount() {
             const data = this.orderInfo || {}
             const pointsInfo = this.normalizedPointsInfo
             const amountInfo = data.amountInfo || data.amount_info || data.settlementAmount || data.settlement_amount || {}
             const backendPoints = this.pickNumber({ ...pointsInfo, ...amountInfo, ...data }, ['pointsAmount', 'points_amount', 'used', 'usedPoints', 'used_points', 'integralNum', 'integral_num', 'deductPoints', 'deduct_points', 'maxUsablePoints', 'max_usable_points', 'maxUsableIntegral', 'max_usable_integral', 'usablePoints', 'usable_points', 'usableIntegral', 'usable_integral'])
-            if (backendPoints > 0) return Math.min(this.userIntegral, backendPoints)
+            if (backendPoints > 0) return this.hasUserIntegral ? Math.min(this.userIntegral, backendPoints) : backendPoints
             if (this.pointsDeductAmount > 0 && this.pointsExchangeRate > 0) return Math.min(this.userIntegral, Math.ceil(this.pointsDeductAmount / this.pointsExchangeRate))
             return 0
         },
@@ -860,13 +910,13 @@ export default {
         // 配送方式
             .then((data) => {
                 // 快递
-                if (!data.is_express) {
+                if (this.isDeliveryDisabled(data.is_express)) {
                     this.addressTabsList = this.addressTabsList.filter(
                         (item) => item.sign !== 'express'
                     )
                 }
                 // 自提
-                if (!data.is_selffetch) {
+                if (this.isDeliveryDisabled(data.is_selffetch)) {
                     this.addressTabsList = this.addressTabsList.filter(
                         (item) => item.sign !== 'store'
                     )
@@ -942,6 +992,10 @@ export default {
         goodsImage(item = {}) {
             return this.resolveOrderImage(item.image_str || item.image || item.imageUrl || item.goodsImageUrl || item.mainImageUrl || item.cover || item.skuImage || item.skuImageUrl || item.goodsImage || item.picUrl, 'goods')
         },
+        goodsDisplayNumText(item = {}) {
+            const value = this.firstDefined(item.goods_num, item.goodsNum, item.quantity, item.num)
+            return value === undefined || value === null || value === '' ? '数量待确认' : `X${value}`
+        },
         goodsDisplayPrice(item = {}) {
             return this.firstDefined(
                 item.goods_price,
@@ -976,6 +1030,9 @@ export default {
             const text = String(value || '').toUpperCase()
             if (value === 2 || text === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(text)) return 2
             return 1
+        },
+        isDeliveryDisabled(value) {
+            return value === false || value === 0 || value === '0'
         },
         normalizeCategoryType(item = {}) {
             const value = String(this.firstDefined(
@@ -1056,8 +1113,10 @@ export default {
             if (!this.pointsFeatureEnabled) {
                 reasons.push('订单预览返回 integral_switch/integral_config/pointsEnabled/supportPoints/canUsePoints 为关闭状态或未支持，已同时检查 orderInfo、pointsInfo/integralInfo 和 amountInfo')
             }
-            if (this.userIntegral <= 0) {
-                reasons.push('用户可用积分为 0，orderInfo、pointsInfo 和积分账户兜底接口都没有返回可用积分')
+            if (!this.hasUserIntegral) {
+                reasons.push('orderInfo、pointsInfo 和积分账户兜底接口都没有返回可用积分')
+            } else if (this.userIntegral <= 0) {
+                reasons.push('用户可用积分为 0')
             }
             if (!this.hasBackendPointsDeductAmount) {
                 reasons.push('订单预览没有返回本单可抵扣金额字段：pointsDeductAmount、deductAmount、integral_amount 或 integralDeductAmount')
@@ -1065,7 +1124,7 @@ export default {
             if (this.hasBackendPointsDeductAmount && this.pointsDeductAmount <= 0) {
                 reasons.push('订单预览返回了积分抵扣字段，但金额为 0，本单不可抵扣')
             }
-            if (limit > this.userIntegral) {
+            if (this.hasUserIntegral && limit > this.userIntegral) {
                 reasons.push(`用户积分 ${this.userIntegral} 未达到使用门槛 ${limit}`)
             }
             return {
@@ -1082,17 +1141,6 @@ export default {
         },
         logPointsDiagnostics(context = 'unknown') {
             const diagnostics = this.getPointsDiagnostics()
-            console.log('[confirm_order][points]', {
-                context,
-                canUse: diagnostics.canUse,
-                reasons: diagnostics.reasons.length ? diagnostics.reasons : ['积分抵扣条件满足'],
-                userIntegral: diagnostics.userIntegral,
-                pointsAmount: diagnostics.pointsAmount,
-                pointsDeductAmount: diagnostics.pointsDeductAmount,
-                hasBackendPointsDeductAmount: diagnostics.hasBackendPointsDeductAmount,
-                integralLimit: diagnostics.integralLimit,
-                rawFields: diagnostics.rawFields
-            })
             return diagnostics
         },
         async loadPointsFallback() {
@@ -1103,10 +1151,12 @@ export default {
                 ])
                 const account = accountRes && accountRes.code == 1 ? accountRes.data || {} : {}
                 const user = userRes && userRes.code == 1 ? userRes.data || {} : {}
+                const userIntegral = this.firstDefined(account.user_integral, account.userIntegral, account.available_points, account.availablePoints, account.points, user.user_integral, user.userIntegral, user.points, user.total_points, user.totalPoints)
+                const availablePoints = this.firstDefined(account.available_points, account.availablePoints, account.points, user.available_points, user.availablePoints, user.user_integral, user.userIntegral, user.points)
                 this.pointsFallback = {
                     ...account,
-                    user_integral: this.firstDefined(account.user_integral, account.userIntegral, account.available_points, account.availablePoints, account.points, user.user_integral, user.userIntegral, user.points, user.total_points, user.totalPoints, 0),
-                    available_points: this.firstDefined(account.available_points, account.availablePoints, account.points, user.available_points, user.availablePoints, user.user_integral, user.userIntegral, user.points, 0)
+                    user_integral: userIntegral,
+                    available_points: availablePoints
                 }
             } catch (error) {
                 this.pointsFallback = {}
@@ -1352,8 +1402,8 @@ export default {
                 shopLogo,
                 shop_id: item.shop_id || item.shopId || item.store_id || item.storeId || original.shop_id || original.shopId || original.store_id || original.storeId || this.orderInfo.shop_id || this.orderInfo.shopId || '',
                 shopId: item.shopId || item.shop_id || item.storeId || item.store_id || original.shopId || original.shop_id || original.storeId || original.store_id || this.orderInfo.shopId || this.orderInfo.shop_id || '',
-                shop_name: item.shop_name || item.shopName || item.store_name || item.storeName || original.shop_name || original.shopName || original.store_name || original.storeName || this.orderInfo.shop_name || this.orderInfo.shopName || '商城自营',
-                shopName: item.shopName || item.shop_name || item.storeName || item.store_name || original.shopName || original.shop_name || original.storeName || original.store_name || this.orderInfo.shopName || this.orderInfo.shop_name || '商城自营',
+                shop_name: item.shop_name || item.shopName || item.store_name || item.storeName || original.shop_name || original.shopName || original.store_name || original.storeName || this.orderInfo.shop_name || this.orderInfo.shopName || '',
+                shopName: item.shopName || item.shop_name || item.storeName || item.store_name || original.shopName || original.shop_name || original.storeName || original.store_name || this.orderInfo.shopName || this.orderInfo.shop_name || '',
                 categoryType: this.normalizeCategoryType({ ...original, ...item }),
                 category_type: this.normalizeCategoryType({ ...original, ...item }),
                 pointsDeductAmount: this.firstDefined(item.pointsDeductAmount, item.points_deduct_amount, original.pointsDeductAmount, original.points_deduct_amount),
@@ -1402,7 +1452,7 @@ export default {
             const latitude = info.latitude ?? info.lat ?? info.location?.latitude ?? ''
             const longitude = info.longitude ?? info.lng ?? info.location?.longitude ?? ''
             const address = info.map_address || info.mapAddress || info.shop_address || info.address || info.detailAddress || info.detail_address || info.poiaddress || info.poiAddress || ''
-            const name = info.name || info.shop_name || info.shopName || info.storeName || address || '地图选点地址'
+            const name = info.name || info.shop_name || info.shopName || info.storeName || ''
             return {
                 ...info,
                 id: id || (latitude && longitude ? `map_${latitude}_${longitude}` : ''),
@@ -1494,7 +1544,7 @@ export default {
             const longitude = res.longitude || ''
             const id = latitude && longitude ? `map_${latitude}_${longitude}` : ''
             const address = res.address || res.name || ''
-            const name = res.name || address || '地图选点地址'
+            const name = ''
             return {
                 id,
                 shop_id: id,
@@ -1531,7 +1581,7 @@ export default {
             uni.showModal({
                 title: '积分使用说明',
                 content: this.orderInfo.integral_desc,
-                confirmColor: '#FF2C3C',
+                confirmColor: '#a0610d',
                 showCancel: false
             })
         },
@@ -1671,7 +1721,7 @@ export default {
             uni.showModal({
                 title: '温馨提示',
                 content: '是否确认下单？',
-                confirmColor: '#FF2C3C',
+                confirmColor: '#a0610d',
                 success: ({ confirm }) => {
                     if (!confirm) return
                     // #ifdef MP-WEIXIN
@@ -1682,9 +1732,6 @@ export default {
                     // #endif
                 }
             })
-        },
-        selectPayWay(value) {
-            this.payWay = 'WECHAT_JSAPI'
         },
         mergeReceivableCoupons(list = []) {
             const ownedIds = new Set(this.usableCoupon.concat(this.unusableCoupon).map(item => String(this.couponKey(item))))
@@ -1794,17 +1841,16 @@ export default {
             this.showLoading = true
             from.remark = this.userRemark
             from.type = this.type
-            from.payWay = 'WECHAT_JSAPI'
-            from.payMethod = 'WECHAT_JSAPI'
             try {
                 const { code, data, msg } = this.teamId ? await teamBuy(from) : await orderBuy(from)
                 if (code != 1) throw new Error(msg)
-                const amount = data.payAmount || data.order_amount || this.payAmount
-                if (Number(amount || 0) <= 0) {
+                const amount = this.firstDefined(data.payAmount, data.order_amount, data.pay_amount, data.actualAmount, data.actual_amount)
+                if (amount !== undefined && amount !== null && amount !== '' && Number(amount) <= 0) {
                     uni.redirectTo({ url: `/bundle_user/pages/pay_result/pay_result?id=${data.order_id}` })
                     return
                 }
-                uni.redirectTo({ url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}&amount=${amount}&pay_way=WECHAT_JSAPI&payWay=WECHAT_JSAPI` })
+                const amountQuery = amount !== undefined && amount !== null && amount !== '' ? `&amount=${amount}` : ''
+                uni.redirectTo({ url: `/bundle/pages/payment/payment?from=${data.type}&order_id=${data.order_id}${amountQuery}` })
             } catch (err) {
                 this.$toast({ title: '下单异常，请重新操作' })
             } finally {
@@ -1917,7 +1963,7 @@ export default {
                 orderFrom.pickup_longitude = this.storeInfo.longitude
                 orderFrom.pickupAddress = pickupAddress
                 orderFrom.pickup_address = pickupAddress
-                orderFrom.pickupName = this.storeInfo.name || this.storeInfo.shop_name || this.storeInfo.shopName || pickupAddress
+                orderFrom.pickupName = this.storeInfo.name || this.storeInfo.shop_name || this.storeInfo.shopName || ''
                 orderFrom.pickup_name = orderFrom.pickupName
                 orderFrom.pickupContact = pickupContact
                 orderFrom.pickup_contact = pickupContact
@@ -1929,18 +1975,6 @@ export default {
                 orderFrom.delivery_type = 1
                 orderFrom.deliveryType = 1
             }
-            console.log('[confirm_order][submit_payload]', {
-                action,
-                deliverySign: this.currentDelivery.sign,
-                delivery_type: orderFrom.delivery_type,
-                addressId: orderFrom.addressId || orderFrom.address_id || '',
-                selffetchShopId: orderFrom.selffetchShopId || orderFrom.selffetch_shop_id || '',
-                pickupAddress: orderFrom.pickupAddress || '',
-                pickupContact: orderFrom.pickupContact || '',
-                pickupMobile: orderFrom.pickupMobile || '',
-                consignee: orderFrom.consignee || '',
-                mobile: orderFrom.mobile || ''
-            })
             if (this.teamId) {
                 const goods = this.goods[0]
                 delete orderFrom.goods
@@ -2102,15 +2136,15 @@ page {
     padding: 0 24rpx;
     margin-right: 18rpx;
     border-radius: 26rpx;
-    background: #f5f7fb;
+    background: #fff8ed;
     font-size: 24rpx;
     line-height: 52rpx;
     color: #666666;
 }
 
 .delivery-tab.active {
-    color: #037dfa;
-    background: #e9f3ff;
+    color: #a0610d;
+    background: #fff1dc;
 }
 
 .address-row {
@@ -2160,7 +2194,7 @@ page {
     padding: 0 18rpx;
     height: 46rpx;
     border-radius: 23rpx;
-    background: #1769ff;
+    background: #a0610d;
     color: #ffffff;
     font-size: 22rpx;
     line-height: 46rpx;
@@ -2409,10 +2443,10 @@ page {
     align-items: center;
     margin: 19rpx 0 0;
     padding: 20rpx 24rpx;
-    border: 1rpx solid #d9eaff;
+    border: 1rpx solid #f0dcc0;
     border-radius: 15rpx;
-    background: linear-gradient(135deg, #f2f8ff 0%, #ffffff 100%);
-    box-shadow: 0 10rpx 24rpx rgba(3, 125, 250, 0.08);
+    background: linear-gradient(135deg, #fff8ed 0%, #ffffff 100%);
+    box-shadow: 0 10rpx 24rpx rgba(160, 97, 13, 0.08);
     box-sizing: border-box;
 }
 
@@ -2464,16 +2498,48 @@ page {
     margin-right: 30rpx;
 }
 
+.pay-icon--deferred {
+    position: relative;
+    width: 52rpx;
+    height: 40rpx;
+    border: 3rpx solid #a0610d;
+    border-radius: 10rpx;
+    background: #fff1dc;
+    box-sizing: border-box;
+}
+
+.pay-icon--deferred::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 10rpx;
+    height: 4rpx;
+    background: #a0610d;
+}
+
+.pay-icon--deferred::after {
+    content: '';
+    position: absolute;
+    right: 8rpx;
+    bottom: 7rpx;
+    width: 12rpx;
+    height: 6rpx;
+    border-left: 3rpx solid #a0610d;
+    border-bottom: 3rpx solid #a0610d;
+    transform: rotate(-45deg);
+}
+
 .pay-badge {
     height: 44rpx;
     padding: 0 18rpx;
     margin-left: auto;
     border-radius: 22rpx;
-    background: #e9f3ff;
+    background: #fff1dc;
     font-size: 22rpx;
     font-weight: 400;
     line-height: 44rpx;
-    color: #037dfa;
+    color: #a0610d;
     box-sizing: border-box;
 }
 
@@ -2521,7 +2587,7 @@ page {
     margin-left: 24rpx;
     border: none;
     border-radius: 40rpx;
-    background: #037dfa;
+    background: #a0610d;
     font-size: 28rpx;
     font-weight: 500;
     line-height: 76rpx;
@@ -2563,7 +2629,7 @@ page {
 }
 
 .coupon-tab.is-active {
-    color: #037dfa;
+    color: #a0610d;
     font-weight: 600;
 }
 
@@ -2574,7 +2640,7 @@ page {
     width: 76rpx;
     height: 5rpx;
     border-radius: 999rpx;
-    background: #037dfa;
+    background: #a0610d;
     transform: translateX(-50%);
     content: '';
 }
@@ -2596,7 +2662,8 @@ page {
 .coupon-item {
     position: relative;
     height: 160rpx;
-    background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg.png);
+    background: linear-gradient(135deg, #fff8ed 0%, #fff1dc 100%);
+    border: 1rpx solid #f0dcc0;
     background-size: 100% 100%;
 }
 
@@ -2624,7 +2691,7 @@ page {
     margin-right: 20rpx;
     padding: 0 18rpx;
     border-radius: 26rpx;
-    background: #037dfa;
+    background: #a0610d;
     color: #ffffff;
     font-size: 24rpx;
     line-height: 52rpx;
@@ -2649,8 +2716,8 @@ page {
 }
 
 .coupon-check--active {
-    border-color: #037dfa;
-    background: #037dfa;
+    border-color: #a0610d;
+    background: #a0610d;
 }
 
 .coupon-check--active::after {
@@ -2670,7 +2737,8 @@ page {
 }
 
 .coupon-confirm {
-    width: 710rpx;
+    width: 100%;
+    max-width: 710rpx;
     height: 74rpx;
     margin-top: 12rpx;
 }

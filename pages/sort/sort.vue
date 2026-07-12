@@ -90,23 +90,23 @@
                     <view v-if="goodsLoading" class="sort-goods-state">商品加载中...</view>
                     <view v-else-if="!categoryGoods.length" class="sort-goods-state">当前类目暂无商品</view>
                     <view v-else class="sort-like-grid">
-                        <navigator
+                        <view
                             v-for="(item, index) in categoryGoods"
-                            :key="index"
+                            :key="item.productKey || index"
                             class="sort-like-card"
                             hover-class="none"
-                            :url="`/bundle/pages/goods_details/goods_details?id=${item.id || 1}`"
+                            @tap="goGoodsDetail(item)"
                         >
                             <view v-if="isEmptyImage(item.image)" class="sort-like-card__image image-placeholder">图</view>
                             <image v-else class="sort-like-card__image" :src="item.image" mode="aspectFill"></image>
                             <view class="sort-like-card__body">
                                 <text class="sort-like-card__name line2">{{ item.name }}</text>
                                 <view class="sort-like-card__footer">
-                                    <text class="sort-like-card__price">￥{{ item.price }}</text>
-                                    <text class="sort-like-card__sold">{{ item.sold }}人付款</text>
+                                    <text class="sort-like-card__price">{{ item.priceText }}</text>
+                                    <text class="sort-like-card__sold">{{ item.soldText }}</text>
                                 </view>
                             </view>
-                        </navigator>
+                        </view>
                     </view>
                 </view>
             </scroll-view>
@@ -205,7 +205,6 @@ export default {
                     this.loadCategoryGoods()
                 }
             } catch (error) {
-                console.error('[sort-tab] getCategoryList failed:', error)
             } finally {
                 this.categoryLoading = false
             }
@@ -283,13 +282,8 @@ export default {
                 })
                 if (this.goodsRequestKey !== requestKey) return
                 const list = res.code == 1 && res.data ? (res.data.list || []) : []
-                this.categoryGoods = list.map((item, index) => ({
-                    id: item.id || item.spuId || item.productId || index + 1,
-                    name: item.name || item.spuName || item.productName || item.title || '商品',
-                    price: item.price || item.salePrice || item.minPrice || 0,
-                    sold: Number(item.salesCount || item.sales_sum || item.sales_count || item.sold || 0),
-                    image: this.resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.goods_image)
-                })).sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0))
+                this.categoryGoods = list.map((item, index) => this.normalizeGoodsItem(item, index))
+                    .sort((a, b) => (this.hasNumber(b.sold) ? Number(b.sold) : -1) - (this.hasNumber(a.sold) ? Number(a.sold) : -1))
             } catch (error) {
                 if (this.goodsRequestKey === requestKey) this.categoryGoods = []
             } finally {
@@ -302,6 +296,54 @@ export default {
             uni.navigateTo({
                 url: `/bundle/pages/goods_search/goods_search?keyword=${encodeURIComponent(keyword)}`
             })
+        },
+        goGoodsDetail(item) {
+            const id = item && item.id
+            if (id === undefined || id === null || id === '') {
+                this.$toast({ title: '商品信息待确认' })
+                return
+            }
+            uni.navigateTo({
+                url: `/bundle/pages/goods_details/goods_details?id=${encodeURIComponent(id)}`
+            })
+        },
+        normalizeGoodsItem(item, index) {
+            const id = this.pickValue(item.id, item.spuId, item.productId, item.goodsId, item.goods_id)
+            const price = this.pickNumber(item.price, item.salePrice, item.minPrice)
+            const sold = this.pickNumber(item.salesCount, item.sales_sum, item.sales_count, item.sold)
+            return {
+                id,
+                productKey: id || `pending-${index}`,
+                name: item.name || item.spuName || item.productName || item.title || '商品待确认',
+                price,
+                priceText: this.formatPrice(price),
+                sold,
+                soldText: this.formatSold(sold),
+                image: this.resolveImage(item.image || item.cover || item.mainImageUrl || item.imageUrl || item.goods_image)
+            }
+        },
+        pickValue(...values) {
+            for (const value of values) {
+                if (value !== undefined && value !== null && value !== '') return value
+            }
+            return ''
+        },
+        hasNumber(value) {
+            if (value === undefined || value === null || value === '') return false
+            const number = Number(value)
+            return !Number.isNaN(number) && Number.isFinite(number)
+        },
+        pickNumber(...values) {
+            for (const value of values) {
+                if (this.hasNumber(value)) return Number(value)
+            }
+            return null
+        },
+        formatPrice(value) {
+            return this.hasNumber(value) ? `￥${Number(value).toFixed(2)}` : '价格待确认'
+        },
+        formatSold(value) {
+            return this.hasNumber(value) ? `${Number(value)}人付款` : '销量待确认'
         },
         resolveImage(image) {
             if (image) {
@@ -327,13 +369,13 @@ export default {
     max-width: var(--app-max-width, 750rpx);
     margin: 0 auto;
     overflow: hidden;
-    background: #ffffff;
+    background: #f8ede1;
 }
 
 .sort-header {
     flex: none;
     padding: calc(var(--page-safe-top) + 12rpx) 24rpx 18rpx;
-    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    background: linear-gradient(180deg, #fff8ed 0%, #f8ede1 100%);
 }
 
 .sort-nav {
@@ -358,10 +400,10 @@ export default {
     height: 76rpx;
     padding: 0 8rpx 0 28rpx;
     box-sizing: border-box;
-    border: 1rpx solid rgba(22, 136, 255, 0.16);
+    border: 1rpx solid rgba(160, 97, 13, 0.22);
     border-radius: 42rpx;
-    background: #f0f7ff;
-    box-shadow: 0 10rpx 28rpx rgba(22, 136, 255, 0.08);
+    background: #f3e7db;
+    box-shadow: 0 10rpx 28rpx rgba(118, 66, 19, 0.08);
     overflow: hidden;
 }
 
@@ -371,7 +413,7 @@ export default {
     width: 36rpx;
     height: 36rpx;
     margin-right: 16rpx;
-    color: #1688ff;
+    color: #a0610d;
     z-index: 1;
 }
 
@@ -427,7 +469,7 @@ export default {
     font-size: 26rpx;
     font-weight: 600;
     border-radius: 30rpx;
-    background: #1688ff;
+    background: linear-gradient(90deg, #b26c10 0%, #764213 100%);
 }
 
 .sort-main {
@@ -442,7 +484,7 @@ export default {
     height: 100%;
     padding: 8rpx 0 20rpx;
     box-sizing: border-box;
-    background: #f7f7f7;
+    background: #f3e7db;
 }
 
 .sort-aside__item {
@@ -458,9 +500,9 @@ export default {
 }
 
 .sort-aside__item.is-active {
-    color: #1688ff;
+    color: #a0610d;
     font-weight: 600;
-    background: #ffffff;
+    background: #fff9f0;
     border-radius: 0 24rpx 24rpx 0;
 }
 
@@ -473,7 +515,7 @@ export default {
     height: 32rpx;
     transform: translateY(-50%);
     border-radius: 0 8rpx 8rpx 0;
-    background: #1688ff;
+    background: #a0610d;
 }
 
 .sort-aside__empty {
@@ -543,14 +585,14 @@ export default {
     height: 156rpx;
     padding: 12rpx 8rpx;
     box-sizing: border-box;
-    border: 1rpx solid #edf1f5;
+    border: 1rpx solid rgba(160, 97, 13, .12);
     border-radius: 8rpx;
-    background: #ffffff;
+    background: #fff9f0;
 }
 
 .sort-second-item.is-active {
-    border-color: rgba(22, 136, 255, 0.42);
-    background: #edf7ff;
+    border-color: rgba(160, 97, 13, 0.42);
+    background: #fff2d9;
 }
 
 .sort-second-item__icon {
@@ -560,7 +602,7 @@ export default {
     width: 72rpx;
     height: 72rpx;
     border-radius: 8rpx;
-    background: #eef6ff;
+    background: #f3e7db;
 }
 
 .sort-second-item__name {
@@ -576,9 +618,9 @@ export default {
 .sort-third-panel {
     padding: 18rpx 16rpx;
     margin-bottom: 18rpx;
-    border: 1rpx solid #edf1f5;
+    border: 1rpx solid rgba(160, 97, 13, .12);
     border-radius: 8rpx;
-    background: #ffffff;
+    background: #fff9f0;
 }
 
 .sort-third-panel__title {
@@ -603,14 +645,14 @@ export default {
     height: 58rpx;
     padding: 0 10rpx;
     box-sizing: border-box;
-    border: 1rpx solid #edf1f5;
+    border: 1rpx solid rgba(160, 97, 13, .12);
     border-radius: 8rpx;
-    background: #f8fafc;
+    background: #fffdf8;
 }
 
 .sort-third-item.is-active {
-    border-color: rgba(22, 136, 255, 0.45);
-    background: #edf7ff;
+    border-color: rgba(160, 97, 13, 0.45);
+    background: #fff2d9;
 }
 
 .sort-third-item__name {
@@ -621,7 +663,7 @@ export default {
 }
 
 .sort-third-item.is-active .sort-third-item__name {
-    color: #1688ff;
+    color: #a0610d;
     font-weight: 600;
 }
 
@@ -629,7 +671,7 @@ export default {
     display: flex;
     align-items: center;
     height: 58rpx;
-    color: #1688ff;
+    color: #a0610d;
     font-size: 24rpx;
     line-height: 34rpx;
 }
@@ -674,16 +716,16 @@ export default {
 .sort-like-card {
     display: block;
     overflow: hidden;
-    border: 1rpx solid #edf1f5;
+    border: 1rpx solid rgba(160, 97, 13, .12);
     border-radius: 8rpx;
-    background: #ffffff;
+    background: #fff9f0;
 }
 
 .sort-like-card__image {
     display: block;
     width: 100%;
     height: 210rpx;
-    background: #f3f4f6;
+    background: #f3e7db;
 }
 
 .sort-like-card__body {
@@ -706,7 +748,7 @@ export default {
 }
 
 .sort-like-card__price {
-    color: #ef4444;
+    color: #a0610d;
     font-size: 28rpx;
     font-weight: 700;
 }
@@ -720,7 +762,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #1688ff;
+    color: #a0610d;
     font-size: 24rpx;
     font-weight: 600;
 }

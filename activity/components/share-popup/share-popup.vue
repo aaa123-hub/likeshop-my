@@ -172,7 +172,6 @@ import UPopup from '@/activity/components/uview-ui/components/u-popup/u-popup.vu
 						url: this.pagePath, // 跳转页面路径
 						type: this.type,         // 0-会员分享海报 1-商品详情 2-砍价活动
 					}).then((res) => {
-						console.log('shareRes', res)
 						resolve(res)
 					}).catch(() => {
 						reject()
@@ -212,9 +211,7 @@ import UPopup from '@/activity/components/uview-ui/components/u-popup/u-popup.vu
 					title: this.config.name,
 					summary: '',
 					imageUrl: this.config.image,
-					success: (res) => {
-						console.log('分享成功');
-					},
+					success: () => {},
 					fail: (err) => {
 						this.$toast({
 							title: err.errMsg
@@ -238,7 +235,6 @@ import UPopup from '@/activity/components/uview-ui/components/u-popup/u-popup.vu
 						this.$toast({
 							title: '保存失败'
 						});
-						console.log(err)
 					}
 				})
 

@@ -28,7 +28,7 @@
 
             <view v-if="!loading && !loopData0.length" class="eco-empty">
                 <view class="eco-empty__title">暂无生态应用</view>
-                <view class="eco-empty__desc">后台配置应用后会展示在这里</view>
+                <view class="eco-empty__desc">平台暂未开放生态应用，请稍后查看</view>
             </view>
         </view>
     </view>
@@ -75,7 +75,7 @@ export default {
         },
         getEntryText(item = {}) {
             const text = item.urlText || item.entryName || item.entry_name || item.linkUrl || item.link_url || item.entryUrl || item.entry_url || item.url || item.appCode || item.app_code || ''
-            return text || '暂未配置链接'
+            return text || '暂未开放'
         },
         resolveEcoImage(src) {
             if (!src) return ''
@@ -111,7 +111,7 @@ export default {
                 uni.showToast({ title: '链接已复制', icon: 'none' })
                 return
             }
-            uni.showToast({ title: item.entryText || '暂未配置应用链接', icon: 'none' })
+            uni.showToast({ title: item.entryText || '应用暂未开放', icon: 'none' })
         }
     }
 }
@@ -123,7 +123,7 @@ export default {
     width: 100%;
     min-height: 100vh;
     overflow-x: hidden;
-    background: #f7f8fb;
+    background: #fff9f0;
 }
 
 .eco-page::before {
@@ -133,7 +133,7 @@ export default {
     top: 0;
     right: 0;
     height: 100vh;
-    background: linear-gradient(180deg, #eaf6ff 0%, #f6f8fb 38%, #f7f8fb 100%);
+    background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 38%, #fff9f0 100%);
     pointer-events: none;
 }
 
@@ -201,7 +201,7 @@ export default {
 }
 
 .eco-card--0 {
-    background: linear-gradient(135deg, #eaf7ff 0%, #ffffff 58%, #f0fbff 100%);
+    background: linear-gradient(135deg, #fff1dc 0%, #ffffff 58%, #fff8ed 100%);
 }
 
 .eco-card--1 {
@@ -209,7 +209,7 @@ export default {
 }
 
 .eco-card--2 {
-    background: linear-gradient(135deg, #eef5ff 0%, #ffffff 58%, #f4f8ff 100%);
+    background: linear-gradient(135deg, #fff1dc 0%, #ffffff 58%, #fff8ed 100%);
 }
 
 .eco-card--3 {

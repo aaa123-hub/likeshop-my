@@ -118,7 +118,7 @@ import CustomImage from '@/components/custom-image/custom-image.vue'
             position: relative;
             width: 160rpx;
             height: 160rpx;
-            background-color: #f7f8fa;
+            background-color: #fff8ed;
             .uploader-input {
                 position: absolute;
                 width: 100%;

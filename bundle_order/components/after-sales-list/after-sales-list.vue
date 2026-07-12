@@ -11,7 +11,7 @@
                     <view class="store-name nr ml10 normal">成交时间: {{items.time}}</view>
                 </view> -->
           <view
-            v-for="(item, index2) in items.order_goods"
+            v-for="(item, index2) in orderGoodsList(items)"
             :key="index2"
             class="goods-item"
           >
@@ -26,24 +26,26 @@
                 />
               </view>
               <view class="goods-desc">
-                <view class="goods-name line2 nr">{{ item.goods_name }}</view>
+                <view class="goods-name line2 nr">{{ goodsNameText(item) }}</view>
                 <view class="row-between mt20">
                   <price-format
+                    v-if="hasGoodsPrice(item)"
                     class="sm"
                     :firstSize="30"
                     :secondSize="30"
                     :showSubscript="true"
                     :subscriptSize="26"
-                    :price="item.goods_price"
+                    :price="goodsPrice(item)"
                   />
-                  <view class="nr">x{{ item.goods_num }}</view>
+                  <view v-else class="nr muted">金额待确认</view>
+                  <view class="nr">{{ goodsNumText(item) }}</view>
                 </view>
               </view>
             </view>
             <view
               :class="
                 'sale-footer row-end ' +
-                (items.after_sale.able_apply == 1 ? '' : 'bottom-opacity')
+                (afterSaleAbleApply(items) == 1 ? '' : 'bottom-opacity')
               "
             >
               <view
@@ -51,7 +53,7 @@
                 @click="
                   goPage(
                     $event,
-                    items.after_sale.able_apply,
+                    afterSaleAbleApply(items),
                     '/bundle_order/pages/apply_refund/apply_refund',
                     items.order_id,
                     item.item_id
@@ -76,19 +78,13 @@
                 >申请时间: {{ items.time }}</view
               >
             </view>
-            <view class="primary nr">{{ items.after_sale.type_text }}</view>
+            <view class="primary nr">{{ afterSaleTypeText(items) }}</view>
           </view>
-          <navigator
-            v-for="(item, index2) in items.order_goods"
+          <view
+            v-for="(item, index2) in orderGoodsList(items)"
             :key="index2"
-            hover-class="none"
             class="sale-goods-show"
-            :url="
-              '/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=' +
-              items.after_sale.after_sale_id +
-              '&order_id=' +
-              items.order_id
-            "
+            @tap="openAfterSaleDetail(items)"
           >
             <view class="row">
               <view class="goods-img">
@@ -101,28 +97,30 @@
                 />
               </view>
               <view class="goods-desc">
-                <view class="goods-name line2 nr">{{ item.goods_name }}</view>
+                <view class="goods-name line2 nr">{{ goodsNameText(item) }}</view>
                 <view class="row-between mt20">
                   <view>
                     <price-format
+                      v-if="hasGoodsPrice(item)"
                       :firstSize="26"
-                      :price="item.goods_price"
+                      :price="goodsPrice(item)"
                       weight="600"
                       :showSubscript="true"
                     />
+                    <view v-else class="nr muted">金额待确认</view>
                   </view>
-                  <view class="nr">x{{ item.goods_num }}</view>
+                  <view class="nr">{{ goodsNumText(item) }}</view>
                 </view>
               </view>
             </view>
             <view class="sale-status mt20 row">
               <view class="nr" style="font-weight: bold">申请状态</view>
-              <view class="nr ml20">{{ items.after_sale.desc }}</view>
+              <view class="nr ml20">{{ afterSaleStatusText(items) }}</view>
             </view>
             <view class="sale-meta mt20">
-              <view class="sale-meta-row" v-if="items.after_sale.after_sale_id">
+              <view class="sale-meta-row" v-if="afterSaleId(items)">
                 <text>售后编号</text>
-                <text>{{ items.after_sale.after_sale_id }}</text>
+                <text>{{ afterSaleId(items) }}</text>
               </view>
               <view class="sale-meta-row" v-if="items.refund_reason">
                 <text>退款原因</text>
@@ -133,21 +131,22 @@
                 <text>{{ items.refund_remark }}</text>
               </view>
             </view>
-          </navigator>
+          </view>
           <view class="sale-footer row-end">
             <view
               class="row-center normal br60 mr20 grey-btn nr"
-              @tap="showDialog(items.after_sale.after_sale_id)"
+              @tap="showDialog(afterSaleId(items))"
               >撤销申请</view
             >
             <navigator
+              v-if="afterSaleId(items)"
               hover-class="none"
               :url="
                 '/bundle_order/pages/input_express_info/input_express_info?id=' +
-                items.after_sale.after_sale_id
+                afterSaleId(items)
               "
               class="row-center normal br60 grey-btn nr"
-              :hidden="items.after_sale.status != 2"
+              :hidden="afterSaleStatusValue(items) != 2"
               >填写快递单号
             </navigator>
           </view>
@@ -159,12 +158,8 @@
           :key="index"
           class="sale-item bg-white"
         >
-          <navigator
-            hover-class="none"
-            :url="
-              '/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=' +
-              items.after_sale.after_sale_id
-            "
+          <view
+            @tap="openAfterSaleDetail(items)"
           >
             <view class="sale-header row-between">
               <view class="row">
@@ -173,10 +168,10 @@
                   >申请时间: {{ items.time }}</view
                 >
               </view>
-              <view class="primary nr">{{ items.after_sale.type_text }}</view>
+              <view class="primary nr">{{ afterSaleTypeText(items) }}</view>
             </view>
             <view
-              v-for="(item, index2) in items.order_goods"
+              v-for="(item, index2) in orderGoodsList(items)"
               :key="index2"
               class="sale-goods-show"
             >
@@ -191,41 +186,45 @@
                   />
                 </view>
                 <view class="goods-desc">
-                  <view class="goods-name line2 nr">{{ item.goods_name }}</view>
+                  <view class="goods-name line2 nr">{{ goodsNameText(item) }}</view>
                   <view class="row-between mt20 row-between">
                     <price-format
+                      v-if="hasGoodsPrice(item)"
                       :firstSize="26"
-                      :price="item.goods_price"
+                      :price="goodsPrice(item)"
                       weight="600"
                       :showSubscript="true"
                     />
-                    <view class="nr">x{{ item.goods_num }}</view>
+                    <view v-else class="nr muted">金额待确认</view>
+                    <view class="nr">{{ goodsNumText(item) }}</view>
                   </view>
                 </view>
               </view>
-              <view class="refund-summary" v-if="index2 === items.order_goods.length - 1">
+              <view class="refund-summary" v-if="index2 === orderGoodsList(items).length - 1">
                 <view class="refund-summary__main">
                   <text class="refund-summary__label">退款金额</text>
                   <price-format
+                    v-if="hasRefundPrice(items)"
                     class="refund-summary__price"
                     :firstSize="34"
                     :secondSize="26"
-                    :price="items.after_sale.refund_price"
+                    :price="refundPrice(items)"
                     weight="700"
                     :showSubscript="true"
                     color="red"
                   />
+                  <text v-else class="refund-summary__empty">金额待确认</text>
                 </view>
-                <text class="refund-summary__desc">{{ items.after_sale.type_text || '售后退款' }}</text>
+                <text class="refund-summary__desc">{{ afterSaleTypeText(items) }}</text>
               </view>
               <view class="sale-status mt20 row">
                 <view class="nr" style="font-weight: bold">申请状态</view>
-                <view class="nr ml20">{{ items.after_sale.desc }}</view>
+                <view class="nr ml20">{{ afterSaleStatusText(items) }}</view>
               </view>
               <view class="sale-meta mt20">
-                <view class="sale-meta-row" v-if="items.after_sale.after_sale_id">
+                <view class="sale-meta-row" v-if="afterSaleId(items)">
                   <text>售后编号</text>
-                  <text>{{ items.after_sale.after_sale_id }}</text>
+                  <text>{{ afterSaleId(items) }}</text>
                 </view>
                 <view class="sale-meta-row" v-if="items.refund_reason">
                   <text>退款原因</text>
@@ -237,7 +236,7 @@
                 </view>
               </view>
             </view>
-          </navigator>
+          </view>
           <view class="sale-footer row-end">
             <view
               class="row-center normal br60 grey-btn nr"
@@ -257,7 +256,7 @@
       confirm-text="确定"
       :showCancelButton="true"
       :show-title="false"
-      confirm-color="#FF2C3C"
+      confirm-color="#a0610d"
       @confirm="cancelApplyFun"
       @cancel="hideDialog"
     >
@@ -353,7 +352,7 @@ export default {
     },
     normalApplyList() {
       return this.displayLists.map((order) => {
-        const goods = (order.order_goods || []).filter((item) => {
+        const goods = this.orderGoodsList(order).filter((item) => {
           const afterSale = item.after_sale || item.afterSale || item.refund_info || item.refundInfo || {}
           return !(
             item.after_sale_id
@@ -369,12 +368,81 @@ export default {
             || afterSale.status_text
           )
         })
-        const ableApply = Number(order.after_sale?.able_apply ?? order.able_apply ?? 0) === 1
+        const ableApply = Number(this.afterSaleAbleApply(order)) === 1
         return ableApply && goods.length ? { ...order, order_goods: goods } : null
       }).filter(Boolean)
     }
   },
   methods: {
+    pickValue(source = {}, keys = []) {
+      for (const key of keys) {
+        const value = source && source[key]
+        if (value !== undefined && value !== null && value !== '') return value
+      }
+      return ''
+    },
+    goodsNameText(item = {}) {
+      return this.pickValue(item, ['goods_name', 'goodsName', 'name', 'title']) || '商品待确认'
+    },
+    goodsPrice(item = {}) {
+      return this.pickValue(item, ['goods_price', 'goodsPrice', 'price', 'pay_price', 'payPrice'])
+    },
+    hasGoodsPrice(item = {}) {
+      const value = this.goodsPrice(item)
+      return value !== '' && !Number.isNaN(Number(value))
+    },
+    goodsNumText(item = {}) {
+      const value = this.pickValue(item, ['goods_num', 'goodsNum', 'quantity', 'num'])
+      return value === '' ? '数量待确认' : `x${value}`
+    },
+    orderGoodsList(item = {}) {
+      const goods = item.order_goods || item.orderGoods || item.goods || item.goods_list || item.goodsList || []
+      if (Array.isArray(goods)) return goods
+      return goods && typeof goods === 'object' ? [goods] : []
+    },
+    afterSaleInfo(item = {}) {
+      return item.after_sale || item.afterSale || item.refund_info || item.refundInfo || {}
+    },
+    afterSaleAbleApply(item = {}) {
+      const info = this.afterSaleInfo(item)
+      return this.pickValue(info, ['able_apply', 'ableApply']) || this.pickValue(item, ['able_apply', 'ableApply'])
+    },
+    afterSaleStatusValue(item = {}) {
+      const info = this.afterSaleInfo(item)
+      return this.pickValue(info, ['status', 'after_status', 'afterStatus', 'refund_status', 'refundStatus'])
+    },
+    afterSaleTypeText(item = {}) {
+      const info = this.afterSaleInfo(item)
+      return this.pickValue(info, ['type_text', 'typeText', 'refund_type_text', 'refundTypeText']) || '售后类型待确认'
+    },
+    afterSaleStatusText(item = {}) {
+      const info = this.afterSaleInfo(item)
+      return this.pickValue(info, ['desc', 'status_text', 'statusText', 'after_status_desc', 'afterStatusDesc']) || '状态待确认'
+    },
+    refundPrice(item = {}) {
+      const info = this.afterSaleInfo(item)
+      return this.pickValue(info, ['refund_price', 'refundPrice', 'refund_amount', 'refundAmount', 'amount'])
+    },
+    hasRefundPrice(item = {}) {
+      const value = this.refundPrice(item)
+      return value !== '' && !Number.isNaN(Number(value))
+    },
+    afterSaleDetailUrl(item = {}) {
+      const id = this.afterSaleId(item)
+      if (!id) return ''
+      const orderId = this.orderIdentity(item)
+      return '/bundle_order/pages/after_sales_detail/after_sales_detail?afterSaleId=' +
+        encodeURIComponent(id) +
+        (orderId ? '&order_id=' + encodeURIComponent(orderId) : '')
+    },
+    openAfterSaleDetail(item = {}) {
+      const url = this.afterSaleDetailUrl(item)
+      if (!url) {
+        this.$toast({ title: '售后编号待确认' })
+        return
+      }
+      uni.navigateTo({ url })
+    },
     cancelApplyFun() {
       if (this.confirmType === 'delete') {
         this.deleteAfterSaleRecord()
@@ -442,6 +510,10 @@ export default {
     },
 
     showDialog(id) {
+      if (!id) {
+        this.$toast({ title: '售后编号待确认' })
+        return
+      }
       this.id = id;
       this.confirmType = 'cancel';
       this.confirmDialog = true;
@@ -560,6 +632,10 @@ export default {
 <style lang="scss">
 .sale-list {
   padding: 24rpx;
+  max-width: 750rpx;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .sale-item {
@@ -614,6 +690,7 @@ export default {
   font-size: 28rpx;
   font-weight: 600;
   line-height: 40rpx;
+  word-break: break-all;
 }
 
 .sale-status {
@@ -622,7 +699,7 @@ export default {
   padding: 18rpx 22rpx;
   border-radius: 16rpx;
   color: #344054;
-  background: #f7faff;
+  background: #fff8ed;
 }
 
 .sale-status view:first-child {
@@ -634,7 +711,7 @@ export default {
   flex: 1;
   min-width: 0;
   margin-left: 24rpx;
-  color: #1677ff;
+  color: #a0610d;
   font-weight: 600;
   text-align: right;
 }
@@ -644,7 +721,7 @@ export default {
   padding: 20rpx 22rpx;
   border-radius: 18rpx;
   background: linear-gradient(135deg, #fff8f7 0%, #fff1f1 100%);
-  border: 1rpx solid rgba(255, 44, 60, .08);
+  border: 1rpx solid rgba(160, 97, 13, .08);
 }
 
 .refund-summary__main {
@@ -660,8 +737,15 @@ export default {
 }
 
 .refund-summary__price {
-  color: #ff2c3c;
+  color: #a0610d;
   font-weight: 700;
+}
+
+.refund-summary__empty {
+  color: #a0610d;
+  font-size: 26rpx;
+  font-weight: 700;
+  line-height: 38rpx;
 }
 
 .refund-summary__desc {
@@ -721,8 +805,8 @@ export default {
 }
 
 .sale-footer .btn {
-  color: #ff2c3c;
-  border: 1rpx solid rgba(255, 44, 60, .45);
+  color: #a0610d;
+  border: 1rpx solid rgba(160, 97, 13, .45);
   background: #fff7f8;
 }
 

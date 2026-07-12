@@ -2,16 +2,17 @@
 <view class="user-spread-month-bill">
     <view class="header row white">
         <view class="header-show column-center">
-            <view class="num">{{month}}</view>
+            <view class="num">{{ displayText(month, '待确认') }}</view>
             <view class="label sm row" @tap="openPop">月份  <trigonometry color="white" opacity="1"></trigonometry></view>
         </view>
         <view class="header-show column-center">
-            <view class="num">{{order}}</view>
+            <view class="num">{{ displayText(order, '待确认') }}</view>
             <view class="label sm">成交笔数</view>
         </view>
         <view class="header-show column-center">
             <view>
-                <price-format showSubscript :subscriptSize="26" :firstSize="42" :secondSize="42" color="#ffffff" :price="money" />
+                <price-format v-if="hasKnownValue(money)" showSubscript :subscriptSize="26" :firstSize="42" :secondSize="42" color="#ffffff" :price="money" />
+                <view v-else class="header-pending">金额待确认</view>
             </view>
             <view class="label sm">累计预估收益</view>
         </view>
@@ -20,7 +21,7 @@
         <view class="order-container">
                 <view v-for="(item, index) in orderList" :key="index" class="order-item bg-white mb20">
                     <view class="order-header row-between">
-                        <view>订单编号:{{item.order_sn}}</view>
+                        <view>订单编号:{{ displayText(item.order_sn, '订单号待确认') }}</view>
                         <view class="white guide-shop-btn row-center">导购订单</view>
                     </view>
                     <view class="order-content row">
@@ -28,15 +29,16 @@
                             <custom-image :src="item.image" width="100%" height="100%" radius="6px" />
                         </view>
                         <view class="order-goods-info ml10">
-                            <view class="name row sm">{{item.goods_name}}</view>
+                            <view class="name row sm">{{ displayText(item.goods_name, '商品待确认') }}</view>
                             <view class="pre-income muted">预估收益
-                                <price-format showSubscript subScriptClass="nr" firstClass="nr" secondClass="nr" :color="primaryColor" weight="bold" :price="item.money" />
+                                <price-format v-if="hasKnownValue(item.money)" showSubscript subScriptClass="nr" firstClass="nr" secondClass="nr" :color="primaryColor" weight="bold" :price="item.money" />
+                                <text v-else class="income-pending">金额待确认</text>
                             </view>
                         </view>
                     </view>
                     <view class="order-footer row-between">
-                        <view class="time muted">{{item.create_time}}</view>
-                        <view class="static" :style="'color: ' + (item.status == '待返佣' ? '#F95F2F' : '#07CE1B')">{{item.status}}</view>
+                        <view class="time muted">{{ displayText(item.create_time, '时间待确认') }}</view>
+                        <view class="static" :style="'color: ' + (item.status == '待返佣' ? '#d79a43' : '#07CE1B')">{{ displayText(item.status, '状态待确认') }}</view>
                     </view>
                 </view>
                 <loading-footer :status="loadingStatus" slotEmpty>
@@ -87,15 +89,15 @@ export default {
       loadingStatus: loadingType.LOADING,
       page: 1,
       orderList: [],
-      month: 1,
-      year: 2010,
+      month: '',
+      year: '',
       // 累计预估收益
-      money: 0,
+      money: '',
       // 成交笔数
-      order: 0,
+      order: '',
       // 选择器月份
       months: months,
-      chooseMonth: 1,
+      chooseMonth: '',
       showPop: false
     };
   },
@@ -110,9 +112,10 @@ export default {
    * 生命周期函数--监听页面加载
    */
   onLoad: function (options) {
-    this.year = options.year;
-    this.chooseMonth = [Number(options.month)]
-    this.month = Number(options.month)
+    this.year = options.year || ''
+    const month = options.month === undefined || options.month === null || options.month === '' ? '' : Number(options.month)
+    this.chooseMonth = month === '' ? '' : [month]
+    this.month = month
   },
 
 
@@ -126,7 +129,17 @@ export default {
   },
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
     getMonthOrderDetailFun() {
+      if (!this.hasKnownValue(this.year) || !this.hasKnownValue(this.month)) {
+        this.loadingStatus = loadingType.EMPTY
+        return
+      }
       let {
         page,
         orderList,
@@ -146,13 +159,14 @@ export default {
             list,
             total_money,
             total_order
-          } = res.data;
-          orderList.push(...list);
+          } = res.data || {};
+          const nextList = Array.isArray(list) ? list : []
+          orderList.push(...nextList);
 
           this.orderList = orderList;
           this.page ++;
-          this.money = total_money;
-          this.order = total_order
+          this.money = total_money === undefined || total_money === null ? '' : total_money;
+          this.order = total_order === undefined || total_order === null ? '' : total_order;
 
           if (!more) {
             this.loadingStatus = loadingType.FINISHED;
@@ -218,6 +232,16 @@ export default {
     font-size: 42rpx;
 }
 
+.user-spread-month-bill .header .header-show .header-pending {
+    font-size: 28rpx;
+    line-height: 50rpx;
+}
+
+.user-spread-month-bill .income-pending {
+    color: #8b95a5;
+    font-size: 24rpx;
+}
+
 .user-spread-month-bill .content {
   padding: 0 20rpx;
   margin-top: -60rpx;
@@ -233,7 +257,7 @@ export default {
 }
 
 .user-spread-month-bill .content .order-container .order-item .order-header .guide-shop-btn {
-    background: linear-gradient(80deg, #F95F2F 0%, #FF2C3C 100%);
+    background: linear-gradient(80deg, #d79a43 0%, #a0610d 100%);
     border-radius: 4rpx;
     width: 134rpx;
     height: 42rpx;
@@ -268,11 +292,11 @@ export default {
 }
 
 .user-spread-month-bill .content .order-container .order-item .order-footer .static {
-    color: #F95F2F;
+    color: #d79a43;
 }
 
 .user-spread-month-bill .content .order-container .order-item .order-footer .wait-return {
-    color: #F95F2F;
+    color: #d79a43;
 }
 
 .user-spread-month-bill .pop-header {

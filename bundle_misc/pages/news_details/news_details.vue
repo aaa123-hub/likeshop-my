@@ -3,16 +3,17 @@
 <!-- bundle/pages/news_details/news_details.wxml -->
 <view class="news-details">
     <view class="header">
-        <view class="title xxl mb20">{{ articleDetail.title }}</view>
+        <view class="title xxl mb20">{{ displayText(articleDetail.title, '资讯标题待确认') }}</view>
         <view class="row-between">
-            <view class="xs lighter">发布时间：{{ articleDetail.create_time }}</view>
+            <view class="xs lighter">{{ publishTimeText(articleDetail.create_time) }}</view>
             <view class="row">
-                <view class="ml10 xs muted">{{ articleDetail.visit }}人浏览</view>
+                <view class="ml10 xs muted">{{ visitText(articleDetail.visit) }}</view>
             </view>
         </view>
     </view>
     <view class="main">
-        <view :html="article_content" :tag-style="tagStyle" />
+        <view v-if="article_content" :html="article_content" :tag-style="tagStyle" />
+        <view v-else class="content-empty">正文内容待确认</view>
     </view>
 </view>
 <loading-view v-if="showLoading"></loading-view>
@@ -78,7 +79,25 @@ export default {
 
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
+    publishTimeText(value) {
+      return this.hasKnownValue(value) ? `发布时间：${value}` : '发布时间待确认'
+    },
+    visitText(value) {
+      return this.hasKnownValue(value) ? `${value}人浏览` : '浏览数待确认'
+    },
     getArticleDetailFun() {
+      if (!this.hasKnownValue(this.id)) {
+        this.showLoading = false
+        this.articleDetail = {}
+        this.article_content = ''
+        return
+      }
       getArticleDetail({
         type: this.type,
         id: this.id
@@ -111,6 +130,11 @@ page {
 }
 .news-details .main {
     padding: 40rpx 15px;
+}
+.news-details .content-empty {
+    color: #8b95a5;
+    font-size: 28rpx;
+    line-height: 44rpx;
 }
 .wxParse-p image {
     width: 100%;

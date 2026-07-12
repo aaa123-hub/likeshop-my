@@ -30,7 +30,7 @@
                         :class="['score-star', starIndex < item.value ? 'score-star--selected' : '']"
                         @tap.stop="setRate(item.key, starIndex + 1)"
                     >
-                        <image class="score-star__icon" :src="starIcon" mode="aspectFit"></image>
+                        <text class="score-star__icon">★</text>
                     </view>
                 </view>
             </view>
@@ -115,7 +115,8 @@ export default {
             comment: '',
             anonymous: false,
             type: '',
-            starIcon: 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_star.png'
+            id: '',
+            orderId: ''
         }
     },
     computed: {
@@ -132,9 +133,15 @@ export default {
     /**
      * 生命周期函数--监听页面加载
      */
-    onLoad: function (options) {
-        this.id = options.id
+    onLoad: function (options = {}) {
+        this.id = options.id || options.item_id || options.itemId || options.orderItemId || options.order_item_id || ''
         this.orderId = options.order_id || options.orderId || ''
+        if (!this.id) {
+            this.$toast({
+                title: '评价商品信息待确认'
+            })
+            return
+        }
         this.getCommentInfoFun()
     },
 
@@ -161,6 +168,11 @@ export default {
         onSubmit() {
             let { goodsRate, fileList, comment, deliveryRate, descRate, serverRate } = this
             let image = fileList.map((item) => item.base_url || item.url).filter(Boolean)
+            if (!this.id) {
+                return this.$toast({
+                    title: '评价商品信息待确认'
+                })
+            }
             if (!goodsRate)
                 return this.$toast({
                     title: '请对商品进行评分'
@@ -190,6 +202,8 @@ export default {
                 content: comment,
                 is_anonymous: this.anonymous ? 1 : 0,
                 anonymous: this.anonymous ? 1 : 0,
+                anonymousFlag: this.anonymous,
+                anonymous_flag: this.anonymous ? 1 : 0,
                 image,
                 imageUrls: image
             }).then((res) => {
@@ -212,12 +226,13 @@ export default {
         },
 
         getCommentInfoFun() {
+            if (!this.id) return
             getCommentInfo({
                 id: this.id
             }).then((res) => {
                 if (res.code == 1) {
                     const data = res.data || {}
-                    const goods = data.goods || data.product || data.sku || data
+                    const goods = this.normalizeCommentGoods(data)
                     this.goods = Object.keys(goods || {}).length ? [goods] : []
                 } else {
                     this.goods = []
@@ -228,7 +243,7 @@ export default {
         },
 
         afterRead(e) {
-            const file = Array.isArray(e) ? e : (Array.isArray(e && e.file) ? e.file : (Array.isArray(e && e.detail && e.detail.file) ? e.detail.file : []))
+            const file = this.extractUploadFiles(e)
             if (!file.length) return
             uni.showLoading({
                 title: '正在上传中...',
@@ -236,7 +251,8 @@ export default {
             })
             let finished = 0
             file.forEach((item) => {
-                uploadFile(item.path)
+                const filePath = item.path || item.tempFilePath || item.url
+                uploadFile(filePath)
                     .then((res) => {
                         this.fileList.push(res)
                     })
@@ -252,6 +268,43 @@ export default {
             })
         },
 
+        extractUploadFiles(event) {
+            const source = event && event.detail ? event.detail : event
+            const file = source && (source.file || source.files || source.tempFiles)
+            const files = Array.isArray(source) ? source : (Array.isArray(file) ? file : (file ? [file] : []))
+            if (files.length) return files.filter((item) => item && (item.path || item.tempFilePath || item.url))
+            if (source && (source.path || source.tempFilePath || source.url)) return [source]
+            return []
+        },
+
+        normalizeCommentGoods(data = {}) {
+            const goods = data.goods || data.goodsInfo || data.order_goods || data.orderGoods || data.product || data.sku || {}
+            const source = Object.keys(goods || {}).length ? goods : data
+            const hasGoodsField = [
+                'goods_name',
+                'goodsName',
+                'name',
+                'title',
+                'image',
+                'image_str',
+                'imageStr',
+                'goods_image',
+                'goodsImage',
+                'price',
+                'goods_price',
+                'goodsPrice'
+            ].some((key) => source[key] !== undefined && source[key] !== null && source[key] !== '')
+            if (!hasGoodsField) return {}
+            return {
+                ...source,
+                goods_id: source.goods_id || source.goodsId || source.productId || source.product_id || source.id || '',
+                goods_name: source.goods_name || source.goodsName || source.name || source.title || '',
+                image: source.image || source.image_str || source.imageStr || source.goods_image || source.goodsImage || source.cover || '',
+                goods_price: source.goods_price || source.goodsPrice || source.price || source.salePrice || source.sale_price || '',
+                spec_value_str: source.spec_value_str || source.specValueStr || source.spec_value || source.specValue || source.skuName || ''
+            }
+        },
+
         onDelete(event) {
             const index = typeof event === 'number' ? event : (event && event.index !== undefined ? event.index : (event && event.detail ? event.detail.index : undefined))
             if (index === undefined || index === null) return
@@ -263,9 +316,13 @@ export default {
 <style lang="scss">
 .goods-reviews {
     min-height: 100vh;
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
     padding: 24rpx 24rpx 48rpx;
-    background: linear-gradient(180deg, #fff4f0 0%, #f7f8fb 300rpx, #f7f8fb 100%);
+    background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 300rpx, #fff9f0 100%);
     box-sizing: border-box;
+    overflow-x: hidden;
 }
 .review-hero {
     padding: 12rpx 4rpx 28rpx;
@@ -303,8 +360,10 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16rpx;
 }
 .score-card__title {
+    min-width: 0;
     color: #1f2937;
     font-size: 32rpx;
     font-weight: 800;
@@ -313,6 +372,7 @@ export default {
 .score-card__hint,
 .review-count,
 .upload-tip {
+    flex: none;
     color: #98a2b3;
     font-size: 24rpx;
 }
@@ -367,7 +427,12 @@ export default {
     width: 38rpx;
     height: 38rpx;
     display: block;
+    color: #c7d0dc;
+    font-size: 34rpx;
+    line-height: 38rpx;
+    text-align: center;
 }
+.score-star--selected .score-star__icon { color: #ffb02e; }
 .score-star--selected {
     opacity: 1;
     filter: none;
@@ -406,8 +471,8 @@ export default {
 .goods-reviews .goods-dec .textarea {
     height: 240rpx;
     border-radius: 18rpx;
-    background-color: #f6f8fb;
-    border: 1rpx solid #edf1f6;
+    background-color: #fff8ed;
+    border: 1rpx solid #f0dcc0;
 }
 .goods-reviews .goods-dec .textarea textarea {
     width: 100%;
@@ -423,6 +488,7 @@ export default {
 }
 .upload-title,
 .anonymous-title {
+    min-width: 0;
     color: #30343b;
     font-size: 27rpx;
     font-weight: 700;
@@ -431,14 +497,21 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 20rpx;
     margin-top: 30rpx;
     padding: 24rpx 0 2rpx;
     border-top: 1rpx solid #eef2f6;
 }
+.anonymous-row > view:first-child {
+    flex: 1;
+    min-width: 0;
+}
 .anonymous-desc {
+    max-width: 520rpx;
     margin-top: 8rpx;
     color: #98a2b3;
     font-size: 23rpx;
+    line-height: 34rpx;
 }
 .review-switch {
     position: relative;
@@ -449,7 +522,7 @@ export default {
     transition: background .18s ease;
 }
 .review-switch.is-active {
-    background: #ff6b3d;
+    background: #d79a43;
 }
 .review-switch__thumb {
     position: absolute;
@@ -467,10 +540,11 @@ export default {
 }
 .goods-reviews .btn {
     width: 100%;
+    max-width: 702rpx;
     height: 88rpx;
     margin: 36rpx 0 0;
     border-radius: 44rpx;
-    background: linear-gradient(135deg, #ff6b3d 0%, #ff2c3c 100%);
+    background: linear-gradient(135deg, #d79a43 0%, #a0610d 100%);
     color: #ffffff;
     font-size: 30rpx;
     font-weight: 700;
@@ -478,10 +552,20 @@ export default {
 }
 
 @media screen and (max-width: 360px) {
+    .score-card__head,
+    .review-section-head,
+    .upload-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
     .score-row {
         align-items: flex-start;
         flex-direction: column;
         gap: 14rpx;
+    }
+    .score-row__main {
+        width: 100%;
+        flex-wrap: wrap;
     }
     .score-stars {
         width: 100%;

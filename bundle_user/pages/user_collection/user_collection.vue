@@ -10,7 +10,8 @@
                     <image style="height: 56rpx;width: 56rpx;flex: none;margin-left: 14rpx" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_del.png" @tap.stop="deleteConfirm" :data-id="item.id"></image>
                 </view>
                 <view class="row-between mt20">
-                    <price-format :first-size="30" :second-size="26" :price="item.price" :weight="400" :subscriptSize="30" :showSubscript="true" color="#FF2C3C" />
+                    <price-format v-if="hasPrice(item.price)" :first-size="30" :second-size="26" :price="item.price" :weight="400" :subscriptSize="30" :showSubscript="true" color="#a0610d" />
+                    <view v-else class="collection-price-pending">价格待确认</view>
                     <view class="btn primary br60 sm">去购买</view>
                 </view>
             </view>
@@ -24,7 +25,7 @@
     <u-modal
         v-model="deleteSure"
         confirm-text="狠心删除"
-        confirm-color="#FF2C3C"
+        confirm-color="#a0610d"
         :showCancelButton="true"
         :show-title="false"
         @confirm="cancelCollect"
@@ -94,6 +95,10 @@ export default {
       })
   },
   methods: {
+    hasPrice(value) {
+      const price = Number(value)
+      return value !== '' && value !== null && value !== undefined && !Number.isNaN(price)
+    },
     deleteCancel: function (e) {
         this.deleteSure = false;
     },
@@ -174,6 +179,11 @@ export default {
                 display: flex;
                 justify-content: center;
                 align-items: center;
+            }
+            .collection-price-pending {
+                color: #999999;
+                font-size: 26rpx;
+                line-height: 42rpx;
             }
         }
         .del-btn {

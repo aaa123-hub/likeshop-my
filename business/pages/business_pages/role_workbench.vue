@@ -39,16 +39,22 @@
                 <view class="invite-panel">
                     <view class="invite-preview" @tap="openPoster">
                         <image v-if="previewImage" class="invite-preview__image" :src="previewImage" mode="aspectFit"></image>
-                        <l-painter v-else-if="qrText" css="width: 164rpx; height: 164rpx; background: #ffffff;" custom-style="width: 164rpx; height: 164rpx;">
-                            <l-painter-qrcode css="width: 164rpx; height: 164rpx;" :text="qrText"></l-painter-qrcode>
-                        </l-painter>
+                        <tki-qrcode
+                            v-else-if="qrText"
+                            cid="role-preview-qrcode"
+                            :val="qrText"
+                            :size="164"
+                            :onval="true"
+                            :load-make="true"
+                            :show-loading="false"
+                        ></tki-qrcode>
                         <view v-else class="invite-preview__empty">
                             <text>生成</text>
                             <text>吸粉码</text>
                         </view>
                     </view>
                     <view class="invite-info">
-                        <view class="invite-title">{{ inviteCode ? inviteCode : '等待后端生成邀请码' }}</view>
+                        <view class="invite-title">{{ inviteCode ? inviteCode : '邀请码待生成' }}</view>
                         <view class="invite-desc line2">{{ sceneText }}</view>
                         <view class="invite-actions">
                             <view class="invite-action" @tap="copyInviteCode">复制邀请码</view>
@@ -96,9 +102,15 @@
                 </view>
                 <image v-if="posterImage" class="poster-image" :src="posterImage" mode="aspectFit"></image>
                 <view v-else-if="qrText" class="poster-qr">
-                    <l-painter css="width: 360rpx; height: 360rpx; background: #ffffff;" custom-style="width: 360rpx; height: 360rpx;">
-                        <l-painter-qrcode css="width: 360rpx; height: 360rpx;" :text="qrText"></l-painter-qrcode>
-                    </l-painter>
+                    <tki-qrcode
+                        cid="role-poster-qrcode"
+                        :val="qrText"
+                        :size="360"
+                        :onval="true"
+                        :load-make="true"
+                        :show-loading="false"
+                        @result="onPosterQrResult"
+                    ></tki-qrcode>
                 </view>
                 <view v-else class="poster-empty">{{ posterError || '正在生成吸粉码...' }}</view>
                 <view class="poster-scene line2">{{ qrTipText }}</view>
@@ -116,12 +128,11 @@ import { mapGetters } from 'vuex'
 import Navbar from '@/components/navbar/navbar.vue'
 import { getPromotionInviteCode, getRoleWorkbench } from '@/api/user'
 import { getShareMnQrcode } from '@/api/app'
-import lPainter from '@/components/lime-painter/components/l-painter/l-painter.vue'
-import lPainterQrcode from '@/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode.vue'
+import TkiQrcode from '@/business/components/tki-qrcode/tki-qrcode.vue'
 import { localizeBackendText } from '@/utils/backend-text'
 
 export default {
-    components: { Navbar, lPainter, lPainterQrcode },
+    components: { Navbar, TkiQrcode },
     data() {
         return {
             roleCode: 'PROMOTER',
@@ -130,6 +141,7 @@ export default {
             loadError: '',
             posterVisible: false,
             posterImage: '',
+            posterQrImage: '',
             posterError: ''
         }
     },
@@ -181,19 +193,19 @@ export default {
             return this.workbench.qrText || this.workbench.qr_text || this.workbench.shareUrl || this.workbench.share_url || this.sceneText
         },
         qrTipText() {
-            return this.inviteCode ? `专属邀请码：${this.inviteCode}` : `${this.roleLabel}专属吸粉码待后端补充正式内容`
+            return this.inviteCode ? `专属邀请码：${this.inviteCode}` : `${this.roleLabel}专属吸粉码待生成`
         },
         primaryMetrics() {
             return [
                 { key: 'fans', label: '累计粉丝', value: this.displayNumber(this.workbench.fansCount), sub: `今日新增 ${this.displayNumber(this.workbench.todayFans)}` },
-                { key: 'orders', label: '推广订单', value: this.displayNumber(this.workbench.orderCount), sub: `今日 ${this.displayNumber(this.workbench.todayOrderCount)} 单` },
+                { key: 'orders', label: '推广订单', value: this.displayNumber(this.workbench.orderCount), sub: `今日 ${this.displayCountWithUnit(this.workbench.todayOrderCount, '单')}` },
                 { key: 'profit', label: '累计分润', value: this.displayMoney(this.workbench.totalProfit), sub: `本月 ${this.displayMoney(this.workbench.monthProfit)}` },
                 { key: 'points', label: '可用积分', value: this.displayNumber(this.workbench.availablePoints), sub: `冻结 ${this.displayNumber(this.workbench.frozenPoints)}` }
             ]
         },
         secondaryMetrics() {
             const list = [
-                { key: 'todayProfit', label: '今日预计分润', value: this.displayMoney(this.workbench.todayProfit), sub: '按后端实时统计展示' },
+                { key: 'todayProfit', label: '今日预计分润', value: this.displayMoney(this.workbench.todayProfit), sub: '按实时统计展示' },
                 { key: 'merchantCount', label: '绑定商家', value: this.displayNumber(this.workbench.merchantCount), sub: '商家/门店维度绑定数量' }
             ]
             if (this.workbench.merchantName) {
@@ -209,7 +221,7 @@ export default {
             ]
             if (this.roleCode === 'MERCHANT') {
                 entries.push({ key: 'verify', icon: '核', title: '扫码核销订单', desc: '线下订单快速核验' })
-                entries.push({ key: 'cashier', icon: '核', title: '核销订单', desc: '扫码核销自提订单' })
+                entries.push({ key: 'cashier', icon: '单', title: '核销订单', desc: '待核销/已核销列表' })
             }
             return entries
         }
@@ -267,17 +279,24 @@ export default {
             return map[normalized] || fallback || String(value)
         },
         displayNumber(value) {
-            if (value === undefined || value === null || value === '') return '0'
+            if (!this.hasMetricValue(value)) return '待确认'
             const num = Number(value)
-            if (Number.isNaN(num)) return String(value)
+            if (Number.isNaN(num) || !Number.isFinite(num)) return '待确认'
             return num.toLocaleString()
+        },
+        displayCountWithUnit(value, unit) {
+            return this.hasMetricValue(value) ? `${this.displayNumber(value)} ${unit}` : '待确认'
         },
         displayMoney(value) {
             if (typeof value === 'string' && /[¥￥]/.test(value)) return value
-            const num = Number(value || 0)
-            if (Number.isNaN(num)) return String(value || '¥0')
+            if (!this.hasMetricValue(value)) return '金额待确认'
+            const num = Number(value)
+            if (Number.isNaN(num) || !Number.isFinite(num)) return '金额待确认'
             const valueText = num % 1 === 0 ? String(num) : num.toFixed(2)
             return `¥${valueText}`
+        },
+        hasMetricValue(value) {
+            return value !== undefined && value !== null && value !== ''
         },
         buildScene(inviteCode = '') {
             const params = [`uid_${this.userId}`, `role=${this.roleCode}`]
@@ -316,6 +335,7 @@ export default {
         async openPoster() {
             this.posterVisible = true
             this.posterError = ''
+            this.posterQrImage = ''
             this.posterImage = this.workbench.posterUrl || this.workbench.poster_url || this.workbench.qrcodeUrl || this.workbench.qrcode_url || ''
             if (this.posterImage) return
             try {
@@ -343,6 +363,9 @@ export default {
         closePoster() {
             this.posterVisible = false
         },
+        onPosterQrResult(result) {
+            this.posterQrImage = typeof result === 'string' ? result : ''
+        },
         copyInviteCode() {
             const value = this.inviteCode || this.sceneText
             if (!value) {
@@ -355,22 +378,30 @@ export default {
             })
         },
         savePoster() {
-            if (!this.posterImage) {
-                uni.showToast({ title: '当前二维码由前端生成，暂不支持保存图片', icon: 'none' })
+            const image = this.posterImage || this.posterQrImage
+            if (!image) {
+                uni.showToast({ title: '暂无可保存图片', icon: 'none' })
+                return
+            }
+            const saveFile = (filePath) => {
+                uni.saveImageToPhotosAlbum({
+                    filePath,
+                    success: () => uni.showToast({ title: '已保存', icon: 'success' }),
+                    fail: () => uni.showToast({ title: '保存失败，请检查相册权限', icon: 'none' })
+                })
+            }
+            if (!/^https?:\/\//.test(image)) {
+                saveFile(image)
                 return
             }
             uni.downloadFile({
-                url: this.posterImage,
+                url: image,
                 success: (res) => {
                     if (res.statusCode !== 200) {
                         uni.showToast({ title: '下载失败', icon: 'none' })
                         return
                     }
-                    uni.saveImageToPhotosAlbum({
-                        filePath: res.tempFilePath,
-                        success: () => uni.showToast({ title: '已保存', icon: 'success' }),
-                        fail: () => uni.showToast({ title: '保存失败，请检查相册权限', icon: 'none' })
-                    })
+                    saveFile(res.tempFilePath)
                 },
                 fail: () => uni.showToast({ title: '下载失败', icon: 'none' })
             })
@@ -389,7 +420,7 @@ export default {
                 return
             }
             if (item.key === 'cashier') {
-                uni.navigateTo({ url: '/business/pages/business_pages/face_pay' })
+                uni.navigateTo({ url: '/bundle_misc/pages/writeoff_order/writeoff_order' })
                 return
             }
             if (item.key === 'verify') {
@@ -402,13 +433,13 @@ export default {
 </script>
 
 <style lang="scss">
-.role-page { min-height: 100vh; background: #f5f7fb; box-sizing: border-box; }
+.role-page { min-height: 100vh; background: #fff9f0; box-sizing: border-box; }
 .page-inner { width: 100%; max-width: 750rpx; margin: 0 auto; padding: 22rpx 24rpx calc(48rpx + env(safe-area-inset-bottom)); box-sizing: border-box; }
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20rpx; min-height: 220rpx; padding: 34rpx 30rpx; border-radius: 24rpx; color: #ffffff; background: linear-gradient(135deg, #1769ff 0%, #15b7a7 100%); box-shadow: 0 18rpx 42rpx rgba(23, 105, 255, .18); box-sizing: border-box; }
-.hero--promoter { background: linear-gradient(135deg, #1769ff 0%, #ff9f1c 100%); }
-.hero--agent { background: linear-gradient(135deg, #0f9b7a 0%, #1769ff 100%); }
-.hero--subsidiary { background: linear-gradient(135deg, #203a8f 0%, #1bb0ff 100%); }
-.hero--merchant { background: linear-gradient(135deg, #1769ff 0%, #16c79a 100%); }
+.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20rpx; min-height: 220rpx; padding: 34rpx 30rpx; border-radius: 24rpx; color: #ffffff; background: linear-gradient(135deg, #7f4c0a 0%, #d79a43 100%); box-shadow: 0 18rpx 42rpx rgba(160, 97, 13, .18); box-sizing: border-box; }
+.hero--promoter { background: linear-gradient(135deg, #a0610d 0%, #f2b45f 100%); }
+.hero--agent { background: linear-gradient(135deg, #6f7b2b 0%, #d79a43 100%); }
+.hero--subsidiary { background: linear-gradient(135deg, #6e4a22 0%, #e0ad62 100%); }
+.hero--merchant { background: linear-gradient(135deg, #a0610d 0%, #c7a64a 100%); }
 .hero-main { min-width: 0; }
 .hero-kicker { display: inline-flex; align-items: center; height: 42rpx; padding: 0 18rpx; border-radius: 22rpx; background: rgba(255, 255, 255, .18); font-size: 22rpx; line-height: 42rpx; }
 .hero-title { margin-top: 18rpx; font-size: 42rpx; font-weight: 700; line-height: 56rpx; }
@@ -417,7 +448,7 @@ export default {
 .hero-code__label { display: block; font-size: 22rpx; line-height: 30rpx; opacity: .86; }
 .hero-code__value { display: block; margin-top: 8rpx; font-size: 27rpx; font-weight: 700; line-height: 36rpx; word-break: break-all; }
 .state-card, .loading-card { margin-top: 20rpx; padding: 30rpx 24rpx; border-radius: 20rpx; color: #7b8494; background: #ffffff; text-align: center; font-size: 26rpx; line-height: 38rpx; }
-.state-card__btn { display: inline-flex; align-items: center; justify-content: center; height: 58rpx; margin-top: 18rpx; padding: 0 30rpx; border-radius: 30rpx; color: #ffffff; background: #1769ff; }
+.state-card__btn { display: inline-flex; align-items: center; justify-content: center; height: 58rpx; margin-top: 18rpx; padding: 0 30rpx; border-radius: 30rpx; color: #ffffff; background: #a0610d; }
 .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18rpx; margin-top: 20rpx; }
 .summary-card { min-width: 0; min-height: 154rpx; padding: 24rpx 22rpx; border-radius: 20rpx; background: #ffffff; box-shadow: 0 10rpx 28rpx rgba(20, 36, 70, .05); box-sizing: border-box; }
 .summary-label { color: #7b8494; font-size: 23rpx; line-height: 32rpx; }
@@ -427,27 +458,27 @@ export default {
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
 .section-title { color: #1d2433; font-size: 31rpx; font-weight: 700; line-height: 44rpx; }
 .section-sub { margin-top: 6rpx; color: #8d96a6; font-size: 23rpx; line-height: 32rpx; }
-.share-mini { flex: none; min-width: 108rpx; height: 56rpx; margin: 0; padding: 0 24rpx; border: 0; border-radius: 28rpx; color: #ffffff; background: #1769ff; font-size: 24rpx; line-height: 56rpx; }
+.share-mini { flex: none; min-width: 108rpx; height: 56rpx; margin: 0; padding: 0 24rpx; border: 0; border-radius: 28rpx; color: #ffffff; background: #a0610d; font-size: 24rpx; line-height: 56rpx; }
 .share-mini::after, .poster-action::after { border: 0; }
 .invite-panel { display: flex; gap: 22rpx; margin-top: 24rpx; }
-.invite-preview { flex: none; display: flex; align-items: center; justify-content: center; width: 180rpx; height: 180rpx; padding: 8rpx; border-radius: 20rpx; background: #f2f6ff; overflow: hidden; box-sizing: border-box; }
+.invite-preview { flex: none; display: flex; align-items: center; justify-content: center; width: 180rpx; height: 180rpx; padding: 8rpx; border-radius: 20rpx; background: #fff1dc; overflow: hidden; box-sizing: border-box; }
 .invite-preview__image { width: 164rpx; height: 164rpx; }
-.invite-preview__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 132rpx; height: 132rpx; border-radius: 18rpx; color: #1769ff; background: #ffffff; font-size: 24rpx; line-height: 34rpx; }
+.invite-preview__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 132rpx; height: 132rpx; border-radius: 18rpx; color: #a0610d; background: #ffffff; font-size: 24rpx; line-height: 34rpx; }
 .invite-info { flex: 1; min-width: 0; }
 .invite-title { color: #1d2433; font-size: 34rpx; font-weight: 700; line-height: 44rpx; word-break: break-all; }
 .invite-desc { margin-top: 8rpx; color: #8d96a6; font-size: 22rpx; line-height: 32rpx; word-break: break-all; }
 .invite-actions { display: flex; gap: 14rpx; margin-top: 20rpx; }
-.invite-action { flex: 1; min-width: 0; height: 62rpx; border-radius: 32rpx; color: #1769ff; background: #eef5ff; text-align: center; font-size: 24rpx; line-height: 62rpx; }
+.invite-action { flex: 1; min-width: 0; height: 62rpx; border-radius: 32rpx; color: #a0610d; background: #fff1dc; text-align: center; font-size: 24rpx; line-height: 62rpx; }
 .invite-action--primary { color: #ffffff; background: #ff9f1c; }
 .metric-list { margin-top: 20rpx; border-radius: 20rpx; background: #ffffff; overflow: hidden; }
 .metric-row { display: flex; align-items: center; justify-content: space-between; min-height: 94rpx; padding: 20rpx 24rpx; border-bottom: 1rpx solid #edf0f5; box-sizing: border-box; }
 .metric-row:last-child { border-bottom: 0; }
 .metric-row__label { color: #1d2433; font-size: 28rpx; font-weight: 600; line-height: 38rpx; }
 .metric-row__sub { margin-top: 4rpx; color: #9aa3b2; font-size: 22rpx; line-height: 30rpx; }
-.metric-row__value { max-width: 320rpx; margin-left: 24rpx; color: #1769ff; font-size: 30rpx; font-weight: 700; line-height: 40rpx; text-align: right; word-break: break-all; }
+.metric-row__value { max-width: 320rpx; margin-left: 24rpx; color: #a0610d; font-size: 30rpx; font-weight: 700; line-height: 40rpx; text-align: right; word-break: break-all; }
 .entry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16rpx; margin-top: 22rpx; }
-.entry-card { display: flex; align-items: center; min-height: 112rpx; padding: 18rpx; border-radius: 18rpx; background: #f6f8fb; box-sizing: border-box; }
-.entry-icon { flex: none; display: flex; align-items: center; justify-content: center; width: 58rpx; height: 58rpx; margin-right: 16rpx; border-radius: 18rpx; color: #ffffff; background: #1769ff; font-size: 25rpx; font-weight: 700; }
+.entry-card { display: flex; align-items: center; min-height: 112rpx; padding: 18rpx; border-radius: 18rpx; background: #fff8ed; box-sizing: border-box; }
+.entry-icon { flex: none; display: flex; align-items: center; justify-content: center; width: 58rpx; height: 58rpx; margin-right: 16rpx; border-radius: 18rpx; color: #ffffff; background: #a0610d; font-size: 25rpx; font-weight: 700; }
 .entry-body { flex: 1; min-width: 0; }
 .entry-title { color: #1d2433; font-size: 27rpx; font-weight: 600; line-height: 36rpx; }
 .entry-desc { margin-top: 4rpx; color: #8d96a6; font-size: 21rpx; line-height: 30rpx; }
@@ -457,14 +488,14 @@ export default {
 .poster-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; }
 .poster-title { color: #1d2433; font-size: 33rpx; font-weight: 700; line-height: 44rpx; }
 .poster-subtitle { margin-top: 6rpx; color: #8d96a6; font-size: 23rpx; line-height: 32rpx; word-break: break-all; }
-.poster-close { flex: none; display: flex; align-items: center; justify-content: center; width: 54rpx; height: 54rpx; border-radius: 50%; color: #7b8494; background: #f2f4f7; font-size: 38rpx; line-height: 54rpx; }
-.poster-image { display: block; width: 100%; height: 520rpx; max-height: 60vh; margin-top: 26rpx; border-radius: 20rpx; background: #f6f8fb; }
-.poster-empty { display: flex; align-items: center; justify-content: center; height: 420rpx; margin-top: 26rpx; border-radius: 20rpx; color: #8d96a6; background: #f6f8fb; font-size: 26rpx; }
-.poster-qr { display: flex; align-items: center; justify-content: center; height: 420rpx; margin-top: 26rpx; border-radius: 20rpx; background: linear-gradient(180deg, #f7fbff, #ffffff); border: 1rpx solid #e6eef8; box-sizing: border-box; }
+.poster-close { flex: none; display: flex; align-items: center; justify-content: center; width: 54rpx; height: 54rpx; border-radius: 50%; color: #7b8494; background: #fff8ed; font-size: 38rpx; line-height: 54rpx; }
+.poster-image { display: block; width: 100%; height: 520rpx; max-height: 60vh; margin-top: 26rpx; border-radius: 20rpx; background: #fff8ed; }
+.poster-empty { display: flex; align-items: center; justify-content: center; height: 420rpx; margin-top: 26rpx; border-radius: 20rpx; color: #8d96a6; background: #fff8ed; font-size: 26rpx; }
+.poster-qr { display: flex; align-items: center; justify-content: center; height: 420rpx; margin-top: 26rpx; border-radius: 20rpx; background: linear-gradient(180deg, #fff8ed, #ffffff); border: 1rpx solid #f0dcc0; box-sizing: border-box; }
 .poster-scene { margin-top: 18rpx; color: #9aa3b2; font-size: 21rpx; line-height: 30rpx; word-break: break-all; }
 .poster-actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
-.poster-action { flex: 1; height: 76rpx; margin: 0; border-radius: 38rpx; color: #1769ff; background: #eef5ff; font-size: 26rpx; line-height: 76rpx; }
-.poster-action--primary { color: #ffffff; background: #1769ff; }
+.poster-action { flex: 1; height: 76rpx; margin: 0; border-radius: 38rpx; color: #a0610d; background: #fff1dc; font-size: 26rpx; line-height: 76rpx; }
+.poster-action--primary { color: #ffffff; background: #a0610d; }
 .line2 { display: -webkit-box; overflow: hidden; text-overflow: ellipsis; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 @media screen and (min-width: 900px) {

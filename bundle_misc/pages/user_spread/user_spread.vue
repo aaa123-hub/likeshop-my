@@ -55,7 +55,7 @@
                 <button class="apply-btn bg-primary white md mt10 row-center br60" @tap="formSubmit">
                     立即申请
                 </button>
-                <view class="mt20 xxs lighter row-center">提交成功后，我们将会在1-2个工作日内给您回复</view>
+                <view class="mt20 xxs lighter row-center">提交成功后，平台将在1-2个工作日内处理</view>
             </form>
         </view>
         <!-- 申请状态 -->
@@ -89,7 +89,7 @@
                 </view>
             </view>
             <view :class="'white mt20 br60 apply-btn row-center md ' + (applyObject.status == 0 ? 'bg-gray' : 'bg-primary')" @tap="reApply">重新申请</view>
-            <view class="mt20 xxs lighter row-center">提交成功后，我们将会在1-2个工作日内给您回复</view>
+            <view class="mt20 xxs lighter row-center">提交成功后，平台将在1-2个工作日内处理</view>
         </view>
         <!-- 已申请 -->
         <view :hidden="vipState!=2" class="user-vip">
@@ -97,7 +97,8 @@
                 <view class="user-assets-header row-between">
                     <view class="row nr bold" style="line-height: 80rpx;color: #8F430E;">
                         可提现佣金：
-                        <price-format weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="able_withdrawal" color="#FF2C3C" />
+                        <price-format v-if="hasKnownValue(able_withdrawal)" weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="able_withdrawal" color="#a0610d" />
+                        <text v-else class="spread-amount-pending">金额待确认</text>
                     </view>
                     <navigator hover-class="none" class="primary-btn white row-center" url="/bundle_user/pages/user_withdraw/user_withdraw">立即提现</navigator>
                 </view>
@@ -108,7 +109,8 @@
                             今日预估收益   <!-- <u-icon class="ml10" name="question-circle" size="30rpx" color="#D88D5A" /> -->
                         </view>
                         <view class="assets ml20">
-                            <price-format weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="today_earnings" color="#FF2C3C" />
+                            <price-format v-if="hasKnownValue(today_earnings)" weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="today_earnings" color="#a0610d" />
+                            <text v-else class="spread-amount-pending">金额待确认</text>
                         </view>
                     </view>
                     <view class="user-item column-center">
@@ -117,7 +119,8 @@
                             <!-- <u-icon class="ml10" name="question-circle" size="30rpx" color="#D88D5A" /> -->
                         </view>
                         <view class="assets ml20">
-                            <price-format weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="month_earnings" color="#FF2C3C" />
+                            <price-format v-if="hasKnownValue(month_earnings)" weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="month_earnings" color="#a0610d" />
+                            <text v-else class="spread-amount-pending">金额待确认</text>
                         </view>
                     </view>
                     <view class="user-item column-center">
@@ -125,14 +128,15 @@
                             累计获得收益<!-- <u-icon class="ml10" name="question-circle" size="30rpx" color="#D88D5A" /> -->
                         </view>
                         <view class="assets">
-                            <price-format weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="history_earnings" color="#FF2C3C" />
+                            <price-format v-if="hasKnownValue(history_earnings)" weight="bold" :showSubscript="true" :firstSize="36" :subscriptSize="26" :secondSize="36" :price="history_earnings" color="#a0610d" />
+                            <text v-else class="spread-amount-pending">金额待确认</text>
                         </view>
                     </view>
                 </view>
             </view>
             <view class="mt20 fans-msg-box row-center bg-white md">
                 <navigator url="/bundle_misc/pages/user_fans/user_fans" hover-class="none" class="my-fans row-center normal">
-                    我的粉丝 <text class="primary ml10">{{userFans}}</text>
+                    我的粉丝 <text class="primary ml10">{{ fansText }}</text>
                     <u-icon class="ml10" name="arrow-right" size="28rpx" color="#666" />
                 </navigator>
             </view>
@@ -227,11 +231,11 @@ export default {
       inviteStatus: false,
       showRegion: false,
       regionLists: area,
-      able_withdrawal: 0,
-      history_earnings: 0,
-      month_earnings: 0,
-      today_earnings: 0,
-	  userFans: 0
+      able_withdrawal: '',
+      history_earnings: '',
+      month_earnings: '',
+      today_earnings: '',
+	  userFans: ''
     };
   },
 
@@ -269,11 +273,11 @@ export default {
             this.inviteStatus = true;
           }
           this.userInfo = data;
-		  this.userFans = data.fans || 0
-          this.able_withdrawal = data.able_withdrawal || 0
-          this.history_earnings = data.history_earnings || 0
-          this.month_earnings = data.month_earnings || 0
-          this.today_earnings = data.today_earnings || 0
+		  this.userFans = this.pickPresentValue(data.fans, data.fans_count, data.fansCount, data.fanCount)
+          this.able_withdrawal = this.pickPresentValue(data.able_withdrawal, data.ableWithdrawal, data.availableCommission, data.available_commission)
+          this.history_earnings = this.pickPresentValue(data.history_earnings, data.historyEarnings, data.total_earnings, data.totalEarnings)
+          this.month_earnings = this.pickPresentValue(data.month_earnings, data.monthEarnings, data.current_month_earnings, data.currentMonthEarnings)
+          this.today_earnings = this.pickPresentValue(data.today_earnings, data.todayEarnings, data.today_income, data.todayIncome)
         }
       });
     },
@@ -347,7 +351,6 @@ export default {
         districtId,
         reason
       } = this;
-      console.log('formSubmit')
 
       if (!this.realName) {
         this.$toast({
@@ -432,21 +435,42 @@ export default {
     onCopy() {
       copy(this.userInfo.user.distribution_code)
     },
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+    pickPresentValue() {
+      for (let i = 0; i < arguments.length; i++) {
+        const value = arguments[i]
+        if (this.hasKnownValue(value)) return value
+      }
+      return ''
+    },
 
     // 显示提示窗口
     showToolTip(e) {
       this.animate("#today-profit");
     }
 
+  },
+  computed: {
+    fansText() {
+      return this.hasKnownValue(this.userFans) ? this.userFans : '待确认'
+    }
   }
 };
 </script>
 <style lang="scss">
 .user-spread {
+	width: 100%;
+	max-width: 750rpx;
+	min-height: 100vh;
+	margin: 0 auto;
+	overflow-x: hidden;
 	.explain {
 		background-color: #FFFADE;
 	    padding: 18rpx 20rpx;
-		color: #F95F2F;
+		box-sizing: border-box;
+		color: #d79a43;
 	    image {
 	        width: 24rpx;
 	        height: 24rpx;
@@ -458,9 +482,10 @@ export default {
 	    }
 	}
     .header {
-        background-image: url(data:image/png;base64,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);
+        background: linear-gradient(135deg, #a0610d 0%, #d79a43 58%, #ffe7bd 100%);
         background-repeat: no-repeat;
         background-size: 100% 100%;
+        width: 100%;
         box-sizing: border-box;
         text-align: center;
         padding-top: 40rpx;
@@ -508,6 +533,13 @@ export default {
                 border-radius: 20rpx;
                 padding: 10rpx 20rpx 22rpx;
                 background: linear-gradient(90deg, #FBEFDB 0%, #FED09E 100%);
+                .spread-amount-pending {
+                    color: #8f430e;
+                    font-size: 24rpx;
+                    font-weight: 500;
+                    line-height: 38rpx;
+                    white-space: nowrap;
+                }
                 .user-assets-header {
                     border-bottom: 1rpx dashed #8F430E;
                     padding-bottom: 4rpx;
@@ -515,7 +547,7 @@ export default {
                         height: 54rpx;
                         border-radius: 120rpx;
                         width: 144rpx;
-                        background: linear-gradient(180deg, #FF3067 0%, #FF2C3C 100%);
+                        background: linear-gradient(180deg, #d79a43 0%, #a0610d 100%);
                     }
                 }
                 .user-assets-content {

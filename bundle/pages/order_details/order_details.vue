@@ -125,9 +125,10 @@ author: likeshop.cn.team
                   <view v-if="goodsSpec(item)" class="order-goods-spec line1">{{ goodsSpec(item) }}</view>
                   <view class="order-goods-bottom">
                     <view class="order-goods-price">
-                      <price-format :weight="500" :subscript-size="24" :first-size="34" :second-size="24" :price="item.original_price || item.goods_price"></price-format>
+                      <price-format v-if="hasMoneyValue(goodsPriceValue(item))" :weight="500" :subscript-size="24" :first-size="34" :second-size="24" :price="goodsPriceValue(item)"></price-format>
+                      <text v-else class="order-goods-price__pending">金额待确认</text>
                     </view>
-                    <view class="order-goods-num">x{{ item.goods_num || item.num || 1 }}</view>
+                    <view class="order-goods-num">{{ goodsNumText(item) }}</view>
                   </view>
                 </view>
               </view>
@@ -149,18 +150,21 @@ author: likeshop.cn.team
           <view class="row-between">
             <view>商品总价</view>
             <view class="black">
-              <price-format :price="orderDetail.goods_price"></price-format>
+              <price-format v-if="hasMoneyValue(orderDetail.goods_price)" :price="orderDetail.goods_price"></price-format>
+              <text v-else>待确认</text>
             </view>
           </view>
           <view class="row-between">
             <view>运费</view>
-            <view class="black"
-              >+
-              <price-format :price="orderDetail.shipping_price"></price-format>
+            <view class="black">
+              <template v-if="hasMoneyValue(orderDetail.shipping_price)">
+                +<price-format :price="orderDetail.shipping_price"></price-format>
+              </template>
+              <text v-else>待确认</text>
             </view>
           </view>
           <view
-            v-if="orderDetail.discount_amount != 0"
+            v-if="hasPositiveMoney(orderDetail.discount_amount)"
             class="row-between"
           >
             <view>优惠券</view>
@@ -170,7 +174,7 @@ author: likeshop.cn.team
             </view>
           </view>
           <view
-            v-if="orderDetail.integral_amount != 0"
+            v-if="hasPositiveMoney(orderDetail.integral_amount)"
             class="row-between"
           >
             <view>积分抵扣</view>
@@ -183,12 +187,14 @@ author: likeshop.cn.team
             <view class="price-pay-label">{{ isOrderStatus('CREATED') ? '待支付金额' : '实付金额' }}</view>
             <view class="price-pay-amount">
               <price-format
+                v-if="hasMoneyValue(orderDetail.order_amount)"
                 :first-size="42"
                 :second-size="30"
                 :subscript-size="30"
                 :price="orderDetail.order_amount"
               >
               </price-format>
+              <text v-else class="price-pay-pending">待确认</text>
             </view>
           </view>
         </view>
@@ -347,7 +353,7 @@ author: likeshop.cn.team
     </view>
 
     <loading-view v-if="isFirstLoading"></loading-view>
-    <u-modal v-model="showOrderDialog" :show-cancel-button="true" :content="orderDialogText" confirm-color="#ff2c3c" @confirm="onOrderDialogConfirm"></u-modal>
+    <u-modal v-model="showOrderDialog" :show-cancel-button="true" :content="orderDialogText" confirm-color="#a0610d" @confirm="onOrderDialogConfirm"></u-modal>
     <loading-view
       v-if="showLoading"
       background-color="transparent"
@@ -667,11 +673,25 @@ export default {
       if (Number.isNaN(amount)) return value;
       return `¥${amount.toFixed(2)}`;
     },
+    hasMoneyValue(value) {
+      return value !== undefined && value !== null && value !== '' && !Number.isNaN(Number(value))
+    },
+    hasPositiveMoney(value) {
+      return this.hasMoneyValue(value) && Number(value) > 0
+    },
     goodsName(item = {}) {
-      return cleanEmptyBackendText(item.goods_name || item.name, '商品信息');
+      return cleanEmptyBackendText(item.goods_name || item.name, '商品待确认');
     },
     goodsSpec(item = {}) {
       return cleanEmptyBackendText(item.spec_value_str || item.spec_value, '');
+    },
+    goodsPriceValue(item = {}) {
+      return item.original_price ?? item.originalPrice ?? item.goods_price ?? item.goodsPrice ?? item.price ?? ''
+    },
+    goodsNumText(item = {}) {
+      const value = item.goods_num ?? item.goodsNum ?? item.quantity ?? item.num ?? ''
+      const count = Number(value)
+      return value !== '' && !Number.isNaN(count) && count > 0 ? `x${count}` : '数量待确认'
     },
     joinText(list, separator = ' ') {
       return list.filter((item) => item !== undefined && item !== null && item !== '').join(separator);
@@ -705,16 +725,6 @@ export default {
     openMapLocation({ latitude, longitude, name, address }) {
       const lat = Number(latitude)
       const lng = Number(longitude)
-      console.log('[order_details][openLocation]', {
-        latitude,
-        longitude,
-        name,
-        address,
-        deliveryType: this.orderDetail.delivery_type,
-        receiverLatitude: this.orderDetail.receiver_latitude,
-        receiverLongitude: this.orderDetail.receiver_longitude,
-        selfFetchShop: this.selfFetchShop
-      })
       if (Number.isNaN(lat) || Number.isNaN(lng) || !lat || !lng) {
         uni.showToast({ title: '暂无可定位坐标', icon: 'none' })
         return
@@ -749,7 +759,29 @@ export default {
       return map[String(status).toUpperCase()] || map[status] || cleanBackendText(status, '');
     },
     formatPayWay(value) {
-      return '微信支付';
+      if (value === undefined || value === null || value === '') return '待确认';
+      const raw = String(value).trim();
+      if (!raw) return '待确认';
+      const normalized = raw.toUpperCase();
+      const map = {
+        WECHAT_JSAPI: '微信支付',
+        WECHAT: '微信支付',
+        WXPAY: '微信支付',
+        WX_PAY: '微信支付',
+        ALIPAY: '支付宝',
+        ALI_PAY: '支付宝',
+        BALANCE: '余额支付',
+        USER_MONEY: '余额支付',
+        OFFLINE: '线下支付',
+        CASH: '线下支付',
+        BANK: '银行卡支付',
+        BANK_CARD: '银行卡支付',
+        1: '微信支付',
+        2: '支付宝',
+        3: '余额支付',
+        4: '线下支付'
+      };
+      return map[normalized] || cleanBackendText(raw, raw);
     },
     isWechatPayWay(value) {
       return value === 1 || value === '1' || value === 'WECHAT_JSAPI' || value === 'wechat' || value === 'wxpay';
@@ -982,7 +1014,7 @@ export default {
       return this.orderDetail.selffetch_shop || this.orderDetail.selffetchShop || this.orderDetail.pickupShop || {}
     },
     selfFetchShopName() {
-      return this.pickValue(this.selfFetchShop, ['name', 'shopName', 'shop_name', 'storeName']) || this.orderDetail.shop_name || '自提门店'
+      return this.pickValue(this.selfFetchShop, ['name', 'shopName', 'shop_name', 'storeName']) || this.orderDetail.shop_name || '门店待确认'
     },
     selfFetchShopAddress() {
       return this.pickValue(this.selfFetchShop, ['shop_address', 'address', 'detailAddress', 'detail_address']) || this.pickValue(this.orderDetail, ['pickupAddress', 'pickup_address']) || '-'
@@ -1114,7 +1146,7 @@ export default {
 .order-details {
   position: relative;
   min-height: 100vh;
-  background: #f5f7fb;
+  background: #fff9f0;
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
@@ -1123,7 +1155,7 @@ export default {
   top: 0;
   width: 100%;
   height: 276rpx;
-  background: linear-gradient(135deg, #1f7af4 0%, #18b6ff 54%, #21c58e 100%);
+  background: linear-gradient(135deg, #a0610d 0%, #d79a43 54%, #b26c10 100%);
   z-index: 0;
 }
 
@@ -1155,7 +1187,7 @@ export default {
 
 .order-goods-image {
   flex: none;
-  background: #f6f7fb;
+  background: #fff8ed;
 }
 
 .order-goods-info {
@@ -1177,12 +1209,12 @@ export default {
   height: 32rpx;
   margin-right: 10rpx;
   padding: 0 10rpx;
-  color: #1677ff;
+  color: #a0610d;
   font-size: 20rpx;
   line-height: 32rpx;
-  border: 1rpx solid rgba(22, 119, 255, .35);
+  border: 1rpx solid rgba(160, 97, 13, .28);
   border-radius: 999rpx;
-  background: #eef6ff;
+  background: #fff1dc;
 }
 
 .order-goods-spec {
@@ -1200,7 +1232,13 @@ export default {
 }
 
 .order-goods-price {
-  color: #ff2c3c;
+  color: #a0610d;
+}
+
+.order-goods-price__pending {
+  color: #8b95a5;
+  font-size: 24rpx;
+  font-weight: 500;
 }
 
 .order-goods-num {
@@ -1354,7 +1392,7 @@ export default {
   display: flex;
   margin: 8rpx 20rpx 14rpx;
   padding: 18rpx 20rpx;
-  background: #f7faff;
+  background: #fff8ed;
   border-radius: 18rpx;
 }
 
@@ -1365,7 +1403,7 @@ export default {
   margin-top: 10rpx;
   margin-right: 18rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1677ff 0%, #04befe 100%);
+  background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
   box-shadow: 0 0 0 8rpx rgba(22, 119, 255, .1);
 }
 
@@ -1434,12 +1472,19 @@ export default {
 }
 
 .price-pay-amount {
-  color: #ff2c3c;
+  color: #a0610d;
   font-weight: 800;
 }
 
+.price-pay-pending {
+  color: #8b95a5;
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 42rpx;
+}
+
 .order-status-text {
-  color: #1677ff;
+  color: #a0610d;
   font-weight: 600;
 }
 
@@ -1478,7 +1523,7 @@ export default {
 
 .footer-btn--primary {
   color: #ffffff;
-  background: linear-gradient(90deg, #ff7a35 0%, #ff2c3c 100%);
+  background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
   box-shadow: 0 10rpx 24rpx rgba(255, 65, 55, .22);
   border: 0;
 }
@@ -1489,7 +1534,7 @@ export default {
 }
 
 .order-details .invite-btn {
-  background: linear-gradient(270deg, #ff2c3c 0%, #f95f2f 100%);
+  background: linear-gradient(270deg, #a0610d 0%, #d79a43 100%);
   margin: 30rpx 26rpx 40rpx;
 }
 

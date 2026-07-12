@@ -55,7 +55,7 @@
                                 class="vip-price row"
                                 v-if="order_type === 1 || order_type === 2 || order_type === 3"
                             >
-                                <view class="price-name xxs" style="background-color: #e74346">
+                                <view class="price-name xxs" style="background-color: #a0610d">
                                     <text v-if="order_type === 1">秒杀价</text>
                                     <text v-if="order_type === 2">拼团价</text>
                                     <text v-if="order_type === 3">砍价</text>

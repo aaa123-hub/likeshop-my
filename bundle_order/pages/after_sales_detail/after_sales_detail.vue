@@ -43,12 +43,12 @@
 							:src="detailGoods.image" />
 					</view>
 					<view class="goods-info">
-						<view class="two-txt-cut nr">{{detailGoods.goods_name}}</view>
+						<view class="two-txt-cut nr">{{ goodsNameText }}</view>
 						<view class="row-between mt20">
-							<!-- <view class="md">￥999.00</view> -->
-							<price-format :price="detailGoods.goods_price" :firstSize="30"
+							<price-format v-if="hasGoodsPrice" :price="goodsPrice" :firstSize="30"
 								:secondSize="30" :showSubscript="true" :subscriptSize="30" color="#101010" />
-							<view class="nr">x{{detailGoods.goods_num}}</view>
+							<view v-else class="nr muted">金额待确认</view>
+							<view class="nr">{{ goodsNumText }}</view>
 						</view>
 					</view>
 				</view>
@@ -56,7 +56,7 @@
 			<view class="return-goods-container bg-white mt20">
 				<view class="return-goods-row row sm">
 					<view class="return-title">退款方式：</view>
-					<view class="return-explain">{{lists.refund_type == 0 ? '仅退款' : '退款退货'}}</view>
+					<view class="return-explain">{{ refundTypeText }}</view>
 				</view>
 				<view class="return-goods-row row sm mt20" v-if="refundReason">
 					<view class="return-title">退款原因：</view>
@@ -64,15 +64,15 @@
 				</view>
 				<view class="return-goods-row row sm mt20">
 					<view class="return-title">退款金额：</view>
-					<view class="return-explain primary">¥{{lists.refund_price}}</view>
+					<view class="return-explain primary">{{ refundPriceText }}</view>
 				</view>
 				<view class="return-goods-row row sm mt20">
 					<view class="return-title">退款编号：</view>
-					<view class="return-explain">{{lists.sn}}</view>
+					<view class="return-explain">{{ refundSnText }}</view>
 				</view>
 				<view class="return-goods-row row sm mt20">
 					<view class="return-title">申请时间：</view>
-					<view class="return-explain">{{lists.create_time}}</view>
+					<view class="return-explain">{{ createTimeText }}</view>
 				</view>
 				<view class="return-goods-row row sm mt20" v-if="lists.refund_remark">
 					<view class="return-title">备注说明：</view>
@@ -88,14 +88,12 @@
 			<view class="btn-group fixed bg-white row-end" v-if="actionButtonsVisible">
 				<view class="btn br60 btn--plain" v-if="canCancelApply" @tap="showDialog">撤销申请</view>
 				<view class="btn br60 btn--primary" @tap="goRefund" v-show="canReapply">重新申请</view>
-				<navigator hover-class="none"
-					:url="'/bundle_order/pages/input_express_info/input_express_info?id=' + lists.id" class="btn br60 btn--primary"
-					v-show="canInputExpress">填写快递单号</navigator>
+				<view class="btn br60 btn--primary" @tap="goInputExpress" v-show="canInputExpress">填写快递单号</view>
 				<view class="btn br60" v-show="false">平台退款</view>
 			</view>
 		</view>
 		<u-modal v-model="confirmDialog" confirm-text="确定" :showCancelButton="true" :show-title="false"
-			confirm-color="#FF2C3C" @confirm="cancelApplyFun" @cancel="hideDialog">
+			confirm-color="#a0610d" @confirm="cancelApplyFun" @cancel="hideDialog">
 			<view class="column-center tips-dialog" style="padding: 20rpx 0;">
 				<image class="icon-lg" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_warning.png"></image>
 				<view style="margin-top:30rpx">是否要撤销申请？</view>
@@ -202,6 +200,10 @@ trottle,
 					this.$toast({ title: '缺少售后商品信息' })
 					return
 				}
+				if (!this.afterSaleId) {
+					this.$toast({ title: '售后编号待确认' })
+					return
+				}
 				uni.navigateTo({
 					url: '/bundle_order/pages/apply_refund/apply_refund?order_id=' + (this.orderId || lists.order_id || lists.order_sn) + '&afterSaleId=' +
 						this.afterSaleId + '&item_id=' + this.detailGoods.item_id
@@ -209,6 +211,10 @@ trottle,
 			},
 
 			showDialog() {
+				if (!this.afterSaleId) {
+					this.$toast({ title: '售后编号待确认' })
+					return
+				}
 				this.confirmDialog = true
 			},
 
@@ -219,6 +225,10 @@ trottle,
 			confirmCancel() {},
 
 			cancelApplyFun() {
+				if (!this.afterSaleId) {
+					this.$toast({ title: '售后编号待确认' })
+					return
+				}
 				cancelApply({
 					id: this.afterSaleId
 				}).then(res => {
@@ -282,6 +292,23 @@ trottle,
 					OTHER: '其他'
 				}
 				return text.split(/[,，、]/).map(item => map[item.toUpperCase()] || item).join('、')
+			},
+			pickValue(source = {}, keys = []) {
+				for (const key of keys) {
+					const value = source && source[key]
+					if (value !== undefined && value !== null && value !== '') return value
+				}
+				return ''
+			},
+			goInputExpress() {
+				const id = this.lists.id || this.afterSaleId
+				if (!id) {
+					this.$toast({ title: '售后编号待确认' })
+					return
+				}
+				uni.navigateTo({
+					url: '/bundle_order/pages/input_express_info/input_express_info?id=' + encodeURIComponent(id)
+				})
 			}
 
 		},
@@ -289,6 +316,36 @@ trottle,
 			detailGoods() {
 				const goods = this.lists.order_goods || this.lists.goods_lists || {}
 				return Array.isArray(goods) ? goods[0] || {} : goods
+			},
+			goodsNameText() {
+				return this.pickValue(this.detailGoods, ['goods_name', 'goodsName', 'name', 'title']) || '商品待确认'
+			},
+			goodsPrice() {
+				return this.pickValue(this.detailGoods, ['goods_price', 'goodsPrice', 'price', 'pay_price', 'payPrice'])
+			},
+			hasGoodsPrice() {
+				return this.goodsPrice !== '' && !Number.isNaN(Number(this.goodsPrice))
+			},
+			goodsNumText() {
+				const value = this.pickValue(this.detailGoods, ['goods_num', 'goodsNum', 'quantity', 'num'])
+				return value === '' ? '数量待确认' : `x${value}`
+			},
+			refundTypeText() {
+				const text = this.pickValue(this.lists, ['refund_type_text', 'refundTypeText', 'type_text', 'typeText'])
+				if (text) return text
+				if (this.lists.refund_type === 0 || this.lists.refund_type === '0') return '仅退款'
+				if (this.lists.refund_type === 1 || this.lists.refund_type === '1') return '退款退货'
+				return '退款方式待确认'
+			},
+			refundPriceText() {
+				const value = this.pickValue(this.lists, ['refund_price', 'refundPrice', 'refund_amount', 'refundAmount', 'amount'])
+				return value !== '' && !Number.isNaN(Number(value)) ? `¥${value}` : '金额待确认'
+			},
+			refundSnText() {
+				return this.pickValue(this.lists, ['sn', 'refund_sn', 'refundSn', 'after_sale_id', 'afterSaleId', 'id']) || '退款编号待确认'
+			},
+			createTimeText() {
+				return this.pickValue(this.lists, ['create_time', 'createTime', 'apply_time', 'applyTime']) || '申请时间待确认'
 			},
 			normalizedStatus() {
 				return String(this.lists.status || this.lists.status_text || '').toUpperCase()
@@ -313,13 +370,17 @@ trottle,
 
 	.after-sales-detail {
 		min-height: 100vh;
-		background: #f7f8fa;
+		background: #fff9f0;
 		padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+		max-width: 750rpx;
+		margin: 0 auto;
+		box-sizing: border-box;
+		overflow-x: hidden;
 
 		.after-sales-header {
 			.after-sales-status {
 				padding: 54rpx 30rpx 64rpx;
-				background: linear-gradient(135deg, #ff5864 0%, #ff8a55 100%);
+				background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
 				font-weight: 600;
 			}
 
@@ -389,14 +450,14 @@ trottle,
 			}
 
 			.btn--primary {
-				border-color: #ff2c3c;
+				border-color: #a0610d;
 				color: #ffffff;
-				background: #ff2c3c;
+				background: #a0610d;
 			}
 
 			.btn--plain {
 				border-color: #ffb8bf;
-				color: #ff2c3c;
+				color: #a0610d;
 				background: #fff5f6;
 			}
 		}
@@ -434,6 +495,8 @@ trottle,
 				.goods-info {
 					margin-left: 24rpx;
 					flex: 1;
+					min-width: 0;
+					word-break: break-all;
 				}
 			}
 		}
@@ -447,7 +510,9 @@ trottle,
 
 		.address {
 			flex: 1;
+			min-width: 0;
 			line-height: 38rpx;
+			word-break: break-all;
 		}
 
 		.address-title {
@@ -459,7 +524,7 @@ trottle,
 		.copy-btn {
 			flex: 0 0 13%;
 			background-color: #fff3f4;
-			color: #ff2c3c;
+			color: #a0610d;
 			align-self: flex-start;
 			padding: 6rpx 16rpx;
 			margin-left: 12rpx;

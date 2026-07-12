@@ -79,7 +79,7 @@ export default {
 .mall-guide-page {
     min-height: 100vh;
     padding: var(--app-safe-top) 28rpx 56rpx;
-    background: linear-gradient(180deg, #eaf4ff 0%, #f7f8fb 42%, #f7f8fb 100%);
+    background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 42%, #fff9f0 100%);
     box-sizing: border-box;
 }
 
@@ -122,9 +122,9 @@ export default {
     margin-top: 28rpx;
     padding: 44rpx 36rpx;
     color: #ffffff;
-    background: linear-gradient(135deg, #1f7af4 0%, #48b8ff 100%);
+    background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
     border-radius: 32rpx;
-    box-shadow: 0 20rpx 42rpx rgba(31, 122, 244, 0.18);
+    box-shadow: 0 20rpx 42rpx rgba(160, 97, 13, 0.18);
 }
 
 .mall-guide-hero__label {
@@ -179,10 +179,10 @@ export default {
     justify-content: center;
     width: 56rpx;
     height: 56rpx;
-    color: #1f7af4;
+    color: #a0610d;
     font-size: 28rpx;
     font-weight: 700;
-    background: #eaf4ff;
+    background: #fff1dc;
     border-radius: 18rpx;
 }
 
@@ -223,7 +223,7 @@ export default {
     color: #ffffff;
     font-size: 24rpx;
     font-weight: 700;
-    background: #1f7af4;
+    background: #a0610d;
     border-radius: 50%;
 }
 

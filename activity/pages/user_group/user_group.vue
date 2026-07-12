@@ -51,14 +51,16 @@ export default {
 
  onPullDownRefresh: function () {
   const {active, group} = this
-  console.log(this.$refs['group' + group[active].type])
-  this.$refs['group' + group[active].type][0].reflesh()
+  const type = group[active] && group[active].type
+  const target = type && this.$refs['group' + type] && this.$refs['group' + type][0]
+  if (target && target.reflesh) target.reflesh()
  },
 
  onReachBottom: function () {
- 	  const {active, group} = this
- 	console.log(this.$refs['group' + group[active].type])
- 	this.$refs['group' + group[active].type][0].getUserGroupFun()
+  const {active, group} = this
+  const type = group[active] && group[active].type
+  const target = type && this.$refs['group' + type] && this.$refs['group' + type][0]
+  if (target && target.getUserGroupFun) target.getUserGroupFun()
  },
  methods: {
    changeShow(index) {

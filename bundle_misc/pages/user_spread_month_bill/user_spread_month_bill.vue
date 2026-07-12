@@ -2,21 +2,22 @@
 <view class="user-spread-month-bill">
     <view v-for="(item, index) in orderList" :key="index">
         <view class="bill-time row normal sm">
-            {{item.date}}
+            {{ displayText(item.date, '账单月份待确认') }}
         </view>
         <view class="show-panel row">
             <view class="panel-item column-center">
-                <price-format :price="item.total_money" showSubscript :subScriptSize="26" color="#FF2C3C" :firstSize="36" :secondSize="36" />
+                <price-format v-if="hasKnownValue(item.total_money)" :price="item.total_money" showSubscript :subScriptSize="26" color="#a0610d" :firstSize="36" :secondSize="36" />
+                <view v-else class="amount-pending">金额待确认</view>
                 <view class="lighter label mt10">预估收入</view>
             </view>
             <view class="panel-item column-center">
-                <view class="normal xxl">{{item.order_num}}</view>
+                <view class="normal xxl">{{ displayText(item.order_num, '待确认') }}</view>
                 <view class="lighter label mt10">成交笔数</view>
             </view>
             <view class="panel-item column-center" style="align-self: flex-end;">
-                <navigator hover-class="none" :url="'/bundle_misc/pages/user_spread_month_bill_detail/user_spread_month_bill_detail?year=' + item.year + '&month=' + item.month" class="row lighter">
+                <view class="row lighter detail-link" @tap="openMonthBillDetail(item)">
                     查看详情<u-icon name="arrow-right" size="28rpx" color="#666666" />
-                </navigator>
+                </view>
             </view>
         </view>
     </view>
@@ -79,6 +80,21 @@ export default {
   },
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
+    openMonthBillDetail(item = {}) {
+      if (!this.hasKnownValue(item.year) || !this.hasKnownValue(item.month)) {
+        this.$toast({ title: '账单月份待确认' })
+        return
+      }
+      uni.navigateTo({
+        url: `/bundle_misc/pages/user_spread_month_bill_detail/user_spread_month_bill_detail?year=${item.year}&month=${item.month}`
+      })
+    },
     getMonthBillFun() {
       let {
         loadingStatus,
@@ -111,6 +127,11 @@ export default {
         .panel-item {
             flex: 1;
             line-height: 34rpx;
+            .amount-pending {
+                color: #8b95a5;
+                font-size: 28rpx;
+                line-height: 44rpx;
+            }
         }
     }
 }

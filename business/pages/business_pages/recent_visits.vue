@@ -230,13 +230,13 @@ export default {
     font-size: 26rpx;
     font-weight: 600;
     line-height: 30rpx;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 29rpx;
     white-space: nowrap;
 }
 
 .recent-visits-btn--subscribed {
-    color: #037dfa;
+    color: #a0610d;
     background: #d0e7ff;
 }
 

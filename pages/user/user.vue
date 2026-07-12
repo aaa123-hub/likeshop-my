@@ -18,7 +18,7 @@
                     mode="aspectFill"
                 ></image>
                 <view class="my-page__profile-text" @tap="goLogin">
-                    <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '用户名' : '点击登录') }}</view>
+                    <view :class="['my-page__nickname', isLogin && !displayNickname ? 'my-page__nickname--empty' : '']">{{ displayNickname || (isLogin ? '昵称待完善' : '点击登录') }}</view>
                     <view class="my-page__member-id" v-if="isLogin && userInfo.sn">ID（邀请码）：{{ userInfo.sn }}</view>
                     <view class="my-page__member-id my-page__member-id--hint" v-else>{{ isLogin ? '完善昵称后，好友更容易识别你' : '登录体验更多功能' }}</view>
                     <view v-if="isLogin" class="my-page__identity-row">
@@ -48,7 +48,7 @@
             <view class="my-page__merchant" @tap="openFree(businessRoutes.pages.license)">
                 <image class="my-page__merchant-bg" :src="designAssets.myMerchantBg" mode="scaleToFill"></image>
                 <view class="my-page__merchant-content">
-                    <view class="my-page__merchant-title">我是商家</view>
+                    <view class="my-page__merchant-title">我是实体商家</view>
                     <view class="my-page__merchant-action">
                         <text>{{ userInfo.next_level_tips || '立即开通' }}</text>
                         <image class="my-page__merchant-arrow" :src="designAssets.myMerchantArrow" mode="aspectFit"></image>
@@ -58,9 +58,20 @@
 
             <image class="my-page__strategy" :src="designAssets.myStrategyBanner" mode="scaleToFill" @tap="goPage(businessRoutes.pages.mallGuide.url)"></image>
 
+            <view class="my-page__assets">
+                <view class="my-page__asset-card my-page__asset-card--coupon" @tap="goPage('/bundle_user/pages/user_coupon/user_coupon')">
+                    <view class="my-page__asset-title">我的优惠券</view>
+                    <view class="my-page__asset-value">{{ couponCountText }}</view>
+                </view>
+                <view class="my-page__asset-card my-page__asset-card--points" @tap="goPage('/bundle_misc/pages/user_sign/user_sign')">
+                    <view class="my-page__asset-title">我的积分</view>
+                    <view class="my-page__asset-value">{{ userIntegralText }}</view>
+                </view>
+            </view>
+
             <view class="my-section my-section--online">
                 <view class="my-section__head">
-                    <text class="my-section__title">线上订单</text>
+                    <text class="my-section__title">我的订单</text>
                     <view class="my-section__more" @tap="goPage('/bundle_order/pages/user_order/user_order')">
                         <text>全部</text>
                         <image class="my-section__more-icon" :src="designAssets.myArrowCircle" mode="aspectFit"></image>
@@ -158,9 +169,11 @@
                 </view>
                 <view class="promotion-code-box">
                     <image v-if="promotionQrImage" class="promotion-code-image" :src="promotionQrImage" mode="aspectFit" @tap="previewPromotionQr"></image>
-                    <l-painter v-else-if="promotionQrText" css="width: 360rpx; height: 360rpx; background: #ffffff;" custom-style="width: 360rpx; height: 360rpx;">
-                        <l-painter-qrcode css="width: 360rpx; height: 360rpx;" :text="promotionQrText"></l-painter-qrcode>
-                    </l-painter>
+                    <view v-else-if="promotionQrText" class="promotion-code-fallback" @tap="copyPromotionCode">
+                        <view class="promotion-code-fallback__label">推广码</view>
+                        <view class="promotion-code-fallback__value">{{ promotionInviteCode || '待生成' }}</view>
+                        <view class="promotion-code-fallback__hint">点击复制后分享给粉丝绑定</view>
+                    </view>
                     <view v-else class="promotion-code-empty">{{ promotionLoading ? '加载中...' : (promotionError || '暂无推广码') }}</view>
                 </view>
                 <view class="promotion-code-tip">粉丝扫码后登录注册，系统会自动绑定到当前角色名下。</view>
@@ -184,13 +197,10 @@ import { designAssets } from '@/utils/design-assets'
 import { resolveImage } from '@/utils/image-placeholder'
 import { getMerchantQualificationStatus, getPromotionInviteCode, getRoleApplications, getRoles, inputInviteCode } from '@/api/user'
 import { getShareMnQrcode } from '@/api/app'
-import lPainter from '@/components/lime-painter/components/l-painter/l-painter.vue'
-import lPainterQrcode from '@/components/lime-painter/components/l-painter-qrcode/l-painter-qrcode.vue'
 
 const SERVICE_QR_CODE = 'https://shengyuan.store/api/miniapp/files/miniapp/d748a229d2504aaeac129746548bc086/11.png'
 
 export default {
-    components: { lPainter, lPainterQrcode },
     data() {
         return {
             businessRoutes,
@@ -433,12 +443,10 @@ export default {
                         return
                     }
                     const bindPayload = await this.buildFansBindPayload(payload)
-                    console.log('[scanFans] payload', bindPayload)
                     const bindRes = await inputInviteCode(bindPayload).catch(() => null)
                     if (bindRes && bindRes.code == 1) {
                         uni.showToast({ title: bindRes.msg || '绑定成功', icon: 'success' })
                     } else {
-                        console.log('[scanFans] bind failed', bindRes)
                         uni.showToast({ title: (bindRes && (bindRes.msg || bindRes.message)) || '绑定失败', icon: 'none' })
                     }
                 },
@@ -514,6 +522,11 @@ export default {
         },
         onCopy() {
             copy(this.userInfo.sn)
+        },
+        formatKnownCount(value) {
+            if (value === undefined || value === null || value === '') return '待确认'
+            const count = Number(value)
+            return Number.isNaN(count) || !Number.isFinite(count) ? '待确认' : String(count)
         }
     },
     computed: {
@@ -529,7 +542,7 @@ export default {
         },
         offlineOrderEntries() {
             return [
-                { name: '核销订单', url: '/business/pages/business_pages/face_pay', image: designAssets.myOfflinePay },
+                { name: '核销订单', url: '/bundle_misc/pages/writeoff_order/writeoff_order', image: designAssets.myOfflinePay },
                 { name: '付款记录', url: '/business/pages/business_pages/payment_record', image: designAssets.myPaymentRecord }
             ]
         },
@@ -544,6 +557,7 @@ export default {
                     image: designAssets.myAllianceCode
                 }
             })
+            entries.push({ name: '分销推广', url: '/bundle_misc/pages/user_spread/user_spread', image: designAssets.myAllianceRecord || designAssets.myAllianceCode })
             entries.push({ name: '扫描粉丝码', action: 'scanFans', image: designAssets.myAllianceCode })
             return entries
         },
@@ -554,7 +568,7 @@ export default {
         },
         valueEntries() {
             return [
-                { name: `我的积分\n${this.userInfo.user_integral || 0}`, url: '/bundle_misc/pages/user_sign/user_sign', image: designAssets.myOrderPoints },
+                { name: `我的积分\n${this.userIntegralText}`, url: '/bundle_misc/pages/user_sign/user_sign', image: designAssets.myOrderPoints },
                 { name: '待领取\n线上订单', url: businessRoutes.pages.autoPoints.url, image: designAssets.myValueOnline, badge: this.pendingPointsCount },
                 { name: '待核销\n自提订单', url: '/bundle_order/pages/user_order/user_order?scene=offline&type=ship', image: designAssets.myValueOffline },
                 { name: '领取积分\n设置', url: businessRoutes.pages.autoPoints.url, image: designAssets.myOrderPoints }
@@ -563,6 +577,10 @@ export default {
         featureEntries() {
             return [
                 { name: 'KYC', url: businessRoutes.pages.userKyc.url, image: designAssets.myKyc },
+                { name: '我的收藏', url: '/bundle_user/pages/user_collection/user_collection', image: designAssets.myGiftCard },
+                { name: '我的钱包', url: businessRoutes.pages.wallet.url, image: designAssets.myPaymentRecord },
+                { name: '消息中心', url: '/bundle_misc/pages/message_center/message_center', image: designAssets.homeNoticeIcon },
+                { name: '会员中心', url: '/bundle_user/pages/user_vip/user_vip', image: designAssets.myCouponCard },
                 { name: '收货地址', url: businessRoutes.pages.addressList.url, image: designAssets.myAddress },
                 { name: '反馈意见', url: businessRoutes.pages.feedback.url, image: designAssets.myFeedback },
                 { name: '生态应用', url: businessRoutes.pages.ecoApp.url, image: designAssets.myEcology },
@@ -580,6 +598,14 @@ export default {
         },
         pendingPointsCount() {
             return this.userInfo.wait_points ?? this.userInfo.waitPoints ?? this.userInfo.pending_points ?? this.userInfo.pendingPoints ?? this.userInfo.wait_receive_points ?? this.userInfo.waitReceivePoints ?? 0
+        },
+        userIntegralText() {
+            return this.formatKnownCount(this.userInfo.user_integral ?? this.userInfo.userIntegral ?? this.userInfo.availablePoints ?? this.userInfo.available_points)
+        },
+        couponCountText() {
+            const count = this.userInfo.coupon_num ?? this.userInfo.couponNum ?? this.userInfo.coupon
+            const text = this.formatKnownCount(count)
+            return text === '待确认' ? text : `${text}张`
         },
         normalizedRoles() {
             const roles = this.roleList.length ? this.roleList : (this.userInfo.roles || this.userInfo.roleList || [])
@@ -683,7 +709,7 @@ export default {
     position: relative;
     min-height: 100vh;
     padding-bottom: calc(18rpx + var(--window-bottom));
-    background: #f4f6ff;
+    background: #fff9f0;
     overflow-x: hidden;
 }
 
@@ -698,25 +724,25 @@ export default {
 .my-page__screen {
     position: relative;
     width: 100%;
-    min-height: calc(1846rpx + var(--page-safe-top) + var(--window-bottom));
+    min-height: calc(1951rpx + var(--page-safe-top) + var(--window-bottom));
     overflow: visible;
 }
 
 .my-page--guest .my-page__screen {
-    min-height: calc(1328rpx + var(--page-safe-top) + var(--window-bottom));
+    min-height: calc(1545rpx + var(--page-safe-top) + var(--window-bottom));
 }
 
 .my-page--no-offline .my-page__screen,
 .my-page--no-promotion .my-page__screen {
-    min-height: calc(1609rpx + var(--page-safe-top) + var(--window-bottom));
+    min-height: calc(1826rpx + var(--page-safe-top) + var(--window-bottom));
 }
 
 .my-page--no-offline.my-page--no-promotion .my-page__screen {
-    min-height: calc(1372rpx + var(--page-safe-top) + var(--window-bottom));
+    min-height: calc(1589rpx + var(--page-safe-top) + var(--window-bottom));
 }
 
 .my-page--guest.my-page--no-offline.my-page--no-promotion .my-page__screen {
-    min-height: calc(1343rpx + var(--page-safe-top) + var(--window-bottom));
+    min-height: calc(1560rpx + var(--page-safe-top) + var(--window-bottom));
 }
 
 .my-page__header-bg {
@@ -808,7 +834,7 @@ export default {
 }
 
 .my-page__member-id--hint {
-    color: #037dfa;
+    color: #b27135;
 }
 
 .my-page__identity-row {
@@ -826,8 +852,8 @@ export default {
     height: 38rpx;
     padding: 0 16rpx;
     border-radius: 19rpx;
-    color: #037dfa;
-    background: rgba(3, 125, 250, .1);
+    color: #b27135;
+    background: rgba(178, 113, 53, .1);
     font-size: 22rpx;
     line-height: 38rpx;
 }
@@ -853,8 +879,8 @@ export default {
 }
 
 .my-page__role-tag--rejected {
-    color: #ff2c3c;
-    background: rgba(255, 44, 60, 0.1);
+    color: #a0610d;
+    background: rgba(160, 97, 13, 0.1);
 }
 
 .my-page__role-badges {
@@ -876,7 +902,7 @@ export default {
     line-height: 34rpx;
 }
 
-.my-page__role-badge--promoter { color: #037dfa; background: #eaf4ff; }
+.my-page__role-badge--promoter { color: #b27135; background: #fff3e8; }
 .my-page__role-badge--agent { color: #00a66a; background: #eafff6; }
 .my-page__role-badge--subsidiary { color: #8a5cf6; background: #f1edff; }
 .my-page__role-badge--hq { color: #d98200; background: #fff6e6; }
@@ -1065,15 +1091,56 @@ export default {
 }
 
 .my-page__strategy {
+    display: none;
+}
+
+.my-page__assets {
     position: absolute;
     left: 26rpx;
     right: 26rpx;
-    top: calc(var(--page-safe-top) + 376rpx);
-    z-index: 2;
-    height: 184rpx;
-    border-radius: 24rpx;
-    box-shadow: 0 16rpx 38rpx rgba(31, 122, 244, 0.12);
-    width: auto;
+    top: calc(var(--page-safe-top) + 411rpx);
+    z-index: 4;
+    display: flex;
+    justify-content: space-between;
+    height: 123rpx;
+    padding: 0 27rpx;
+    box-sizing: border-box;
+}
+
+.my-page__asset-card {
+    width: 311rpx;
+    height: 123rpx;
+    padding: 25rpx 0 0 26rpx;
+    border-radius: 20rpx;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, #fff7e7 0%, #ffe1bd 100%);
+    box-shadow: 0 10rpx 24rpx rgba(178, 113, 53, .10);
+}
+
+.my-page__asset-card--points {
+    background: linear-gradient(135deg, #fff5e5 0%, #ffdba6 100%);
+}
+
+.my-page__asset-title {
+    color: #ef5a18;
+    font-size: 24rpx;
+    line-height: 24rpx;
+    white-space: nowrap;
+}
+
+.my-page__asset-card--points .my-page__asset-title,
+.my-page__asset-card--points .my-page__asset-value {
+    color: #d07101;
+}
+
+.my-page__asset-value {
+    margin-top: 20rpx;
+    color: #ef5a18;
+    font-size: 35rpx;
+    font-family: PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 500;
+    line-height: 35rpx;
+    white-space: nowrap;
 }
 
 .my-section {
@@ -1081,13 +1148,13 @@ export default {
     left: 26rpx;
     right: 26rpx;
     z-index: 3;
-    background: rgba(255, 255, 255, 0.97);
-    border-radius: 24rpx;
-    box-shadow: 0 12rpx 30rpx rgba(28, 45, 90, 0.06);
+    background: rgba(255, 249, 240, 1);
+    border-radius: 15rpx;
+    box-shadow: none;
 }
 
 .my-section--online {
-    top: calc(var(--page-safe-top) + 584rpx);
+    top: calc(var(--page-safe-top) + 626rpx);
     min-height: 213rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
@@ -1098,73 +1165,69 @@ export default {
 }
 
 .my-section--pair-1 {
-    top: calc(var(--page-safe-top) + 821rpx);
+    top: calc(var(--page-safe-top) + 860rpx);
 }
 
 .my-section--pair-2 {
-    top: calc(var(--page-safe-top) + 1058rpx);
+    top: calc(var(--page-safe-top) + 1094rpx);
 }
 
 .my-section--value {
-    top: calc(var(--page-safe-top) + 1295rpx);
+    top: calc(var(--page-safe-top) + 1328rpx);
     min-height: 237rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-section--feature {
-    top: calc(var(--page-safe-top) + 1568rpx);
-    min-height: 237rpx;
+    top: calc(var(--page-safe-top) + 1579rpx);
+    min-height: 322rpx;
     padding-bottom: 28rpx;
     box-sizing: border-box;
 }
 
 .my-page--no-offline .my-section--pair-2 {
-    top: calc(var(--page-safe-top) + 821rpx);
+    top: calc(var(--page-safe-top) + 860rpx);
 }
 
 .my-page--no-offline .my-section--value {
-    top: calc(var(--page-safe-top) + 1058rpx);
+    top: calc(var(--page-safe-top) + 1094rpx);
 }
 
 .my-page--no-offline .my-section--feature {
-    top: calc(var(--page-safe-top) + 1331rpx);
+    top: calc(var(--page-safe-top) + 1345rpx);
 }
 
 .my-page--no-promotion .my-section--value {
-    top: calc(var(--page-safe-top) + 1058rpx);
+    top: calc(var(--page-safe-top) + 1094rpx);
 }
 
 .my-page--no-promotion .my-section--feature {
-    top: calc(var(--page-safe-top) + 1331rpx);
+    top: calc(var(--page-safe-top) + 1345rpx);
 }
 
 .my-page--no-offline.my-page--no-promotion .my-section--value {
-    top: calc(var(--page-safe-top) + 821rpx);
+    top: calc(var(--page-safe-top) + 860rpx);
 }
 
 .my-page--no-offline.my-page--no-promotion .my-section--feature {
-    top: calc(var(--page-safe-top) + 1094rpx);
+    top: calc(var(--page-safe-top) + 1111rpx);
 }
 
 .my-page--guest .my-page__merchant {
     top: calc(var(--page-safe-top) + 270rpx);
 }
 
-.my-page--guest .my-page__strategy {
-    top: calc(var(--page-safe-top) + 347rpx);
-}
-
 .my-page--guest .my-section--online {
-    top: calc(var(--page-safe-top) + 555rpx);
+    top: calc(var(--page-safe-top) + 597rpx);
 }
 
 .my-page--guest.my-page--no-offline.my-page--no-promotion .my-section--value {
-    top: calc(var(--page-safe-top) + 792rpx);
+    top: calc(var(--page-safe-top) + 831rpx);
 }
 
 .my-page--guest.my-page--no-offline.my-page--no-promotion .my-section--feature {
-    top: calc(var(--page-safe-top) + 1065rpx);
+    top: calc(var(--page-safe-top) + 1082rpx);
 }
 
 .my-section__head {
@@ -1238,9 +1301,9 @@ export default {
     min-width: 28rpx;
     height: 28rpx;
     padding: 0 6rpx;
-    border: 1rpx solid rgba(3, 125, 250, 1);
+    border: 1rpx solid rgba(178, 113, 53, 1);
     border-radius: 28rpx;
-    color: rgba(3, 125, 250, 1);
+    color: rgba(178, 113, 53, 1);
     font-size: 22rpx;
     line-height: 28rpx;
     text-align: center;
@@ -1325,8 +1388,8 @@ export default {
 
 .my-value-badge {
     position: absolute;
-    right: -18rpx;
-    top: -14rpx;
+    right: -4rpx;
+    top: -10rpx;
     min-width: 28rpx;
     height: 28rpx;
     padding: 0 8rpx;
@@ -1334,7 +1397,7 @@ export default {
     font-size: 18rpx;
     line-height: 28rpx;
     text-align: center;
-    background: #ff2c3c;
+    background: #b27135;
     border-radius: 18rpx;
     box-sizing: border-box;
 }
@@ -1467,6 +1530,43 @@ export default {
     height: 360rpx;
 }
 
+.promotion-code-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 360rpx;
+    height: 360rpx;
+    padding: 36rpx;
+    border-radius: 20rpx;
+    background: #ffffff;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.promotion-code-fallback__label {
+    color: #7b8494;
+    font-size: 24rpx;
+    line-height: 34rpx;
+}
+
+.promotion-code-fallback__value {
+    max-width: 100%;
+    margin-top: 18rpx;
+    color: #a0610d;
+    font-size: 42rpx;
+    font-weight: 700;
+    line-height: 52rpx;
+    word-break: break-all;
+}
+
+.promotion-code-fallback__hint {
+    margin-top: 20rpx;
+    color: #8b96a8;
+    font-size: 22rpx;
+    line-height: 32rpx;
+}
+
 .promotion-code-empty {
     color: #8b96a8;
     font-size: 26rpx;
@@ -1493,14 +1593,266 @@ export default {
     margin: 0;
     border: 0;
     border-radius: 38rpx;
-    color: #1769ff;
-    background: #edf4ff;
+    color: #a0610d;
+    background: #fff2df;
     font-size: 27rpx;
     line-height: 76rpx;
 }
 
 .promotion-code-btn--primary {
     color: #ffffff;
-    background: #1769ff;
+    background: #a0610d;
+}
+
+/* Lanhu-style refresh: keep page logic intact, replace the absolute legacy shell with compact flow cards. */
+.my-page {
+    background: #f8ede1;
+}
+
+.my-page__page-bg {
+    display: none;
+}
+
+.my-page__screen,
+.my-page--guest .my-page__screen,
+.my-page--no-offline .my-page__screen,
+.my-page--no-promotion .my-page__screen,
+.my-page--no-offline.my-page--no-promotion .my-page__screen,
+.my-page--guest.my-page--no-offline.my-page--no-promotion .my-page__screen {
+    display: flex;
+    flex-direction: column;
+    gap: 18rpx;
+    width: 100%;
+    min-height: 0;
+    padding: calc(var(--page-safe-top) + 26rpx) 24rpx calc(42rpx + var(--window-bottom));
+    box-sizing: border-box;
+}
+
+.my-page__top,
+.my-page__profile,
+.my-page__merchant,
+.my-page__assets,
+.my-section {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.my-page__top {
+    height: 58rpx;
+    margin: 0;
+}
+
+.my-page__title,
+.my-section__title {
+    color: #a0610d;
+    font-family: SimSun, PingFangSC-Medium, PingFangSC-Regular, sans-serif;
+    font-weight: 700;
+}
+
+.my-page__profile {
+    min-height: 172rpx;
+    padding: 26rpx 24rpx;
+    align-items: center;
+    border: 1rpx solid rgba(160, 97, 13, .14);
+    border-radius: 18rpx;
+    background: linear-gradient(180deg, #fff8ed 0%, #fff1dc 100%);
+    box-shadow: 0 12rpx 30rpx rgba(118, 66, 19, .08);
+}
+
+.my-page__avatar {
+    width: 124rpx;
+    height: 124rpx;
+    margin-top: 0;
+    border: 4rpx solid rgba(255, 255, 255, .8);
+    border-radius: 50%;
+    background: #fff9f0;
+}
+
+.my-page__profile-text {
+    margin-left: 24rpx;
+}
+
+.my-page__nickname {
+    color: #222222;
+}
+
+.my-page__member-id {
+    color: #8b7663;
+}
+
+.my-page__identity-pill,
+.my-page__role-badge {
+    color: #764213;
+    background: rgba(255, 249, 240, .9);
+}
+
+.my-page__role-badge--agent,
+.my-page__role-badge--subsidiary,
+.my-page__role-badge--normal {
+    color: #764213;
+    background: #fff3e8;
+}
+
+.my-page__setting {
+    width: 40rpx;
+    height: 40rpx;
+    margin-top: 0;
+}
+
+.my-page__merchant {
+    height: auto;
+    min-height: 132rpx;
+    padding: 28rpx 30rpx;
+    border-radius: 18rpx;
+    background: linear-gradient(135deg, #fff9f0 0%, #ffe7bd 100%);
+    box-shadow: 0 12rpx 30rpx rgba(118, 66, 19, .08);
+}
+
+.my-page--guest .my-page__merchant {
+    display: none;
+}
+
+.my-page__merchant-bg {
+    display: none;
+}
+
+.my-page__merchant-content {
+    padding: 0;
+}
+
+.my-page__merchant-title,
+.my-page__merchant-action {
+    color: #764213;
+}
+
+.my-page__assets {
+    height: auto;
+    padding: 0;
+    gap: 18rpx;
+}
+
+.my-page__asset-card {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    height: 122rpx;
+    padding: 22rpx 24rpx;
+    border: 1rpx solid rgba(160, 97, 13, .12);
+    border-radius: 18rpx;
+    background: #fff9f0;
+    box-shadow: 0 10rpx 24rpx rgba(118, 66, 19, .06);
+}
+
+.my-page__asset-card--points {
+    background: #fff9f0;
+}
+
+.my-page__asset-title,
+.my-page__asset-value,
+.my-page__asset-card--points .my-page__asset-title,
+.my-page__asset-card--points .my-page__asset-value {
+    color: #a0610d;
+}
+
+.my-section {
+    min-height: 0;
+    height: auto;
+    top: auto;
+    padding: 24rpx 20rpx 26rpx;
+    border: 1rpx solid rgba(160, 97, 13, .12);
+    border-radius: 18rpx;
+    background: #fff9f0;
+    box-shadow: 0 10rpx 24rpx rgba(118, 66, 19, .05);
+}
+
+.my-section--online,
+.my-section--pair,
+.my-section--pair-1,
+.my-section--pair-2,
+.my-section--value,
+.my-section--feature,
+.my-page--no-offline .my-section--pair-2,
+.my-page--no-offline .my-section--value,
+.my-page--no-offline .my-section--feature,
+.my-page--no-promotion .my-section--value,
+.my-page--no-promotion .my-section--feature,
+.my-page--no-offline.my-page--no-promotion .my-section--value,
+.my-page--no-offline.my-page--no-promotion .my-section--feature,
+.my-page--guest .my-section--online,
+.my-page--guest.my-page--no-offline.my-page--no-promotion .my-section--value,
+.my-page--guest.my-page--no-offline.my-page--no-promotion .my-section--feature {
+    top: auto;
+}
+
+.my-section__head,
+.my-section__head--plain {
+    padding: 0 4rpx;
+}
+
+.my-section__more {
+    color: #a0610d;
+}
+
+.my-order-grid,
+.my-value-grid,
+.my-feature-grid {
+    padding: 30rpx 0 0;
+}
+
+.my-pair-grid {
+    flex-wrap: wrap;
+    gap: 28rpx 48rpx;
+    padding: 30rpx 0 0;
+}
+
+.my-pair-item,
+.my-pair-item + .my-pair-item {
+    width: 118rpx;
+    margin-left: 0;
+}
+
+.my-order-text,
+.my-pair-text,
+.my-value-text,
+.my-feature-text {
+    color: #5f4a3a;
+}
+
+.my-order-badge,
+.my-value-badge {
+    border-color: #a0610d;
+    color: #a0610d;
+    background: #fff9f0;
+}
+
+.service-sheet {
+    background: linear-gradient(180deg, #fff8ed 0%, #f8ede1 100%);
+}
+
+.service-sheet__bg {
+    display: none;
+}
+
+.service-qrcode-card,
+.promotion-sheet,
+.promotion-code-fallback {
+    background: #fff9f0;
+    box-shadow: 0 14rpx 34rpx rgba(118, 66, 19, .08);
+}
+
+.service-qrcode__desc,
+.promotion-sheet__subtitle,
+.promotion-code-fallback__hint,
+.promotion-code-tip {
+    color: #8b7663;
+}
+
+.promotion-sheet__close,
+.promotion-code-box {
+    background: #f3e7db;
 }
 </style>

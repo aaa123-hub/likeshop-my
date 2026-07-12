@@ -4,7 +4,7 @@
         :show-cancel-button="true"
         :content="getTipsText"
         @confirm="onConfirm"
-        confirm-color="#ff2c3c"
+        confirm-color="#a0610d"
     ></u-modal>
 </template>
 
@@ -60,7 +60,6 @@ export default {
                 }
                 this.$toast({ title: (res && res.msg) || '操作失败，请重试' })
             } catch (error) {
-                console.error('[order-dialog] confirm failed:', error)
                 this.$toast({ title: '操作失败，请重试' })
             } finally {
                 this.submitting = false

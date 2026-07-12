@@ -210,12 +210,13 @@ export default {
         align-items: stretch;
         width: 100%;
         height: 200rpx;
-        background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg.png);
+        background: linear-gradient(135deg, #fff8ed 0%, #fff1dc 100%);
+        border: 1rpx solid #f0dcc0;
         background-size: 100% 100%;
         overflow: hidden;
         box-sizing: border-box;
         &.gray {
-            background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg_grey.png);
+            background: linear-gradient(135deg, #f8f1e8 0%, #f2e5d5 100%);
             .btn{
                 &.plain {
                     color: #CCCCCC;

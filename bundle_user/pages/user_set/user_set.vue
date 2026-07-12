@@ -666,7 +666,7 @@ export default {
             box-sizing: border-box;
             border: 1rpx solid #e5e5e5;
             border-radius: 16rpx;
-            background: #f7f8fa;
+            background: #fff8ed;
         }
 
         .nickname-input {
