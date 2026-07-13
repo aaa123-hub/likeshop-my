@@ -16,6 +16,6 @@ export default {
 <style lang="scss">
 .service-page {
     min-height: 100vh;
-    background: #f6f8fb;
+    background: #fff9f0;
 }
 </style>

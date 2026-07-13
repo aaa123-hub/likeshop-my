@@ -90,7 +90,7 @@
 </script>
 <style lang="scss">
 	.hot-list {
-		background: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/hot_list_bg.png) no-repeat;
+		background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 330rpx, #fff9f0 100%) no-repeat;
 		background-size: 100% 330rpx;
 		padding: 62rpx 30rpx 0;
 		min-height: 100vh;

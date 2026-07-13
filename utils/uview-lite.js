@@ -68,9 +68,9 @@ const liteUView = {
     zIndex,
     type: ['primary', 'success', 'error', 'warning', 'info'],
     color: {
-        primary: '#2979ff',
+        primary: '#a0610d',
         success: '#19be6b',
-        error: '#fa3534',
+        error: '#d65f2e',
         warning: '#ff9900',
         info: '#909399'
     },

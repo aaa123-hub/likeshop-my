@@ -28,8 +28,14 @@
 		<view class="coupon-scroll">
 			<scroll-view style="heigth: 138rpx" scroll-x="true" scroll-with-animation="true" @scroll="scrollBarChange">
 				<view class="coupon-contain row">
-					<view v-for="(item, index) in list" :key="index" :class="'coupon-item mr20 row-between ' + (item.is_get ? 'recieve' : '')"
-					 @tap="onRecive(item.id)">
+					<view
+						v-for="(item, index) in list"
+						:key="couponKey(item) || index"
+						:class="'coupon-item mr20 row-between ' + (item.is_get ? 'recieve' : '')"
+						:data-coupon-index="index"
+						:data-coupon-key="couponStableKey(item, index)"
+						@tap="onReciveByEvent"
+					>
 						<view class="coupon-left">
 							<view class="row info">
 								<price-format :subscript-size="30" :first-size="56" :second-size="50" :price="item.money"></price-format>
@@ -46,7 +52,7 @@
 			</scroll-view>
 		</view>
 		<view class="row-center mt20" v-if="list.length > 2">
-			<cu-progress progressBarColor="#FF2C3C" :left="progressPer"></cu-progress>
+			<cu-progress progressBarColor="#a0610d" :left="progressPer"></cu-progress>
 		</view>
 	</view>
 </template>
@@ -93,6 +99,22 @@ getRect
 		},
 
 		methods: {
+			couponKey(item = {}) {
+				return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || item.id || ''
+			},
+			couponStableKey(item = {}, index = 0) {
+				return String(this.couponKey(item) || `home-coupon-${index}`)
+			},
+			resolveCouponFromEvent(event = {}) {
+				const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+				const index = Number(dataset.couponIndex ?? dataset.coupon_index)
+				const key = String(dataset.couponKey || dataset.coupon_key || '')
+				if (!Number.isNaN(index) && this.list[index]) {
+					const item = this.list[index]
+					if (!key || this.couponStableKey(item, index) === key) return item
+				}
+				return this.list.find((item, itemIndex) => this.couponStableKey(item, itemIndex) === key) || {}
+			},
 			scrollBarChange(e) {
 				let {
 					progressPer
@@ -105,14 +127,22 @@ getRect
 				this.progressPer = Number(progressPer.toFixed(0));
 			},
 
-			onRecive(id) {
+			onReciveByEvent(event = {}) {
+				const item = this.resolveCouponFromEvent(event)
+				return this.onRecive(this.couponKey(item), item)
+			},
+
+			onRecive(id, item = {}) {
 				if (!this.isLogin) {
 					toLogin();
 					return;
 				}
 
-				getCoupon(id).then(res => {
+				if (!id) return this.$toast({ title: '优惠券信息异常' })
+				getCoupon(id, { receiveScene: 'HOME' }).then(res => {
 					if (res.code == 1) {
+						this.$set(item, 'is_get', 1)
+						this.$set(item, 'isGet', 1)
 						this.$toast({
 							title: res.msg
 						})
@@ -137,7 +167,7 @@ getRect
 </script>
 <style lang="scss">
 	.every-day-coupon {
-		background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon.png);
+		background: linear-gradient(135deg, #fff8ed 0%, #ffe7bd 100%);
 		background-size: 100% 100%;
 		background-repeat: no-repeat;
 		height: 264rpx;
@@ -162,11 +192,11 @@ getRect
 				width: 326rpx;
 				flex: none;
 				position: relative;
-				background: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon_red.png);
+				background: linear-gradient(135deg, #fffdf8 0%, #fff1dc 100%);
 				background-size: 100% 100%;
 
 				&.recieve {
-					background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_bg_coupon_gray.png);
+					background: linear-gradient(135deg, #f8f1e8 0%, #f2e5d5 100%);
 
 					.coupon-right {
 						background-color: #E5E5E5;

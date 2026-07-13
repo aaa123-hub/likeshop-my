@@ -1,7 +1,9 @@
 <template>
 	<view class="pages">
 		<view class="invite-fans column column-center">
-			<image :src="path" mode="widthFix" class="poster"></image>
+			<image v-if="path" :src="path" mode="widthFix" class="poster"></image>
+			<view v-else-if="!loading" class="poster-empty">暂无邀请海报</view>
+			<!-- #ifndef MP-WEIXIN -->
 			<invite-poster v-if="showPoster" :config="{
 				avatar: userInfo.avatar,
 				nickname: userInfo.nickname,
@@ -10,6 +12,7 @@
 				qrCode: qrCode,
 				poster: poster
 			}" @success="handleSuccess" />
+			<!-- #endif -->
 			<view class="bg-white footer flex1">
 				<view class="" style="margin-bottom: 40rpx;">
 					<view class="mb10 sm lighter">我的邀请码</view>
@@ -31,69 +34,88 @@
 </template>
 
 <script>
-	import InvitePoster from '@/bundle_poster/components/invite-poster/invite-poster.vue'
+// #ifndef MP-WEIXIN
+import InvitePoster from '@/bundle_poster/components/invite-poster/invite-poster.vue'
+// #endif
 import {
-		// apiMnpQrCode,
-		getShareMnQrcode
-	} from '@/api/app'
-	import {
-		baseURL,
-		basePath
-	} from '@/config/app'
-	import { apiDistributionPoster } from '@/api/user'
-	import { mapGetters } from 'vuex'
-	export default {
+	// apiMnpQrCode,
+	getShareMnQrcode
+} from '@/api/app'
+import {
+	baseURL,
+	basePath
+} from '@/config/app'
+import { apiDistributionPoster } from '@/api/user'
+import { mapGetters } from 'vuex'
+
+export default {
 	components: {
+		// #ifndef MP-WEIXIN
 		InvitePoster
+		// #endif
 	},
-		data() {
-			return {
-				path: '',
-				qrCode: '',
-				loading: true,
-				showPoster: false,
-				poster: ''
-			};
+	data() {
+		return {
+			path: '',
+			qrCode: '',
+			loading: true,
+			showPoster: false,
+			poster: ''
+		}
+	},
+
+	async onLoad() {
+		await this.getPoster()
+		// #ifdef MP-WEIXIN
+		this.getMnpQrCode()
+		// #endif
+
+		// #ifdef APP-PLUS || H5
+		this.showPoster = true
+		// #endif
+	},
+
+	methods: {
+		async getPoster() {
+			const res = await apiDistributionPoster()
+			this.poster = res.code == 1 ? (res.data && res.data.poster) || '' : ''
 		},
+		getMnpQrCode() {
+			// apiMnpQrCode().then(res => {
+			// 	this.qrCode = res.qr_code
+			// 	this.showPoster = true
+			// })
 
-
-		async onLoad() {
-			await this.getPoster()
-			// #ifdef MP-WEIXIN
-			this.getMnpQrCode()
-			// #endif
-
-			// #ifdef APP-PLUS || H5
-			this.showPoster = true
-			// #endif
-		},
-
-		methods: {
-			async getPoster() {
-				const res = await apiDistributionPoster()
-				this.poster = res.code == 1 ? (res.data && res.data.poster) || '' : ''
-			},
-			getMnpQrCode() {
-				// apiMnpQrCode().then(res => {
-				// 	this.qrCode = res.qr_code
-				// 	this.showPoster = true
-				// })
-
-				getShareMnQrcode({
-					id: '',  // 商品id或其他活动id
-					url: 'pages/index/index', // 跳转页面路径
-					type: 0,         // 0-会员分享海报 1-商品详情 2-砍价活动
-				})
+			getShareMnQrcode({
+				id: '',  // 商品id或其他活动id
+				url: 'pages/index/index', // 跳转页面路径
+				type: 0,         // 0-会员分享海报 1-商品详情 2-砍价活动
+			})
 				.then((res) => {
 					const data = res && res.data ? res.data : {}
-					this.qrCode = data.qr_code || data.qrCode || data.qrcode || ''
-					this.showPoster = true
+					const qrCode = data.qr_code || data.qrCode || data.qrcode || data.qrcodeUrl || ''
+					const posterImage = data.posterUrl || data.poster_url || data.poster || data.imageUrl || data.image || ''
+					this.qrCode = qrCode
+					this.path = posterImage || this.poster || qrCode
+					this.showPoster = false
+					this.loading = false
 				})
-			},
-			saveImageToAlbum() {
-				// #ifndef H5
+				.catch(() => {
+					this.path = this.poster || ''
+					this.loading = false
+				})
+		},
+		saveImageToAlbum() {
+			// #ifndef H5
+			if (!this.path) {
+				this.$toast({
+					title: '暂无可保存图片'
+				})
+				return
+			}
+			const saveFile = (filePath) => {
 				uni.saveImageToPhotosAlbum({
-					filePath: this.path,
+					filePath,
 					success: res => {
 						this.$toast({
 							title: "保存成功"
@@ -105,17 +127,39 @@ import {
 						});
 					}
 				});
-				// #endif
-				// #ifdef H5
-				this.$toast({
-					title: '请长按图片保存'
-				})
-				// #endif
-			},
-			handleSuccess(val) {
-				this.path = val
-				this.loading = false
 			}
+			if (/^https?:\/\//.test(this.path)) {
+				uni.downloadFile({
+					url: this.path,
+					success: (res) => {
+						if (res.statusCode === 200 && res.tempFilePath) {
+							saveFile(res.tempFilePath)
+							return
+						}
+						this.$toast({
+							title: '下载失败'
+						})
+					},
+					fail: () => {
+						this.$toast({
+							title: '下载失败'
+						})
+					}
+				})
+				return
+			}
+			saveFile(this.path)
+			// #endif
+			// #ifdef H5
+			this.$toast({
+				title: '请长按图片保存'
+			})
+			// #endif
+		},
+		handleSuccess(val) {
+			this.path = val
+			this.loading = false
+		}
 		},
 		computed: {
 			...mapGetters(['inviteCode','userInfo']),
@@ -138,6 +182,19 @@ import {
 		.poster {
 			width: 600rpx;
 			margin: 40rpx 0;
+		}
+
+		.poster-empty {
+			width: 600rpx;
+			min-height: 720rpx;
+			margin: 40rpx 0;
+			border-radius: 20rpx;
+			background: #f7f7f7;
+			color: #999;
+			font-size: 28rpx;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 		}
 
 		.footer {

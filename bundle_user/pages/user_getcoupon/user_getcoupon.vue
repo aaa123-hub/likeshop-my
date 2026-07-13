@@ -26,7 +26,6 @@
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
 import { getCouponList } from '../../../api/activity';
-import {getCoupon} from "../../../api/user"
 
 export default {
   data() {
@@ -49,9 +48,11 @@ export default {
     getCouponListFun() {
       getCouponList().then(res => {
         if (res.code == 1) {
-          const list = Array.isArray(res.data) ? res.data : [];
+          const data = res.data || {};
+          const list = Array.isArray(data) ? data : (data.list || data.lists || data.records || data.items || []);
           if (list.length <= 0) {
             this.showNull = true;
+            this.couponList = [];
             return;
           }
             this.showNull = false;

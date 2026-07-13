@@ -215,7 +215,7 @@ export default {
 		// 右上角关闭按钮的背景颜色
 		delBgColor: {
 			type: String,
-			default: '#fa3534'
+			default: '#d65f2e'
 		},
 		// 右上角关闭按钮的叉号图标的颜色
 		delColor: {

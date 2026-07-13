@@ -79,16 +79,13 @@ export default {
       const {
         order
       } = this;
-      console.log('changeShow');
       let index = order.findIndex(item => {
         return item.type == type;
       });
-      console.log(index);
 
       if (index != -1) {
         this.active = type;
         this.order[index].isShow = true
-        console.log(this.order[index].isShow);
       }
     }
 

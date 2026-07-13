@@ -10,9 +10,9 @@
 				<view class="face-pay-card">
 					<view class="face-pay-card__field">
 						<text class="face-pay-card__label">付款单号</text>
-						<input class="face-pay-card__input" placeholder="请输入付款单号" />
+						<input v-model="facePayCode" class="face-pay-card__input" placeholder="请输入付款码/付款单号" />
 					</view>
-					<view class="face-pay-card__scan">
+					<view class="face-pay-card__scan" @tap="scanFacePayCode">
 						<u-icon name="scan" color="#222222" size="52"></u-icon>
 						<text>扫一扫</text>
 					</view>
@@ -20,8 +20,9 @@
 			</template>
 			<view v-if="!isFacePay" class="payment-header">
 				<view class="payment-header__label">订单支付金额</view>
-				<price-format class="u-skeleton-fillet" :subscript-size="40" :first-size="64" :second-size="40"
+				<price-format v-if="hasValidAmount" class="u-skeleton-fillet" :subscript-size="40" :first-size="64" :second-size="40"
 					:price="amount" :weight="600" />
+				<view v-else class="payment-amount-empty">金额待确认</view>
 				<view class="payment-count-down" v-if="timeout > 0">
 					<text>剩余支付时间</text>
 					<text class="payment-count-down__time">{{ formattedTimeout }}</text>
@@ -86,8 +87,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 	import {
 		prepay,
 		getPayway,
-		queryPayment
+		queryPayment,
+		syncWechatPayment
 	} from '@/api/app'
+	import {
+		scanOfflinePayment
+	} from '@/api/user'
 	import {
 		wxpay
 	} from '@/utils/pay'
@@ -107,12 +112,19 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			return {
 				from: '', // 订单来源
 				order_id: '', // 订单ID
-				amount: 0, // 支付金额
+				amount: '', // 支付金额
 				timeout: 0, // 倒计时间戳
 				payway: '', // 支付方式
 				paywayList: [], // 支付方式列表
 				desiredPayway: '',
 				pageMode: '',
+				couponId: '',
+				noCoupon: false,
+				useIntegral: false,
+				pointsAmount: '',
+				pointsDeductAmount: '',
+				facePayCode: '',
+				shopId: '',
 
 				loadingSkeleton: true, // 骨架屏Loading
 				loadingPay: false, // 支付处理中Loading
@@ -124,6 +136,20 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		},
 
 		methods: {
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== '' && !Number.isNaN(Number(value))
+			},
+			knownNumber(value) {
+				return this.hasKnownValue(value) ? Number(value) : ''
+			},
+			firstValidAmount(...values) {
+				for (const value of values) {
+					if (value === undefined || value === null || value === '') continue
+					const amount = Number(value)
+					if (!Number.isNaN(amount) && amount > 0) return amount
+				}
+				return ''
+			},
 			startCountdown(seconds) {
 				this.stopCountdown()
 				this.timeout = Math.max(Math.floor(Number(seconds) || 0), 0)
@@ -146,7 +172,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			// 更改支付方式
 			changePayway(value) {
 				if (this.isExpired || this.loadingPay || !value) return
-				this.payway = 'WECHAT_JSAPI'
+				this.payway = value
 			},
 			getPaywayValue(item) {
 				return item && (item.pay_way || item.payMethod || item.payWay) ? (item.pay_way || item.payMethod || item.payWay) : item
@@ -173,9 +199,58 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				if (code === 'A0101' || String(message || '').includes('CreatePayOrderCommand.openId')) return '缺少微信支付授权信息，请重新登录后再使用微信支付'
 				return message || '支付失败，请稍后重试'
 			},
+			normalizeFacePayCode(raw = '') {
+				const text = String(raw || '').trim()
+				if (!text) return ''
+				const params = {}
+				const appendParams = (query = '') => {
+					String(query || '').split(/[&;]/).forEach((pair) => {
+						if (!pair) return
+						const index = pair.indexOf('=')
+						if (index === -1) return
+						const key = pair.slice(0, index)
+						const value = pair.slice(index + 1)
+						if (key) params[key] = decodeURIComponent(value || '')
+					})
+				}
+				const queryIndex = text.indexOf('?')
+				if (queryIndex !== -1) appendParams(text.slice(queryIndex + 1))
+				else appendParams(text)
+				try {
+					const url = new URL(text)
+					appendParams(url.search ? url.search.slice(1) : '')
+				} catch (error) {}
+				if (params.scene || params.qrScene || params.qr_scene) {
+					try {
+						appendParams(decodeURIComponent(params.scene || params.qrScene || params.qr_scene))
+					} catch (error) {}
+				}
+				const keys = ['payOrderNo', 'pay_order_no', 'paymentNo', 'payment_no', 'paymentId', 'payment_id', 'orderNo', 'order_no', 'bizOrderNo', 'biz_order_no', 'code', 'qrCode', 'qr_code']
+				for (const key of keys) {
+					if (params[key]) return params[key]
+				}
+				const compactMatch = text.match(/(?:payOrderNo|pay_order_no|paymentNo|payment_no|orderNo|order_no|bizOrderNo|biz_order_no|code)[:=]([^&?#;/]+)/i)
+				return compactMatch ? decodeURIComponent(compactMatch[1]) : text
+			},
+			scanFacePayCode() {
+				uni.scanCode({
+					onlyFromCamera: false,
+					success: (res) => {
+						this.facePayCode = this.normalizeFacePayCode(res.result || res.path || '')
+					},
+					fail: () => this.$toast({ title: '扫一扫未完成' })
+				})
+			},
 
 			// 初始化页面数据
 			initPageData() {
+				if (this.isFacePay) {
+					this.loadingSkeleton = false
+					this.paywayList = [this.normalizePaywayItem({ id: 'WECHAT_JSAPI', name: '微信支付', pay_way: 'WECHAT_JSAPI', extra: '线下付款码支付' })]
+					this.payway = 'WECHAT_JSAPI'
+					this.isExpired = false
+					return
+				}
 				// 获取支付方式
 				getPayway({
 					from: this.from,
@@ -186,10 +261,11 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				}).then(data => {
 					this.loadingSkeleton = false
 					data = data || {}
-					this.amount = this.amount || data.order_amount || data.payAmount || 0
-					const wechatPayway = (data.pay || []).map((item, index) => this.normalizePaywayItem(item, index)).find(item => item.value === 'WECHAT_JSAPI')
-					this.paywayList = [wechatPayway || this.normalizePaywayItem({ id: 'WECHAT_JSAPI', name: '微信支付', pay_way: 'WECHAT_JSAPI', extra: '使用微信支付' })]
-					this.payway = 'WECHAT_JSAPI'
+					this.amount = this.firstValidAmount(this.amount, data.order_amount, data.orderAmount, data.pay_amount, data.payAmount)
+					this.paywayList = (data.pay || [])
+						.map((item, index) => this.normalizePaywayItem(item, index))
+						.filter(item => item.value)
+					this.payway = this.paywayList[0]?.value || ''
 					// 倒计时
 					const startTimestamp = new Date().getTime() / 1000
 					const rawEndTimestamp = data.cancel_time || data.cancelTime || data.expireTime || data.expire_time
@@ -205,6 +281,14 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			// 预支付处理
 			handlePrepay() {
 				if (this.submitDisabled) return
+				if (this.isFacePay) {
+					this.submitFacePay()
+					return
+				}
+				if (!this.isFacePay && !this.hasValidAmount) {
+					this.$toast({ title: '支付金额待确认' })
+					return
+				}
 				if (this.isExpired) {
 					this.$toast({ title: '订单已超时，请重新下单' })
 					return
@@ -217,8 +301,26 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				prepay({
 					from: this.from,
 					order_id: this.order_id,
-					pay_way: 'WECHAT_JSAPI',
-					payMethod: 'WECHAT_JSAPI',
+					coupon_id: this.noCoupon ? '' : this.couponId,
+					couponId: this.noCoupon ? '' : this.couponId,
+					couponIds: this.noCoupon || !this.couponId ? [] : [this.couponId],
+					coupon_ids: this.noCoupon || !this.couponId ? [] : [this.couponId],
+					noCoupon: this.noCoupon,
+					no_coupon: this.noCoupon,
+					use_integral: this.useIntegral,
+					usePoints: this.useIntegral,
+					...(this.useIntegral && this.hasKnownValue(this.pointsAmount) ? {
+						pointsAmount: this.pointsAmount,
+						points_amount: this.pointsAmount,
+						integral_num: this.pointsAmount
+					} : {}),
+					...(this.useIntegral && this.hasKnownValue(this.pointsDeductAmount) ? {
+						pointsDeductAmount: this.pointsDeductAmount,
+						points_deduct_amount: this.pointsDeductAmount,
+						integral_amount: this.pointsDeductAmount
+					} : {}),
+					pay_way: this.payway,
+					payMethod: this.payway,
 					bizOrderNo: this.order_id,
 					bizType: this.from === 'recharge' ? 'RECHARGE' : 'ORDER',
 					amount: this.amount
@@ -245,6 +347,31 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					}, 500)
 				})
 			},
+			async submitFacePay() {
+				const qrCode = this.normalizeFacePayCode(this.facePayCode)
+				if (!qrCode) {
+					this.$toast({ title: '请扫码或输入付款单号' })
+					return
+				}
+				if (!this.shopId) {
+					this.$toast({ title: '缺少门店ID，请从门店详情进入付款' })
+					return
+				}
+				this.loadingPay = true
+				try {
+					const res = await scanOfflinePayment({ shopId: this.shopId, qrCode })
+					if (res.code == 1) {
+						this.$toast({ title: res.msg || '付款成功' })
+						this.goPayResult(true)
+					} else {
+						this.$toast({ title: res.msg || '付款失败' })
+					}
+				} catch (error) {
+					this.$toast({ title: '付款失败，请稍后重试' })
+				} finally {
+					this.loadingPay = false
+				}
+			},
 
 			// 微信支付
 			handleWechatPay(data) {
@@ -260,15 +387,39 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			// 支付后处理
 			async handPayResult(result) {
 				this.hasPayResult = true
-				if (result === 'success' && this.payOrderNo) {
-					const confirmed = await this.confirmPaymentResult()
-					if (!confirmed) return
-				}
 				switch (result) {
 					case 'success':
+						if (this.payOrderNo) {
+							const confirmed = await this.confirmPaymentResult()
+							if (!confirmed) {
+								this.$toast({ title: '支付确认中，请稍后查看订单' })
+								uni.$emit('payment', {
+									result: false,
+									pending: true,
+									order_id: this.order_id,
+									orderId: this.order_id,
+									orderNo: this.order_id,
+									order_no: this.order_id,
+									payOrderNo: this.payOrderNo,
+									pay_order_no: this.payOrderNo
+								})
+								this.goPayResult(false)
+								return
+							}
+						}
+						this.rememberPaidOrder()
 						uni.$emit('payment', {
 							result: true,
-							order_id: this.order_id
+							order_id: this.order_id,
+							orderId: this.order_id,
+							orderNo: this.order_id,
+							order_no: this.order_id,
+							order_sn: this.order_id,
+							payOrderNo: this.payOrderNo,
+							pay_order_no: this.payOrderNo,
+							paymentNo: this.payOrderNo,
+							payment_no: this.payOrderNo,
+							paid: true
 						});
 						break;
 					case 'fail':
@@ -283,30 +434,59 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			goPayResult(success) {
 				if (success && this.from === 'order' && this.order_id) {
 					uni.redirectTo({
-						url: `/bundle_user/pages/pay_result/pay_result?id=${this.order_id}`
+						url: `/bundle_user/pages/pay_result/pay_result?id=${this.order_id}&paid=1&payOrderNo=${encodeURIComponent(this.payOrderNo || '')}`,
+						fail: () => {
+							uni.redirectTo({
+								url: `/bundle_order/pages/user_order/user_order?type=delivery`
+							})
+						}
 					})
 					return
 				}
-				uni.navigateBack()
+				uni.navigateBack({
+					fail: () => {
+						uni.redirectTo({
+							url: '/bundle_order/pages/user_order/user_order'
+						})
+					}
+				})
+			},
+			rememberPaidOrder() {
+				const ids = (uni.getStorageSync('ORDER_PAID_IDS') || []).map((id) => String(id || '')).filter(Boolean)
+				;[this.order_id, this.payOrderNo, this.facePayCode].filter(Boolean).map(String).forEach((id) => {
+					if (!ids.includes(id)) ids.push(id)
+				})
+				uni.setStorageSync('ORDER_PAID_IDS', ids.slice(-200))
 			},
 			handleTimeout() {
 				this.stopCountdown()
 				this.timeout = 0
 				this.isExpired = true
 			},
+			waitPaymentConfirm(ms = 800) {
+				return new Promise((resolve) => setTimeout(resolve, ms))
+			},
+			isPaymentSuccessResponse(res = {}) {
+				const data = res.data || {}
+				const status = String(data.payStatus || data.pay_status || res.payStatus || res.pay_status || '').toUpperCase()
+				const tradeState = String(data.wechatTradeState || data.wechat_trade_state || res.wechatTradeState || res.wechat_trade_state || '').toUpperCase()
+				return res.code == 20001 || status === 'PAID' || status === 'SUCCESS' || tradeState === 'SUCCESS'
+			},
 			async confirmPaymentResult() {
-				try {
-					const res = await queryPayment({ payOrderNo: this.payOrderNo })
-					const status = String(res.data?.payStatus || res.data?.pay_status || '').toUpperCase()
-					if (res.code == 20001 || status === 'PAID' || status === 'SUCCESS') return true
-					this.$toast({ title: res.msg || '支付状态确认中，请稍后查看订单' })
-					uni.$emit('payment', { result: false, order_id: this.order_id })
-					return false
-				} catch (error) {
-					this.$toast({ title: '支付状态确认失败，请稍后查看订单' })
-					uni.$emit('payment', { result: false, order_id: this.order_id })
-					return false
+				for (let attempt = 0; attempt < 3; attempt += 1) {
+					try {
+						const syncRes = await syncWechatPayment({ payOrderNo: this.payOrderNo })
+						if (this.isPaymentSuccessResponse(syncRes)) return true
+					} catch (error) {
+					}
+					try {
+						const queryRes = await queryPayment({ payOrderNo: this.payOrderNo })
+						if (this.isPaymentSuccessResponse(queryRes)) return true
+					} catch (error) {
+					}
+					if (attempt < 2) await this.waitPaymentConfirm()
 				}
+				return false
 			}
 		},
 
@@ -320,7 +500,14 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				if (!from && !order_id) throw new Error('页面参数有误')
 				this.from = from
 				this.order_id = order_id
-				this.amount = Number(options.amount || 0)
+				this.amount = this.firstValidAmount(options.amount)
+				this.couponId = options.coupon_id || options.couponId || ''
+				this.noCoupon = options.no_coupon === '1' || options.noCoupon === '1' || options.no_coupon === true || options.noCoupon === true
+				this.useIntegral = options.use_integral === '1' || options.usePoints === '1' || options.use_integral === true || options.usePoints === true
+				this.pointsAmount = this.knownNumber(options.points_amount ?? options.pointsAmount ?? options.integral_num)
+				this.pointsDeductAmount = this.knownNumber(options.points_deduct_amount ?? options.pointsDeductAmount ?? options.integral_amount)
+				this.facePayCode = options.payOrderNo || options.pay_order_no || options.paymentNo || options.payment_no || options.code || ''
+				this.shopId = options.shopId || options.shop_id || ''
 				this.initPageData()
 			} catch (err) {
 				uni.navigateBack()
@@ -346,13 +533,18 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 			isFacePay() {
 				return this.pageMode === 'facepay' || this.from === 'facepay'
 			},
+			hasValidAmount() {
+				return this.amount !== '' && this.amount !== null && this.amount !== undefined && Number(this.amount) > 0
+			},
 			submitDisabled() {
-				return this.loadingPay || this.loadingSkeleton || !this.payway || this.isExpired
+				if (this.isFacePay) return this.loadingPay || this.loadingSkeleton || !this.payway
+				return this.loadingPay || this.loadingSkeleton || !this.payway || this.isExpired || !this.hasValidAmount
 			},
 			submitText() {
 				if (this.isExpired) return '支付已超时'
 				if (!this.payway) return '暂无可用支付方式'
-				return '立即支付'
+				if (!this.isFacePay && !this.hasValidAmount) return '金额待确认'
+				return this.isFacePay ? '确认付款' : '立即支付'
 			}
 		}
 	}
@@ -363,7 +555,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 	page {
 		height: 100%;
 		padding: 0;
-		background: #f6f7fb;
+		background: #fff9f0;
 	}
 
 	.payment-pages {
@@ -371,7 +563,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		flex-direction: column;
 		min-height: 100%;
 		height: 100%;
-		background: #f6f7fb;
+		background: #fff9f0;
 
 		.payment {
 			display: flex;
@@ -401,7 +593,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				min-height: 330rpx;
 				padding: 34rpx 32rpx 72rpx;
 				box-sizing: border-box;
-				background: linear-gradient(135deg, #ff6a3c 0%, #ff2c3c 100%);
+				background: linear-gradient(135deg, #d79a43 0%, #a0610d 100%);
 				color: #FFFFFF;
 
 				&__label {
@@ -409,6 +601,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					font-size: 26rpx;
 					opacity: .86;
 				}
+			}
+
+			&-amount-empty {
+				font-size: 42rpx;
+				font-weight: 600;
+				line-height: 64rpx;
 			}
 
 
@@ -480,7 +678,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					transition: background-color .2s ease, border-color .2s ease;
 
 					&--active {
-						border-color: #ff6a3c;
+						border-color: #d79a43;
 						background: #fff8f6;
 					}
 
@@ -496,7 +694,7 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 						&--empty {
 							font-size: 26rpx;
 							font-weight: 600;
-							color: #ff2c3c;
+							color: #a0610d;
 							background: #ffe8e5;
 						}
 					}
@@ -534,8 +732,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 					box-sizing: border-box;
 
 					&--active {
-						border-color: #ff3f33;
-						background: #ff3f33;
+						border-color: #a0610d;
+						background: #a0610d;
 
 						&::after {
 							position: absolute;
@@ -570,12 +768,12 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				&__time {
 					margin-right: 0;
 					font-weight: 600;
-					color: #ff2c3c;
+					color: #a0610d;
 				}
 
 				&--expired text {
 					margin-right: 0;
-					color: #ff2c3c;
+					color: #a0610d;
 				}
 			}
 
@@ -591,8 +789,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 				font-weight: 600;
 				letter-spacing: 2rpx;
 				border-radius: 999rpx;
-				background: linear-gradient(90deg, #ff7a35 0%, #ff2c3c 100%);
-				box-shadow: 0 16rpx 34rpx rgba(255, 65, 55, .28);
+				background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
+				box-shadow: 0 16rpx 34rpx rgba(160, 97, 13, .24);
 				color: #FFFFFF;
 				overflow: hidden;
 
@@ -619,8 +817,8 @@ import USkeleton from '@/bundle/components/uview-ui/components/u-skeleton/u-skel
 		height: 88rpx;
 		padding: 0 24rpx;
 		margin-right: 22rpx;
-		background: #f5f8ff;
-		border: 1rpx solid #e7edf9;
+		background: #fff8ed;
+		border: 1rpx solid #f0dcc0;
 		border-radius: 16rpx;
 	}
 

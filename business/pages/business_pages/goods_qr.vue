@@ -12,6 +12,8 @@ export default {
         }
     },
     onLoad(options) {
+        uni.showToast({ title: '商品二维码功能已下线', icon: 'none' })
+        setTimeout(() => uni.navigateBack({ delta: 1 }), 600)
         this.pageOptions = options || {}
     },
     components: {

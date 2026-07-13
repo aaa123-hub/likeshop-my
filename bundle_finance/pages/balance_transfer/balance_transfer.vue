@@ -17,11 +17,11 @@
                     <view
                         class="xs primary"
                         style="text-align: right"
-                        @tap="money = wallet.user_money"
+                        @tap="fillAllMoney"
                         >全部</view
                     >
                     <view class="xs mt10" style="color: #bbbbbb"
-                        >钱包余额￥{{ wallet.user_money }}</view
+                        >钱包余额{{ walletMoneyText }}</view
                     >
                 </view>
             </view>
@@ -41,12 +41,12 @@
                     class="item row"
                     v-for="(item, index) in transferList"
                     :key="index"
-                    @tap="userSn = item.sn"
+                    @tap="selectRecentTransfer(item)"
                 >
-                    <image class="avatar mr30" :src="item.avatar"></image>
+                    <image class="avatar mr30" :src="displayAvatar(item.avatar)"></image>
                     <view>
-                        <view class="md">{{ item.nickname }}</view>
-                        <view class="xs muted">会员ID:{{ item.sn }}</view>
+                        <view class="md">{{ displayText(item.nickname, '收款人待确认') }}</view>
+                        <view class="xs muted">会员ID:{{ displayText(item.sn, '待确认') }}</view>
                     </view>
                 </view>
             </view>
@@ -64,10 +64,10 @@
         >
             <view class="slot-content row-center" style="padding: 40rpx 80rpx">
                 <view class="transfer-user row">
-                    <image class="avatar mr30" :src="transferInfo.avatar"></image>
+                    <image class="avatar mr30" :src="displayAvatar(transferInfo.avatar)"></image>
                     <view>
-                        <view class="md">{{ transferInfo.nickname }}</view>
-                        <view class="xs muted mt10">会员ID:{{ transferInfo.sn }}</view>
+                        <view class="md">{{ displayText(transferInfo.nickname, '收款人待确认') }}</view>
+                        <view class="xs muted mt10">会员ID:{{ displayText(transferInfo.sn, '待确认') }}</view>
                     </view>
                 </view>
             </view>
@@ -80,13 +80,12 @@
 import UModal from '@/bundle_finance/components/uview-ui/components/u-modal/u-modal.vue'
 import SetPayPwd from '@/bundle_finance/components/set-pay-pwd/set-pay-pwd.vue'
 import {
-    hasPayPassword,
     transfer,
     getTransferRecent,
-    setPassword,
     transferToInfo,
     getWallet
 } from '@/api/user'
+import { resolveImage } from '@/utils/image-placeholder'
 import { trottle } from '@/utils/tools'
 export default {
 	components: {
@@ -130,9 +129,32 @@ export default {
         getTransferRecentFun() {
             getTransferRecent().then((res) => {
                 if (res.code == 1) {
-                    this.transferList = res.data
+                    this.transferList = Array.isArray(res.data) ? res.data : []
                 }
             })
+        },
+        hasKnownValue(value) {
+            return value !== undefined && value !== null && value !== ''
+        },
+        displayText(value, fallback) {
+            return this.hasKnownValue(value) ? value : fallback
+        },
+        displayAvatar(value) {
+            return resolveImage(value, 'avatar')
+        },
+        fillAllMoney() {
+            if (!this.hasKnownValue(this.wallet.user_money)) {
+                this.$toast({ title: '余额待确认' })
+                return
+            }
+            this.money = this.wallet.user_money
+        },
+        selectRecentTransfer(item = {}) {
+            if (!this.hasKnownValue(item.sn)) {
+                this.$toast({ title: '收款人信息待确认' })
+                return
+            }
+            this.userSn = item.sn
         },
         async transferBtn() {
             let { userSn, money } = this
@@ -151,7 +173,7 @@ export default {
             // 校验会员信息
             const { code: vipCode, data: transferInfo } = await transferToInfo(data)
             if (vipCode != 1) return
-            this.transferInfo = transferInfo
+            this.transferInfo = transferInfo || {}
             this.showTransferInfo = true
         },
         transferFun(payPwd) {
@@ -178,6 +200,13 @@ export default {
                     this.getTransferRecentFun()
                 }
             })
+        }
+    },
+    computed: {
+        walletMoneyText() {
+            if (!this.hasKnownValue(this.wallet.user_money)) return '待确认'
+            const amount = Number(this.wallet.user_money)
+            return Number.isNaN(amount) ? '待确认' : `￥${amount.toFixed(2)}`
         }
     }
 }
@@ -209,7 +238,7 @@ export default {
         }
 
         .btn {
-            background: linear-gradient(79deg, #f95f2f 0%, #ff2c3c 100%);
+            background: linear-gradient(79deg, #d79a43 0%, #a0610d 100%);
             line-height: 84rpx;
             margin-top: 80rpx;
         }

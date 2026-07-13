@@ -2,18 +2,19 @@
 <view class="user-withdraw-code">
     <view class="withdraw-code-container mt10">
         <view class="withdraw-code-contain">
-            <navigator v-for="(item, index) in withdrawRecords" :key="index" class="withdraw-code-item bg-white" hover-class="none"
-			 :url="`/bundle_finance/pages/widthdraw_result/widthdraw_result?id=${item.id}&type=1`">
+            <view v-for="(item, index) in withdrawRecords" :key="index" class="withdraw-code-item bg-white" hover-class="none"
+			 @tap="goWithdrawDetail(item)">
                 <view class="row-between">
-                    <view>{{item.desc}}</view>
-                    <price-format showSubscript :subScriptSize="26" :firstSize="36" :secondSize="36" :price="item.left_money" />
+                    <view class="withdraw-title">{{ displayText(item.desc, '提现记录待确认') }}</view>
+                    <price-format v-if="hasKnownValue(item.left_money)" showSubscript :subScriptSize="26" :firstSize="36" :secondSize="36" :price="item.left_money" />
+                    <view v-else class="withdraw-money-pending">金额待确认</view>
                 </view>
                 <view class="row-between mt10">
-                    <view class="muted xs time">{{item.create_time}}</view>
-                    <view class="withdraw-status xs" :class="{'error-status' : item.status == 2 || item.status == 4, 'common-status': item.status == 3}">{{item.status_text}}</view>
+                    <view class="muted xs time">{{ displayText(item.create_time, '时间待确认') }}</view>
+                    <view class="withdraw-status xs" :class="{'error-status' : item.status == 2 || item.status == 4, 'common-status': item.status == 3}">{{ displayText(item.status_text, '状态待确认') }}</view>
                 </view>
-				  <view v-if="item.description && item.status == 4" class="primary mt10 line1 xs">{{item.description}}</view>
-            </navigator>
+				  <view v-if="item.description && item.status == 4" class="primary mt10 line1 xs">{{ item.description }}</view>
+            </view>
         </view>
         <loading-footer :status="loadingStatus" slotEmpty>
             <view class="data-null column-center" slot="empty">
@@ -72,6 +73,24 @@ export default {
   },
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
+
+    goWithdrawDetail(item = {}) {
+      if (!this.hasKnownValue(item.id)) {
+        this.$toast({ title: '提现记录信息待确认' })
+        return
+      }
+      uni.navigateTo({
+        url: `/bundle_finance/pages/widthdraw_result/widthdraw_result?id=${encodeURIComponent(item.id)}&type=1`
+      })
+    },
+
     getWithdrawRecordsFun() {
       let {
         loadingStatus,
@@ -96,11 +115,29 @@ export default {
     .withdraw-code-container {
         .withdraw-code-item {
             padding: 24rpx 30rpx;
+            box-sizing: border-box;
             .time {
               line-height: 32rpx;
             }
+            .withdraw-title {
+              min-width: 0;
+              max-width: 420rpx;
+              word-break: break-all;
+              line-height: 1.4;
+            }
+            .withdraw-money-pending {
+              flex: none;
+              max-width: 220rpx;
+              color: $color-primary;
+              font-size: 28rpx;
+              text-align: right;
+              word-break: break-all;
+            }
             .withdraw-status {
               color: #0CC21E;
+              max-width: 220rpx;
+              text-align: right;
+              word-break: break-all;
             }
             .common-status {
               color: #666666;

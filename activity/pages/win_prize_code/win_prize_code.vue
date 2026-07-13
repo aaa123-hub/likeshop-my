@@ -5,10 +5,9 @@
 				<view class="bg-white row code-item">
 					<image :src="item.prize_image" width="90rpx" height="90rpx" mode="aspectFill" radius="6rpx"></image>
 					<view class="ml20 desc">
-						<view class="nr line1 bold">{{item.title}}</view>
+						<view class="nr line1 bold">{{ displayText(item.title || item.prize_name, '中奖记录待确认') }}</view>
 						<view class="mt10 row-between">
-							<view class="xs lighter">抽奖时间：{{item.create_time}}</view>
-							<!-- <view class="xs">+100</view> -->
+							<view class="xs lighter">{{ drawTimeText(item.create_time) }}</view>
 						</view>
 					</view>
 				</view>
@@ -41,6 +40,12 @@
 			}
 		},
 		methods: {
+			displayText(value, fallback) {
+				return value === undefined || value === null || value === '' ? fallback : value
+			},
+			drawTimeText(value) {
+				return value === undefined || value === null || value === '' ? '抽奖时间待确认' : `抽奖时间：${value}`
+			},
 			// 上拉加载
 			getLists() {
 				let {

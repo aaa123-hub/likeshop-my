@@ -28,7 +28,7 @@
 			</view>
 			<scroll-view v-else style="white-space: nowrap;" scroll-x="true" scroll-with-animation="true">
 				<navigator v-for="(item, index) in lists" :key="index"
-					:style="{background: type == 'seckill' && '#f8f8f8'}" class="goods-item bg-white" hover-class="none"
+					:style="{background: type == 'seckill' && '#fff8ed'}" class="goods-item bg-white" hover-class="none"
 					:url="'/bundle/pages/goods_details/goods_details?id=' + item.id">
 					<custom-image width="240rpx" height="240rpx" radius="10rpx" lazy-load :src="item.image">
 					</custom-image>
@@ -36,7 +36,7 @@
 						<view class="goods-name line1">{{item.name}}</view>
 						<view class="row wrap">
 							<price-format class="mr10" :weight="500" :price="item.seckill_price || item.price" :first-size="32"
-								:second-size="22" :subscript-size="22" color="#FF2C3C"></price-format>
+								:second-size="22" :subscript-size="22" color="#a0610d"></price-format>
 							<price-format :price="item.min_price || item.market_price" color="#999999" :second-size="22"
 								:first-size="22" :subscript-size="22" :line-through="true"></price-format>
 						</view>
@@ -99,7 +99,7 @@ trottle,
 		padding-bottom: 20rpx;
 		&.seckill {
 			background-color: $color-white;
-			background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/home_seckill_bg.png);
+			background-image: linear-gradient(135deg, #fff8ed 0%, #ffe7bd 100%);
 		}
 
 		.a-main {

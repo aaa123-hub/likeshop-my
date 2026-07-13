@@ -5,11 +5,11 @@ function normalizeArticle(page = {}, fallbackCode = '') {
     return {
         ...page,
         id: page.pageCode || page.id || fallbackCode,
-        title: page.title || '内容详情',
+        title: page.title || '',
         synopsis: page.synopsis || page.summary || '',
         image: resolveImage(page.image || page.coverUrl || page.cover || ''),
         create_time: page.create_time || page.updatedAt || '',
-        visit: page.visit || 0,
+        visit: page.visit ?? '',
         content: page.content || ''
     }
 }

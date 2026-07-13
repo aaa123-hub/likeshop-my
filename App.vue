@@ -62,22 +62,49 @@ export default {
       if (!options.query) return;
       const scene = options.query.scene;
       let invite_code = options.query.invite_code;
+      let promoterUserId = options.query.promoterUserId || options.query.uid || "";
+      let roleCode = options.query.role || options.query.roleCode || "";
       if (!invite_code && scene) {
         try {
-          invite_code = strToParams(decodeURIComponent(scene)).invite_code;
+          const decodedScene = decodeURIComponent(scene);
+          const sceneParams = strToParams(decodedScene);
+          invite_code = sceneParams.invite_code || sceneParams.inviteCode || sceneParams.code || sceneParams.allianceCode || "";
+          const uidMatch = decodedScene.match(/(?:^|&)uid_([^&]+)/);
+          const shortScene = this.parseShortPromotionScene(decodedScene);
+          invite_code = invite_code || shortScene.inviteCode || "";
+          promoterUserId = promoterUserId || String(sceneParams.promoterUserId || sceneParams.promoter_user_id || sceneParams.uid || sceneParams.userId || "").replace(/^uid_/, "") || (uidMatch && uidMatch[1]) || shortScene.ownerUserId || "";
+          roleCode = roleCode || sceneParams.role || sceneParams.roleCode || sceneParams.role_type || sceneParams.roleType || "";
+          roleCode = roleCode || shortScene.roleCode || "";
         } catch (e) {
           return;
         }
       }
-      if (invite_code) {
-        inputInviteCode({
+      if (invite_code || promoterUserId) {
+        const invitePayload = {
           code: invite_code,
-        }).then((res) => {
-          if (res.code == -1) {
-            Cache.set("INVITE_CODE", invite_code);
+          invite_code,
+          promoterUserId,
+          roleCode,
+          scene,
+        };
+        inputInviteCode(invitePayload).then((res) => {
+          if (!res || res.code != 1) {
+            Cache.set("INVITE_CODE", invitePayload);
           }
+        }).catch(() => {
+          Cache.set("INVITE_CODE", invitePayload);
         });
       }
+    },
+    parseShortPromotionScene(scene = "") {
+      const match = String(scene || "").match(/^u([^_]+)_r([^_]+)_i(.+)$/);
+      if (!match) return {};
+      const roleMap = { M: "MERCHANT", P: "PROMOTER", A: "AGENT", S: "SUBSIDIARY", H: "HQ" };
+      return {
+        ownerUserId: match[1],
+        roleCode: roleMap[String(match[2] || "").toUpperCase()] || match[2] || "",
+        inviteCode: match[3] || ""
+      };
     },
   },
 };
@@ -144,5 +171,100 @@ uni-tabbar .uni-tabbar__label {
   font-size: 24rpx;
   background: #f1f2f5;
   border-radius: 16rpx;
+}
+
+.shop-cart-page__capsule,
+.address-edit-nav__capsule,
+.address-list-nav__capsule,
+.coupon-nav__capsule,
+.notice-nav__capsule,
+.notice-detail-nav__capsule,
+.order-switch__capsule,
+.search-nav__capsule,
+.license-nav__capsule,
+.promoter-nav__capsule,
+.kyc-capsule,
+.nav-capsule,
+.ledger-nav__capsule,
+.feedback-capsule,
+.intro-card-capsule,
+.activity-exchange-capsule,
+.about-us-capsule,
+.street-header__capsule {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.shop-cart-page__capsule-dot,
+.shop-cart-page__capsule-divider,
+.shop-cart-page__capsule-circle,
+.address-edit-nav__capsule-dot,
+.address-edit-nav__capsule-divider,
+.address-edit-nav__capsule-circle,
+.address-edit-nav__dot,
+.address-edit-nav__divider,
+.address-edit-nav__circle,
+.address-list-nav__capsule-dot,
+.address-list-nav__capsule-divider,
+.address-list-nav__capsule-circle,
+.address-list-nav__dot,
+.address-list-nav__divider,
+.address-list-nav__circle,
+.coupon-nav__capsule-dot,
+.coupon-nav__capsule-divider,
+.coupon-nav__capsule-circle,
+.notice-nav__capsule-dot,
+.notice-nav__capsule-divider,
+.notice-nav__capsule-circle,
+.notice-detail-nav__capsule-dot,
+.notice-detail-nav__capsule-divider,
+.notice-detail-nav__capsule-circle,
+.order-switch__capsule-dot,
+.order-switch__capsule-divider,
+.order-switch__capsule-circle,
+.search-nav__capsule-dot,
+.search-nav__capsule-divider,
+.search-nav__capsule-circle,
+.license-nav__capsule-dot,
+.license-nav__capsule-divider,
+.license-nav__capsule-circle,
+.license-nav__dot,
+.license-nav__divider,
+.license-nav__circle,
+.promoter-nav__capsule-dot,
+.promoter-nav__capsule-divider,
+.promoter-nav__capsule-circle,
+.promoter-nav__dot,
+.promoter-nav__divider,
+.promoter-nav__circle,
+.kyc-capsule__dot,
+.kyc-capsule__divider,
+.kyc-capsule__circle,
+.nav-capsule__dot,
+.nav-capsule__divider,
+.nav-capsule__circle,
+.ledger-nav__capsule-dot,
+.ledger-nav__capsule-divider,
+.ledger-nav__capsule-circle,
+.ledger-nav__dot,
+.ledger-nav__divider,
+.ledger-nav__circle,
+.feedback-capsule__dot,
+.feedback-capsule__divider,
+.feedback-capsule__circle,
+.intro-card-capsule__dot,
+.intro-card-capsule__divider,
+.intro-card-capsule__circle,
+.activity-exchange-capsule__dot,
+.activity-exchange-capsule__divider,
+.activity-exchange-capsule__circle,
+.about-us-capsule__dot,
+.about-us-capsule__divider,
+.about-us-capsule__circle,
+.street-header__capsule-dot,
+.street-header__capsule-divider,
+.street-header__capsule-circle {
+  display: none !important;
 }
 </style>

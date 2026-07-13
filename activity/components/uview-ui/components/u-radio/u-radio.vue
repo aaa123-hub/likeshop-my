@@ -15,5 +15,5 @@ export default {
 </script>
 
 <style scoped>
-.u-radio-lite{display:inline-flex;align-items:center}.u-radio-lite__icon{width:32rpx;height:32rpx;margin-right:10rpx;border:2rpx solid #ddd;border-radius:50%;box-sizing:border-box}.u-radio-lite__icon.active{border:10rpx solid #2979ff}
+.u-radio-lite{display:inline-flex;align-items:center}.u-radio-lite__icon{width:32rpx;height:32rpx;margin-right:10rpx;border:2rpx solid #ddd;border-radius:50%;box-sizing:border-box}.u-radio-lite__icon.active{border:10rpx solid #a0610d}
 </style>

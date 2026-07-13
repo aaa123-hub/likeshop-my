@@ -1,8 +1,8 @@
 const disabledFeatures = {
-    activityCenter: '活动中心后端兑换/营销流程暂未闭环',
-    activityExchange: '活动兑换后端暂未闭环',
-    bargain: '砍价活动后端暂未提供完整接口',
-    passwordReset: '短信与找回密码后端暂未闭环'
+    activityCenter: '活动中心暂未开放',
+    activityExchange: '活动兑换暂未开放',
+    bargain: '砍价活动暂未开放',
+    passwordReset: '找回密码暂未开放'
 }
 
 const disabledRouteRules = [
@@ -33,9 +33,15 @@ export function isRouteEnabled(url = '') {
 }
 
 export function showFeatureDisabledToast(feature) {
-    uni.showToast({
-        title: getFeatureDisabledMessage(feature),
-        icon: 'none'
+    const message = encodeURIComponent(getFeatureDisabledMessage(feature) || '该功能暂未开放')
+    uni.navigateTo({
+        url: `/business/pages/business_pages/developing?message=${message}`,
+        fail: () => {
+            uni.showToast({
+                title: getFeatureDisabledMessage(feature),
+                icon: 'none'
+            })
+        }
     })
 }
 

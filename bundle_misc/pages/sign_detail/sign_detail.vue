@@ -111,7 +111,8 @@ export default {
       }
     },
     formatSourceText(item = {}) {
-      const raw = item.type_desc || item.source_type || item.bizTypeName || item.biz_type_name || item.bizType || item.biz_type || item.title || item.desc || '积分变动'
+      const raw = item.type_desc || item.source_type || item.bizTypeName || item.biz_type_name || item.bizType || item.biz_type || item.title || item.desc || ''
+      if (!raw) return '积分类型待确认'
       const key = String(raw).toUpperCase()
       const map = {
         POINTS: '积分变动',
@@ -133,7 +134,7 @@ export default {
       return map[key] || String(raw).replace(/_/g, ' ')
     },
     formatTime(item = {}) {
-      return this.formatDisplayTime(item.create_time || item.change_time || item.createTime || item.txnTime || item.txn_time) || '--'
+      return this.formatDisplayTime(item.create_time || item.change_time || item.createTime || item.txnTime || item.txn_time) || '时间待确认'
     },
     formatRemark(item = {}) {
       return item.remark || item.memo || item.content || item.description || item.reason || ''
@@ -152,14 +153,22 @@ export default {
       return statusMap[String(status).toUpperCase()] || status
     },
     formatChangeClass(item = {}) {
-      const amount = Number(item.change_amount ?? item.changeAmount ?? item.pointsChange ?? item.points_change ?? item.pointAmount ?? item.point_amount ?? item.integral ?? item.amount ?? 0)
+      const rawAmount = this.pickAmount(item)
+      const amount = rawAmount === '' ? NaN : Number(rawAmount)
       const type = Number(item.change_type ?? item.changeType)
       return type === 1 || amount > 0 ? 'is-plus' : 'is-minus'
     },
     formatAmount(item = {}) {
-      const amount = Number(item.change_amount ?? item.changeAmount ?? item.pointsChange ?? item.points_change ?? item.pointAmount ?? item.point_amount ?? item.integral ?? item.amount ?? 0)
+      const rawAmount = this.pickAmount(item)
+      if (rawAmount === '') return '积分待确认'
+      const amount = Number(rawAmount)
+      if (Number.isNaN(amount)) return '积分待确认'
       const prefix = this.formatChangeClass(item) === 'is-plus' ? '+' : '-'
-      return `${prefix}${Math.abs(amount || 0)}`
+      return `${prefix}${Math.abs(amount)}`
+    },
+    pickAmount(item = {}) {
+      const value = item.change_amount ?? item.changeAmount ?? item.pointsChange ?? item.points_change ?? item.pointAmount ?? item.point_amount ?? item.integral ?? item.amount
+      return value === null || value === undefined ? '' : value
     },
     formatExtraRows(item = {}) {
       const rows = []
@@ -187,7 +196,7 @@ export default {
         page
       } = this;
 
-      loadingFun(getAccountLog, page, detailList, loadingStatus, { bizType: 'POINTS', source: 'POINTS', type: 'POINTS' }).then(res => {
+      loadingFun(getAccountLog, page, detailList, loadingStatus, { bizType: 'POINTS', source: 'POINTS' }).then(res => {
           if(res) {
               this.page = res.page;
               this.detailList = res.dataList
@@ -205,7 +214,7 @@ export default {
 .sign-detail-container {
   min-height: 100vh;
   padding: 18rpx 24rpx 40rpx;
-  background: #f5f7fb;
+  background: #fff9f0;
   box-sizing: border-box;
 }
 
@@ -213,9 +222,9 @@ export default {
   margin: 12rpx 0 22rpx;
   padding: 28rpx 30rpx;
   color: #ffffff;
-  background: linear-gradient(135deg, #ff6b39 0%, #ff2c3c 100%);
+  background: linear-gradient(135deg, #d79a43 0%, #a0610d 100%);
   border-radius: 24rpx;
-  box-shadow: 0 14rpx 32rpx rgba(255, 44, 60, 0.16);
+  box-shadow: 0 14rpx 32rpx rgba(160, 97, 13, 0.16);
 }
 
 .points-summary__label {
@@ -283,21 +292,27 @@ export default {
 }
 
 .sign-amount {
+  flex: none;
+  max-width: 220rpx;
   margin-left: 20rpx;
   font-size: 34rpx;
   font-weight: 700;
   line-height: 42rpx;
+  text-align: right;
+  word-break: break-all;
 }
 
 .sign-item__meta {
+  flex-wrap: wrap;
+  gap: 8rpx 16rpx;
   margin-top: 10rpx;
   color: #9aa1ad;
   font-size: 22rpx;
   line-height: 32rpx;
+  word-break: break-all;
 }
 
 .sign-status {
-  margin-left: 16rpx;
   padding: 2rpx 12rpx;
   color: #2378ff;
   background: rgba(35, 120, 255, 0.08);
@@ -324,7 +339,7 @@ export default {
   align-items: center;
   max-width: 100%;
   padding: 6rpx 14rpx;
-  background: #f6f8fb;
+  background: #fff8ed;
   border-radius: 18rpx;
   box-sizing: border-box;
 }
@@ -356,12 +371,12 @@ export default {
 }
 
 .is-plus {
-  color: #ff2c3c;
+  color: #a0610d;
 }
 
 .sign-item__icon.is-plus {
   color: #ffffff;
-  background: #ff2c3c;
+  background: #a0610d;
 }
 
 .is-minus {

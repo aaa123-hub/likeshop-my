@@ -14,8 +14,14 @@
                 <view class="coupon-time">{{item.use_time_tips || '有效期以实际使用规则为准'}}</view>
                 <view class="coupon-type">{{item.coupon_type || item.use_condition}}</view>
             </view>
-            <button type="primary" :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')" @tap="onHandle(item.id)">
-                {{getBtn}}
+            <button
+                type="primary"
+                :class="'btn br60 white xs ' + (btnType != 3 ? 'plain': '')"
+                :data-coupon-index="index"
+                :data-coupon-key="couponStableKey(item, index)"
+                @tap="onHandleByEvent"
+            >
+                {{item.is_get && btnType == 3 ? '已领取' : getBtn}}
             </button>
             <image v-if="item.is_get" class="receive" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_receive.png"></image>
         </view>
@@ -106,8 +112,10 @@ export default {
     }
   },
   methods: {
-    onHandle(id) {
-      this.id = id;
+    onHandle(item) {
+      if (!item || typeof item !== 'object' || !Object.keys(item).length) return this.$toast({title: '优惠券信息异常'})
+      this.id = this.couponKey(item);
+      if (this.btnType == 3 && item && item.is_get) return
       const {
         btnType
       } = this;
@@ -133,6 +141,25 @@ export default {
       }
     },
 
+    couponStableKey(item = {}, index = 0) {
+      return String(this.couponKey(item) || `coupon-${index}`)
+    },
+
+    resolveCouponFromEvent(event = {}) {
+      const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+      const index = Number(dataset.couponIndex ?? dataset.coupon_index)
+      const key = String(dataset.couponKey || dataset.coupon_key || '')
+      if (!Number.isNaN(index) && this.list[index]) {
+        const item = this.list[index]
+        if (!key || this.couponStableKey(item, index) === key) return item
+      }
+      return this.list.find((item, itemIndex) => this.couponStableKey(item, itemIndex) === key) || {}
+    },
+
+    onHandleByEvent(event = {}) {
+      return this.onHandle(this.resolveCouponFromEvent(event))
+    },
+
     onShowTips(index) {
       const {
         showTips
@@ -143,13 +170,22 @@ export default {
       this.showTips = Object.assign([], this.showTips);
     },
 
+    couponKey(item = {}) {
+      const template = item.couponTemplate || item.coupon_template || item.template || item.templateInfo || item.template_info || item.couponTemplateInfo || item.coupon_template_info || {}
+      const coupon = item.coupon || item.couponInfo || item.coupon_info || {}
+      return item.coupon_id || item.couponId || item.templateId || item.template_id || item.couponTemplateId || item.coupon_template_id || template.couponId || template.coupon_id || template.templateId || template.template_id || template.couponTemplateId || template.coupon_template_id || template.id || coupon.couponId || coupon.coupon_id || coupon.templateId || coupon.template_id || coupon.couponTemplateId || coupon.coupon_template_id || coupon.id || item.id || ''
+    },
+
     getCouponFun() {
-      getCoupon(this.id).then(res => {
+      if (!this.id) return this.$toast({title: '优惠券信息异常'})
+      getCoupon(this.id, { receiveScene: 'COUPON_CENTER' }).then(res => {
         if (res.code == 1) {
-          this.$toast({title: res.msg})
+          this.$toast({title: res.msg || '领取成功'})
           this.$emit('reflash');
+        } else {
+          this.$toast({title: res.msg || '领取失败'})
         }
-      });
+      }).catch(() => this.$toast({title: '领取失败'}));
     }
 
   }
@@ -174,12 +210,13 @@ export default {
         align-items: stretch;
         width: 100%;
         height: 200rpx;
-        background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg.png);
+        background: linear-gradient(135deg, #fff8ed 0%, #fff1dc 100%);
+        border: 1rpx solid #f0dcc0;
         background-size: 100% 100%;
         overflow: hidden;
         box-sizing: border-box;
         &.gray {
-            background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/coupon_bg_grey.png);
+            background: linear-gradient(135deg, #f8f1e8 0%, #f2e5d5 100%);
             .btn{
                 &.plain {
                     color: #CCCCCC;

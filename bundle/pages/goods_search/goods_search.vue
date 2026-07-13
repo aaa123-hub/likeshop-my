@@ -4,11 +4,14 @@
 			<view class="search-nav">
 				<view class="search-nav__back" @tap="goBack"></view>
 				<view class="search-nav__title">搜索</view>
-				<view class="search-nav__space"></view>
+				<view class="search-nav__capsule">
+					<view class="search-nav__capsule-dot"></view>
+					<view class="search-nav__capsule-divider"></view>
+					<view class="search-nav__capsule-circle"></view>
+				</view>
 			</view>
 			<view class="search-box">
 				<view class="search-input-wrap">
-					<u-icon class="search-input-icon" name="search" size="30" color="#8F9AAF"></u-icon>
 					<input
 						class="search-input"
 						v-model="keyword"
@@ -19,24 +22,21 @@
 						@focus="showHistory = true"
 						@confirm="onSearch"
 					/>
-					<view class="search-submit" @tap="onSearch">
-						<text class="search-submit__text">搜索</text>
-					</view>
+					<view class="search-submit" @tap="onSearch"></view>
 				</view>
 			</view>
 		</view>
 		<view>
 			<view v-show="!showHistory" class="filter-bar">
 				<view class="filter-item" @tap="onNormal">
-					<text :class="comprehensive ? 'is-active' : ''">位置距离</text>
-					<u-icon name="arrow-down-fill" size="16" color="#222222"></u-icon>
+					<text :class="comprehensive ? 'is-active' : ''">综合</text>
 				</view>
 				<view class="filter-item" @tap="onPriceSort">
-					<text :class="priceSort ? 'is-active' : ''">行业分类</text>
+					<text :class="priceSort ? 'is-active' : ''">{{ priceSortLabel }}</text>
 					<u-icon name="arrow-down-fill" size="16" color="#222222"></u-icon>
 				</view>
 				<view class="filter-item" @tap="onSaleSort">
-					<text :class="saleSort ? 'is-active' : ''">推荐排序</text>
+					<text :class="saleSort ? 'is-active' : ''">{{ saleSortLabel }}</text>
 					<u-icon name="arrow-down-fill" size="16" color="#222222"></u-icon>
 				</view>
 				<view class="filter-item" @tap="changeType">
@@ -72,7 +72,12 @@
 				<view class="category-source__name line1">{{ categoryName }}</view>
 			</view>
 			<template v-if="goodsList.length">
-				<view v-for="(item, index) in goodsList" :key="index" class="merchant-card" @tap="goResultDetail(item)">
+				<view
+					v-for="(item, index) in goodsList"
+					:key="index"
+					:class="['merchant-card', index === 0 && !categoryName ? 'merchant-card--first' : '']"
+					@tap="goResultDetail(item)"
+				>
 					<view v-if="isEmptyImage(item)" class="merchant-card__image image-placeholder">无</view>
 					<image v-else class="merchant-card__image" :src="getGoodsImage(item)" mode="aspectFill"></image>
 					<view class="merchant-card__content">
@@ -87,7 +92,7 @@
 							<text class="score">{{ getGoodsScore(item) }}</text>
 						</view>
 						<view class="merchant-card__meta">
-							<image class="merchant-card__time-icon" :src="timeIcon" mode="aspectFit"></image>
+							<view class="merchant-card__time-icon"></view>
 							<text>营业时间：{{ getGoodsTime(item) }}</text>
 						</view>
 						<view class="merchant-card__distance">{{ getGoodsDistance(item) }}</view>
@@ -126,7 +131,8 @@
 						<view :class="['filter-chip', sortType === '' ? 'active' : '']" @tap="sortType = ''">综合</view>
 						<view :class="['filter-chip', sortType === 'PRICE_ASC' ? 'active' : '']" @tap="sortType = 'PRICE_ASC'">价格低到高</view>
 						<view :class="['filter-chip', sortType === 'PRICE_DESC' ? 'active' : '']" @tap="sortType = 'PRICE_DESC'">价格高到低</view>
-						<view :class="['filter-chip', sortType === 'SALES_DESC' ? 'active' : '']" @tap="sortType = 'SALES_DESC'">销量优先</view>
+						<view :class="['filter-chip', sortType === 'SALES_DESC' ? 'active' : '']" @tap="sortType = 'SALES_DESC'">销量高到低</view>
+						<view :class="['filter-chip', sortType === 'SALES_ASC' ? 'active' : '']" @tap="sortType = 'SALES_ASC'">销量低到高</view>
 					</view>
 				</view>
 				<view class="filter-actions">
@@ -176,7 +182,6 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				sortType: '',
 				categoryName: '',
 				fromCategory: false,
-				timeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp-static/static/lanhu/slices/street/searchlist_time.png'
 			};
 		},
 
@@ -217,6 +222,16 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				}
 
 				return false;
+			},
+			priceSortLabel() {
+				if (this.priceSort === 'asc') return '价格升序'
+				if (this.priceSort === 'desc') return '价格降序'
+				return '价格'
+			},
+			saleSortLabel() {
+				if (this.saleSort === 'asc') return '销量升序'
+				if (this.saleSort === 'desc') return '销量降序'
+				return '销量'
 			}
 
 		},
@@ -249,7 +264,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return isPlaceholderImage(item.image || item.goods_image || item.cover)
 			},
 			getMerchantTitle(item) {
-				return item.name || item.goods_name || item.shop_name || '广州市越秀区斌记面家'
+				return item.name || item.goods_name || item.shop_name || ''
 			},
 			getGoodsImage(item) {
 				return resolveImage(item.image || item.goods_image || item.cover, 'goods')
@@ -261,10 +276,10 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				return Number.isNaN(value) ? String(score) : value.toFixed(1)
 			},
 			getGoodsTime(item) {
-				return item.business_time || item.time_desc || '8:00-16:00'
+				return item.business_time || item.time_desc || ''
 			},
 			getGoodsDistance(item) {
-				return item.distance_desc || item.distance || '距离 1.2km'
+				return item.distance_desc || item.distance || ''
 			},
 			goResultDetail(item) {
 				const shopId = item.shop_id || item.shopId || item.merchantShopId
@@ -290,8 +305,11 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				this.minPrice = ''
 				this.maxPrice = ''
 				this.sortType = ''
+				this.priceSort = ''
+				this.saleSort = ''
 			},
 			applyFilter() {
+				this.syncSortState()
 				this.showFilter = false
 				this.onRefresh()
 			},
@@ -307,6 +325,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 			onNormal() {
 				this.priceSort = ''
 				this.saleSort = ''
+				this.sortType = ''
 				this.onRefresh();
 			},
 
@@ -326,8 +345,14 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 				} = this;
 				this.priceSort = ''
 				this.saleSort = saleSort == 'desc' ? 'asc' : 'desc'
-				this.sortType = 'SALES_DESC'
+				this.sortType = this.saleSort === 'asc' ? 'SALES_ASC' : 'SALES_DESC'
 				this.onSearch();
+			},
+			syncSortState() {
+				const sortType = String(this.sortType || '').toUpperCase()
+				this.priceSort = sortType === 'PRICE_ASC' ? 'asc' : (sortType === 'PRICE_DESC' ? 'desc' : '')
+				this.saleSort = sortType === 'SALES_ASC' ? 'asc' : (sortType === 'SALES_DESC' ? 'desc' : '')
+				this.sortType = sortType
 			},
 
 			init(option) {
@@ -430,11 +455,11 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 <style lang="scss">
 	.goods-search {
 		height: 100vh;
-		padding-top: calc(var(--status-bar-height) + 278rpx);
+		padding-top: calc(var(--status-bar-height) + 359rpx);
 		box-sizing: border-box;
 		overflow: hidden;
 		min-height: 100vh;
-		background: #f4f6fb;
+		background: #fffaf5;
 
 		.search-top {
 			position: fixed;
@@ -442,122 +467,184 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 			right: 0;
 			top: 0;
 			z-index: 30;
-			background: #bcd1f3;
-			padding-bottom: 20rpx;
+			height: calc(var(--status-bar-height) + 359rpx);
+			background:
+				linear-gradient(180deg, rgba(188, 209, 243, 0.9) 0%, rgba(232, 239, 252, 0.74) 42%, rgba(255, 250, 245, 0.96) 100%),
+				#bcd1f3;
+			box-sizing: border-box;
 		}
 
 		.search-nav {
+			position: relative;
 			display: flex;
 			align-items: center;
-			justify-content: space-between;
-			height: 88rpx;
-			padding: calc(var(--status-bar-height) + 8rpx) 24rpx 0;
+			height: 97rpx;
+			padding: calc(var(--status-bar-height) + 23rpx) 0 0;
 			box-sizing: content-box;
-		}
-
-		.search-nav__back,
-		.search-nav__space {
-			width: 72rpx;
-			height: 72rpx;
 		}
 
 		.search-nav__back {
 			position: relative;
+			flex: none;
+			width: 40rpx;
+			height: 97rpx;
+			margin-left: 24rpx;
 			color: #222222;
 		}
 
 		.search-nav__back::after {
 			content: '';
 			position: absolute;
-			left: 18rpx;
-			top: 22rpx;
-			width: 22rpx;
-			height: 22rpx;
+			left: 0;
+			top: 46rpx;
+			width: 19rpx;
+			height: 19rpx;
 			border-left: 4rpx solid currentColor;
 			border-bottom: 4rpx solid currentColor;
 			transform: rotate(45deg);
 		}
 
-		.search-nav__title {
-			color: #222222;
-			font-size: 36rpx;
-			font-weight: 600;
-			line-height: 44rpx;
+			.search-nav__title {
+				position: absolute;
+				left: 50%;
+				top: calc(var(--status-bar-height) + 62rpx);
+				max-width: calc(100% - 260rpx);
+				color: #222222;
+				font-size: 36rpx;
+				font-weight: 500;
+				line-height: 36rpx;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				transform: translateX(-50%);
+			}
+
+		.search-nav__capsule {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex: none;
+				width: 168rpx;
+				height: 64rpx;
+				margin: 22rpx 24rpx 0 auto;
+				border: 1rpx solid transparent;
+				border-radius: 32rpx;
+				background: transparent;
+				box-sizing: border-box;
+				opacity: 0;
+			}
+
+		.search-nav__capsule-dot {
+			width: 8rpx;
+			height: 8rpx;
+			margin-right: 8rpx;
+			border-radius: 50%;
+			background: #222222;
+			box-shadow: 18rpx 0 0 #222222, 36rpx 0 0 #222222;
+		}
+
+		.search-nav__capsule-divider {
+			width: 1rpx;
+			height: 36rpx;
+			margin: 0 22rpx 0 42rpx;
+			background: rgba(34, 34, 34, .18);
+		}
+
+		.search-nav__capsule-circle {
+			width: 34rpx;
+			height: 34rpx;
+			border: 4rpx solid #222222;
+			border-radius: 50%;
+			box-sizing: border-box;
 		}
 
 		.search-box {
-			padding: 0 36rpx 14rpx;
+			padding: 16rpx 24rpx 0;
 		}
 
 		.search-input-wrap {
 			display: flex;
 			align-items: center;
 			width: 100%;
-			height: 78rpx;
-			padding: 0 8rpx 0 30rpx;
+			height: 65rpx;
+			padding: 0 28rpx 0 39rpx;
 			box-sizing: border-box;
 			background: #ffffff;
-			border-radius: 42rpx;
-			box-shadow: 0 8rpx 20rpx rgba(69, 101, 154, 0.08);
+			border: 2rpx solid #ffffff;
+			border-radius: 32rpx 32rpx 32rpx 0;
+			box-shadow: none;
 		}
 
 		.search-input {
 			flex: 1;
 			min-width: 0;
-			height: 78rpx;
+			height: 65rpx;
 			color: #222222;
-			font-size: 28rpx;
-			font-weight: 500;
-		}
-
-		.search-input-icon {
-			flex: none;
-			margin-right: 12rpx;
+			font-size: 22rpx;
+			font-weight: 400;
 		}
 
 		.search-input__placeholder {
-			color: #9aa4b5;
-			font-size: 28rpx;
+			color: #b7b7b7;
+			font-size: 22rpx;
 			font-weight: 400;
 		}
 
 		.search-submit {
+			position: relative;
+			flex: none;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 112rpx;
-			height: 62rpx;
-			margin-left: 16rpx;
-			border-radius: 34rpx;
-			background: #1688ff;
-			font-weight: 700;
+			width: 34rpx;
+			height: 34rpx;
+			margin-left: 24rpx;
 		}
 
-		.search-submit__text {
-			color: #ffffff;
-			font-size: 26rpx;
-			font-weight: 700;
+		.search-submit::before {
+			content: '';
+			position: absolute;
+			left: 2rpx;
+			top: 2rpx;
+			width: 20rpx;
+			height: 20rpx;
+			border: 4rpx solid #222222;
+			border-radius: 50%;
+			box-sizing: border-box;
+		}
+
+		.search-submit::after {
+			content: '';
+			position: absolute;
+			right: 3rpx;
+			bottom: 4rpx;
+			width: 14rpx;
+			height: 4rpx;
+			background: #222222;
+			border-radius: 2rpx;
+			transform: rotate(45deg);
 		}
 
 		.filter-bar {
 			position: fixed;
 			left: 0;
 			right: 0;
-			top: calc(var(--status-bar-height) + 190rpx);
+			top: calc(var(--status-bar-height) + 283rpx);
 			z-index: 29;
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			height: 88rpx;
-			padding: 0 24rpx;
-			background: #f4f6fb;
+			height: 76rpx;
+			padding: 0 22rpx 50rpx;
+			background: transparent;
+			box-sizing: border-box;
 		}
 
 		.filter-item {
 			display: flex;
 			align-items: center;
-			font-size: 28rpx;
-			font-weight: 600;
+			font-size: 26rpx;
+			font-weight: 500;
 			color: #222222;
 
 			.u-icon {
@@ -566,11 +653,11 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.is-active {
-			color: #1f7af4;
+			color: #a0610d;
 		}
 
 		.history-panel {
-			height: calc(100vh - var(--status-bar-height) - 190rpx);
+			height: calc(100vh - var(--status-bar-height) - 359rpx);
 			padding: 24rpx;
 			box-sizing: border-box;
 			overflow-y: auto;
@@ -609,8 +696,8 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.result-panel {
-			height: calc(100vh - var(--status-bar-height) - 278rpx);
-			padding: 18rpx 24rpx 40rpx;
+			height: calc(100vh - var(--status-bar-height) - 359rpx);
+			padding: 0 24rpx 40rpx;
 			box-sizing: border-box;
 		}
 
@@ -627,11 +714,11 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		.category-source__label {
 			flex: none;
 			padding: 0 14rpx;
-			color: #1688ff;
+			color: #a0610d;
 			font-size: 22rpx;
 			line-height: 38rpx;
 			border-radius: 20rpx;
-			background: #edf6ff;
+			background: #fff2df;
 		}
 
 		.category-source__name {
@@ -647,11 +734,22 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		.merchant-card {
 			display: flex;
 			align-items: stretch;
-			padding: 20rpx;
-			margin-bottom: 24rpx;
-			background: #ffffff;
-			border-radius: 24rpx;
-			box-shadow: 0 10rpx 26rpx rgba(52, 72, 109, 0.04);
+			width: 100%;
+			min-height: 226rpx;
+			padding: 18rpx 18rpx 19rpx;
+			margin-bottom: 26rpx;
+			background: #fffaf5;
+			border-radius: 15rpx;
+			box-shadow: none;
+			box-sizing: border-box;
+		}
+
+		.merchant-card--first {
+			margin-top: -14rpx;
+		}
+
+		.category-source + .merchant-card {
+			margin-top: -14rpx;
 		}
 
 		.merchant-card__image {
@@ -659,16 +757,16 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			width: 192rpx;
-			height: 192rpx;
-			border-radius: 16rpx;
-			background: #f0f2f5;
+			width: 189rpx;
+			height: 189rpx;
+			border-radius: 10rpx;
+			background: #fff7f1;
 		}
 
 		.merchant-card__content {
 			flex: 1;
 			min-width: 0;
-			padding: 4rpx 0 4rpx 28rpx;
+			padding: 10rpx 0 0 29rpx;
 		}
 
 		.merchant-card__header {
@@ -678,10 +776,10 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		}
 
 		.merchant-card__title {
-			font-size: 32rpx;
-			font-weight: 600;
+			font-size: 30rpx;
+			font-weight: 500;
 			color: #222222;
-			line-height: 44rpx;
+			line-height: 40rpx;
 		}
 
 		.merchant-card__badge {
@@ -699,25 +797,25 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 		.merchant-card__score {
 			display: flex;
 			align-items: center;
-			margin-top: 18rpx;
+			margin-top: 17rpx;
 		}
 
 		.stars {
-			font-size: 28rpx;
+			font-size: 24rpx;
 			color: #ff6d2d;
 			letter-spacing: 0;
 		}
 
 		.score {
 			margin-left: 10rpx;
-			font-size: 28rpx;
+			font-size: 24rpx;
 			color: #ff6d2d;
 		}
 
 		.merchant-card__meta {
 			display: flex;
 			align-items: center;
-			margin-top: 22rpx;
+			margin-top: 46rpx;
 			font-size: 26rpx;
 			color: #777777;
 
@@ -728,8 +826,36 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 
 		.merchant-card__time-icon {
 			flex: none;
+			position: relative;
 			width: 28rpx;
 			height: 28rpx;
+			border: 3rpx solid #9aa0a6;
+			border-radius: 50%;
+			box-sizing: border-box;
+		}
+
+		.merchant-card__time-icon::before {
+			content: '';
+			position: absolute;
+			left: 10rpx;
+			top: 5rpx;
+			width: 3rpx;
+			height: 9rpx;
+			background: #9aa0a6;
+			border-radius: 3rpx;
+		}
+
+		.merchant-card__time-icon::after {
+			content: '';
+			position: absolute;
+			left: 11rpx;
+			top: 12rpx;
+			width: 8rpx;
+			height: 3rpx;
+			background: #9aa0a6;
+			border-radius: 3rpx;
+			transform: rotate(25deg);
+			transform-origin: left center;
 		}
 
 		.merchant-card__distance {
@@ -791,7 +917,7 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 			height: 76rpx;
 			padding: 0 24rpx;
 			border-radius: 38rpx;
-			background: #f5f7fb;
+			background: #fff8ed;
 			font-size: 26rpx;
 			color: #222222;
 			text-align: center;
@@ -816,14 +942,14 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 			padding: 0 28rpx;
 			line-height: 66rpx;
 			border-radius: 34rpx;
-			background: #f5f7fb;
+			background: #fff8ed;
 			font-size: 26rpx;
 			color: #4b5565;
 		}
 
 		.filter-chip.active {
-			background: #e8f2ff;
-			color: #1688ff;
+			background: #fff2df;
+			color: #a0610d;
 			font-weight: 600;
 		}
 
@@ -845,12 +971,12 @@ import UEmpty from '@/bundle/components/uview-ui/components/u-empty/u-empty.vue'
 
 		.filter-action.reset {
 			margin-right: 18rpx;
-			background: #f5f7fb;
+			background: #fff8ed;
 			color: #4b5565;
 		}
 
 		.filter-action.confirm {
-			background: #1688ff;
+			background: #a0610d;
 			color: #ffffff;
 		}
 	}

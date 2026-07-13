@@ -38,7 +38,7 @@
 	 * @property {Number String} z-index 锚点吸顶时的层级（默认965）
 	 * @property {Boolean} sticky 是否开启锚点自动吸顶（默认true）
 	 * @property {Number String} offset-top 锚点自动吸顶时与顶部的距离（默认0）
-	 * @property {String} highlight-color 锚点和右边索引字符高亮颜色（默认#2979ff）
+	 * @property {String} highlight-color 锚点和右边索引字符高亮颜色（默认#a0610d）
 	 * @event {Function} select 选中右边索引字符时触发
 	 * @example <u-index-list :scrollTop="scrollTop"></u-index-list>
 	 */
@@ -69,7 +69,7 @@
 			},
 			activeColor: {
 				type: String,
-				default: '#2979ff'
+				default: '#a0610d'
 			}
 		},
 		created() {

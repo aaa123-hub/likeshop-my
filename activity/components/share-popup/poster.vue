@@ -17,7 +17,7 @@
 					<!-- 商品分享海报文字内容 -->
 					<l-painter-view :css="`display: ${type == 1 ? 'inline-block' : 'none'}; width: 400rpx;`">
 						<l-painter-view
-							:css="`vertical-align: bottom; color: #FF2C3C; font-size: 30rpx; line-height: 1em;`">
+							:css="`vertical-align: bottom; color: #a0610d; font-size: 30rpx; line-height: 1em;`">
 							<l-painter-text text="￥" css="vertical-align: bottom;font-size: 28rpx;" />
 							<l-painter-text :text="price.prev" css="vertical-align: bottom; font-size: 38rpx;" />
 							<l-painter-text :text="price.next" css="vertical-align: bottom; font-size: 30rpx;" />
@@ -35,12 +35,12 @@
 					<l-painter-view :css="`display: ${type == 2 ? 'inline-block' : 'none'}; width: 400rpx;`">
 						<l-painter-view>
 							<l-painter-text
-								:css="`line-clamp: 2; color: #FF2C3C; line-height: 1.5em;font-size: 32rpx; width: 375rpx; padding-right:22rpx; box-sizing: border-box`"
+								:css="`line-clamp: 2; color: #a0610d; line-height: 1.5em;font-size: 32rpx; width: 375rpx; padding-right:22rpx; box-sizing: border-box`"
 								:text="bShareTitle"></l-painter-text>
 						</l-painter-view>
 						<l-painter-view css="margin-top:8rpx;">
 							<l-painter-text
-								css="line-clamp: 2; color: #F95F2F; line-height: 1.5em;font-size: 24rpx; width: 378rpx; padding-right:22rpx; box-sizing: border-box"
+								css="line-clamp: 2; color: #d79a43; line-height: 1.5em;font-size: 24rpx; width: 378rpx; padding-right:22rpx; box-sizing: border-box"
 								:text="bShareIntro"></l-painter-text>
 						</l-painter-view>
 						<l-painter-view css="margin-top:8rpx;">

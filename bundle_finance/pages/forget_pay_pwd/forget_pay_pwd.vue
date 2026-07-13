@@ -3,7 +3,7 @@
         <view class="input-container bg-white">
             <view class="input-item row">
                 <view class="input-label md normal">手机号</view>
-                <input class="flex1" v-model="mobile" />
+                <view class="input-value flex1">{{ mobileText }}</view>
             </view>
             <view class="input-item row">
                 <view class="input-label md normal">验证码</view>
@@ -16,8 +16,8 @@
                         :show-days="false"
                         :timestamp="time"
                         separator="zh"
-                        color="#FF2C3C"
-                        separatorColor="#FF2C3C"
+                        color="#a0610d"
+                        separatorColor="#a0610d"
                         bg-color="rgba(0, 0, 0, 0)"
                         :show-hours="false"
                         :show-minutes="false"
@@ -73,10 +73,18 @@ export default {
             code: ''
         }
     },
-    onLoad() {},
     methods: {
+        hasBoundMobile() {
+            return Boolean(this.userInfo && this.userInfo.mobile)
+        },
         retrievePayPasswordFun() {
             let { setPwd, comfirmPwd, code } = this
+            if (!this.hasBoundMobile()) {
+                this.$toast({
+                    title: '绑定手机号待确认'
+                })
+                return
+            }
             if (!code) {
                 this.$toast({
                     title: '请输入验证码'
@@ -127,10 +135,16 @@ export default {
             })
         },
         sendSms() {
+            if (this.showCount) return
+            if (!this.hasBoundMobile()) {
+                this.$toast({
+                    title: '绑定手机号待确认'
+                })
+                return
+            }
             let data = {
                 mobile: this.userInfo.mobile
             }
-            if (this.showCount) return
             send(data).then((res) => {
                 if (res.code == 1) {
                     this.$toast({
@@ -144,10 +158,11 @@ export default {
     },
     computed: {
         ...mapGetters(['userInfo']),
-        mobile() {
+        mobileText() {
             if (this.userInfo.mobile) {
                 return this.userInfo.mobile.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
             }
+            return '手机号待确认'
         }
     }
 }
@@ -172,11 +187,20 @@ export default {
                 flex: none;
             }
 
+            .input-value {
+                min-width: 0;
+                color: #333333;
+                font-size: 28rpx;
+                line-height: 88rpx;
+                word-break: break-all;
+            }
+
             .get-code {
                 width: 176rpx;
                 height: 58rpx;
                 flex: none;
                 border: 1px solid $color-primary;
+                box-sizing: border-box;
             }
         }
 

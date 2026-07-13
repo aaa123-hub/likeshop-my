@@ -12,7 +12,7 @@
 			</view>
 			<view class="content">
 				<view class="vip-swiper-container">
-					<swiper class="swiper" style="height: 320rpx" previous-margin="60rpx" next-margin="60rpx" display-multiple-items="1"
+					<swiper v-if="levelList.length" class="swiper" style="height: 320rpx" previous-margin="60rpx" next-margin="60rpx" display-multiple-items="1"
 					 :current="currentIndex" @change="bindchange">
 						<swiper-item v-for="(item, index) in levelList" :key="index">
 							<view class="vip-card-item" :style="'background-image: url(' + item.background_image + ');'">
@@ -44,6 +44,7 @@
 							</view>
 						</swiper-item>
 					</swiper>
+					<view v-else class="vip-empty">暂无会员等级信息</view>
 				</view>
 				<view class="vip-grade-rule">
 					<view class="title row">
@@ -68,7 +69,7 @@
 				</view>
 			</view>
 		</view>
-		<loading-view v-if="!userInfo.nickname"></loading-view>
+		<loading-view v-if="loading"></loading-view>
 	</view>
 </template>
 
@@ -84,7 +85,8 @@
 				currentIndex: 0,
 				levelList: [],
 				growthRule: "",
-				privilegeList: []
+				privilegeList: [],
+				loading: true
 			};
 		},
 
@@ -102,29 +104,43 @@
 					current
 				} = e.detail;
 				let currentLevel = this.levelList[current];
+				if (!currentLevel) return
 				this.currentIndex = current
-				this.privilegeList = currentLevel.level_privilege
+				this.privilegeList = currentLevel.level_privilege || []
 			},
 
 			getLevelListFun() {
+				this.loading = true
 				getLevelList().then(res => {
 					const {
 						code,
 						data
 					} = res;
 					if (code != 1) return;
+					const result = Array.isArray(data) ? { level_list: data, user: {}, growth_rule: '' } : (data || {})
 					const {
 						user,
 						growth_rule,
 						level_list
-					} = data;
+					} = result;
+					const list = Array.isArray(level_list) ? level_list : []
+					if (!list.length) {
+						this.userInfo = user || {}
+						this.growthRule = growth_rule || '成长值规则待确认'
+						this.levelList = []
+						this.currentIndex = 0
+						this.privilegeList = []
+						return
+					}
 					let index = level_list.findIndex(item => item.current_level_status == 1);
 					if (index == -1) index = 0;
-					this.userInfo = user
-					this.growthRule = growth_rule
-					this.levelList = level_list
+					this.userInfo = user || {}
+					this.growthRule = growth_rule || '成长值规则待确认'
+					this.levelList = list
 					this.currentIndex = index
-					this.privilegeList = level_list[index].level_privilege
+					this.privilegeList = list[index].level_privilege || []
+				}).finally(() => {
+					this.loading = false
 				});
 			},
 		}
@@ -204,6 +220,18 @@
 						}
 					}
 
+				}
+
+				.vip-empty {
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					height: 320rpx;
+					margin: 0 60rpx;
+					color: #8a8f99;
+					font-size: 28rpx;
+					background: #fff8ed;
+					border-radius: 18rpx;
 				}
 
 				.vip-grade-rule {

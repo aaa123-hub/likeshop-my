@@ -190,7 +190,7 @@
 				{
 					"path": "pages/license/license",
 					"style": {
-						"navigationBarTitleText": "资质信息",
+						"navigationBarTitleText": "认领店铺",
 						"navigationStyle": "custom",
 						"enablePullDownRefresh": true
 					}
@@ -295,14 +295,8 @@
 						"navigationStyle": "custom"
 					}
 				},
-				{
-					"path": "pages/store_list/store_list",
-					"style": {
-						"navigationBarTitleText": "门店自提"
-					}
-				},
-				{
-					"path": "pages/writeoff_order/writeoff_order",
+					{
+						"path": "pages/writeoff_order/writeoff_order",
 					"style": {
 						"navigationBarTitleText": "核销订单",
 						"enablePullDownRefresh": true
@@ -617,6 +611,13 @@
 					}
 				},
 				{
+					"path": "pages/business_pages/developing",
+					"style": {
+						"navigationBarTitleText": "提示",
+						"navigationStyle": "custom"
+					}
+				},
+				{
 					"path": "pages/business_pages/mall_guide",
 					"style": {
 						"navigationBarTitleText": "商城使用引导",
@@ -640,8 +641,31 @@
 				{
 					"path": "pages/business_pages/promoter_apply",
 					"style": {
-						"navigationBarTitleText": "成为推广者",
+						"navigationBarTitleText": "渠道服务商",
 						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "pages/business_pages/role_workbench",
+					"style": {
+						"navigationBarTitleText": "角色工作台",
+						"navigationStyle": "custom",
+						"enablePullDownRefresh": true
+					}
+				},
+				{
+					"path": "pages/business_pages/merchant_verify",
+					"style": {
+						"navigationBarTitleText": "商家核销",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "pages/business_pages/points_ledger",
+					"style": {
+						"navigationBarTitleText": "积分流水",
+						"navigationStyle": "custom",
+						"enablePullDownRefresh": true
 					}
 				},
 				{
@@ -756,32 +780,32 @@
 		"list": [
 			{
 				"pagePath": "pages/index/index",
-				"iconPath": "static/lanhu/assets/tabbar/tabbar-home-normal.png",
-				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-home-active.png",
+				"iconPath": "static/images/tabbar/tabbar-home-normal.png",
+				"selectedIconPath": "static/images/tabbar/tabbar-home-active.png",
 				"text": "首页"
 			},
 			{
 				"pagePath": "pages/sort/sort",
-				"iconPath": "static/lanhu/assets/tabbar/tabbar-category-normal.png",
-				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-category-active.png",
+				"iconPath": "static/images/tabbar/tabbar-category-normal.png",
+				"selectedIconPath": "static/images/tabbar/tabbar-category-active.png",
 				"text": "分类"
 			},
 			{
 				"pagePath": "pages/street/street",
-				"iconPath": "static/lanhu/assets/tabbar/tabbar-street-normal.png",
-				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-street-active.png",
+				"iconPath": "static/images/tabbar/tabbar-street-normal.png",
+				"selectedIconPath": "static/images/tabbar/tabbar-street-active.png",
 				"text": "商街"
 			},
 			{
 				"pagePath": "pages/shop_cart/shop_cart",
-				"iconPath": "static/lanhu/assets/tabbar/tabbar-cart-normal.png",
-				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-cart-active.png",
+				"iconPath": "static/images/tabbar/tabbar-cart-normal.png",
+				"selectedIconPath": "static/images/tabbar/tabbar-cart-active.png",
 				"text": "购物车"
 			},
 			{
 				"pagePath": "pages/user/user",
-				"iconPath": "static/lanhu/assets/tabbar/tabbar-user-normal.png",
-				"selectedIconPath": "static/lanhu/assets/tabbar/tabbar-user-active.png",
+				"iconPath": "static/images/tabbar/tabbar-user-normal.png",
+				"selectedIconPath": "static/images/tabbar/tabbar-user-active.png",
 				"text": "我的"
 			}
 		],
@@ -797,7 +821,7 @@
 		}
 	},
 	"optimization": {
-		"subPackages": true
+		"subPackages": false
 	},
 	"easycom": {
 		"autoscan": false,

@@ -37,7 +37,7 @@
  * @property {Number | String} blockWidth 滑块宽度，高等于宽（30）
  * @property {Number | String} height 滑块条高度，单位rpx（默认6）
  * @property {String} inactiveColor 底部条背景颜色（默认#c0c4cc）
- * @property {String} activeColor 底部选择部分的背景颜色（默认#2979ff）
+ * @property {String} activeColor 底部选择部分的背景颜色（默认#a0610d）
  * @property {String} blockColor 滑块颜色（默认#ffffff）
  * @property {Object} blockStyle 给滑块自定义样式，对象形式
  * @property {Boolean} disabled 是否禁用滑块(默认为false)
@@ -87,7 +87,7 @@ export default {
 		// 进度条的激活部分颜色
 		activeColor: {
 			type: String,
-			default: '#2979ff'
+			default: '#a0610d'
 		},
 		// 进度条的背景颜色
 		inactiveColor: {

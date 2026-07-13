@@ -4,10 +4,6 @@
   "packOptions": {
     "ignore": [
       {
-        "value": "unpackage",
-        "type": "folder"
-      },
-      {
         "value": "static/lanhu/designs",
         "type": "folder"
       },
@@ -29,10 +25,6 @@
       },
       {
         "value": "static/lanhu/slices",
-        "type": "folder"
-      },
-      {
-        "value": "static/images",
         "type": "folder"
       }
     ],
@@ -80,7 +72,7 @@
     "condition": false,
     "swc": false,
     "disableSWC": true,
-    "ignoreUploadUnusedFiles": true,
+    "ignoreUploadUnusedFiles": false,
     "bigPackageSizeSupport": true
   },
   "compileType": "miniprogram",

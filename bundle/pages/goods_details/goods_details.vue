@@ -1,6 +1,8 @@
 <template>
 	<view class="goods-details">
-		<navbar title="商品详情" :background="{background: `rgba(256,256,256,${percent})`}" :titleColor="`rgba(0,0,0,${percent})`" :immersive="true"></navbar>
+		<view class="goods-detail-nav">
+			<view class="goods-detail-nav__back" @tap="goBack"></view>
+		</view>
 		<!-- #ifdef H5 -->
 		<download-nav v-if="showDownload" :top="44"></download-nav>
 		<!-- #endif -->
@@ -19,14 +21,15 @@
 					<view class="row white info">
 						<view style="align-items: baseline;" class="row ml20">
 							<view class="mr10">秒杀价</view>
-							<price-format :first-size="46" :second-size="32" :subscript-size="32"
+							<price-format v-if="hasKnownValue(displayMinPrice)" :first-size="46" :second-size="32" :subscript-size="32"
 								:price="displayMinPrice" :weight="500"></price-format>
-							<template v-if="displayMinPrice != displayMaxPrice">
+							<text v-else class="goods-price-pending">价格待确认</text>
+							<template v-if="hasKnownValue(displayMinPrice) && displayMinPrice != displayMaxPrice">
 								<text style="font-size: 46rpx;">-</text>
 								<price-format :first-size="46" :second-size="32" :subscript-size="32"
 									:show-subscript="false" :price="displayMaxPrice" :weight="500"></price-format>
 							</template>
-							<view class="ml10">
+							<view v-if="hasKnownValue(displayMarketPrice)" class="ml10">
 								<price-format :subscript-size="30" :line-through="true" :first-size="30"
 									:second-size="30" :price="displayMarketPrice">
 								</price-format>
@@ -36,19 +39,20 @@
 				</view>
 				<view class="down column-center">
 					<view class="xxs primary mb10">距活动结束仅剩</view>
-					<u-count-down :timestamp="countTime" @end="getGoodsDetailFun" color="#fff" bg-color="#FF2C3C"
-						separator-color="#FF2C3C" font-size="24" height="36" separator-size="26"></u-count-down>
+					<u-count-down :timestamp="countTime" @end="getGoodsDetailFun" color="#fff" bg-color="#a0610d"
+						separator-color="#a0610d" font-size="24" height="36" separator-size="26"></u-count-down>
 				</view>
 			</view>
-			<!-- 鎷煎洟 -->
+			<!-- 拼团 -->
 			<view class="group" v-show="goodsType == 2">
 				<view class="row info" style="height: 100%">
 					<view class="row-between ml20 white" style="flex: 1;">
 						<view style="align-items: baseline;" class="row">
 							<view class="mr10">拼团价</view>
-							<price-format :subscript-size="32" :first-size="46" :second-size="32"
+							<price-format v-if="hasKnownValue(displayTeamPrice)" :subscript-size="32" :first-size="46" :second-size="32"
 								:price="displayTeamPrice" :weight="500"></price-format>
-							<text class="xs">起</text>
+							<text v-else class="goods-price-pending">价格待确认</text>
+							<text v-if="hasKnownValue(displayTeamPrice)" class="xs">起</text>
 						</view>
 						<view class="mr20 row group-num">
 							<view class="group-icon">
@@ -59,7 +63,7 @@
 					</view>
 					<view class="down column-center">
 						<view class="xxs primary mb10">距活动结束仅剩</view>
-						<u-count-down :timestamp="countTime" color="#fff" bg-color="#FF2C3C" separator-color="#FF2C3C"
+						<u-count-down :timestamp="countTime" color="#fff" bg-color="#a0610d" separator-color="#a0610d"
 							font-size="24" height="36" separator-size="26" @end="getGoodsDetailFun"></u-count-down>
 					</view>
 				</view>
@@ -68,7 +72,7 @@
 				<view class="merchant-card__head">
 					<view class="merchant-card__shop">
 						<image class="merchant-card__avatar" :src="shareShopLogo" mode="aspectFill"></image>
-						<view class="merchant-card__name line1">{{ goodsDetail.shop_name || '店铺名称' }}</view>
+						<view class="merchant-card__name line1">{{ goodsDetail.shop_name || '' }}</view>
 						<u-icon name="arrow-right" size="22" color="#ffffff"></u-icon>
 					</view>
 					<view class="merchant-card__follow" @tap.stop="toggleShopSubscribe">{{ shopSubscribed ? '已订阅' : '+订阅' }}</view>
@@ -77,9 +81,10 @@
 					<view class="merchant-card__price-row row-between">
 						<view class="merchant-card__price-box">
 							<view class="merchant-card__price">
-								<price-format :first-size="46" :second-size="32" :subscript-size="32"
+								<price-format v-if="hasKnownValue(goodsType == 2 ? displayTeamPrice : displayMinPrice)" :first-size="46" :second-size="32" :subscript-size="32"
 									:price="goodsType == 2 ? displayTeamPrice : displayMinPrice"
 									:weight="500"></price-format>
+								<text v-else class="goods-price-pending goods-price-pending--dark">价格待确认</text>
 								<text class="merchant-card__price-tag">{{ goodsType == 2 ? '拼团价' : '售价' }}</text>
 							</view>
 						</view>
@@ -89,7 +94,7 @@
 						</view>
 					</view>
 					<view class="merchant-card__price-meta">
-						<view class="merchant-card__meta-item">
+						<view v-if="hasKnownValue(displayMinPrice)" class="merchant-card__meta-item">
 							<text class="merchant-card__meta-label">到手价</text>
 							<text class="merchant-card__meta-value">¥{{ displayMinPrice }}</text>
 						</view>
@@ -97,15 +102,15 @@
 							<text class="merchant-card__meta-label">原价</text>
 							<text class="merchant-card__meta-market">¥{{ displayMarketPrice }}</text>
 						</view>
-						<view class="merchant-card__meta-item">
+						<view v-if="hasKnownValue(displaySalesCount)" class="merchant-card__meta-item">
 							<text class="merchant-card__meta-label">抢购</text>
-							<text class="merchant-card__meta-value">{{ goodsDetail.sales_sum || 0 }}人</text>
+							<text class="merchant-card__meta-value">{{ displaySalesCount }}人</text>
 						</view>
 					</view>
 					<view class="merchant-card__title">{{ goodsDetail.name }}</view>
-					<view v-if="goodsDetail.subtitle || goodsDetail.remark" class="merchant-card__desc line2">{{ goodsDetail.subtitle || goodsDetail.remark }}</view>
+					<view v-if="goodsDetail.subtitle || goodsDetail.remark" class="merchant-card__desc">{{ goodsDetail.subtitle || goodsDetail.remark }}</view>
 					<view v-if="goodsDisplayTags.length" class="merchant-card__tags">
-						<text v-for="tag in goodsDisplayTags" :key="tag" class="merchant-card__tag line1">{{ tag }}</text>
+						<text v-for="tag in goodsDisplayTags" :key="tag" class="merchant-card__tag">{{ tag }}</text>
 					</view>
 				</view>
 			</view>
@@ -148,27 +153,28 @@
 					<image class="option-row__icon" src="https://shengyuan.store/api/miniapp/files/miniapp/7a9d1bcad0d34f018ff8859f514e160a/54a41e25c94ab8c39497ccfe5bb91ece.png" mode="aspectFit"></image>
 					<text class="option-row__text">{{ freightText }}</text>
 				</view>
-				<view v-if="optionBenefits.length" class="option-panel__line option-panel__line--thin"></view>
-				<view v-if="goodsCoupons.length" class="option-row option-row--coupon" @tap="showGoodsCoupon = true">
+				<view v-if="showGoodsCouponEntry || showGoodsPointsEntry" class="option-panel__line option-panel__line--thin"></view>
+				<view v-if="showGoodsCouponEntry" class="option-row option-row--coupon" :class="{ 'option-row--disabled': !claimableGoodsCoupons.length }" @tap="openGoodsCouponPopup">
 					<view class="option-row__coupon-icon">券</view>
 					<view class="option-row__coupon-content">
 						<view class="option-row__coupon-title">优惠券</view>
 						<view class="option-row__coupon-text line1">{{ goodsCouponSummary }}</view>
 					</view>
-					<view class="option-row__coupon-action">领取</view>
+					<view :class="['option-row__coupon-action', !claimableGoodsCoupons.length ? 'option-row__coupon-action--disabled' : '']">{{ claimableGoodsCoupons.length ? '领取' : '已领完' }}</view>
 				</view>
-				<view v-if="goodsCoupons.length && optionPointsBenefit" class="option-panel__line option-panel__line--thin"></view>
-				<view v-if="optionPointsBenefit" class="option-row option-row--benefit">
+				<view v-if="showGoodsCouponEntry && showGoodsPointsEntry" class="option-panel__line option-panel__line--thin"></view>
+				<view v-if="showGoodsPointsEntry" class="option-row option-row--benefit" @tap="showGoodsPoints = true">
 					<view class="option-row__benefit-icon">积</view>
 					<view class="option-row__coupon-content">
 						<view class="option-row__coupon-title">积分</view>
 						<view class="option-row__benefit-text line1">{{ optionPointsBenefit.text }}</view>
 					</view>
+					<view class="option-row__more"></view>
 				</view>
 			</view>
-			<view v-if="otherMarketingBenefits.length" class="marketing-panel bg-white mt20">
+			<view v-if="visibleMarketingBenefits.length" class="marketing-panel bg-white mt20">
 				<view class="marketing-panel__title">营销优惠</view>
-				<view v-for="item in otherMarketingBenefits" :key="item.key" class="marketing-panel__row">
+				<view v-for="item in visibleMarketingBenefits" :key="item.key" class="marketing-panel__row">
 					<text class="marketing-panel__tag">{{ item.tag }}</text>
 					<text class="marketing-panel__text line1">{{ item.text }}</text>
 				</view>
@@ -180,50 +186,93 @@
 			</view>
 			<view class="evaluation bg-white mt20">
 				<navigator hover-class="none" :url="'/bundle_order/pages/all_comments/all_comments?id=' + goodsDetail.id" class="title row-between">
-					<view><text class="balck md mr10">商品评价({{ comment.total || 0 }})</text></view>
+					<view class="evaluation-title">
+						<text class="evaluation-title__main">商品评价({{ comment.total || 0 }})</text>
+						<text v-if="comment.percent" class="evaluation-title__rate">好评率 {{ comment.percent }}</text>
+					</view>
 					<view class="row">
 						<text class="lighter">查看全部</text>
 						<image class="icon-sm" src="https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/arrow_right.png"></image>
 					</view>
 				</navigator>
-				<view class="con" v-if="comment.comment">
-					<view class="user-info row">
-						<image class="avatar mr20" :src="comment.avatar"></image>
-						<view class="user-name md mr10">{{ comment.nickname }}</view>
+				<view class="con" v-if="hasCommentContent">
+					<view class="user-info">
+						<view :class="['comment-avatar-wrap', comment.is_anonymous ? 'is-anonymous' : '']">
+							<image v-if="!comment.is_anonymous && comment.avatar" class="avatar" :src="resolveAvatar(comment.avatar)" mode="aspectFill"></image>
+							<text v-else class="comment-avatar-text">匿</text>
+						</view>
+						<view class="comment-user-main">
+							<view class="comment-user-row">
+								<view class="user-name line1">{{ comment.is_anonymous ? '匿名用户' : (comment.nickname || '未命名用户') }}</view>
+								<view v-if="comment.is_anonymous" class="comment-anonymous-tag">匿名</view>
+							</view>
+							<view v-if="hasCommentScore(comment)" class="comment-stars">
+								<text
+									v-for="star in 5"
+									:key="star"
+									:class="['comment-star', star <= commentScore(comment) ? 'is-active' : '']"
+								>★</text>
+								<text class="comment-score">{{ commentScore(comment) }}分</text>
+							</view>
+						</view>
 					</view>
-					<view class="muted xs mt10"><text class="mr20">{{ formatDisplayTime(comment.create_time) }}</text></view>
-					<view v-if="comment.comment" class="dec mt20">{{ comment.comment }}</view>
+					<view class="comment-meta" v-if="comment.create_time || displayCommentSpec(comment)">
+						<text v-if="comment.create_time">{{ formatDisplayTime(comment.create_time) }}</text>
+						<text v-if="displayCommentSpec(comment)">{{ displayCommentSpec(comment) }}</text>
+					</view>
+					<view class="comment-tag-row" v-if="comment.tags && comment.tags.length">
+						<text v-for="(tag, index) in comment.tags" :key="index" class="comment-tag">{{ tag }}</text>
+					</view>
+					<view v-if="comment.comment" class="dec">{{ comment.comment }}</view>
+					<view v-else class="dec dec--empty">用户未填写文字评价</view>
+					<view class="comment-images" v-if="comment.image && comment.image.length">
+						<view
+							v-for="(img, index) in comment.image"
+							:key="index"
+							class="comment-image"
+							@tap="previewCommentImage(img, comment.image)"
+						>
+							<image :src="resolveGoodsImage(img)" mode="aspectFill"></image>
+						</view>
+					</view>
+					<view class="comment-append" v-if="comment.append_comment || (comment.append_image && comment.append_image.length)">
+						<view class="comment-append__title">
+							<text>追评</text>
+							<text v-if="comment.append_time" class="comment-append__time">{{ formatDisplayTime(comment.append_time) }}</text>
+						</view>
+						<view class="comment-append__text" v-if="comment.append_comment">{{ comment.append_comment }}</view>
+						<view class="comment-images comment-images--append" v-if="comment.append_image && comment.append_image.length">
+							<view
+								v-for="(img, index) in comment.append_image"
+								:key="index"
+								class="comment-image"
+								@tap="previewCommentImage(img, comment.append_image)"
+							>
+								<image :src="resolveGoodsImage(img)" mode="aspectFill"></image>
+							</view>
+						</view>
+					</view>
+					<view class="comment-score-tags" v-if="hasCommentScoreDetail(comment)">
+						<view v-if="hasPositiveScore(comment.description_comment)" class="comment-score-tag">描述相符 {{ comment.description_comment }}分</view>
+						<view v-if="hasPositiveScore(comment.service_comment)" class="comment-score-tag">服务态度 {{ comment.service_comment }}分</view>
+						<view v-if="hasPositiveScore(comment.express_comment)" class="comment-score-tag">配送服务 {{ comment.express_comment }}分</view>
+					</view>
+					<view class="comment-reply" v-if="comment.reply">
+						<view class="comment-reply__title">{{ comment.reply_user || '商家回复' }}</view>
+						<view class="comment-reply__text">{{ comment.reply }}</view>
+						<view class="comment-reply__time" v-if="comment.reply_time">{{ formatDisplayTime(comment.reply_time) }}</view>
+					</view>
+					<view class="comment-like" v-if="comment.like_count">赞 {{ comment.like_count }}</view>
 				</view>
 				<view class="con empty-state" v-else>暂无评价</view>
 			</view>
 
-			<view class="group-record bg-white mt20" v-if="groupRecords.length">
-				<view class="group-record__title">跟团记录</view>
-				<view v-for="(item, index) in groupRecords" :key="index" class="group-record__item">
-					<image v-if="item.avatar" class="group-record__avatar-image" :src="resolveAvatar(item.avatar)" mode="aspectFill"></image>
-					<view v-else class="group-record__avatar"></view>
-					<view class="group-record__content">
-						<view class="group-record__name">{{ item.name }}</view>
-						<view class="group-record__time">{{ item.time ? formatDisplayTime(item.time) : '刚刚跟团' }}</view>
-					</view>
-					<view class="group-record__plus">+{{ item.join || 1 }}</view>
-				</view>
-			</view>
-
-			<view class="group-record bg-white mt20" v-else>
-				<view class="group-record__title">跟团记录</view>
-				<view class="group-record__empty">
-					<view class="group-record__empty-icon"></view>
-					<view>暂无跟团记录</view>
-					<view class="group-record__empty-desc">成为第一个跟团的人吧</view>
-				</view>
-			</view>
 			<view class="goods-extra bg-white mt20" v-if="goodsInfoRows.length">
 				<view class="goods-extra__title">商品信息</view>
 				<view class="goods-extra__grid">
 					<view v-for="row in goodsInfoRows" :key="row.label" class="goods-extra__item">
 						<view class="goods-extra__label">{{ row.label }}</view>
-						<view class="goods-extra__value line1">{{ row.value }}</view>
+						<view class="goods-extra__value">{{ row.value }}</view>
 					</view>
 				</view>
 			</view>
@@ -252,7 +301,7 @@
 					</view>
 				</view>
 			</view>
-			<swiper v-if="teamFound.length" class="mt20 bg-white" autoplay="true" style="height: 240rpx;"
+			<swiper v-if="showTeamRecords" class="mt20 bg-white" autoplay="true" style="height: 240rpx;"
 				vertical="true" circular="true" :interval="5000">
 				<swiper-item v-for="(sitem, index) in teamFound" :key="index">
 					<view class="group-list">
@@ -298,7 +347,7 @@
 					<text class="xxs lighter">购物车</text>
 				</view>
 				<view class="footer-action" @tap="showSpecFun(0)">
-					<view class="footer-action__avatars">
+					<view v-if="goodsType == 2" class="footer-action__avatars">
 						<image
 							v-for="(avatar, index) in groupFooterAvatars"
 							:key="index"
@@ -306,10 +355,11 @@
 							:src="avatar"
 							mode="aspectFill"
 						></image>
+						<view v-if="!groupFooterAvatars.length" class="footer-action__avatar footer-action__avatar--empty"></view>
 					</view>
-					<view class="footer-action__count">{{ groupFooterCount }}人已跟团</view>
-					<image class="footer-action__divider" src="https://shengyuan.store/api/miniapp/files/miniapp/a36a466bcdf04ae6890741d408cf03fc/e7a941da9a41662f3ee7019ebf17adc5.png" mode="scaleToFill"></image>
-					<view class="footer-action__text">跟团买</view>
+					<view v-if="goodsType == 2 && hasKnownValue(groupFooterCount)" class="footer-action__count">{{ groupFooterCount }}人已跟团</view>
+					<view v-if="goodsType == 2" class="footer-action__divider"></view>
+					<view class="footer-action__text">{{ goodsType == 2 ? '跟团买' : '立即购买' }}</view>
 				</view>
 			</view>
 		</view>
@@ -345,12 +395,16 @@
 				<view class="goods-share-panel">
 					<image class="goods-share-main" :src="resolveGoodsImage(goodsDetail.poster || goodsDetail.image)" mode="aspectFill"></image>
 					<view class="goods-share-title line2">{{ goodsDetail.name || '商品详情' }}</view>
-					<view class="goods-share-meta line1">{{ shareShopName }} · 已售{{ goodsDetail.sales_sum || 0 }}</view>
+					<view class="goods-share-meta line1">{{ shareGoodsMetaText }}</view>
 					<view class="goods-share-info">
-						<view class="goods-share-price">
-							<text class="goods-share-price__symbol">¥</text><text class="goods-share-price__main">{{ sharePriceMain }}</text><text class="goods-share-price__decimal">{{ sharePriceDecimal }}</text>
-							<view class="goods-share-tip">扫码查看商品</view>
-						</view>
+							<view v-if="sharePriceText" class="goods-share-price">
+								<text class="goods-share-price__symbol">¥</text><text class="goods-share-price__main">{{ sharePriceMain }}</text><text class="goods-share-price__decimal">{{ sharePriceDecimal }}</text>
+								<view class="goods-share-tip">扫码查看商品</view>
+							</view>
+							<view v-else class="goods-share-price goods-share-price--pending">
+								<text class="goods-share-price__pending">价格待确认</text>
+								<view class="goods-share-tip">扫码查看商品</view>
+							</view>
 						<view class="goods-share-qrcode">
 							<image v-if="shareQrcodeIsImage" class="goods-share-qrcode__image" :src="shareQrcode" mode="aspectFit"></image>
 							<tki-qrcode
@@ -374,28 +428,67 @@
 				<image class="goods-share-close" :src="shareCloseIcon" mode="aspectFit" @tap="showShareBtn = false"></image>
 			</view>
 		</u-popup>
-		<u-popup v-model="showGoodsCoupon" mode="bottom" border-radius="24" closeable>
-			<view class="goods-coupon-popup">
-				<view class="goods-coupon-popup__title">领取优惠券</view>
-				<scroll-view class="goods-coupon-popup__scroll" scroll-y>
-					<view
-						v-for="item in goodsCoupons"
-						:key="item.id || item.coupon_id || item.couponId"
-						class="goods-coupon-card"
-					>
-						<view class="goods-coupon-card__amount">
-							<text class="goods-coupon-card__symbol">¥</text>
-							<text>{{ formatCouponAmount(item) }}</text>
+		<u-popup v-model="showGoodsCoupon" border-radius="14" mode="bottom" closeable>
+			<view class="pop-title row-between">
+				<view class="title">优惠券</view>
+			</view>
+			<view v-if="showGoodsCoupon">
+				<view class="coupon-tabs">
+					<view :class="['coupon-tab', goodsCouponTabIndex === 0 ? 'is-active' : '']" @tap="goodsCouponTabIndex = 0">可领取优惠券 ({{ claimableGoodsCoupons.length }})</view>
+					<view :class="['coupon-tab', goodsCouponTabIndex === 1 ? 'is-active' : '']" @tap="goodsCouponTabIndex = 1">已领取优惠券 ({{ receivedGoodsCoupons.length }})</view>
+				</view>
+				<scroll-view class="coupon-scroll" scroll-y>
+					<view class="coupon-obj">
+						<view
+							v-for="(item, index) in currentGoodsCouponList"
+							:key="couponKey(item) || `goods-coupon-${goodsCouponTabIndex}-${index}`"
+							class="coupon-card"
+							:class="{'coupon-card--received': goodsCouponTabIndex === 1}"
+						>
+							<view class="coupon-item row">
+								<view class="price white column-center">
+									<price-format :subscript-size="34" :first-size="60" :second-size="50" :price="couponAmountValue(item)" :weight="500"></price-format>
+									<view class="nr">{{ couponConditionText(item) }}</view>
+								</view>
+								<view class="row-between coupon-info-wrap">
+									<view class="info ml20">
+										<view class="bold md mb10 line1">{{ couponName(item) }}</view>
+										<view class="xxs lighter mb10">{{ couponTypeText(item) }}</view>
+										<view class="xxs lighter">{{ couponTimeText(item) }}</view>
+									</view>
+									<view
+										v-if="goodsCouponTabIndex === 0"
+										:class="['coupon-receive-btn', couponButtonDisabled(item) ? 'coupon-receive-btn--disabled' : '']"
+										:data-coupon-index="index"
+										:data-coupon-key="couponStableKey(item, index, 'claimable')"
+										data-coupon-list="claimable"
+										@tap.stop="couponButtonDisabled(item) ? null : receiveGoodsCouponByEvent($event)"
+									>{{ couponButtonText(item) }}</view>
+									<view v-else class="coupon-receive-btn coupon-receive-btn--disabled">已领取</view>
+								</view>
+							</view>
+							<view class="coupon-tips xs" v-if="item.tips">{{ localizeCouponText(item.tips) }}</view>
 						</view>
-						<view class="goods-coupon-card__body">
-							<view class="goods-coupon-card__name line1">{{ item.name || item.couponName || '优惠券' }}</view>
-							<view class="goods-coupon-card__condition line1">{{ item.use_condition || item.useCondition || '满足条件即可使用' }}</view>
-							<view class="goods-coupon-card__time line1">{{ item.use_time_tips || item.useTimeTips || item.validTimeText || '有效期以实际规则为准' }}</view>
-						</view>
-						<view class="goods-coupon-card__btn" @tap.stop="receiveGoodsCoupon(item)">{{ item.is_get || item.isGet ? '已领取' : (receivingCouponId == (item.id || item.coupon_id || item.couponId) ? '领取中' : '领取') }}</view>
 					</view>
-					<view v-if="!goodsCoupons.length" class="goods-coupon-popup__empty">暂无可领取优惠券</view>
+					<view v-if="!currentGoodsCouponList.length" class="coupon-empty column-center">
+						<text class="muted">暂无优惠券</text>
+					</view>
 				</scroll-view>
+				<view class="column-center">
+					<view class="coupon-confirm white row-center br60 mb10 lg" @tap="showGoodsCoupon = false">确定</view>
+				</view>
+			</view>
+		</u-popup>
+		<u-popup v-model="showGoodsPoints" border-radius="14" mode="bottom" closeable>
+			<view class="pop-title row-between">
+				<view class="title">积分说明</view>
+			</view>
+			<view class="points-pop">
+				<view v-for="item in pointsBenefitRows" :key="item.label" class="points-pop__row">
+					<view class="points-pop__label">{{ item.label }}</view>
+					<view class="points-pop__value">{{ item.value }}</view>
+				</view>
+				<view class="points-pop__confirm white row-center br60 lg" @tap="showGoodsPoints = false">确定</view>
 			</view>
 		</u-popup>
 		<canvas canvas-id="goodsShareCanvas" id="goodsShareCanvas" class="share-canvas"></canvas>
@@ -420,7 +513,6 @@
 </template>
 
 <script>
-import Navbar from '@/components/navbar/navbar.vue'
 import UPopup from '@/bundle/components/uview-ui/components/u-popup/u-popup.vue'
 import UCountDown from '@/bundle/components/uview-ui/components/u-count-down/u-count-down.vue'
 import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
@@ -430,8 +522,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 	import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 	import {
 		getGoodsDetail,
-		addCart,
-		getCartNum as fetchCartNum
+		getCommentList,
+		addCart
 	} from '@/api/store';
 	import {
 		collectGoods,
@@ -465,11 +557,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 	import { resolveImage } from '@/utils/image-placeholder'
 	import { baseURL } from '@/config/app'
 	import PriceFormat from '@/bundle/components/price-format/price-format.vue'
+	import { formatCouponText } from '@/utils/backend-text'
 	export default {
 		components: {
 			GoodsLike,
 			PriceFormat,
-			Navbar,
 			UPopup,
 			UCountDown,
 			UIcon,
@@ -485,6 +577,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				isNull: false,
 				showSpec: false,
 				showGoodsCoupon: false,
+				goodsCouponTabIndex: 0,
+				showGoodsPoints: false,
 				showShareBtn: false,
 				shareQrcode: '',
 				shareQrcodeIsImage: false,
@@ -514,6 +608,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				groupRecords: [],
 				fetchingDetail: false,
 				receivingCouponId: '',
+				receivedCouponIds: [],
 				shareCloseIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/87c0300dafb0450ea11fc2bc5b76c91b/676d68646053824b88f084648bfc6594.png',
 				shareStarIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/418affabb42a4f2692e1d894a8f6411c/6ab9b0b9917a09a6d5fdab80e40bf103.png',
 				shareTimeIcon: 'https://shengyuan.store/api/miniapp/files/miniapp/81a56cbe3aee49449a4f1014a8a90109/4a0776d08638585f2aaac7f04bf1a07d.png'
@@ -534,18 +629,18 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			}
 			// #endif
 			if (!options || !options.id) {
-				this.id = '1';
+				this.id = '';
 				this.applyDefaultGoodsDetail();
-			} else {
-				this.id = options.id;
+				return;
 			}
+			this.id = options.id;
 			this.targetSkuId = options.skuId || options.itemId || options.item_id || '';
-			this.refreshCartNum();
+			this.loadReceivedCouponCache();
 		},
 		onShow() {
 			if (!this.id) return;
+			this.loadReceivedCouponCache();
 			this.getGoodsDetailFun();
-			this.refreshCartNum();
 		},
 		onPageScroll(e) {
 			const top = uni.upx2px(100)
@@ -557,13 +652,13 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		},
 		methods: {
 			...mapActions(['getCartNum']),
-			async refreshCartNum() {
-				try {
-					const cartRes = await fetchCartNum();
-					if (cartRes.code == 1) {
-						this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
-					}
-				} catch (error) {}
+			goBack() {
+				const pages = getCurrentPages()
+				if (pages.length > 1) {
+					uni.navigateBack({ delta: 1 })
+					return
+				}
+				uni.switchTab({ url: '/pages/index/index' })
 			},
 			goodsShareLink() {
 				const inviteCode = this.userInfo.distribution_code || this.$store.getters.inviteCode || '';
@@ -607,11 +702,45 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					}, 100);
 				});
 			},
+			hasCommentScore(item = {}) {
+				const rawScore = item.goods_rate || item.goods_comment || item.score
+				const score = Number(rawScore)
+				return rawScore !== '' && rawScore !== null && rawScore !== undefined && !Number.isNaN(score) && score > 0
+			},
+			commentScore(item = {}) {
+				const rawScore = item.goods_rate || item.goods_comment || item.score
+				if (rawScore === '' || rawScore === null || rawScore === undefined) return 0
+				const score = Number(rawScore)
+				if (!score || score < 1) return 0
+				return Math.max(1, Math.min(5, Math.round(score)))
+			},
+			hasCommentScoreDetail(item = {}) {
+				return this.hasPositiveScore(item.description_comment)
+					|| this.hasPositiveScore(item.service_comment)
+					|| this.hasPositiveScore(item.express_comment)
+			},
+			hasPositiveScore(value) {
+				const score = Number(value)
+				return value !== '' && value !== null && value !== undefined && !Number.isNaN(score) && score > 0
+			},
+			displayCommentSpec(item = {}) {
+				const text = String(item.spec_value_str || '').trim()
+				if (!text || /^\d+$/.test(text)) return ''
+				return text
+			},
 			resolveAvatar(avatar) {
 				return resolveImage(avatar, 'avatar')
 			},
 			resolveGoodsImage(image) {
 				return resolveImage(image, 'goods')
+			},
+			previewCommentImage(current, urls = []) {
+				const imageUrls = (urls || []).filter(Boolean).map(image => this.resolveGoodsImage(image))
+				if (!imageUrls.length) return
+				uni.previewImage({
+					current: this.resolveGoodsImage(current),
+					urls: imageUrls
+				})
 			},
 			goShopDetail() {
 				const shopId = this.goodsDetail.shop_id || this.goodsDetail.shopId
@@ -747,9 +876,9 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				const shopLogo = await this.getImageInfo(this.shareShopLogo).catch(() => null);
 				const qrcodeSource = this.shareQrcodeIsImage ? this.shareQrcode : this.shareQrcodeTempImage;
 				const qrcode = qrcodeSource ? await this.getImageInfo(qrcodeSource).catch(() => null) : null;
-				ctx.setFillStyle('#f3f8ff');
+				ctx.setFillStyle('#fff9f0');
 				ctx.fillRect(0, 0, 320, 570);
-				ctx.setFillStyle('#037dfa');
+				ctx.setFillStyle('#a0610d');
 				this.drawRoundRect(ctx, 16, 18, 288, 76, 14);
 				ctx.fill();
 				if (this.isDrawableImage(shopLogo)) ctx.drawImage(shopLogo.path, 30, 34, 40, 40);
@@ -768,7 +897,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				const infoTop = 350 + titleLines * 22 + 12;
 				ctx.setFillStyle('#8b95a5');
 				ctx.setFontSize(12);
-				this.drawTextLine(ctx, `${this.shareShopName} · 已售${this.goodsDetail.sales_sum || 0}`, 30, infoTop, 260);
+				this.drawTextLine(ctx, this.shareGoodsMetaText, 30, infoTop, 260);
 				ctx.setFillStyle('#ff2e2e');
 				ctx.setFontSize(14);
 				ctx.fillText('¥', 30, 494);
@@ -785,7 +914,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				if (this.isDrawableImage(qrcode)) {
 					ctx.drawImage(qrcode.path, 181, 411, 102, 102);
 				} else {
-					ctx.setFillStyle('#037dfa');
+					ctx.setFillStyle('#a0610d');
 					ctx.setFontSize(12);
 					ctx.fillText('二维码', 218, 468);
 				}
@@ -853,15 +982,122 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				if (value && typeof value === 'object') return value.name || value.title || value.label || value.tagName || value.tag_name || value.serviceName || value.service_name || value.value || ''
 				return value
 			},
+			firstDefined(...values) {
+				return values.find(value => value !== undefined && value !== null && value !== '')
+			},
+			moneyValue(value) {
+				const amount = Number(value)
+				return Number.isNaN(amount) ? 0 : amount
+			},
+			couponAmountRaw(item = {}) {
+				return this.firstDefined(
+					item.money,
+					item.amount,
+					item.discountAmount,
+					item.discount_amount,
+					item.discountValue,
+					item.discount_value,
+					item.couponAmount,
+					item.coupon_amount,
+					item.reduceAmount,
+					item.reduce_amount,
+					item.deductAmount,
+					item.deduct_amount,
+					item.faceValue,
+					item.face_value,
+					item.value,
+					item.coupon && (item.coupon.money || item.coupon.amount || item.coupon.discountAmount || item.coupon.discount_amount),
+					item.couponInfo && (item.couponInfo.money || item.couponInfo.amount || item.couponInfo.discountAmount || item.couponInfo.discount_amount),
+					0
+				)
+			},
+			couponName(item = {}) {
+				return this.localizeCouponText(item.name || item.couponName || item.coupon_name || item.title || '优惠券')
+			},
+			couponConditionText(item = {}) {
+				const threshold = this.firstDefined(item.thresholdAmount, item.threshold_amount, item.minAmount, item.min_amount, item.useThreshold, item.use_threshold)
+				return this.localizeCouponText(item.use_condition || item.useCondition || item.conditionText || item.condition || (Number(threshold) > 0 ? `满${threshold}可用` : '无门槛'))
+			},
+			couponTypeText(item = {}) {
+				const type = String(item.coupon_type || item.couponType || item.typeText || item.type || '').toUpperCase()
+				const map = {
+					COUPON: '优惠券',
+					FULL: '满减券',
+					FULL_REDUCE: '满减券',
+					DISCOUNT: '折扣券',
+					FIXED_DISCOUNT: '折扣券',
+					REDUCE: '满减券',
+					MONEY: '现金券',
+					CASH_COUPON: '现金券',
+					FULL_REDUCTION: '满减券',
+					FULL_DISCOUNT: '满减券',
+					CASH: '现金券',
+					VOUCHER: '代金券',
+					FREIGHT: '运费券',
+					FREE_SHIPPING: '包邮券',
+					PLATFORM: '平台券',
+					MERCHANT: '商家券',
+					SHOP: '商家券',
+					STORE: '商家券'
+				}
+				return map[type] || this.localizeCouponText(item.coupon_type || item.couponType || item.typeText || '优惠券')
+			},
+			couponTimeText(item = {}) {
+				return this.localizeCouponText(item.use_time_tips || item.useTimeTips || item.validTimeText || item.valid_time_text || [item.startTime || item.start_time, item.endTime || item.end_time].filter(Boolean).join(' 至 ') || '有效期以实际规则为准')
+			},
+			localizeCouponText(value) {
+				const text = String(value || '')
+				const exactMap = {
+					AVAILABLE: '可使用',
+					UNAVAILABLE: '不可用',
+					RECEIVABLE: '可领取',
+					ORDER_CONFIRM_RECEIVABLE: '',
+					ORDER_CONFIRM_AVAILABLE: '',
+					ORDER_CONFIRM_UNAVAILABLE: '',
+					CLAIMABLE: '可领取',
+					RECEIVED: '已领取',
+					USED: '已使用',
+					EXPIRED: '已过期',
+					UNUSED: '未使用',
+					PLATFORM: '平台券',
+					MERCHANT: '商家券',
+					SHOP: '商家券',
+					STORE: '商家券',
+					DISCOUNT: '折扣券',
+					REDUCE: '满减券',
+					FULL_REDUCTION: '满减券',
+					FREE_SHIPPING: '包邮券'
+				}
+				const upper = text.toUpperCase()
+				if (Object.prototype.hasOwnProperty.call(exactMap, upper)) return exactMap[upper]
+				return formatCouponText(text, '')
+					.replace(/\bORDER_CONFIRM_RECEIVABLE\b/gi, '')
+					.replace(/\bORDER_CONFIRM_AVAILABLE\b/gi, '')
+					.replace(/\bORDER_CONFIRM_UNAVAILABLE\b/gi, '')
+					.replace(/\bAVAILABLE\b/gi, '可使用')
+					.replace(/\bUNAVAILABLE\b/gi, '不可用')
+					.replace(/\bRECEIVABLE\b/gi, '可领取')
+					.replace(/\bCLAIMABLE\b/gi, '可领取')
+					.replace(/\bRECEIVED\b/gi, '已领取')
+					.replace(/\bUSED\b/gi, '已使用')
+					.replace(/\bEXPIRED\b/gi, '已过期')
+					.replace(/\bUNUSED\b/gi, '未使用')
+					.replace(/\bPLATFORM\b/gi, '平台')
+					.replace(/\bMERCHANT\b/gi, '商家')
+					.replace(/\bSHOP\b/gi, '商家')
+			},
 			formatCouponBenefit(item = {}) {
-				const amount = Number(item.money || item.amount || item.discountAmount || item.couponAmount || item.value || 0)
-				const name = item.name || item.couponName || item.coupon_name || '优惠券'
-				const condition = item.use_condition || item.useCondition || item.conditionText || ''
+				const amount = this.couponAmountValue(item)
+				const name = this.couponName(item)
+				const condition = this.couponConditionText(item)
 				return `${name}${amount > 0 ? `减¥${amount.toFixed(2)}` : ''}${condition ? `（${condition}）` : ''}`
 			},
 			formatCouponAmount(item = {}) {
-				const amount = Number(item.money || item.amount || item.discountAmount || item.couponAmount || item.value || 0)
-				return Number.isNaN(amount) ? '0' : amount.toFixed(amount % 1 === 0 ? 0 : 2)
+				const amount = this.couponAmountValue(item)
+				return amount.toFixed(amount % 1 === 0 ? 0 : 2)
+			},
+			couponAmountValue(item = {}) {
+				return this.moneyValue(this.couponAmountRaw(item))
 			},
 			arrayPayload(value) {
 				if (Array.isArray(value)) return value
@@ -871,18 +1107,133 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				if (value && Array.isArray(value.rows)) return value.rows
 				return []
 			},
+			findCouponId(source, depth = 0) {
+				if (!source || depth > 4) return ''
+				const directKeys = ['couponId', 'coupon_id', 'couponTemplateId', 'coupon_template_id', 'couponTplId', 'coupon_tpl_id', 'templateId', 'template_id', 'couponTemplateNo', 'coupon_template_no']
+				for (const key of directKeys) {
+					if (source[key] !== undefined && source[key] !== null && source[key] !== '') return source[key]
+				}
+				const objectKeys = ['couponTemplate', 'coupon_template', 'couponTemplateDTO', 'coupon_template_dto', 'template', 'templateInfo', 'template_info', 'templateDTO', 'template_dto', 'couponTemplateInfo', 'coupon_template_info', 'coupon', 'couponInfo', 'coupon_info', 'couponDTO', 'coupon_dto']
+				for (const key of objectKeys) {
+					const value = source[key]
+					if (value && typeof value === 'object') {
+						const id = this.findCouponId(value, depth + 1)
+						if (id) return id
+					}
+				}
+				return source.id || ''
+			},
 			couponKey(item = {}) {
-				return item.id || item.coupon_id || item.couponId || item.userCouponId || ''
+				return this.findCouponId(item)
+			},
+			couponStableKey(item = {}, index = 0, prefix = 'coupon') {
+				return String(this.couponKey(item) || this.couponReceiveId(item) || `${prefix}-${index}`)
+			},
+			couponReceiveId(item = {}) {
+				const template = item.couponTemplate || item.coupon_template || item.couponTemplateDTO || item.coupon_template_dto || item.template || item.templateInfo || item.template_info || item.templateDTO || item.template_dto || item.couponTemplateInfo || item.coupon_template_info || {}
+				return item.couponTemplateId || item.coupon_template_id || item.couponTplId || item.coupon_tpl_id || item.templateId || item.template_id || template.couponTemplateId || template.coupon_template_id || template.couponTplId || template.coupon_tpl_id || template.templateId || template.template_id || template.id || item.couponId || item.coupon_id || this.couponKey(item)
+			},
+			goodsCouponCacheKey() {
+				const userId = this.userInfo.id || this.userInfo.userId || this.userInfo.user_id || 'guest'
+				return `goods_received_coupons_${userId}_${this.id || 'unknown'}`
+			},
+			loadReceivedCouponCache() {
+				const value = uni.getStorageSync(this.goodsCouponCacheKey())
+				this.receivedCouponIds = Array.isArray(value) ? value.map(item => String(item)) : []
+			},
+			saveReceivedCouponCache(id) {
+				if (!id) return
+				const ids = new Set(this.receivedCouponIds.map(item => String(item)))
+				ids.add(String(id))
+				const list = Array.from(ids)
+				this.receivedCouponIds = list
+				uni.setStorageSync(this.goodsCouponCacheKey(), list)
+			},
+			isCouponReceivedLocally(item = {}) {
+				const ids = [this.couponKey(item), this.couponReceiveId(item)].filter(Boolean).map(value => String(value))
+				return ids.some(id => this.receivedCouponIds.includes(id))
+			},
+			couponReceivePayload(item = {}) {
+				const id = this.couponKey(item)
+				const templateId = this.couponReceiveId(item)
+				const productId = this.goodsDetail.spuId || this.goodsDetail.spu_id || this.goodsDetail.goods_id || this.goodsDetail.goodsId || this.goodsDetail.id
+				return {
+					couponId: item.couponId || item.coupon_id || id,
+					coupon_id: item.couponId || item.coupon_id || id,
+					couponTemplateId: templateId,
+					coupon_template_id: templateId,
+					couponTplId: templateId,
+					coupon_tpl_id: templateId,
+					templateId,
+					template_id: templateId,
+					receiveScene: 'PRODUCT_DETAIL',
+					receive_scene: 'PRODUCT_DETAIL',
+					spuId: productId,
+					spu_id: productId,
+					productId,
+					product_id: productId,
+					goodsId: productId,
+					goods_id: productId
+				}
+			},
+			couponButtonText(item = {}) {
+				if (item.is_get || item.isGet || this.isCouponReceivedLocally(item)) return '已领取'
+				if (!this.couponReceiveId(item)) return '暂不可领'
+				return this.receivingCouponId == this.couponReceiveId(item) ? '领取中' : '领取'
+			},
+			couponButtonDisabled(item = {}) {
+				return Boolean(item.is_get || item.isGet || this.isCouponReceivedLocally(item) || !this.couponReceiveId(item) || this.receivingCouponId == this.couponReceiveId(item))
+			},
+			openGoodsCouponPopup() {
+				if (!this.claimableGoodsCoupons.length) return
+				this.goodsCouponTabIndex = 0
+				this.showGoodsCoupon = true
+			},
+			resolveCouponFromEvent(event = {}) {
+				const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+				const listName = dataset.couponList || dataset.coupon_list || 'claimable'
+				const index = Number(dataset.couponIndex ?? dataset.coupon_index)
+				const key = String(dataset.couponKey || dataset.coupon_key || '')
+				const list = listName === 'received' ? this.receivedGoodsCoupons : this.claimableGoodsCoupons
+				if (!Number.isNaN(index) && list[index]) {
+					const item = list[index]
+					if (!key || this.couponStableKey(item, index, listName) === key) return item
+				}
+				return list.find((item, itemIndex) => this.couponStableKey(item, itemIndex, listName) === key) || {}
+			},
+			markCouponReceived(target = {}) {
+				if (!target || typeof target !== 'object') return
+				this.$set(target, 'is_get', 1)
+				this.$set(target, 'isGet', 1)
+				const targetKey = this.couponKey(target) || this.couponReceiveId(target)
+				if (!targetKey) return
+				this.goodsCoupons.forEach(item => {
+					const itemKey = this.couponKey(item) || this.couponReceiveId(item)
+					if (String(itemKey) === String(targetKey)) {
+						this.$set(item, 'is_get', 1)
+						this.$set(item, 'isGet', 1)
+					}
+				})
+			},
+			receiveGoodsCouponByEvent(event = {}) {
+				const item = this.resolveCouponFromEvent(event)
+				return this.receiveGoodsCoupon(item)
 			},
 			receiveGoodsCoupon(item = {}) {
-				if (item.is_get || item.isGet) return
+				if (!item || typeof item !== 'object' || !Object.keys(item).length) {
+					return uni.showToast({ title: '优惠券信息异常', icon: 'none' })
+				}
+				if (this.couponButtonDisabled(item)) return
 				if (!this.isLogin) return toLogin()
-				const id = this.couponKey(item)
+				if (this.receivingCouponId) return
+				const id = this.couponReceiveId(item)
 				if (!id) return uni.showToast({ title: '优惠券信息异常', icon: 'none' })
-				this.receivingCouponId = id
-				getCoupon(id).then(res => {
+				this.receivingCouponId = id || `pending-${Date.now()}`
+				getCoupon(id, this.couponReceivePayload(item)).then(res => {
 					if (res.code == 1) {
-						this.$set(item, 'is_get', 1)
+						this.saveReceivedCouponCache(id)
+						this.markCouponReceived(item)
+						this.goodsCouponTabIndex = 1
 						uni.showToast({ title: '领取成功', icon: 'success' })
 						return
 					}
@@ -906,12 +1257,28 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			isEnabledValue(value) {
 				return value === true || value === 1 || value === '1' || value === 'true' || value === 'TRUE' || value === 'Y' || value === 'YES'
 			},
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== ''
+			},
 			pickFirstValue(source, keys) {
 				for (const key of keys) {
 					const value = source ? source[key] : undefined
 					if (value !== undefined && value !== null && value !== '') return value
 				}
 				return ''
+			},
+			normalizeGoodsCategoryType(detail = this.goodsDetail) {
+				const value = this.pickFirstValue(detail || {}, ['categoryType', 'category_type', 'goodsCategoryType', 'goods_category_type', 'productCategoryType', 'product_category_type', 'sceneType', 'scene_type'])
+				const text = String(value || '').toUpperCase()
+				return ['OFFLINE', 'OFFLINE_MALL', 'STREET'].includes(text) ? 'OFFLINE' : 'ONLINE'
+			},
+			normalizeGoodsDeliveryType(detail = this.goodsDetail) {
+				if (this.normalizeGoodsCategoryType(detail) === 'OFFLINE') return 2
+				const template = detail.freight_template || detail.freightTemplate || detail.shipping_template || detail.shippingTemplate || {}
+				const value = this.pickFirstValue({ ...template, ...detail }, ['delivery_type', 'deliveryType', 'shippingMethod', 'shipping_method'])
+				const text = String(value || '').toUpperCase()
+				if (value === 2 || text === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(text)) return 2
+				return 1
 			},
 			formatRichContent(value) {
 				if (Array.isArray(value)) {
@@ -925,9 +1292,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				if (value && typeof value === 'object') return value.content || value.detail || value.html || value.richText || value.rich_text || ''
 				return value || ''
 			},
-			normalizePrice(value, fallback = 0) {
-				const next = Number(value ?? fallback ?? 0);
-				return Number.isNaN(next) ? '0.00' : next.toFixed(2);
+				normalizePrice(value, fallback = '') {
+					const source = value !== undefined && value !== null && value !== '' ? value : fallback;
+					if (source === undefined || source === null || source === '') return '';
+					const next = Number(source);
+					return Number.isNaN(next) ? '' : next.toFixed(2);
 			},
 			normalizeGoodsDetailForView(data = {}) {
 				const minPrice = data.min_price ?? data.minPrice ?? data.salePrice ?? data.price ?? data.skuMinPrice ?? data.priceMin;
@@ -948,6 +1317,33 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					goodsNum: sku.goodsNum || sku.goods_num || sku.quantity || 1
 				};
 			},
+			resolveCheckoutPrice(detail = this.checkedGoods) {
+				const sku = detail || {};
+				const salePrice = this.normalizePrice(
+					sku.price
+					?? sku.goods_price
+					?? sku.goodsPrice
+					?? sku.sale_price
+					?? sku.salePrice
+					?? sku.min_price
+					?? sku.minPrice
+					?? (this.goodsType == 2 ? this.displayTeamPrice : this.displayMinPrice)
+				);
+				const marketPrice = this.normalizePrice(
+					sku.original_price
+					?? sku.originalPrice
+					?? sku.market_price
+					?? sku.marketPrice
+					?? sku.linePrice
+					?? this.marketDisplayText
+					?? salePrice,
+					salePrice
+				);
+				return {
+					salePrice,
+					marketPrice
+				};
+			},
 			isSameSku(item = {}, skuId) {
 				if (!skuId) return false;
 				return [item.item_id, item.sku_id, item.skuId, item.id, item.itemSkuId].some(value => String(value || '') === String(skuId));
@@ -965,6 +1361,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					spec_value_ids_arr: Array.isArray(item.spec_value_ids_arr) ? item.spec_value_ids_arr : String(specIds || '').split(',')
 				});
 			},
+			skuDisplayName(item = {}) {
+				const skuName = item.skuName || item.sku_name || item.skuTitle || item.sku_title || item.name || item.title
+				const specText = item.spec_value_str || item.specValueStr || item.spec_value || item.specValue || ''
+				if (skuName && specText && skuName !== specText) return `${skuName}（${specText}）`
+				return skuName || specText || '规格待确认'
+			},
 			getDefaultCheckedGoods(goodsItem = []) {
 				const target = goodsItem.find(item => this.isSameSku(item, this.targetSkuId));
 				const available = goodsItem.find(item => Number(item.stock || 0) > 0);
@@ -979,13 +1381,38 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					if (Array.isArray(item)) return records.concat(item);
 					if (item && typeof item === 'object') records.push(item);
 					return records;
-				}, []).map((item, index) => ({
-					id: item.id || item.found_id || item.foundId || index,
-					avatar: item.avatar || item.user_avatar || item.userAvatar || '',
-					name: item.nickname || item.user_name || item.userName || item.name || '匿名用户',
-					time: item.create_time || item.createTime || item.found_time || item.foundTime || '',
-					join: item.join || item.join_num || item.joinNum || 1
-				}));
+				}, []).map((item, index) => {
+					const name = item.nickname || item.user_name || item.userName || item.name || item.memberName || item.member_name || ''
+					const people = Number(item.people_num || item.peopleNum || item.group_num || item.groupNum || this.team.people_num || this.team.peopleNum || 0)
+					const joined = Number(item.join || item.join_num || item.joinNum || item.joinedCount || item.joined_count || item.currentNum || item.current_num || 1)
+					const need = Number(item.need_num || item.needNum || item.lackNum || item.lack_num || item.leftNum || item.left_num || 0)
+					const statusText = item.status_text || item.statusText || item.team_status_text || item.teamStatusText || ''
+					return {
+						id: item.id || item.found_id || item.foundId || item.team_id || item.teamId || index,
+						avatar: item.avatar || item.user_avatar || item.userAvatar || item.headimgurl || '',
+						name: name || '用户待确认',
+						initial: String(name || '用户').slice(0, 1),
+						time: item.create_time || item.createTime || item.found_time || item.foundTime || item.join_time || item.joinTime || '',
+						join: joined || 1,
+						people,
+						need,
+						needText: need > 0 ? `还差${need}人成团` : (people > joined ? `还差${people - joined}人成团` : ''),
+						statusText
+					}
+				});
+			},
+			async loadGoodsCommentFallback(goodsId) {
+				if (!goodsId || this.hasCommentContent) return;
+				try {
+					const res = await getCommentList({ goods_id: goodsId, page_no: 1, pageSize: 1 });
+					if (res.code != 1 || !res.data) return;
+					const first = (res.data.list || [])[0] || {};
+					if (!Object.keys(first).length && !res.data.total) return;
+					this.comment = Object.assign({}, this.comment, first, {
+						total: res.data.total || this.comment.total || 0,
+						percent: res.data.percent || this.comment.percent || ''
+					});
+				} catch (error) {}
 			},
 			toggleShopSubscribe() {
 				if (!this.isLogin) return toLogin();
@@ -1076,6 +1503,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					this.swiperList = Array.isArray(goods_image) && goods_image.length ? goods_image : [data.image].filter(Boolean);
 					this.activePreviewIndex = 0;
 					this.comment = comment || {};
+					this.loadGoodsCommentFallback(data.id || data.goods_id || data.spuId || this.id);
 					this.goodsLike = Array.isArray(like) ? like : [];
 					this.checkedGoods = this.getDefaultCheckedGoods(data.goods_item || []);
 					this.countTime = time;
@@ -1161,18 +1589,51 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					goodsType,
 					team
 				} = this;
+				const checkoutPrice = this.resolveCheckoutPrice(skuDetail);
+				const categoryType = this.normalizeGoodsCategoryType(this.goodsDetail);
+				const deliveryType = this.normalizeGoodsDeliveryType(this.goodsDetail);
 				let goods = [{
 					item_id: itemId,
 					skuId: itemId,
 					goods_id: this.goodsDetail.goods_id || this.goodsDetail.goodsId || this.goodsDetail.id,
+					spuId: this.goodsDetail.spuId || this.goodsDetail.goods_id || this.goodsDetail.goodsId || this.goodsDetail.id,
+					categoryId: this.goodsDetail.categoryId || this.goodsDetail.category_id || '',
+					category_id: this.goodsDetail.category_id || this.goodsDetail.categoryId || '',
+					categoryType,
+					category_type: categoryType,
+					delivery_type: deliveryType,
+					deliveryType,
+					orderChannel: categoryType === 'OFFLINE' ? 'OFFLINE_PICKUP' : 'ONLINE',
 					goods_name: this.goodsDetail.goods_name || this.goodsDetail.name,
 					name: this.goodsDetail.name,
 					image: skuDetail.image || skuDetail.imageUrl || skuDetail.skuImage || skuDetail.skuImageUrl || this.goodsDetail.image || this.previewImages[0] || '',
 					image_str: skuDetail.image || skuDetail.imageUrl || skuDetail.skuImage || skuDetail.skuImageUrl || this.goodsDetail.image || this.previewImages[0] || '',
+					goods_price: checkoutPrice.salePrice,
+					goodsPrice: checkoutPrice.salePrice,
+					price: checkoutPrice.salePrice,
+					sale_price: checkoutPrice.salePrice,
+					salePrice: checkoutPrice.salePrice,
+					original_price: checkoutPrice.marketPrice,
+					originalPrice: checkoutPrice.marketPrice,
+					market_price: checkoutPrice.marketPrice,
+					marketPrice: checkoutPrice.marketPrice,
 					shop_id: this.goodsDetail.shop_id || this.goodsDetail.shopId || this.goodsDetail.shop?.shopId || '',
 					shop_name: this.shareShopName,
 					shop_logo: this.shareShopLogo,
 					shopLogo: this.shareShopLogo,
+					pointsEnabled: this.pointsSwitchEnabled,
+					points_enabled: this.pointsSwitchEnabled,
+					pointsAmount: this.pointsBenefitData.points,
+					points_amount: this.pointsBenefitData.points,
+					pointsDeductAmount: this.pointsBenefitData.amount,
+					points_deduct_amount: this.pointsBenefitData.amount,
+					maxDeductAmount: this.pointsBenefitData.amount,
+					max_deduct_amount: this.pointsBenefitData.amount,
+					singleMaxDeductAmount: this.pointsBenefitData.amount,
+					single_max_deduct_amount: this.pointsBenefitData.amount,
+					giveIntegral: this.pointsBenefitData.giveIntegral,
+					give_integral: this.pointsBenefitData.giveIntegral,
+					order_give_integral: this.pointsBenefitData.giveIntegral,
 					spec_value_str: skuDetail.spec_value_str || skuDetail.skuName || skuDetail.name || this.selectedSpecText,
 					quantity,
 					num: quantity
@@ -1220,11 +1681,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					const cartCount = data?.cartCount ?? data?.count ?? data?.num ?? data?.total;
 					if (cartCount !== undefined && cartCount !== null) {
 						this.getCartNum(cartCount);
-					} else {
-						const cartRes = await fetchCartNum();
-						if (cartRes.code == 1) {
-							this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
-						}
 					}
 					this.$toast({ title: '已加入购物车', icon: 'success' });
 				}
@@ -1254,11 +1710,6 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					const cartCount = data?.cartCount ?? data?.count ?? data?.num ?? data?.total;
 					if (cartCount !== undefined && cartCount !== null) {
 						this.getCartNum(cartCount);
-					} else {
-						const cartRes = await fetchCartNum();
-						if (cartRes.code == 1) {
-							this.getCartNum(cartRes.data?.cartCount ?? cartRes.data?.count ?? cartRes.data?.num ?? cartRes.data?.total ?? 0);
-						}
 					}
 					this.$toast({
 						title: '已加入购物车',
@@ -1281,7 +1732,17 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			};
 		},
 		computed: {
-			...mapGetters(['cartNum', 'userInfo']),
+			...mapGetters(['cartNum', 'userInfo', 'isLogin']),
+			hasCommentContent() {
+				const item = this.comment || {}
+				return Boolean(
+					item.comment ||
+					(item.image && item.image.length) ||
+					item.reply ||
+					item.append_comment ||
+					(item.append_image && item.append_image.length)
+				)
+			},
 			btnText() {
 				const {
 					goodsType
@@ -1323,8 +1784,13 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			showGroupFooter() {
 				return true
 			},
+			showTeamRecords() {
+				return false
+			},
 			groupFooterCount() {
-				return this.team.joinedCount || this.team.joined_count || this.team.join_num || this.team.joinNum || this.team.salesCount || this.team.sales_count || this.goodsDetail.group_join_num || this.goodsDetail.groupJoinNum || this.goodsDetail.joinedCount || this.goodsDetail.joined_count || this.goodsDetail.sales_sum || this.goodsDetail.salesCount || 0
+				const teamCount = this.pickFirstValue(this.team, ['joinedCount', 'joined_count', 'join_num', 'joinNum', 'salesCount', 'sales_count'])
+				if (this.hasKnownValue(teamCount)) return teamCount
+				return this.pickFirstValue(this.goodsDetail, ['group_join_num', 'groupJoinNum', 'joinedCount', 'joined_count', 'sales_sum', 'salesCount'])
 			},
 			displayMinPrice() {
 				return this.normalizePrice(this.checkedGoods.price ?? this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.price ?? this.goodsDetail.salePrice ?? this.goodsDetail.sale_price ?? this.goodsDetail.min_price ?? this.goodsDetail.minPrice)
@@ -1333,7 +1799,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				return this.normalizePrice(this.checkedGoods.sale_price ?? this.checkedGoods.salePrice ?? this.goodsDetail.max_price ?? this.goodsDetail.maxPrice ?? this.goodsDetail.salePrice ?? this.goodsDetail.sale_price ?? this.checkedGoods.price ?? this.goodsDetail.price, this.displayMinPrice)
 			},
 			displayMarketPrice() {
-				return this.normalizePrice(this.checkedGoods.market_price ?? this.checkedGoods.marketPrice ?? this.checkedGoods.originPrice ?? this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice, this.displayMaxPrice)
+				const salePrice = Number(this.displayMinPrice || 0)
+				const skuMarketPrice = Number(this.checkedGoods.market_price ?? this.checkedGoods.marketPrice ?? this.checkedGoods.originPrice ?? 0)
+				if (skuMarketPrice > salePrice) return this.normalizePrice(skuMarketPrice)
+				return this.normalizePrice(this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice, this.displayMaxPrice)
 			},
 			marketDisplayText() {
 				return this.normalizePrice(this.checkedGoods.market_price ?? this.checkedGoods.marketPrice ?? this.checkedGoods.originPrice ?? this.goodsDetail.market_price ?? this.goodsDetail.marketPrice ?? this.goodsDetail.originPrice ?? this.goodsDetail.originalPrice ?? this.goodsDetail.linePrice ?? this.displayMarketPrice)
@@ -1341,18 +1810,26 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			displayTeamPrice() {
 				return this.normalizePrice(this.checkedGoods.team_price ?? this.checkedGoods.teamPrice ?? this.team.team_min_price ?? this.team.teamMinPrice ?? this.team.groupPrice ?? this.displayMinPrice, this.displayMinPrice)
 			},
+			displaySalesCount() {
+				return this.pickFirstValue(this.goodsDetail, ['sales_sum', 'salesCount', 'sales_count'])
+			},
 			sharePriceText() {
 				return this.normalizePrice(this.goodsType == 2 ? this.displayTeamPrice : this.displayMinPrice)
 			},
-			sharePriceMain() {
-				return String(this.sharePriceText || '0.00').split('.')[0] || '0'
-			},
-			sharePriceDecimal() {
-				const decimal = String(this.sharePriceText || '0.00').split('.')[1]
-				return `.${decimal || '00'}`
-			},
+				sharePriceMain() {
+					return this.sharePriceText ? String(this.sharePriceText).split('.')[0] : ''
+				},
+				sharePriceDecimal() {
+					if (!this.sharePriceText) return ''
+					const decimal = String(this.sharePriceText).split('.')[1]
+					return `.${decimal || '00'}`
+				},
 			shareShopName() {
-				return this.goodsDetail.shop_name || this.goodsDetail.shopName || this.goodsDetail.storeName || this.goodsDetail.shop?.shopName || '叮咚生活馆'
+				return this.goodsDetail.shop_name || this.goodsDetail.shopName || this.goodsDetail.storeName || this.goodsDetail.shop?.shopName || ''
+			},
+			shareGoodsMetaText() {
+				const sales = this.pickFirstValue(this.goodsDetail, ['sales_sum', 'salesCount', 'sales_count', 'virtualSales'])
+				return [this.shareShopName, sales !== '' ? `已售${sales}` : ''].filter(Boolean).join(' · ')
 			},
 			shareShopLogo() {
 				const shop = this.goodsDetail.shop || this.goodsDetail.shopInfo || this.goodsDetail.shop_info || {}
@@ -1365,12 +1842,13 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				return avatars.map(avatar => this.resolveAvatar(avatar))
 			},
 			shareShopScore() {
-				const score = this.goodsDetail.shop_score ?? this.goodsDetail.shopScore ?? this.goodsDetail.shop?.shopScore ?? this.goodsDetail.shop?.score ?? 5
+				const score = this.goodsDetail.shop_score ?? this.goodsDetail.shopScore ?? this.goodsDetail.shop?.shopScore ?? this.goodsDetail.shop?.score ?? ''
+				if (score === '' || score === null || score === undefined) return ''
 				const value = Number(score)
-				return Number.isNaN(value) ? String(score || '5.0') : value.toFixed(1)
+				return Number.isNaN(value) ? String(score) : value.toFixed(1)
 			},
 			shareBusinessTime() {
-				return this.formatDisplayTime(this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '8:00-16:00')
+				return this.formatDisplayTime(this.goodsDetail.businessHours || this.goodsDetail.business_hours || this.goodsDetail.shop?.businessHours || this.goodsDetail.shop?.business_hours || '')
 			},
 			goodsTagList() {
 				return this.formatPlainTags(this.goodsDetail.tags || this.goodsDetail.labels || this.goodsDetail.goods_tags || this.goodsDetail.goodsTags || this.goodsServiceList).filter(tag => !this.isImportSourceField('标签', tag)).slice(0, 4)
@@ -1394,15 +1872,87 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					if (seen[key]) return false
 					seen[key] = true
 					return true
+				}).map(item => {
+					if (!this.isCouponReceivedLocally(item)) return item
+					return {
+						...item,
+						is_get: 1,
+						isGet: 1
+					}
 				})
 			},
+			claimableGoodsCoupons() {
+				return this.goodsCoupons.filter(item => !(item.is_get || item.isGet))
+			},
+			receivedGoodsCoupons() {
+				return this.goodsCoupons.filter(item => item.is_get || item.isGet)
+			},
+			currentGoodsCouponList() {
+				return this.goodsCouponTabIndex === 1 ? this.receivedGoodsCoupons : this.claimableGoodsCoupons
+			},
 			goodsCouponSummary() {
-				return this.goodsCoupons.slice(0, 2).map(item => this.formatCouponBenefit(item)).join('、') || '点击查看可领取优惠券'
+				if (this.claimableGoodsCoupons.length) return this.claimableGoodsCoupons.slice(0, 2).map(item => this.formatCouponBenefit(item)).join('、')
+				if (this.receivedGoodsCoupons.length) return `已领取${this.receivedGoodsCoupons.length}张优惠券`
+				return '点击查看可领取优惠券'
+			},
+			showGoodsCouponEntry() {
+				return this.goodsCoupons.length > 0
+			},
+			showGoodsPointsEntry() {
+				return this.showPointsBenefit || this.pointsSwitchEnabled
+			},
+			pointsMarketingConfig() {
+				const detail = this.goodsDetail || {}
+				const pointsInfo = detail.pointsInfo || detail.points_info || detail.integralInfo || detail.integral_info || {}
+				return Object.assign({}, detail.marketingConfig || detail.marketing_config || detail.pointsMarketing || detail.pointsConfig || {}, pointsInfo)
+			},
+			pointsSwitchExplicitlyDisabled() {
+				const detail = this.goodsDetail || {}
+				const marketing = this.pointsMarketingConfig
+				const switchValue = this.firstDefined(marketing.integralSwitch, marketing.integral_switch, marketing.pointsEnabled, marketing.points_enabled, marketing.supportPoints, marketing.support_points, marketing.canUsePoints, marketing.can_use_points, detail.integralSwitch, detail.integral_switch, detail.pointsEnabled, detail.points_enabled)
+				return switchValue === false || switchValue === 0 || switchValue === '0'
+			},
+			pointsSwitchEnabled() {
+				const detail = this.goodsDetail || {}
+				const marketing = this.pointsMarketingConfig
+				const switchValue = this.firstDefined(marketing.integralSwitch, marketing.integral_switch, marketing.pointsEnabled, marketing.points_enabled, marketing.supportPoints, marketing.support_points, marketing.canUsePoints, marketing.can_use_points, detail.integralSwitch, detail.integral_switch, detail.pointsEnabled, detail.points_enabled)
+				if (switchValue === false || switchValue === 0 || switchValue === '0') return false
+				if (switchValue === true || switchValue === 1 || switchValue === '1') return true
+				const data = this.pointsBenefitData
+				return data.amount > 0 || data.points > 0 || data.giveIntegral > 0
+			},
+			pointsBenefitData() {
+				const detail = this.goodsDetail || {}
+				const marketing = this.pointsMarketingConfig
+				const amount = this.moneyValue(this.firstDefined(marketing.pointsDeductAmount, marketing.points_deduct_amount, marketing.maxDiscountAmount, marketing.max_discount_amount, marketing.deductAmount, marketing.deduct_amount, detail.pointsDeductAmount, detail.points_deduct_amount, detail.integralDeductAmount, detail.integral_deduct_amount, 0))
+				const points = this.moneyValue(this.firstDefined(marketing.pointsAmount, marketing.points_amount, marketing.maxUsablePoints, marketing.max_usable_points, marketing.deductPoints, marketing.deduct_points, detail.pointsAmount, detail.points_amount, detail.integralNum, detail.integral_num, 0))
+				const giveIntegral = this.moneyValue(this.firstDefined(marketing.giveIntegral, marketing.give_integral, marketing.rewardPoints, marketing.reward_points, detail.order_give_integral, detail.giveIntegral, detail.give_integral, detail.rewardPoints, detail.reward_points, detail.integral, 0))
+				return { amount, points, giveIntegral }
+			},
+			showPointsBenefit() {
+				const data = this.pointsBenefitData
+				if (this.pointsSwitchExplicitlyDisabled) return false
+				return data.amount > 0 || data.points > 0 || data.giveIntegral > 0
+			},
+			pointsBenefitText() {
+				if (!this.showPointsBenefit && !this.pointsSwitchEnabled) return ''
+				const { amount, points, giveIntegral } = this.pointsBenefitData
+				const texts = []
+				if (giveIntegral > 0) texts.push(`下单可得${giveIntegral}积分`)
+				if (amount > 0) texts.push(`${points > 0 ? `${points}积分` : '积分'}最多可抵¥${amount.toFixed(2)}`)
+				return texts.join('，') || '确认订单页按当前订单规则计算可用积分'
+			},
+			pointsBenefitRows() {
+				const { amount, points, giveIntegral } = this.pointsBenefitData
+				const rows = []
+				if (giveIntegral > 0) rows.push({ label: '下单奖励', value: `预计可得${giveIntegral}积分` })
+				if (amount > 0 || points > 0) rows.push({ label: '积分抵扣', value: amount > 0 ? `${points > 0 ? `${points}积分` : '可用积分'}最多可抵¥${amount.toFixed(2)}` : `最多可使用${points}积分` })
+				if (!rows.length) rows.push({ label: '积分规则', value: '确认订单页按当前订单规则计算可用积分' })
+				rows.push({ label: '使用说明', value: '最终可用积分和抵扣金额以下单页结算结果为准' })
+				return rows
 			},
             marketingBenefits() {
                 const detail = this.goodsDetail || {}
-                const pointsInfo = detail.pointsInfo || detail.points_info || detail.integralInfo || detail.integral_info || {}
-                const marketing = Object.assign({}, detail.marketingConfig || detail.marketing_config || detail.pointsMarketing || detail.pointsConfig || {}, pointsInfo)
                 const list = []
                 const sourceText = item => (item && (item.ownerType === 'PLATFORM' || item.owner_type === 'PLATFORM' || item.subsidyEligible || item.subsidy_eligible)) ? '平台' : '商家'
                 const coupons = this.goodsCoupons
@@ -1421,18 +1971,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
                         text: activities.slice(0, 3).map(item => `${sourceText(item)}-${item.activityName || item.name || item.title || '营销活动'}`).join('、')
                     })
                 }
-                const pointsEnabled = marketing.pointsEnabled || marketing.points_enabled || Number(marketing.pointsDeductAmount || marketing.points_deduct_amount || marketing.maxDiscountAmount || marketing.max_discount_amount || marketing.deductAmount || marketing.deduct_amount || detail.pointsDeductAmount || detail.points_deduct_amount || detail.integralDeductAmount || detail.integral_deduct_amount || 0) > 0 || Number(marketing.giveIntegral || marketing.give_integral || marketing.rewardPoints || marketing.reward_points || detail.order_give_integral || detail.giveIntegral || detail.give_integral || detail.rewardPoints || detail.reward_points || detail.integral || 0) > 0
-                if (pointsEnabled) {
-                    const amount = Number(marketing.pointsDeductAmount || marketing.points_deduct_amount || marketing.maxDiscountAmount || marketing.max_discount_amount || marketing.deductAmount || marketing.deduct_amount || detail.pointsDeductAmount || detail.points_deduct_amount || detail.integralDeductAmount || detail.integral_deduct_amount || 0)
-                    const points = Number(marketing.pointsAmount || marketing.points_amount || marketing.maxUsablePoints || marketing.max_usable_points || marketing.deductPoints || marketing.deduct_points || detail.pointsAmount || detail.points_amount || detail.integralNum || detail.integral_num || 0)
-                    const giveIntegral = Number(marketing.giveIntegral || marketing.give_integral || marketing.rewardPoints || marketing.reward_points || detail.order_give_integral || detail.giveIntegral || detail.give_integral || detail.rewardPoints || detail.reward_points || detail.integral || 0)
-                    const texts = []
-                    if (giveIntegral > 0) texts.push(`下单可得${giveIntegral}积分`)
-                    if (amount > 0) texts.push(`${points > 0 ? `${points}积分` : '积分'}最多可抵¥${amount.toFixed(2)}`)
+                if (this.showPointsBenefit || this.pointsSwitchEnabled) {
                     list.push({
                         key: 'points',
                         tag: '积分',
-                        text: texts.length ? texts.join('，') : '支持平台积分抵扣'
+                        text: this.pointsBenefitText
                     })
                 }
                 return list
@@ -1442,6 +1985,9 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			},
 			optionPointsBenefit() {
 				return this.marketingBenefits.find(item => item.key === 'points') || null
+			},
+			visibleMarketingBenefits() {
+				return this.otherMarketingBenefits.filter(item => item.key !== 'coupon' && item.key !== 'points')
 			},
 			otherMarketingBenefits() {
 				return this.marketingBenefits.filter(item => item.key !== 'coupon' && item.key !== 'points')
@@ -1464,14 +2010,13 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				const detail = this.goodsDetail || {}
 				const template = detail.freight_template || detail.freightTemplate || {}
 				const rows = [
-					{ label: '库存', value: detail.stock || detail.stockQty },
-					{ label: '销量', value: detail.sales_sum || detail.salesCount },
-					{ label: '跟团', value: this.groupFooterCount ? `${this.groupFooterCount}人已跟团` : '' },
-					{ label: '评价', value: this.comment.total || detail.comment_count || detail.commentCount },
+					{ label: '库存', value: this.pickFirstValue(detail, ['stock', 'stockQty', 'stockQuantity']) },
+					{ label: '销量', value: this.pickFirstValue(detail, ['sales_sum', 'salesCount', 'sales_count', 'virtualSales']) },
+					{ label: '评价', value: this.pickFirstValue(this.comment, ['total', 'totalCount', 'commentCount']) || this.pickFirstValue(detail, ['comment_count', 'commentCount']) },
 					{ label: '运费', value: this.freightText },
 					{ label: '服务标签', value: this.goodsServiceList },
 					{ label: '商品标签', value: this.goodsTagList },
-					{ label: '积分', value: detail.order_give_integral || detail.giveIntegral || detail.integral },
+					{ label: '积分', value: this.showGoodsPointsEntry ? this.pointsBenefitText : '' },
 					{ label: '售后', value: detail.after_sale || detail.afterSale || detail.after_sale_desc || detail.afterSaleDesc },
 					{ label: '提示', value: detail.usage_hint || detail.usageHint || detail.highlight },
 					{ label: '发货', value: detail.delivery_desc || detail.deliveryDesc || detail.shipping_desc || detail.shippingDesc || detail.freight_desc || this.freightText },
@@ -1490,14 +2035,14 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 					value: this.formatInfoValue(row.value)
 				})).filter(row => row.value !== undefined && row.value !== null && row.value !== '' && !this.isImportSourceField(row.label, row.value)).map(row => ({
 					label: row.label,
-					value: row.label === '积分' ? `下单可得${row.value}积分` : row.value
+					value: row.value
 				}))
 			},
 			goodsDetailContent() {
 				return this.formatRichContent(this.goodsDetail.goods_detail || this.goodsDetail.goodsDetail || this.goodsDetail.content || this.goodsDetail.detail || this.goodsDetail.detailJson || this.goodsDetail.detail_json || this.goodsDetail.richText || this.goodsDetail.rich_text || this.goodsDetail.description || this.goodsDetail.desc || '')
 			},
 			selectedSpecText() {
-				return this.checkedGoods.spec_value_str || this.checkedGoods.skuName || this.checkedGoods.name || '默认'
+				return this.skuDisplayName(this.checkedGoods)
 			},
 			freightText() {
 				const detail = this.goodsDetail || {}
@@ -1506,7 +2051,9 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				const type = String(detail.freight_type || detail.freightType || detail.shippingType || detail.shipping_type || detail.postage_type || detail.postageType || template.freightType || template.freight_type || template.type || '').toUpperCase()
 				const deliveryType = String(detail.delivery_type || detail.deliveryType || detail.shippingMethod || detail.shipping_method || template.deliveryType || template.delivery_type || '').toUpperCase()
 				const pickupAddress = detail.pickup_address || detail.pickupAddress || template.pickupAddress || template.pickup_address
-				const amount = Number(detail.freight_amount ?? detail.freightAmount ?? detail.shippingFee ?? detail.shipping_fee ?? detail.postage ?? detail.express_fee ?? detail.expressFee ?? template.freightAmount ?? template.freight_amount ?? template.firstPrice ?? template.first_price ?? 0)
+				const amountValue = this.pickFirstValue({ ...template, ...detail }, ['freight_amount', 'freightAmount', 'shippingFee', 'shipping_fee', 'postage', 'express_fee', 'expressFee', 'firstPrice', 'first_price'])
+				const hasAmount = this.hasKnownValue(amountValue)
+				const amount = hasAmount ? Number(amountValue) : ''
 				const freeShipping = detail.freeShipping || detail.free_shipping || detail.isFreeShipping || detail.is_free_shipping || detail.postageFree || detail.postage_free || detail.is_free_express || detail.isFreeExpress || template.freeShipping || template.free_shipping
 				const deliveryText = deliveryType === 'PICKUP' ? '线下自提' : deliveryType === 'MIXED' ? '配送/自提' : deliveryType === 'DELIVERY' ? '快递配送' : ''
 				if (deliveryType === 'PICKUP') return pickupAddress ? `${deliveryText}：${pickupAddress}` : deliveryText
@@ -1514,7 +2061,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				if (type === 'FIXED') return `${deliveryText ? `${deliveryText} · ` : ''}${amount > 0 ? `运费 ¥${amount.toFixed(2)}` : '固定运费'}`
 				if (type === 'TEMPLATE' || template.id || template.name) return `${deliveryText ? `${deliveryText} · ` : ''}${amount > 0 ? `运费 ¥${amount.toFixed(2)}` : '按运费模板计算'}`
 				if (amount > 0) return `${deliveryText ? `${deliveryText} · ` : ''}运费 ¥${amount.toFixed(2)}`
-				return deliveryText || '包邮'
+				return deliveryText || '运费待确认'
 			}
 		}
 	};
@@ -1523,7 +2070,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 <style lang="scss" scoped>
 	.goods-details {
 		padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
-		background: #f5f6f8;
+		background: #f6efe4;
 
 		.goods-loading {
 			display: flex;
@@ -1542,16 +2089,47 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			height: 570px;
 		}
 
+		.goods-detail-nav {
+			position: fixed;
+			left: 0;
+			right: 0;
+			top: 0;
+			z-index: 40;
+			height: calc(var(--status-bar-height) + 118rpx);
+			pointer-events: none;
+		}
+
+		.goods-detail-nav__back {
+			position: absolute;
+			left: 24rpx;
+			top: calc(var(--status-bar-height) + 38rpx);
+			width: 64rpx;
+			height: 64rpx;
+			pointer-events: auto;
+		}
+
+		.goods-detail-nav__back::after {
+			content: '';
+			position: absolute;
+			left: 15rpx;
+			top: 18rpx;
+			width: 19rpx;
+			height: 19rpx;
+			border-left: 4rpx solid #ffffff;
+			border-bottom: 4rpx solid #ffffff;
+			transform: rotate(45deg);
+		}
+
 		.hero-stage {
 			position: relative;
-			height: 750rpx;
-			background: #eef4ff;
+			height: 580rpx;
+			background: linear-gradient(180deg, #f8ead9 0%, #fff7ef 100%);
 		}
 
 		.goods-hero-swiper,
 		.goods-hero-image {
 			width: 100%;
-			height: 750rpx;
+			height: 580rpx;
 		}
 
 		.goods-hero-image {
@@ -1561,12 +2139,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.seckill {
 			height: 100rpx;
-			background: #ffd4d8;
+			background: #fff1dc;
 
 			.price {
 				width: 504rpx;
 				height: 100%;
-				background: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_seckill.png) no-repeat;
+				background: linear-gradient(90deg, #a0610d 0%, #d79a43 100%) no-repeat;
 				background-size: 100%;
 			}
 
@@ -1578,7 +2156,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.group {
 			height: 100rpx;
 			width: 100%;
-			background-image: url(https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/pintuan_bg.png);
+			background: linear-gradient(90deg, #a0610d 0%, #d79a43 100%);
 			background-size: 100%;
 
 			.group-num {
@@ -1601,11 +2179,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.merchant-card {
 			position: relative;
 			z-index: 2;
-			margin: -64rpx 26rpx 0;
-			padding: 0 14rpx 16rpx;
-			background: #037dfa;
-			border-radius: 24rpx;
-			box-shadow: 0 -6rpx 14rpx rgba(128, 128, 128, 0.15);
+			margin: -32rpx 26rpx 0;
+			padding: 0 14rpx 18rpx;
+			background: linear-gradient(180deg, #b87928 0%, #956008 100%);
+			border-radius: 25rpx;
+			box-shadow: 0 14rpx 32rpx rgba(133, 86, 19, 0.18);
 		}
 
 		.merchant-card__head {
@@ -1642,7 +2220,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			justify-content: center;
 			width: 116rpx;
 			height: 44rpx;
-			color: #037dfa;
+			color: #a0610d;
 			font-size: 22rpx;
 			font-weight: 500;
 			background: #ffffff;
@@ -1650,8 +2228,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.merchant-card__body {
-			padding: 26rpx 24rpx 28rpx;
-			background: #ffffff;
+			padding: 28rpx 24rpx 30rpx;
+			background: #fff8ef;
 			border-radius: 20rpx;
 		}
 
@@ -1662,7 +2240,22 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.merchant-card__price {
 			display: flex;
 			align-items: baseline;
-			color: #ff2e2e;
+			color: #a0610d;
+		}
+
+		.goods-price-pending {
+			max-width: 220rpx;
+			color: #ffffff;
+			font-size: 30rpx;
+			font-weight: 500;
+			line-height: 42rpx;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.goods-price-pending--dark {
+			color: #a0610d;
 		}
 
 		.merchant-card__price-box {
@@ -1671,7 +2264,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.merchant-card__price-tag {
 			margin-left: 12rpx;
-			font-size: 24rpx;
+			color: #a0610d;
+			font-size: 18rpx;
 			line-height: 1;
 		}
 
@@ -1694,12 +2288,13 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			min-width: 120rpx;
+			min-width: 119rpx;
 			height: 46rpx;
 			color: #ffffff;
-			font-size: 24rpx;
-			background: #037dfa;
-			border-radius: 12rpx;
+			font-size: 25rpx;
+			font-weight: 500;
+			background: linear-gradient(90deg, #c99858 0%, #a0610d 100%);
+			border-radius: 23rpx;
 
 			text {
 				margin-left: 8rpx;
@@ -1714,32 +2309,32 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.merchant-card__price-meta {
 			display: flex;
 			flex-wrap: wrap;
-			gap: 12rpx;
-			margin-top: 18rpx;
+			gap: 14rpx;
+			margin-top: 10rpx;
 		}
 
 		.merchant-card__meta-item {
 			display: flex;
 			align-items: baseline;
 			min-width: 0;
-			padding: 8rpx 14rpx;
-			border-radius: 18rpx;
-			background: #f6f9ff;
+			padding: 0;
+			border-radius: 0;
+			background: transparent;
 		}
 
 		.merchant-card__meta-label {
 			flex: none;
 			margin-right: 8rpx;
-			color: #8b95a5;
-			font-size: 22rpx;
-			line-height: 30rpx;
+			color: #a0610d;
+			font-size: 18rpx;
+			line-height: 24rpx;
 		}
 
 		.merchant-card__meta-value {
-			color: #ff2e2e;
-			font-size: 24rpx;
+			color: #a0610d;
+			font-size: 18rpx;
 			font-weight: 600;
-			line-height: 32rpx;
+			line-height: 24rpx;
 		}
 
 		.merchant-card__meta-market {
@@ -1750,11 +2345,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.merchant-card__title {
-			margin-top: 18rpx;
+			margin-top: 16rpx;
 			color: #222222;
 			font-size: 30rpx;
-			font-weight: 500;
+			font-weight: 700;
 			line-height: 42rpx;
+			word-break: break-all;
 		}
 
 		.merchant-card__sales {
@@ -1767,7 +2363,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			margin-top: 10rpx;
 			color: #666666;
 			font-size: 24rpx;
-			line-height: 34rpx;
+			line-height: 36rpx;
+			word-break: break-all;
 		}
 
 		.merchant-card__tags {
@@ -1778,26 +2375,31 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.merchant-card__tag {
-			max-width: 180rpx;
-			padding: 0 12rpx;
-			color: #037dfa;
+			max-width: 100%;
+			padding: 5rpx 12rpx;
+			color: #a0610d;
 			font-size: 22rpx;
-			line-height: 34rpx;
+			line-height: 30rpx;
 			border-radius: 18rpx;
-			background: #edf6ff;
+			background: #fff6e8;
 			box-sizing: border-box;
+			white-space: normal;
+			word-break: break-all;
 		}
 
 		.option-panel {
 			margin: 26rpx 26rpx 0;
-			padding: 18rpx 24rpx;
-			border-radius: 26rpx;
+			padding: 16rpx 24rpx 22rpx;
+			background: #fffbf6;
+			border-radius: 25rpx;
+			box-shadow: none;
 		}
 
 		.goods-extra {
 			margin: 24rpx 26rpx 0;
 			padding: 26rpx 24rpx 28rpx;
-			border-radius: 24rpx;
+			background: #fffbf6;
+			border-radius: 25rpx;
 			box-sizing: border-box;
 		}
 
@@ -1810,7 +2412,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.goods-extra__grid {
 			display: grid;
-			grid-template-columns: 1fr 1fr;
+			grid-template-columns: repeat(auto-fit, minmax(260rpx, 1fr));
 			gap: 18rpx;
 			margin-top: 22rpx;
 		}
@@ -1819,7 +2421,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			min-width: 0;
 			padding: 18rpx;
 			border-radius: 18rpx;
-			background: #f7f9fc;
+			background: #fff8ee;
 			box-sizing: border-box;
 		}
 
@@ -1827,6 +2429,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			color: #8b95a5;
 			font-size: 22rpx;
 			line-height: 30rpx;
+			word-break: break-all;
 		}
 
 		.goods-extra__value {
@@ -1835,6 +2438,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			font-size: 26rpx;
 			font-weight: 500;
 			line-height: 36rpx;
+			white-space: normal;
+			word-break: break-all;
 		}
 
 		.option-panel__style-head,
@@ -1845,7 +2450,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.option-panel__style-head {
 			justify-content: space-between;
-			margin-bottom: 16rpx;
+			margin-bottom: 17rpx;
 		}
 
 		.option-panel__menu {
@@ -1858,7 +2463,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			margin-right: 22rpx;
 			color: #222222;
 			font-size: 22rpx;
-			background: #f3f7ff;
+			background: transparent;
 			border-radius: 24rpx;
 
 			text {
@@ -1878,21 +2483,21 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.option-panel__thumbs {
 			align-items: flex-start;
 			flex-wrap: wrap;
-			gap: 14rpx;
+			gap: 17rpx;
 		}
 
 		.option-panel__thumb {
 			display: block;
-			flex: 0 0 92rpx;
-			width: 92rpx;
-			height: 92rpx;
-			border-radius: 14rpx;
+			flex: 0 0 78rpx;
+			width: 78rpx;
+			height: 78rpx;
+			border-radius: 8rpx;
 			border: 2rpx solid transparent;
-			background: #f7f9fc;
+			background: #1b1c1f;
 			box-sizing: border-box;
 
 			&.is-active {
-				border-color: #037dfa;
+				border-color: #a0610d;
 			}
 		}
 
@@ -1906,14 +2511,14 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			width: calc(50% - 16rpx);
 			margin: 8rpx;
 			padding: 8rpx;
-			background: #f7f9fc;
+			background: #fff7ec;
 			border: 2rpx solid transparent;
 			border-radius: 18rpx;
 			box-sizing: border-box;
 
 			&.is-active {
-				border-color: #037dfa;
-				background: #eef6ff;
+				border-color: #a0610d;
+				background: #fff1dc;
 			}
 		}
 
@@ -1946,12 +2551,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.option-panel__line {
 			height: 1rpx;
 			margin: 18rpx 0;
-			background: #ececec;
+			background: #efe0cf;
 		}
 
 		.option-panel__line--thin {
 			margin: 20rpx 0 18rpx;
-			background: #f0f3f8;
+			background: #efe0cf;
 		}
 
 		.option-row,
@@ -1979,7 +2584,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			width: 38rpx;
 			height: 38rpx;
 			border-radius: 8rpx;
-			background: linear-gradient(135deg, #ff563d 0%, #ff8a45 100%);
+			background: linear-gradient(135deg, #c58a38 0%, #a0610d 100%);
 			font-size: 22rpx;
 			font-weight: 600;
 			line-height: 38rpx;
@@ -1992,7 +2597,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			width: 38rpx;
 			height: 38rpx;
 			border-radius: 8rpx;
-			background: linear-gradient(135deg, #ff8a00 0%, #ffc24b 100%);
+			background: linear-gradient(135deg, #ffb75d 0%, #c98625 100%);
 			font-size: 22rpx;
 			font-weight: 600;
 			line-height: 38rpx;
@@ -2017,14 +2622,14 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			margin-top: 8rpx;
 			font-size: 23rpx;
 			line-height: 30rpx;
-			color: #ff4d2e;
+			color: #a0610d;
 		}
 
 		.option-row__benefit-text {
 			margin-top: 8rpx;
 			font-size: 23rpx;
 			line-height: 30rpx;
-			color: #ff7417;
+			color: #a0610d;
 		}
 
 		.option-row__coupon-action {
@@ -2033,10 +2638,20 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			padding: 0 20rpx;
 			margin-left: 16rpx;
 			border-radius: 22rpx;
-			background: #037dfa;
+			background: #a0610d;
 			font-size: 22rpx;
 			line-height: 44rpx;
 			color: #ffffff;
+		}
+
+		.option-row__more {
+			flex: none;
+			width: 14rpx;
+			height: 14rpx;
+			margin-left: 18rpx;
+			border-top: 2rpx solid #b9bec8;
+			border-right: 2rpx solid #b9bec8;
+			transform: rotate(45deg);
 		}
 
 		.option-row--tags {
@@ -2061,7 +2676,10 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.marketing-panel {
+			margin: 24rpx 26rpx 0;
 			padding: 24rpx 28rpx;
+			background: #fffbf6;
+			border-radius: 25rpx;
 		}
 
 		.marketing-panel__title {
@@ -2084,8 +2702,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			height: 32rpx;
 			padding: 0 10rpx;
 			border-radius: 4rpx;
-			background: #fff1f0;
-			color: #ff2c3c;
+			background: #fff1dc;
+			color: #a0610d;
 			font-size: 22rpx;
 			line-height: 32rpx;
 			text-align: center;
@@ -2098,89 +2716,175 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			font-size: 24rpx;
 		}
 
-		.goods-coupon-popup {
-			padding: 32rpx 24rpx calc(32rpx + env(safe-area-inset-bottom));
-			background: #f6f8fb;
+		.pop-title {
+			height: 100rpx;
+			border-bottom: 1rpx solid #f2f2f2;
 		}
 
-		.goods-coupon-popup__title {
-			padding: 0 8rpx 24rpx;
+		.pop-title .title {
+			margin-left: 30rpx;
 			font-size: 34rpx;
-			font-weight: 600;
-			line-height: 42rpx;
-			color: #222222;
+			font-weight: bold;
+			line-height: 36rpx;
 		}
 
-		.goods-coupon-popup__scroll {
-			max-height: 690rpx;
-		}
-
-		.goods-coupon-card {
+		.coupon-tabs {
 			display: flex;
 			align-items: center;
-			min-height: 156rpx;
-			margin-bottom: 18rpx;
-			padding: 20rpx 22rpx;
-			border-radius: 20rpx;
+			height: 88rpx;
+			padding: 0 24rpx;
+			box-sizing: border-box;
 			background: #ffffff;
-			box-shadow: 0 10rpx 30rpx rgba(32, 52, 89, 0.06);
+		}
+
+		.coupon-tab {
+			position: relative;
+			flex: 1;
+			color: #606266;
+			font-size: 28rpx;
+			line-height: 88rpx;
+			text-align: center;
+		}
+
+		.coupon-tab.is-active {
+			color: #a0610d;
+			font-weight: 600;
+		}
+
+		.coupon-tab.is-active::after {
+			position: absolute;
+			left: 50%;
+			bottom: 8rpx;
+			width: 76rpx;
+			height: 5rpx;
+			border-radius: 999rpx;
+			background: #a0610d;
+			transform: translateX(-50%);
+			content: '';
+		}
+
+		.coupon-tab--muted {
+			color: #909399;
+			font-size: 25rpx;
+		}
+
+		.coupon-scroll {
+			height: 640rpx;
+			background: #f6f6f6;
+		}
+
+		.coupon-obj {
+			padding: 20rpx 24rpx;
+		}
+
+		.coupon-card {
+			margin-bottom: 20rpx;
+			background: #ffffff;
+		}
+
+		.coupon-card--received {
+			opacity: .78;
+		}
+
+		.coupon-section-title {
+			margin: 4rpx 0 18rpx;
+			color: #606266;
+			font-size: 26rpx;
+			font-weight: 600;
+		}
+
+		.coupon-item {
+			position: relative;
+			display: flex;
+			height: 160rpx;
+			background: linear-gradient(135deg, #fff8ed 0%, #fff1dc 100%);
+			border: 1rpx solid #f0dcc0;
+			background-size: 100% 100%;
+		}
+
+		.coupon-item .price {
+			flex: none;
+			width: 200rpx;
+			min-width: 180rpx;
 			box-sizing: border-box;
 		}
 
-		.goods-coupon-card__amount {
-			flex: none;
-			width: 150rpx;
-			font-size: 48rpx;
-			font-weight: 700;
-			line-height: 58rpx;
-			color: #ff2e2e;
-		}
-
-		.goods-coupon-card__symbol {
-			font-size: 24rpx;
-			font-weight: 600;
-		}
-
-		.goods-coupon-card__body {
+		.coupon-info-wrap {
 			flex: 1;
 			min-width: 0;
 		}
 
-		.goods-coupon-card__name {
-			font-size: 28rpx;
-			font-weight: 600;
-			line-height: 36rpx;
-			color: #222222;
+		.coupon-info-wrap .info {
+			flex: 1;
+			min-width: 0;
 		}
 
-		.goods-coupon-card__condition,
-		.goods-coupon-card__time {
-			margin-top: 8rpx;
-			font-size: 22rpx;
-			line-height: 30rpx;
-			color: #8b95a5;
-		}
-
-		.goods-coupon-card__btn {
+		.coupon-receive-btn {
 			flex: none;
 			min-width: 104rpx;
 			height: 52rpx;
-			margin-left: 16rpx;
+			margin-right: 20rpx;
 			padding: 0 18rpx;
 			border-radius: 26rpx;
-			background: #037dfa;
+			background: #a0610d;
+			color: #ffffff;
 			font-size: 24rpx;
 			line-height: 52rpx;
 			text-align: center;
-			color: #ffffff;
 			box-sizing: border-box;
 		}
 
-		.goods-coupon-popup__empty {
-			padding: 80rpx 0;
+		.coupon-receive-btn--disabled {
+			background: #d6d9df;
+		}
+
+		.coupon-tips {
+			padding: 14rpx 20rpx;
+		}
+
+		.coupon-empty {
+			padding-top: 50rpx;
+		}
+
+		.coupon-confirm {
+			width: 100%;
+			max-width: 710rpx;
+			height: 74rpx;
+			margin-top: 12rpx;
+			background: #a0610d;
+		}
+
+		.points-pop {
+			padding: 10rpx 30rpx 30rpx;
+			background: #ffffff;
+		}
+
+		.points-pop__row {
+			display: flex;
+			align-items: flex-start;
+			padding: 24rpx 0;
+			border-bottom: 1rpx solid #f1f2f5;
+		}
+
+		.points-pop__label {
+			flex: none;
+			width: 150rpx;
+			color: #606266;
 			font-size: 26rpx;
-			text-align: center;
-			color: #999999;
+			line-height: 38rpx;
+		}
+
+		.points-pop__value {
+			flex: 1;
+			color: #222222;
+			font-size: 26rpx;
+			line-height: 38rpx;
+		}
+
+		.points-pop__confirm {
+			height: 74rpx;
+			margin-top: 28rpx;
+			background: #a0610d;
 		}
 
 		.option-row__tags {
@@ -2196,12 +2900,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			max-width: 220rpx;
 			padding: 0 14rpx;
 			overflow: hidden;
-			color: #037dfa;
+			color: #a0610d;
 			font-size: 22rpx;
 			line-height: 36rpx;
 			white-space: nowrap;
 			text-overflow: ellipsis;
-			background: #edf6ff;
+			background: #fff1dc;
 			border-radius: 18rpx;
 		}
 
@@ -2323,7 +3027,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.spec {
 			margin: 24rpx 26rpx 0;
 			padding: 24rpx;
-			border-radius: 24rpx;
+			background: #fffbf6;
+			border-radius: 25rpx;
 			box-sizing: border-box;
 
 			.text {
@@ -2333,23 +3038,280 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.evaluation {
 			margin: 24rpx 26rpx 0;
-			border-radius: 24rpx;
+			background: #fffbf6;
+			border-radius: 25rpx;
 			overflow: hidden;
+			box-shadow: none;
 
 			.title {
-				height: 100rpx;
-				border-bottom: $solid-border;
-				padding: 0 24rpx;
+				min-height: 104rpx;
+				border-bottom: 1rpx solid #efe0cf;
+				padding: 0 26rpx;
+			}
+
+			.evaluation-title {
+				display: flex;
+				align-items: baseline;
+				min-width: 0;
+			}
+
+			.evaluation-title__main {
+				color: #222222;
+				font-size: 30rpx;
+				font-weight: 800;
+				line-height: 42rpx;
+			}
+
+			.evaluation-title__rate {
+				margin-left: 14rpx;
+				color: #ff8a00;
+				font-size: 23rpx;
+				line-height: 32rpx;
 			}
 
 			.con {
-				padding: 30rpx 24rpx;
+				padding: 30rpx 26rpx;
+			}
+
+			.empty-state {
+				color: #999999;
+				font-size: 26rpx;
+				text-align: center;
+				background: #fffbf6;
+			}
+
+			.user-info {
+				display: flex;
+				align-items: flex-start;
+			}
+
+			.comment-avatar-wrap {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex: none;
+				width: 68rpx;
+				height: 68rpx;
+				border-radius: 50%;
+				background: #d7c3a5;
+				overflow: hidden;
+			}
+
+			.comment-avatar-wrap.is-anonymous {
+				color: #ffffff;
+				background: linear-gradient(135deg, #9aa4b2 0%, #667085 100%);
 			}
 
 			.user-info .avatar {
-				width: 60rpx;
-				height: 60rpx;
+				flex: none;
+				width: 68rpx;
+				height: 68rpx;
 				border-radius: 50%;
+				background: #d7c3a5;
+			}
+
+			.comment-avatar-text {
+				color: #ffffff;
+				font-size: 27rpx;
+				font-weight: 800;
+			}
+
+			.comment-user-main {
+				flex: 1;
+				min-width: 0;
+				margin-left: 18rpx;
+			}
+
+			.comment-user-row {
+				display: flex;
+				align-items: center;
+				margin-bottom: 6rpx;
+			}
+
+			.comment-stars {
+				display: flex;
+				align-items: center;
+			}
+
+			.comment-star {
+				width: 24rpx;
+				height: 24rpx;
+				margin-right: 4rpx;
+				color: #d0d5dd;
+				font-size: 24rpx;
+				line-height: 24rpx;
+			}
+
+			.comment-star.is-active {
+				color: #ffad1f;
+			}
+
+			.user-name {
+				flex: 1;
+				min-width: 0;
+				color: #172033;
+				font-size: 28rpx;
+				font-weight: 700;
+				line-height: 38rpx;
+			}
+
+			.comment-score {
+				flex: none;
+				margin-left: 10rpx;
+				color: #8a8f99;
+				font-size: 22rpx;
+				line-height: 26rpx;
+			}
+
+			.comment-anonymous-tag {
+				flex: none;
+				height: 32rpx;
+				margin-left: 12rpx;
+				padding: 0 12rpx;
+				border-radius: 999rpx;
+				color: #858b96;
+				font-size: 21rpx;
+				line-height: 32rpx;
+				background: #f4f4f5;
+			}
+
+			.comment-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10rpx 16rpx;
+				margin-top: 16rpx;
+				color: #8c8c8c;
+				font-size: 23rpx;
+				line-height: 32rpx;
+			}
+
+			.comment-tag-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10rpx;
+				margin-top: 16rpx;
+			}
+
+			.comment-tag {
+				max-width: 100%;
+				padding: 6rpx 14rpx;
+				border-radius: 999rpx;
+				color: #ff5000;
+				font-size: 22rpx;
+				line-height: 28rpx;
+				background: #fff3ea;
+				box-sizing: border-box;
+			}
+
+			.dec {
+				margin-top: 18rpx;
+				color: #30343b;
+				font-size: 28rpx;
+				line-height: 42rpx;
+				word-break: break-all;
+			}
+
+			.dec--empty {
+				color: #98a2b3;
+			}
+
+			.comment-images {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 10rpx;
+				margin-top: 18rpx;
+				max-width: 520rpx;
+			}
+
+			.comment-images--append {
+				margin-top: 14rpx;
+			}
+
+			.comment-image {
+				aspect-ratio: 1 / 1;
+				border-radius: 12rpx;
+				overflow: hidden;
+				background: #f2f4f7;
+
+				image {
+					width: 100%;
+					height: 100%;
+				}
+			}
+
+			.comment-reply {
+				margin-top: 18rpx;
+				padding: 18rpx 20rpx;
+				border-radius: 14rpx;
+				background: #fff8ed;
+			}
+
+			.comment-append {
+				margin-top: 18rpx;
+				padding: 18rpx 20rpx;
+				border-radius: 14rpx;
+				background: #fff8ed;
+			}
+
+			.comment-reply__title,
+			.comment-append__title {
+				color: #172033;
+				font-size: 25rpx;
+				font-weight: 700;
+				line-height: 34rpx;
+			}
+
+			.comment-append__title {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16rpx;
+			}
+
+			.comment-append__time,
+			.comment-reply__time {
+				color: #999999;
+				font-size: 22rpx;
+				font-weight: 400;
+				line-height: 30rpx;
+			}
+
+			.comment-reply__time {
+				margin-top: 8rpx;
+			}
+
+			.comment-reply__text,
+			.comment-append__text {
+				margin-top: 8rpx;
+				color: #475467;
+				font-size: 25rpx;
+				line-height: 38rpx;
+				word-break: break-all;
+			}
+
+			.comment-score-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 12rpx;
+				margin-top: 18rpx;
+			}
+
+			.comment-score-tag {
+				height: 42rpx;
+				padding: 0 16rpx;
+				border-radius: 999rpx;
+				color: #f97316;
+				font-size: 22rpx;
+				line-height: 42rpx;
+				background: #fff3e0;
+			}
+
+			.comment-like {
+				margin-top: 18rpx;
+				color: #98a2b3;
+				font-size: 23rpx;
+				line-height: 32rpx;
+				text-align: right;
 			}
 		}
 
@@ -2357,27 +3319,49 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			margin: 24rpx 26rpx 0;
 			border-radius: 24rpx;
 			overflow: hidden;
+			box-shadow: 0 10rpx 28rpx rgba(24, 44, 84, .05);
+		}
+
+		.group-record__head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 32rpx 28rpx 16rpx;
 		}
 
 		.group-record__title {
-			padding: 34rpx 28rpx 18rpx;
-			color: #222222;
+			color: #172033;
 			font-size: 30rpx;
-			font-weight: 500;
+			font-weight: 800;
+			line-height: 42rpx;
+		}
+
+		.group-record__summary {
+			color: #ff7a00;
+			font-size: 24rpx;
+			line-height: 34rpx;
 		}
 
 		.group-record__item {
 			display: flex;
 			align-items: center;
-			padding: 20rpx 26rpx 24rpx;
+			margin: 0 26rpx;
+			padding: 22rpx 0;
+			border-top: 1rpx solid #f0f2f5;
 		}
 
 		.group-record__avatar {
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			width: 80rpx;
 			height: 80rpx;
 			flex: none;
 			border-radius: 50%;
-			background: linear-gradient(135deg, #e8f2ff 0%, #c7defc 100%);
+			color: #a0610d;
+			font-size: 28rpx;
+			font-weight: 800;
+			background: linear-gradient(135deg, #fff1dc 0%, #f3d2a7 100%);
 		}
 
 		.group-record__avatar-image,
@@ -2386,11 +3370,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			height: 80rpx;
 			flex: none;
 			border-radius: 50%;
-			background: #eef4ff;
+			background: #fff1dc;
 		}
 
 		.team-avatar--empty {
-			background: linear-gradient(135deg, #e8f2ff 0%, #c7defc 100%);
+			background: linear-gradient(135deg, #fff1dc 0%, #f3d2a7 100%);
 		}
 
 		.empty-state {
@@ -2401,25 +3385,51 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.group-record__content {
 			flex: 1;
+			min-width: 0;
 			padding-left: 18rpx;
 		}
 
 		.group-record__name {
-			color: #222222;
-			font-size: 24rpx;
-			font-weight: 500;
+			color: #172033;
+			font-size: 27rpx;
+			font-weight: 700;
+			line-height: 36rpx;
 		}
 
 		.group-record__time {
-			margin-top: 12rpx;
-			color: #999999;
-			font-size: 20rpx;
+			margin-top: 8rpx;
+			color: #8b95a5;
+			font-size: 23rpx;
+			line-height: 32rpx;
+		}
+
+		.group-record__meta {
+			margin-top: 6rpx;
+			color: #ff7a00;
+			font-size: 22rpx;
+			line-height: 30rpx;
+		}
+
+		.group-record__side {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			flex: none;
+			margin-left: 18rpx;
 		}
 
 		.group-record__plus {
-			color: #037dfa;
-			font-size: 26rpx;
-			font-weight: 500;
+			color: #a0610d;
+			font-size: 28rpx;
+			font-weight: 800;
+			line-height: 38rpx;
+		}
+
+		.group-record__side-text {
+			margin-top: 4rpx;
+			color: #98a2b3;
+			font-size: 21rpx;
+			line-height: 30rpx;
 		}
 
 		.group-record__empty {
@@ -2437,7 +3447,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			height: 88rpx;
 			margin-bottom: 18rpx;
 			border-radius: 50%;
-			background: linear-gradient(135deg, #edf5ff 0%, #d7e7fb 100%);
+			background: linear-gradient(135deg, #fff8ed 0%, #fff1dc 100%);
 		}
 
 		.group-record__empty-desc {
@@ -2448,7 +3458,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 
 		.details {
 			margin: 24rpx 26rpx 0;
-			border-radius: 24rpx;
+			background: #fffbf6;
+			border-radius: 25rpx;
 			overflow: hidden;
 
 			.title {
@@ -2498,6 +3509,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			padding: 0 26rpx env(safe-area-inset-bottom);
 			align-items: center;
 			box-shadow: 0 -6rpx 14rpx rgba(128, 128, 128, 0.08);
+			background: #fff9f0;
 			border-top-left-radius: 20rpx;
 			border-top-right-radius: 20rpx;
 
@@ -2533,7 +3545,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				padding: 0 8rpx;
 				box-sizing: border-box;
 				border-radius: 14rpx;
-				background: #ff2c3c;
+				background: #a0610d;
 				color: #ffffff;
 				font-size: 20rpx;
 				line-height: 28rpx;
@@ -2542,13 +3554,16 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			.footer-action {
 				display: flex;
 				align-items: center;
+				justify-content: center;
 				flex: 1;
+				width: auto;
+				max-width: 425rpx;
 				min-width: 0;
 				height: 80rpx;
-				margin-left: 28rpx;
+				margin-left: 24rpx;
 				padding: 0;
 				color: #ffffff;
-				background: #037dfa;
+				background: linear-gradient(90deg, #c49355 0%, #a0610d 100%);
 				border-radius: 40rpx;
 			}
 
@@ -2567,13 +3582,19 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			}
 
 			.footer-action__avatar--middle {
-				margin: 0 -42rpx;
+				margin: 0 -20rpx;
 				background: #c7e3ff;
 			}
 
+			.footer-action__avatar--empty {
+				background: #ffffff;
+			}
+
 			.footer-action__count {
-				width: 132rpx;
-				margin-left: 46rpx;
+				flex: 1;
+				min-width: 0;
+				max-width: 132rpx;
+				margin-left: 24rpx;
 				font-size: 24rpx;
 				font-weight: 500;
 				line-height: 24rpx;
@@ -2586,13 +3607,12 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				width: 1rpx;
 				height: 20rpx;
 				flex: none;
-				margin-left: 35rpx;
+				margin-left: 20rpx;
 				background: rgba(255, 255, 255, 0.5);
 			}
 
 			.footer-action__text {
 				flex: none;
-				margin-left: 30rpx;
 				font-size: 28rpx;
 				font-weight: 500;
 				line-height: 28rpx;
@@ -2619,8 +3639,8 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			padding: 20rpx 24rpx;
 			box-sizing: border-box;
 			border-radius: 28rpx;
-			background: linear-gradient(135deg, rgba(3, 125, 250, 0.96), rgba(3, 172, 250, 0.9));
-			box-shadow: 0 20rpx 44rpx rgba(0, 84, 184, 0.24);
+			background: linear-gradient(135deg, rgba(160, 97, 13, 0.96), rgba(215, 154, 67, 0.9));
+			box-shadow: 0 20rpx 44rpx rgba(160, 97, 13, 0.22);
 		}
 
 		.goods-share-shop__logo {
@@ -2743,11 +3763,21 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			padding: 0 2rpx;
 		}
 
-		.goods-share-price {
-			color: #ff1919;
-			font-weight: 500;
-			line-height: 1;
-		}
+			.goods-share-price {
+				color: #ff1919;
+				font-weight: 500;
+				line-height: 1;
+			}
+
+			.goods-share-price--pending {
+				max-width: 260rpx;
+				color: #8b95a5;
+			}
+
+			.goods-share-price__pending {
+				font-size: 30rpx;
+				line-height: 40rpx;
+			}
 
 		.goods-share-price__symbol,
 		.goods-share-price__decimal {
@@ -2804,7 +3834,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			height: 76rpx;
 			padding: 0;
 			border-radius: 40rpx;
-			background: #037dfa;
+			background: #a0610d;
 			color: #ffffff;
 			font-size: 28rpx;
 			font-weight: 500;
@@ -2812,7 +3842,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.goods-share-action--save {
-			background: #03acfa;
+			background: #c8872e;
 		}
 
 		.goods-share-action::after {
@@ -2820,9 +3850,14 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		}
 
 		.group-play {
+			margin: 24rpx 26rpx 0;
+			background: #fffbf6;
+			border-radius: 25rpx;
+			overflow: hidden;
+
 			.title {
 				padding: 20rpx 28rpx;
-				border-bottom: $solid-border;
+				border-bottom: 1rpx solid #efe0cf;
 			}
 
 			.steps {
@@ -2839,10 +3874,11 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 				}
 
 				.number {
-					border: 1rpx solid #707070;
+					border: 1rpx solid #a0610d;
 					width: 28rpx;
 					height: 28rpx;
 					border-radius: 50%;
+					color: #a0610d;
 					line-height: 28rpx;
 					text-align: center;
 					margin-right: 6rpx;
@@ -2853,18 +3889,19 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 		.group-list {
 			.group-item {
 				padding: 20rpx 24rpx;
+				background: #fffbf6;
 
 				&:not(:last-of-type) {
-					border-bottom: $solid-border;
+					border-bottom: 1rpx solid #efe0cf;
 				}
 
 				.group-btn {
-					background: linear-gradient(90deg, #f95f2f 0%, #ff2c3c 100%);
+					background: linear-gradient(90deg, #c49355 0%, #a0610d 100%);
 					height: 58rpx;
 					padding-left: 28rpx;
 					padding-right: 28rpx;
 					margin-left: 30rpx;
-					box-shadow: 0px 6rpx 12rpx rgba(249, 47, 138, 0.4);
+					box-shadow: 0 6rpx 12rpx rgba(160, 97, 13, 0.22);
 				}
 			}
 		}
@@ -2888,7 +3925,7 @@ import GoodsLike from '@/components/goods-like/goods-like.vue'
 			}
 
 			.share-con {
-				background: url('https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/bg_packet_img.png');
+				background: linear-gradient(180deg, #fff8ed 0%, #fff1dc 100%);
 				width: 241rpx;
 				height: 208rpx;
 				background-size: 100%;

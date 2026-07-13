@@ -39,12 +39,13 @@
 				</view>
 				<view class="order-pay-type row-between mt20">
 					<view class="ml20">支付方式</view>
-					<view class="mr20">{{payInfo.pay_way_text}}</view>
+					<view class="mr20">{{payInfo.pay_way_text || '待确认'}}</view>
 				</view>
 				<view class="order-pay-money row-between mt20">
 					<view class="ml20">支付金额</view>
 					<view class="mr20">
-						<price-format :price="payInfo.order_amount"></price-format>
+						<price-format v-if="hasPayAmount" :price="displayPayAmount"></price-format>
+						<text v-else>金额待确认</text>
 					</view>
 				</view>
 			</view>
@@ -89,26 +90,49 @@ getOrderDetail
 			getOrderResultFun() {
 				getOrderDetail(this.id).then(res => {
 					if (res.code == 1) {
-						this.payInfo = res.data
+						this.payInfo = res.data || {}
+						return
+					}
+					this.payInfo = {
+						order_sn: this.id
+					}
+				}).catch(() => {
+					this.payInfo = {
+						order_sn: this.id
 					}
 				});
 			},
 
+		},
+		computed: {
+			displayPayAmount() {
+				return this.payInfo.order_amount ?? this.payInfo.orderAmount ?? this.payInfo.pay_amount ?? this.payInfo.payAmount
+			},
+			hasPayAmount() {
+				const value = this.displayPayAmount
+				return value !== undefined && value !== null && value !== ''
+			}
 		}
 	};
 </script>
 <style lang="scss">
 	.pay-result {
+		min-height: 100vh;
+		padding: 1rpx 0 40rpx;
+		box-sizing: border-box;
+
 		.contain {
-			width: 682rpx;
-			margin-left: 20rpx;
-			margin-right: 20rpx;
+			width: calc(100% - 40rpx);
+			max-width: 682rpx;
+			margin-left: auto;
+			margin-right: auto;
 			border-radius: 10rpx;
 			margin-top: 78rpx;
 			padding-left: 20rpx;
 			padding-right: 20rpx;
 			padding-bottom: 40rpx;
 			position: relative;
+			box-sizing: border-box;
 
 			.tips-icon {
 				width: 112rpx;
@@ -134,12 +158,12 @@ getOrderDetail
 				margin-top: 40rpx;
 
 				.check-order-btn {
-					width: 650rpx;
+					width: 100%;
 					height: 84rpx;
 				}
 
 				.go-back-btn {
-					width: 650rpx;
+					width: 100%;
 					height: 84rpx;
 					border:1px solid  $color-primary;
 					box-sizing: border-box;
@@ -147,7 +171,7 @@ getOrderDetail
 			}
 
 			.line {
-				width: 650rpx;
+				width: 100%;
 				border-top: 1px solid rgba(229, 229, 229, 1);
 			}
 		}

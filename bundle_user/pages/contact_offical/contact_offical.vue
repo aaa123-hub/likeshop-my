@@ -12,7 +12,7 @@
                 <view v-else class="contact-card__avatar contact-card__avatar--empty">客</view>
                 <view class="contact-card__info">
                     <view class="contact-card__name">{{ server.name || '平台客服' }}</view>
-                    <view class="contact-card__time">{{ server.time || '服务时间待配置' }}</view>
+                    <view class="contact-card__time">{{ server.time || '服务时间暂未公布' }}</view>
                 </view>
                 <view class="contact-card__status">在线咨询</view>
             </view>
@@ -33,12 +33,12 @@
                 <image v-if="server.qrcode || server.image" class="qrcode-box__image" :src="server.qrcode || server.image" mode="aspectFit"></image>
             </view>
             <view v-if="server.qrcode" class="qrcode-tip">长按识别或点击预览二维码添加客服</view>
-            <view v-else class="qrcode-box qrcode-box--empty">客服二维码待配置</view>
+            <view v-else class="qrcode-box qrcode-box--empty">客服二维码暂未提供</view>
 
             <view class="contact-row" v-if="server.wechat">
                 <view class="contact-row__main">
                     <view class="contact-row__label">客服微信</view>
-                    <view class="contact-row__value">{{ server.wechat || '暂未配置' }}</view>
+                    <view class="contact-row__value">{{ server.wechat || '暂未提供' }}</view>
                 </view>
                 <view class="contact-row__btn" :class="{ 'contact-row__btn--disabled': !server.wechat }" @tap="onCopy(server.wechat)">复制</view>
             </view>
@@ -46,7 +46,7 @@
             <view class="contact-row" v-if="server.qq">
                 <view class="contact-row__main">
                     <view class="contact-row__label">客服QQ</view>
-                    <view class="contact-row__value">{{ server.qq || '暂未配置' }}</view>
+                    <view class="contact-row__value">{{ server.qq || '暂未提供' }}</view>
                 </view>
                 <view class="contact-row__btn" :class="{ 'contact-row__btn--disabled': !server.qq }" @tap="onCopy(server.qq)">复制</view>
             </view>
@@ -54,12 +54,12 @@
             <view class="contact-row" v-if="server.phone">
                 <view class="contact-row__main">
                     <view class="contact-row__label">客服电话</view>
-                    <view class="contact-row__value">{{ server.phone || '暂未配置' }}</view>
+                    <view class="contact-row__value">{{ server.phone || '暂未提供' }}</view>
                 </view>
                 <view class="contact-row__btn" :class="{ 'contact-row__btn--disabled': !server.phone }" @tap="showTelTips">拨打</view>
             </view>
 
-            <view v-if="!hasServiceContact" class="contact-empty">客服联系方式暂未配置，请稍后再试</view>
+            <view v-if="!hasServiceContact" class="contact-empty">客服联系方式暂未提供，请稍后再试</view>
 
             <view class="contact-actions">
                 <!-- #ifdef MP-WEIXIN -->
@@ -75,7 +75,7 @@
         <view class="contact-tips">
             <view class="contact-tips__title">温馨提示</view>
             <view class="contact-tips__item">1. 从商品详情进入时，客服会优先按当前商品协助处理。</view>
-            <view class="contact-tips__item">2. 如二维码、微信、电话为空，说明后台客服资料未配置。</view>
+            <view class="contact-tips__item">2. 如二维码、微信、电话为空，可优先使用在线客服发起咨询。</view>
             <view class="contact-tips__item">3. 客服服务时间以页面实际展示为准。</view>
         </view>
 
@@ -84,7 +84,7 @@
             v-model="showPhoneCall"
             show-cancel-button
             confirm-text="呼叫"
-            confirm-color="#037DFA"
+            confirm-color="#a0610d"
             @confirm="onCall"
         ></u-modal>
     </view>
@@ -181,7 +181,7 @@ export default {
                 this.previewQrcode()
                 return
             }
-            uni.showToast({ title: '客服入口待配置', icon: 'none' })
+            uni.showToast({ title: '客服入口暂未开放', icon: 'none' })
         },
         onCopy(str) {
             if (!str) {
@@ -237,7 +237,7 @@ export default {
 .contact-page {
     min-height: 100vh;
     padding-bottom: 54rpx;
-    background: linear-gradient(180deg, #037dfa 0%, #59b4ff 310rpx, #f6f8fb 310rpx, #f6f8fb 100%);
+    background: linear-gradient(180deg, #a0610d 0%, #d79a43 310rpx, #fff9f0 310rpx, #fff9f0 100%);
 }
 
 .contact-hero {
@@ -272,7 +272,7 @@ export default {
     margin: 0 28rpx;
     background: #ffffff;
     border-radius: 28rpx;
-    box-shadow: 0 16rpx 40rpx rgba(17, 89, 171, 0.1);
+    box-shadow: 0 16rpx 40rpx rgba(129, 86, 34, 0.1);
 }
 
 .contact-card {
@@ -288,11 +288,11 @@ export default {
     width: 96rpx;
     height: 96rpx;
     border-radius: 24rpx;
-    background: #eef4ff;
+    background: #fff1dc;
 }
 
 .contact-card__avatar--empty {
-    color: #037dfa;
+    color: #a0610d;
     font-size: 36rpx;
     font-weight: 600;
     line-height: 96rpx;
@@ -307,10 +307,10 @@ export default {
 
 .contact-card__status {
     padding: 10rpx 18rpx;
-    color: #037dfa;
+    color: #a0610d;
     font-size: 22rpx;
     border-radius: 22rpx;
-    background: #eaf5ff;
+    background: #fff1dc;
 }
 
 .contact-card__name {
@@ -330,7 +330,7 @@ export default {
     align-items: center;
     margin-top: 28rpx;
     padding: 18rpx 22rpx;
-    background: #f5f9ff;
+    background: #fff8ed;
     border-radius: 18rpx;
 }
 
@@ -339,7 +339,7 @@ export default {
     height: 92rpx;
     margin-right: 18rpx;
     border-radius: 16rpx;
-    background: #eef4ff;
+    background: #fff1dc;
 }
 
 .context-card__main {
@@ -348,7 +348,7 @@ export default {
 }
 
 .context-card__label {
-    color: #037dfa;
+    color: #a0610d;
     font-size: 22rpx;
 }
 
@@ -389,7 +389,7 @@ export default {
     color: #8b96a8;
     font-size: 26rpx;
     border: 2rpx dashed #dbe6f2;
-    background: #f7faff;
+    background: #fffdf8;
 }
 
 .qrcode-tip {
@@ -429,7 +429,7 @@ export default {
     line-height: 52rpx;
     text-align: center;
     border-radius: 26rpx;
-    background: #037dfa;
+    background: #a0610d;
 }
 
 .contact-row__btn--disabled {
@@ -456,18 +456,18 @@ export default {
     flex: 1;
     height: 76rpx;
     padding: 0;
-    color: #037dfa;
+    color: #a0610d;
     font-size: 26rpx;
     font-weight: 500;
     line-height: 76rpx;
     text-align: center;
     border-radius: 38rpx;
-    background: #eaf5ff;
+    background: #fff1dc;
 }
 
 .contact-action--primary {
     color: #ffffff;
-    background: #037dfa;
+    background: #a0610d;
 }
 
 .contact-action::after {

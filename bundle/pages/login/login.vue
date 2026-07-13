@@ -28,29 +28,42 @@
                     </view>
                 </view>
 
-                <view class="company-login__agree" @tap="changeChecked">
-                    <view class="company-login__checkbox" :class="{ 'is-checked': isAgree }">
-                        <text v-if="isAgree">✓</text>
+                <view class="company-login__agreement-list">
+                    <view class="company-login__agree">
+                        <view
+                            class="company-login__checkbox"
+                            :class="{ 'is-checked': agreementCheckedState.service }"
+                            @tap="toggleAgreementChecked('service')"
+                        >
+                            <text v-if="agreementCheckedState.service">✓</text>
+                        </view>
+                        <view class="company-login__agreement-text">
+                            已阅读并同意
+                            <view
+                                class="company-login__link"
+                                @tap.stop="openAgreement(0)"
+                            >
+                                《服务协议》
+                            </view>
+                        </view>
                     </view>
-                    <view class="company-login__agreement-text">
-                        已阅读并同意
-                        <navigator
-                            class="company-login__link"
-                            hover-class="none"
-                            url="/bundle_user/pages/server_explan/server_explan?type=0"
-                            @tap.stop
+                    <view class="company-login__agree">
+                        <view
+                            class="company-login__checkbox"
+                            :class="{ 'is-checked': agreementCheckedState.privacy }"
+                            @tap="toggleAgreementChecked('privacy')"
                         >
-                            《服务协议》
-                        </navigator>
-                        和
-                        <navigator
-                            class="company-login__link"
-                            hover-class="none"
-                            url="/bundle_user/pages/server_explan/server_explan?type=1"
-                            @tap.stop
-                        >
-                            《隐私协议》
-                        </navigator>
+                            <text v-if="agreementCheckedState.privacy">✓</text>
+                        </view>
+                        <view class="company-login__agreement-text">
+                            已阅读并同意
+                            <view
+                                class="company-login__link"
+                                @tap.stop="openAgreement(1)"
+                            >
+                                《隐私政策》
+                            </view>
+                        </view>
                     </view>
                 </view>
 
@@ -70,29 +83,28 @@
             :value="showModel"
             show-cancel-button
             :show-title="false"
-            @confirm=";(isAgree = true), (showModel = false)"
+            @confirm="handleAgreementModalConfirm"
             @cancel="showModel = false"
-            confirm-color="#FF4D3D"
+            confirm-color="#a0610d"
         >
             <view class="company-login__modal">
                 <view>请先阅读并同意</view>
                 <view class="company-login__modal-links">
-                    <navigator
+                    <view
                         class="company-login__link"
-                        hover-class="none"
-                        url="/bundle_user/pages/server_explan/server_explan?type=0"
+                        @tap.stop="openAgreement(0)"
                     >
                         《服务协议》
-                    </navigator>
+                    </view>
                     和
-                    <navigator
+                    <view
                         class="company-login__link"
-                        hover-class="none"
-                        url="/bundle_user/pages/server_explan/server_explan?type=1"
+                        @tap.stop="openAgreement(1)"
                     >
-                        《隐私协议》
-                    </navigator>
+                        《隐私政策》
+                    </view>
                 </view>
+                <view class="company-login__modal-tip">{{ agreementReadTip }}</view>
             </view>
         </u-modal>
     </view>
@@ -109,15 +121,24 @@ import Cache from '@/utils/cache'
 import { BACK_URL } from '@/config/cachekey'
 import { designAssets } from '@/utils/design-assets'
 
+const LOGIN_AGREEMENT_CONFIRM_PREFIX = 'LOGIN_AGREEMENT_CONFIRMED_'
+
 export default {
 	components: {
 			UModal
 		},
     data() {
         return {
-            isAgree: true,
             showModel: false,
             loginLoading: false,
+            agreementReadState: {
+                service: false,
+                privacy: false
+            },
+            agreementCheckedState: {
+                service: false,
+                privacy: false
+            },
             designAssets
         }
     },
@@ -126,6 +147,19 @@ export default {
         canBack() {
             const pages = getCurrentPages()
             return pages.length > 1
+        },
+        hasReadAllAgreements() {
+            return Boolean(this.agreementReadState.service && this.agreementReadState.privacy)
+        },
+        hasCheckedAllAgreements() {
+            return Boolean(this.agreementCheckedState.service && this.agreementCheckedState.privacy)
+        },
+        agreementReadTip() {
+            if (this.hasReadAllAgreements) return '请勾选《服务协议》和《隐私政策》后继续登录。'
+            const unread = []
+            if (!this.agreementReadState.service) unread.push('服务协议')
+            if (!this.agreementReadState.privacy) unread.push('隐私政策')
+            return `请先阅读完${unread.join('和')}，滑动至页面底部并点击确认后再返回勾选。`
         }
     },
     onLoad() {
@@ -134,18 +168,54 @@ export default {
                 url: '/pages/index/index'
             })
         }
+        this.refreshAgreementReadState()
+    },
+    onShow() {
+        this.refreshAgreementReadState()
     },
     methods: {
         ...mapMutations(['LOGIN']),
         goBack() {
             uni.navigateBack()
         },
-        changeChecked() {
-            this.isAgree = !this.isAgree
+        refreshAgreementReadState() {
+            let service = false
+            let privacy = false
+            try {
+                service = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_CONFIRM_PREFIX}0`))
+                privacy = Boolean(uni.getStorageSync(`${LOGIN_AGREEMENT_CONFIRM_PREFIX}1`))
+            } catch (error) {}
+            this.agreementReadState = { service, privacy }
+            if (!service) this.agreementCheckedState.service = false
+            if (!privacy) this.agreementCheckedState.privacy = false
+        },
+        openAgreement(type) {
+            this.showModel = false
+            uni.navigateTo({
+                url: `/bundle_user/pages/server_explan/server_explan?type=${type}&from=login`
+            })
+        },
+        toggleAgreementChecked(key) {
+            this.refreshAgreementReadState()
+            const readDone = Boolean(this.agreementReadState[key])
+            if (!readDone) {
+                this.agreementCheckedState[key] = false
+                this.showModel = true
+                return
+            }
+            this.agreementCheckedState[key] = !this.agreementCheckedState[key]
+        },
+        handleAgreementModalConfirm() {
+            this.showModel = false
+            if (this.hasReadAllAgreements) {
+                return
+            }
+            this.openAgreement(this.agreementReadState.service ? 1 : 0)
         },
         async mnpLoginFun() {
             if (this.loginLoading) return
-            if (!this.isAgree) {
+            this.refreshAgreementReadState()
+            if (!this.hasReadAllAgreements || !this.hasCheckedAllAgreements) {
                 this.showModel = true
                 return
             }
@@ -170,7 +240,7 @@ export default {
                 this.$toast({
                     title: error && error.message === 'wx.login timeout'
                         ? '微信登录凭证获取失败，请重试'
-                        : '登录失败，请检查接口服务'
+                        : '登录失败，请稍后重试'
                 })
             } finally {
                 this.loginLoading = false
@@ -209,9 +279,8 @@ export default {
             const inviteCode = Cache.get('INVITE_CODE')
             if (inviteCode) {
                 Cache.remove('INVITE_CODE')
-                inputInviteCode({
-                    code: inviteCode
-                })
+                const invitePayload = typeof inviteCode === 'object' ? inviteCode : { code: inviteCode }
+                inputInviteCode(invitePayload)
             }
 
             // #ifdef H5
@@ -240,7 +309,7 @@ export default {
 
 <style lang="scss">
 page {
-    background: #f7f8fb;
+    background: #fff9f0;
 }
 
 .company-login {
@@ -264,7 +333,7 @@ page {
     left: 0;
     width: 100%;
     height: 560rpx;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, #f7f8fb 88%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, #fff9f0 88%);
 }
 
 .company-login__nav {
@@ -321,7 +390,7 @@ page {
     width: 132rpx;
     height: 132rpx;
     border-radius: 38rpx;
-    background: linear-gradient(135deg, #ff7a45 0%, #ff4d3d 52%, #2f6bff 100%);
+    background: linear-gradient(135deg, #d79a43 0%, #a0610d 52%, #d79a43 100%);
     box-shadow: 0 18rpx 40rpx rgba(255, 91, 61, 0.25);
     display: flex;
     align-items: center;
@@ -397,10 +466,18 @@ page {
     color: #7b8496;
 }
 
-.company-login__agree {
+.company-login__agreement-list {
     margin-top: 34rpx;
+}
+
+.company-login__agree {
+    min-height: 42rpx;
     display: flex;
     align-items: flex-start;
+}
+
+.company-login__agree + .company-login__agree {
+    margin-top: 18rpx;
 }
 
 .company-login__checkbox {
@@ -408,7 +485,7 @@ page {
     width: 32rpx;
     height: 32rpx;
     margin-top: 2rpx;
-    border-radius: 50%;
+    border-radius: 8rpx;
     border: 2rpx solid #c6ccd8;
     display: flex;
     align-items: center;
@@ -420,8 +497,8 @@ page {
 }
 
 .company-login__checkbox.is-checked {
-    border-color: #ff4d3d;
-    background: #ff4d3d;
+    border-color: #a0610d;
+    background: #a0610d;
 }
 
 .company-login__agreement-text {
@@ -433,8 +510,9 @@ page {
 }
 
 .company-login__link {
-    display: inline;
-    color: #ff4d3d;
+    display: inline-flex;
+    color: #a0610d;
+    font-weight: 600;
 }
 
 .company-login__button {
@@ -442,7 +520,7 @@ page {
     width: 100%;
     height: 96rpx;
     border-radius: 48rpx;
-    background: linear-gradient(90deg, #ff7a45 0%, #ff4d3d 100%);
+    background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
     color: #ffffff;
     font-size: 32rpx;
     font-weight: 600;
@@ -476,5 +554,13 @@ page {
     align-items: center;
     font-size: 26rpx;
     color: #697386;
+}
+
+.company-login__modal-tip {
+    margin-top: 14rpx;
+    padding: 0 28rpx;
+    color: #8a94a6;
+    font-size: 24rpx;
+    line-height: 36rpx;
 }
 </style>

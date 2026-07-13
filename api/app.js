@@ -51,7 +51,7 @@ function normalizeEcoApplication(item = {}, index = 0) {
     iconUrl: resolveImage(image, "goods"),
     entryUrl: item.entryUrl || item.entry_url || linkUrl,
     linkUrl,
-    urlText: item.urlText || item.url_text || linkUrl || item.appCode || item.app_code || "暂未配置链接",
+    urlText: item.urlText || item.url_text || linkUrl || item.appCode || item.app_code || "",
     openType: item.openType || item.open_type || item.jumpType || item.jump_type || item.type || "",
     pagePath: item.pagePath || item.page_path || item.path || (/^\//.test(linkUrl) ? linkUrl : ""),
     appId: item.targetAppId || item.target_app_id || item.appid || item.appId || item.app_id || "",
@@ -90,8 +90,11 @@ function normalizePayMethod(method) {
     wechat: "WECHAT_JSAPI",
     wxpay: "WECHAT_JSAPI",
     wechat_jsapi: "WECHAT_JSAPI",
+    WECHAT_JSAPI: "WECHAT_JSAPI",
+    jsapi: "WECHAT_JSAPI",
   };
-  return payMethodMap[String(method || "").toLowerCase()] || "WECHAT_JSAPI";
+  const key = String(method || "");
+  return payMethodMap[key] || payMethodMap[key.toLowerCase()] || "";
 }
 
 function currentOpenId() {
@@ -128,9 +131,10 @@ function normalizePaymentResponse(res) {
 
 function normalizeBubbleItem(item = {}, index = 0) {
   const user = item.user || item.userInfo || {};
-  const nickname = user.nickname || item.nickname || item.userName || "用户";
+  const nickname = user.nickname || item.nickname || item.userName || "";
   const avatar = resolveImage(user.avatar || item.avatar || item.headimgurl, "avatar");
-  const goodsName = item.goodsName || item.goods_name || item.productName || item.title || item.name || "商品";
+  const goodsName = item.goodsName || item.goods_name || item.productName || item.title || item.name || "";
+  const template = item.template || item.content || item.text || (nickname && goodsName ? `${nickname}浏览了${goodsName}` : "");
 
   return {
     ...item,
@@ -140,7 +144,7 @@ function normalizeBubbleItem(item = {}, index = 0) {
       avatar,
       nickname,
     },
-    template: item.template || `${nickname}刚刚浏览了${goodsName}`,
+    template,
   };
 }
 
@@ -155,7 +159,7 @@ function normalizeBubbleListsResponse(res) {
     ...res,
     data: {
       ...payload,
-      lists: list.map(normalizeBubbleItem),
+      lists: list.map(normalizeBubbleItem).filter((item) => item.template),
       time: payload.time || Math.floor(Date.now() / 1000),
     },
   };
@@ -170,7 +174,7 @@ function normalizeRecentVisitShop(item = {}, index = 0) {
     key: String(item.id || item.visitId || shopId || index),
     id: item.id || item.visitId || index,
     shopId,
-    name: shop.shopName || shop.shop_name || shop.storeName || shop.name || item.title || "默认门店",
+    name: shop.shopName || shop.shop_name || shop.storeName || shop.name || item.title || "",
     image: resolveImage(shop.shopLogo || shop.shop_logo || shop.logo || shop.logoUrl || shop.image || shop.cover || item.cover || item.image),
     time: formatRecentVisitTime(visitTime),
     subscribed: Boolean(shop.subscribed || shop.isSubscribed || shop.is_subscribe || item.subscribed || item.isSubscribed),
@@ -178,7 +182,7 @@ function normalizeRecentVisitShop(item = {}, index = 0) {
 }
 
 function formatRecentVisitTime(value) {
-  if (!value) return "刚刚";
+  if (!value) return "";
   if (typeof value === "string" && /^\d{1,2}:\d{2}/.test(value)) return value.slice(0, 5);
   const time = Number(value);
   const date = Number.isNaN(time) ? new Date(value) : new Date(time > 10000000000 ? time : time * 1000);
@@ -244,21 +248,9 @@ function normalizePaywayResponse(res, params = {}) {
       ...data,
       order_amount: amount,
       cancel_time: data.cancelTime || data.expireTime || baseInfo.expireTime || params.cancel_time || now + 30 * 60,
-      pay: data.pay || data.payMethods || data.paymentMethods || defaultPaywayList(),
+      pay: data.pay || data.payMethods || data.paymentMethods || [],
     },
   };
-}
-
-function defaultPaywayList() {
-  return [
-    {
-      id: "WECHAT_JSAPI",
-      name: "微信支付",
-      pay_way: "WECHAT_JSAPI",
-      extra: "使用微信支付",
-      icon: "https://shengyuan.store/api/miniapp/files/miniapp-static/static/images/icon_paySuccess.png",
-    },
-  ];
 }
 
 //小程序授权登录
@@ -297,17 +289,33 @@ export function opLogin(data) {
 //预支付接口
 export async function prepay(data = {}) {
   const openId = data.openId || data.openid || data.open_id || currentOpenId();
+  const bizOrderNo = data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id;
+  const usePoints = Boolean(data.use_integral || data.usePoints);
   const res = await request.post("miniapp/payments/create", {
     bizType: data.bizType || (data.from === "recharge" ? "RECHARGE" : "ORDER"),
-    bizOrderNo: data.bizOrderNo || data.payOrderNo || data.order_no || data.order_id,
+    bizOrderNo,
     amount: firstDefined(data.amount, data.payAmount, data.order_amount),
+    couponId: data.noCoupon || data.no_coupon ? "" : firstDefined(data.couponId, data.coupon_id, data.userCouponId, data.user_coupon_id, ""),
+    coupon_id: data.noCoupon || data.no_coupon ? "" : firstDefined(data.coupon_id, data.couponId, data.user_coupon_id, data.userCouponId, ""),
+    couponIds: data.noCoupon || data.no_coupon ? [] : (data.couponIds || data.coupon_ids || (data.coupon_id || data.couponId ? [data.coupon_id || data.couponId] : [])),
+    coupon_ids: data.noCoupon || data.no_coupon ? [] : (data.coupon_ids || data.couponIds || (data.coupon_id || data.couponId ? [data.coupon_id || data.couponId] : [])),
+    noCoupon: Boolean(data.noCoupon || data.no_coupon),
+    no_coupon: Boolean(data.noCoupon || data.no_coupon),
+    usePoints,
+    use_integral: usePoints,
+    pointsAmount: usePoints ? Number(firstDefined(data.pointsAmount, data.points_amount, data.integral_num, 0)) : 0,
+    points_amount: usePoints ? Number(firstDefined(data.points_amount, data.pointsAmount, data.integral_num, 0)) : 0,
+    pointsDeductAmount: usePoints ? Number(firstDefined(data.pointsDeductAmount, data.points_deduct_amount, data.integral_amount, 0)) : 0,
+    points_deduct_amount: usePoints ? Number(firstDefined(data.points_deduct_amount, data.pointsDeductAmount, data.integral_amount, 0)) : 0,
+    integral_num: usePoints ? Number(firstDefined(data.integral_num, data.pointsAmount, data.points_amount, 0)) : 0,
+    integral_amount: usePoints ? Number(firstDefined(data.integral_amount, data.pointsDeductAmount, data.points_deduct_amount, 0)) : 0,
     payScene: data.payScene || "MINIAPP",
-    payMethod: "WECHAT_JSAPI",
-    clientIp: data.clientIp || "127.0.0.1",
+    payMethod: normalizePayMethod(firstDefined(data.payMethod, data.pay_method, data.pay_way)),
+    clientIp: data.clientIp || data.client_ip || "",
     openId,
     idempotentKey:
       data.idempotentKey ||
-      `pay-${data.order_id || data.bizOrderNo || Date.now()}-WECHAT_JSAPI`,
+      `pay-${bizOrderNo || Date.now()}-${normalizePayMethod(firstDefined(data.payMethod, data.pay_method, data.pay_way)) || "PAY"}`,
     client,
   });
   return normalizePaymentResponse(res);
@@ -317,6 +325,12 @@ export function queryPayment(data = {}) {
   const payOrderNo = data.payOrderNo || data.pay_order_no || data.pay_order_id || data.order_id;
   if (!payOrderNo) return Promise.resolve({ code: 0, msg: "缺少支付单号", data: null });
   return request.get(`miniapp/payments/${payOrderNo}`).then(normalizePaymentResponse);
+}
+
+export function syncWechatPayment(data = {}) {
+  const payOrderNo = data.payOrderNo || data.pay_order_no || data.pay_order_id || data.order_id;
+  if (!payOrderNo) return Promise.resolve({ code: 0, msg: "缺少支付单号", data: null });
+  return request.post(`miniapp/payments/${payOrderNo}/sync-wechat`, {}).then(normalizePaymentResponse);
 }
 
 //小程序订阅
@@ -531,14 +545,20 @@ export function getPayway(params = {}) {
 function normalizeShareQrcodeResponse(res, fallbackPath = "") {
   const data = res && res.data ? res.data : {};
   const qrcodeInfo = data.qrcodeInfo || data.qrCodeInfo || data.qrcode_info || data.qr_code_info || {};
-  const qrCode = data.qr_code || data.qrCode || data.qrcode || data.image || data.urlImage
-    || qrcodeInfo.qr_code || qrcodeInfo.qrCode || qrcodeInfo.qrcode || qrcodeInfo.image || qrcodeInfo.urlImage;
+  const qrCode = data.qr_code || data.qrCode || data.qrcode || data.qrcodeUrl || data.qrcode_url
+    || data.qrCodeUrl || data.qr_code_url || data.posterUrl || data.poster_url || data.poster
+    || data.image || data.imageUrl || data.urlImage
+    || qrcodeInfo.qr_code || qrcodeInfo.qrCode || qrcodeInfo.qrcode || qrcodeInfo.qrcodeUrl || qrcodeInfo.qrcode_url
+    || qrcodeInfo.qrCodeUrl || qrcodeInfo.qr_code_url || qrcodeInfo.posterUrl || qrcodeInfo.poster_url
+    || qrcodeInfo.image || qrcodeInfo.imageUrl || qrcodeInfo.urlImage;
   return {
     ...(res || {}),
     code: qrCode || res?.code == 1 ? 1 : 0,
     data: {
       ...data,
-      qr_code: qrCode || "",
+      qr_code: qrCode ? resolveImage(qrCode, "goods") : "",
+      qrcodeUrl: qrCode ? resolveImage(qrCode, "goods") : "",
+      posterUrl: resolveImage(data.posterUrl || data.poster_url || data.poster || qrCode || "", "goods"),
       path: data.path || data.pagePath || fallbackPath,
     },
   };

@@ -29,15 +29,17 @@ export { client };
 
 //节流
 export const trottle = (func, time = 1000, context) => {
-  let previous = new Date(0).getTime();
-  return function (...args) {
-    let now = new Date().getTime();
-    if (now - previous > time) {
-      func.apply(context, args);
-      previous = now;
-    }
+    let previous = new Date(0).getTime();
+    let result;
+    return function (...args) {
+      let now = new Date().getTime();
+      if (now - previous > time) {
+        result = func.apply(context, args);
+        previous = now;
+      }
+      return result;
+    };
   };
-};
 
 //判断是否为微信环境
 export function isWeixinClient() {
@@ -251,8 +253,9 @@ export function menuJump(item) {
   }
 }
 
-export function uploadFile(path) {
+export function uploadFile(path, options = {}) {
   return new Promise((resolve, reject) => {
+    const fileType = options.fileType || options.type || "image";
     uni.uploadFile({
       url: `${baseURL}/api/miniapp/files/upload`,
       filePath: path,
@@ -261,7 +264,7 @@ export function uploadFile(path) {
         token: store.getters.token,
         Authorization: store.getters.token ? `Bearer ${store.getters.token}` : "",
       },
-      fileType: "image",
+      fileType,
       cloudPath: "",
       success: (res) => {
         let data;
@@ -330,7 +333,7 @@ export function copy(str) {
 export function setTabbar() {
   uni.setTabBarStyle({
     color: "#666666",
-    selectedColor: "#1688ff",
+    selectedColor: "#a0610d",
     backgroundColor: "#ffffff",
   });
   return;

@@ -352,7 +352,7 @@
 	}
 	.u-icon-disabled {
 		color: #c8c9cc !important;
-		background: #f7f8fa !important;
+		background: #fff8ed !important;
 	}
 	.u-input-disabled {
 		color: #c8c9cc !important;

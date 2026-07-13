@@ -7,7 +7,7 @@
 				}" @tap="onLotteryClick(item.id)">
 				<image :src="item.url" style="width: 80rpx;height: 80rpx"></image>
 				<text :class="!item.id ? 'xs mt20' : 'nr mt10'"
-					:style="'color: ' + (!item.id ? '#ED3720' : '#743C3C') + ';font-weight: 600;'">{{item.name}}</text>
+					:style="'color: ' + (!item.id ? '#a0610d' : '#743C3C') + ';font-weight: 600;'">{{item.name}}</text>
 			</view>
 		</view>
 		<view class="activity-null row-center" v-else>
@@ -114,11 +114,10 @@
 							default:
 								index = -1;
 								break;
-						}
-						this.luckyOrder = index
-						this.result = res.data
-							.text; // console.log("id:", id, "index", index, LOTTERY_ORDER[index], "####");
-						// console.log(this.data.lotteryData, "data");
+							}
+							this.luckyOrder = index
+							this.result = res.data
+								.text;
 
 						this.$emit("begin");
 						this.startLotteryFun();
@@ -188,12 +187,11 @@
 				}
 			},
 
-			// 停止转动
-			stop(index, callback) {
-				this.luckyOrder = this.getLuckyItemOrderFun(index);
-				console.log("stop, ###", index);
-				this._stopCallback = callback;
-			},
+				// 停止转动
+				stop(index, callback) {
+					this.luckyOrder = this.getLuckyItemOrderFun(index);
+					this._stopCallback = callback;
+				},
 
 			// 重设转盘
 			reset() {

@@ -27,15 +27,6 @@ author: likeshop.cn.team //
       >
         <view class="order-header row-between">
           <view class="order-sn row">
-            <view v-if="item.delivery_type == 2" class="mr10">
-              <u-tag
-                text="自提"
-                size="mini"
-                type="primary"
-                mode="dark"
-                bg-color="#0cc21e"
-              />
-            </view>
             <view v-if="item.order_type == 1" class="mr10">
               <u-tag text="秒杀" size="mini" type="primary" mode="plain" />
             </view>
@@ -45,9 +36,13 @@ author: likeshop.cn.team //
             <view v-if="item.order_type == 3" class="mr10">
               <u-tag text="砍价" size="mini" type="primary" mode="plain" />
             </view>
-            <text class="line1">订单编号：{{ item.order_sn || item.id }}</text>
+            <text class="order-sn__text">订单编号：{{ item.order_sn || item.id }}</text>
           </view>
-          <view :class="['order-status', orderStatusClass(item)]">{{ formatOrderStatusText(item) }}</view>
+          <view class="order-header__right">
+            <view v-if="isAfterSaleOrder(item)" class="order-after-tag">{{ afterSaleStatusText(item) || '售后中' }}</view>
+            <view v-else-if="showAfterSaleGoodsTag(item)" class="order-after-tag">含售后中商品</view>
+            <view :class="['order-status', orderStatusClass(item)]">{{ formatOrderStatusText(item) }}</view>
+          </view>
         </view>
         <view class="order-meta" v-if="orderMetaRows(item).length">
           <view v-for="row in orderMetaRows(item)" :key="row.label" class="order-meta__item">
@@ -55,16 +50,24 @@ author: likeshop.cn.team //
             <text class="order-meta__value">{{ row.value }}</text>
           </view>
         </view>
+        <view class="pickup-brief" v-if="isSelfFetchOrder(item)">
+          <view class="pickup-brief__tag">{{ verificationStatusText(item) }}</view>
+          <view class="pickup-brief__main">
+            <view class="pickup-brief__name">{{ selfFetchShopName(item) }}</view>
+            <view class="pickup-brief__address" v-if="selfFetchShopAddress(item)">{{ selfFetchShopAddress(item) }}</view>
+          </view>
+        </view>
         <view class="order-con">
           <order-goods
             :list="item.order_goods"
             :order_type="item.order_type"
             :link="true"
+            :show-comment="false"
           ></order-goods>
           <view v-if="goodsCountText(item) || hasOrderAmount(item)" class="all-price row-end">
             <text v-if="goodsCountText(item)" class="muted xs">{{ goodsCountText(item) }}</text>
             <text v-if="goodsCountText(item) && hasOrderAmount(item)" class="muted xs">，</text>
-            <text v-if="hasOrderAmount(item)" class="muted xs">总金额：</text>
+            <text v-if="hasOrderAmount(item)" class="muted xs">{{ orderAmountLabel(item) }}：</text>
             <price-format
               v-if="hasOrderAmount(item)"
               :subscript-size="30"
@@ -73,29 +76,36 @@ author: likeshop.cn.team //
               :price="orderAmount(item)"
             ></price-format>
           </view>
+          <view v-if="amountDetailRows(item).length" class="amount-detail">
+            <view v-for="row in amountDetailRows(item)" :key="row.label" class="amount-detail__row">
+              <text class="amount-detail__label">{{ row.label }}</text>
+              <text :class="['amount-detail__value', row.type === 'deduct' ? 'amount-detail__value--deduct' : '']">{{ row.value }}</text>
+            </view>
+          </view>
         </view>
         <view
           class="order-footer row"
           v-if="
-            item.pickup_btn ||
-            item.cancel_btn ||
-            item.delivery_btn ||
-            item.take_btn ||
-            item.del_btn ||
-            canPayOrder(item) ||
-            item.comment_btn
+            (!isAfterSaleOrder(item) && (
+              showPickupButton(item) ||
+              canCancelOrder(item) ||
+              showDeliveryButton(item) ||
+              showTakeButton(item) ||
+              item.del_btn ||
+              canPayOrder(item) ||
+              item.comment_btn
+            ))
           "
         >
-          <view style="flex: 1">
+          <view class="order-footer__timer">
             <view
-              class="primary sm row"
-              style="line-height: 26rpx"
-              v-if="getCancelTime(item.order_cancel_time) > 0"
+              class="primary sm row order-footer__timer-text"
+              v-if="!isLocallyPaidOrder(item) && !isClosedOrder(item) && getCancelTime(item.order_cancel_time) > 0"
               ><u-count-down
                 separator="zh"
                 :timestamp="getCancelTime(item.order_cancel_time)"
-                separator-color="#FF2C3C"
-                color="#FF2C3C"
+                separator-color="#a0610d"
+                color="#a0610d"
                 :separator-size="26"
                 :font-size="26"
                 bg-color="transparent"
@@ -114,7 +124,7 @@ author: likeshop.cn.team //
             </button>
           </view>
           <view
-            v-if="item.delivery_btn"
+            v-if="showDeliveryButton(item)"
             @tap.stop="
               goPage(
                 '/bundle_order/pages/goods_logistics/goods_logistics?id=' + item.id
@@ -149,20 +159,22 @@ author: likeshop.cn.team //
               size="sm"
               hover-class="none"
               class="btn plain btn br60 primary red"
+              @tap.stop="goCommentPage(item)"
             >
-              去评价
+              评价晒图
             </button>
           </view>
-          <view v-if="item.pickup_btn" class="ml20">
+          <view v-if="showPickupButton(item)" class="ml20">
             <button
               size="sm"
               hover-class="none"
               class="btn plain btn br60 primary red"
+              @tap.stop="goPickupCodePage(item)"
             >
               查看提货码
             </button>
           </view>
-          <view v-if="item.take_btn" class="ml20">
+          <view v-if="showTakeButton(item)" class="ml20">
             <button
               size="sm"
               class="btn plain br60 primary red"
@@ -175,11 +187,13 @@ author: likeshop.cn.team //
         </view>
       </navigator>
       <view v-if="showPlaceholder" class="order-placeholder column-center">
+        <image class="order-placeholder__image" :src="orderPlaceholderImage" mode="aspectFit"></image>
         <text class="lighter">{{ placeholderText }}</text>
       </view>
       <loading-footer v-else :status="footerStatus" :slot-empty="true" @refresh="reload">
         <view slot="empty" class="column-center order-placeholder">
-          <text class="lighter">暂无订单</text>
+          <image class="order-placeholder__image" :src="orderPlaceholderImage" mode="aspectFit"></image>
+          <text class="lighter">暂无数据</text>
         </view>
       </loading-footer>
     </view>
@@ -220,6 +234,8 @@ import OrderGoods from '@/bundle_order/components/order-goods/order-goods.vue'
 import LoadingFooter from '@/components/loading-footer/loading-footer.vue'
 import LoadingView from '@/components/loading-view/loading-view.vue'
 import OrderDialog from '@/bundle_order/components/order-dialog/order-dialog.vue'
+import { cleanBackendText, cleanEmptyBackendText, isBackendCodeText } from '@/utils/backend-text'
+import { getPlaceholderImage } from '@/utils/image-placeholder'
 export default {
   data() {
     return {
@@ -231,8 +247,12 @@ export default {
       type: 0,
       orderId: "",
       deletedOrderIds: [],
+      paidOrderIds: [],
       showLoading: false,
       pay_way: "",
+      lastRequestKey: "",
+      lastRequestAt: 0,
+      orderPlaceholderImage: getPlaceholderImage('order')
     };
   },
 
@@ -249,15 +269,20 @@ export default {
     orderType: {
       type: String,
     },
+    orderScene: {
+      type: String,
+      default: 'online'
+    },
   },
   created: function () {
+    this.loadPaidOrderIds();
     uni.$on("refreshorder", () => {
       this.reflesh();
     });
     uni.$on("payment", (params) => {
       if (params.result) {
+        this.rememberPaidOrder(params);
         this.reflesh();
-        uni.navigateBack();
         setTimeout(() => this.$toast({ title: "支付成功" }), 0.5 * 1000);
       }
     });
@@ -269,6 +294,9 @@ export default {
     uni.$off(["payment", "refreshorder"]);
   },
   methods: {
+    firstDefined(...values) {
+      return values.find(value => value !== undefined && value !== null && value !== '')
+    },
     reflesh() {
       this.page = 1;
       this.orderList = [];
@@ -279,9 +307,20 @@ export default {
 
     handleOrderDialogRefresh(payload = {}) {
       if (payload.type === 1) {
-        const deletedId = String(payload.orderId || '');
-        if (deletedId && !this.deletedOrderIds.includes(deletedId)) this.deletedOrderIds.push(deletedId);
-        this.orderList = this.orderList.filter((item) => String(item.id || item.order_sn || item.orderNo) !== deletedId);
+        const matched = this.orderList.find((item) => this.orderIdentityList(item).includes(String(payload.orderId || ''))) || {}
+        const deletedIds = this.orderIdentityList({ ...matched, id: payload.orderId }).filter(Boolean);
+        deletedIds.forEach((deletedId) => {
+          if (!this.deletedOrderIds.includes(deletedId)) this.deletedOrderIds.push(deletedId);
+        })
+        this.rememberDeletedOrder(deletedIds)
+        this.orderList = this.orderList.filter((item) => !this.orderIdentityList(item).some((id) => deletedIds.includes(id)));
+        uni.$emit('orderDeleted', {
+          orderId: payload.orderId,
+          orderNo: matched.orderNo || matched.order_no || matched.order_sn || payload.orderId,
+          order_sn: matched.order_sn,
+          bizOrderNo: matched.bizOrderNo || matched.biz_order_no,
+          subOrderNo: matched.subOrderNo || matched.sub_order_no
+        })
       }
       return this.reflesh();
     },
@@ -301,6 +340,59 @@ export default {
       this.$nextTick(() => {
         this.orderDialog();
       });
+    },
+    orderIdentityList(item = {}) {
+      return [
+        item.id,
+        item.orderNo,
+        item.order_no,
+        item.order_sn,
+        item.orderSn,
+        item.orderCode,
+        item.order_code,
+        item.no,
+        item.sn,
+        item.order_id,
+        item.orderId,
+        item.bizOrderNo,
+        item.biz_order_no,
+        item.subOrderNo,
+        item.sub_order_no,
+        item.paymentNo,
+        item.payment_no,
+        item.payOrderNo,
+        item.pay_order_no,
+        item.transactionId,
+        item.transaction_id,
+        item.transactionNo,
+        item.transaction_no
+      ].filter((value) => value !== undefined && value !== null && value !== '').map((value) => String(value))
+    },
+    rememberDeletedOrder(id) {
+      const ids = uni.getStorageSync('ORDER_DELETED_IDS') || []
+      const values = Array.isArray(id) ? id : [id]
+      values.map((value) => String(value || '')).filter(Boolean).forEach((text) => {
+        if (!ids.includes(text)) ids.push(text)
+      })
+      uni.setStorageSync('ORDER_DELETED_IDS', ids.slice(-200))
+    },
+    loadPaidOrderIds() {
+      const ids = uni.getStorageSync('ORDER_PAID_IDS') || []
+      this.paidOrderIds = Array.isArray(ids) ? ids.map((id) => String(id || '')).filter(Boolean) : []
+    },
+    rememberPaidOrder(payload = {}) {
+      const ids = (uni.getStorageSync('ORDER_PAID_IDS') || []).map((id) => String(id || '')).filter(Boolean)
+      this.orderIdentityList({
+        id: payload.order_id || payload.orderId || payload.id,
+        orderNo: payload.orderNo || payload.order_no,
+        order_sn: payload.order_sn,
+        payOrderNo: payload.payOrderNo || payload.pay_order_no
+      }).forEach((id) => {
+        if (!ids.includes(id)) ids.push(id)
+      })
+      const nextIds = ids.slice(-200)
+      uni.setStorageSync('ORDER_PAID_IDS', nextIds)
+      this.paidOrderIds = nextIds
     },
     // 小程序确认收货
     comfirmReceive(transaction_id) {
@@ -422,33 +514,104 @@ export default {
       // 	}
       // });
     },
-
     async getOrderListFun() {
       if (this.isFetching) return;
       let { page, orderType, orderList, status } = this;
+      const requestType = this.requestOrderType(orderType);
+      const requestKey = `${this.normalizedOrderScene()}:${requestType || 'all'}:${page}`;
+      const now = Date.now();
+      if (this.lastRequestKey === requestKey && now - this.lastRequestAt < 300) return;
+      this.lastRequestKey = requestKey;
+      this.lastRequestAt = now;
       const showInitialLoading = page === 1 && !orderList.length;
       this.isFetching = true;
       if (showInitialLoading) this.showLoading = true;
       try {
-        const data = await loadingFun(getOrderList, page, orderList, status, {
-          type: orderType,
-        });
-        if (!data) {
-          if (!this.orderList.length && this.status === loadingType.LOADING) {
-            this.status = loadingType.FINISHED;
+        let data = null;
+        let loadCount = 0;
+        do {
+          data = await loadingFun(getOrderList, page, orderList, status, {
+            type: requestType,
+            orderScene: this.normalizedOrderScene(),
+          });
+          if (!data) {
+            if (!this.orderList.length && this.status === loadingType.LOADING) {
+              this.status = loadingType.FINISHED;
+            }
+            return;
           }
-          return;
-        }
-        this.page = data.page;
-        this.orderList = data.dataList.filter((item) => !this.deletedOrderIds.includes(String(item.id || item.order_sn || item.orderNo)));
-        this.status = data.status;
+          const beforeFilterCount = (data.dataList || []).length;
+          page = data.page;
+          status = data.status;
+          orderList = data.dataList
+            .filter((item) => {
+              const ids = (uni.getStorageSync('ORDER_DELETED_IDS') || []).concat(this.deletedOrderIds)
+              return !this.orderIdentityList(item).some((id) => ids.includes(id))
+            })
+            .filter((item) => this.matchOrderScene(item))
+            .filter((item) => this.shouldShowOrder(item));
+          if (!orderList.length && beforeFilterCount > 0 && status === loadingType.EMPTY) {
+            status = loadingType.LOADING;
+          }
+          loadCount += 1;
+        } while (this.shouldAutoLoadNextPage(orderType, orderList, status, loadCount));
+
+        this.page = page;
+        this.orderList = orderList;
+        this.status = status;
       } catch (error) {
-        console.error('[order-list] getOrderListFun failed:', error);
         this.status = this.orderList.length ? loadingType.FINISHED : loadingType.ERROR;
       } finally {
         this.isFetching = false;
         this.showLoading = false;
       }
+    },
+    requestOrderType(type) {
+      const value = String(type || '');
+      return value || 'all';
+    },
+    normalizedOrderScene() {
+      return this.orderScene === 'offline' ? 'offline' : 'online';
+    },
+    normalizeSceneText(value) {
+      return String(value || '').trim().replace(/[\s-]+/g, '_').toUpperCase();
+    },
+    matchOrderScene(item = {}) {
+      const scene = this.normalizedOrderScene();
+      const explicitScene = this.normalizeSceneText(
+        item.orderScene ||
+        item.order_scene ||
+        item.scene ||
+        item.bizScene ||
+        item.biz_scene ||
+        item.categoryType ||
+        item.category_type ||
+        item.goodsCategoryType ||
+        item.goods_category_type ||
+        item.productCategoryType ||
+        item.product_category_type
+      );
+      if (['ONLINE', 'MALL', 'ECOMMERCE', 'SHOP'].includes(explicitScene)) return scene === 'online';
+      if (['OFFLINE', 'STREET', 'LOCAL', 'STORE', 'BUSINESS_STREET', 'OFFLINE_PICKUP'].includes(explicitScene)) return scene === 'offline';
+      const orderChannel = this.normalizeSceneText(item.orderChannel || item.order_channel || item.channel);
+      const goodsSource = this.normalizeSceneText(item.goodsSource || item.goods_source);
+      const offlineSignals = [
+        orderChannel === 'OFFLINE_PICKUP',
+        orderChannel === 'OFFLINE',
+        orderChannel === 'STORE',
+        goodsSource === 'OFFLINE',
+        goodsSource === 'STREET',
+        goodsSource === 'LOCAL',
+        goodsSource === 'STORE',
+        this.isSelfFetchOrder(item)
+      ];
+      const isOffline = offlineSignals.some(Boolean);
+      return scene === 'offline' ? isOffline : !isOffline;
+    },
+    shouldAutoLoadNextPage(type, list, status, loadCount) {
+      if (loadCount >= 5) return false;
+      if (status === loadingType.FINISHED || status === loadingType.ERROR) return false;
+      return !list.length;
     },
     goPage(url) {
       uni.navigateTo({
@@ -457,21 +620,145 @@ export default {
     },
     goodCount(goodLists) {
       let count = 0;
+      let hasCount = false;
       ;(goodLists || []).forEach((item) => {
-        count += Number(item.goods_num || item.quantity || item.num || 0);
+        const value = this.firstDefined(item.goods_num, item.goodsNum, item.quantity, item.num);
+        if (value === undefined) return;
+        const number = Number(value);
+        if (Number.isNaN(number)) return;
+        hasCount = true;
+        count += number;
       });
-      return count;
+      return hasCount ? count : '';
     },
     goodsCountText(item) {
-      const backendCount = item.goods_num || item.goodsNum || item.total_num || item.totalNum || item.goods_count || item.goodsCount || item.quantity;
-      const count = backendCount || this.goodCount(item.order_goods || item.goods_lists);
-      return count ? `共${count}件商品` : '';
+      const backendCount = this.firstDefined(item.goods_num, item.goodsNum, item.total_num, item.totalNum, item.goods_count, item.goodsCount, item.quantity);
+      const count = backendCount !== undefined ? backendCount : this.goodCount(item.order_goods || item.goods_lists);
+      return count !== undefined && count !== null && count !== '' ? `共${count}件商品` : '';
     },
     hasOrderAmount(item) {
       return this.orderAmount(item) !== undefined && this.orderAmount(item) !== null && this.orderAmount(item) !== '';
     },
+    moneyValue(value) {
+      const number = Number(value)
+      return Number.isNaN(number) ? 0 : number
+    },
+    firstAmount(...values) {
+      return values.find((amount) => amount !== undefined && amount !== null && amount !== '' && !Number.isNaN(Number(amount)))
+    },
+    formatMoney(value) {
+      const number = Number(value)
+      return Number.isNaN(number) ? '' : number.toFixed(2)
+    },
     orderAmount(item) {
-      return [item.order_amount, item.payAmount, item.orderAmount, item.totalAmount].find((value) => value !== undefined && value !== null && value !== '');
+      return this.firstAmount(
+        item.order_amount,
+        item.payAmount,
+        item.pay_amount,
+        item.orderAmount,
+        item.actualAmount,
+        item.actual_amount,
+        item.paidAmount,
+        item.paid_amount,
+        item.totalAmount,
+        item.total_amount,
+        item.shopPayAmount,
+        item.shop_pay_amount,
+        item.merchantPayAmount,
+        item.merchant_pay_amount,
+        item.storePayAmount,
+        item.store_pay_amount,
+        item.shop_amount,
+        item.shopAmount,
+        this.goodsAmountSum(item.order_goods || item.goods_lists)
+      );
+    },
+    orderOriginalAmount(item = {}) {
+      return this.firstAmount(
+        item.goods_total_amount,
+        item.goodsTotalAmount,
+        item.goods_amount,
+        item.goodsAmount,
+        item.total_goods_price,
+        item.totalGoodsPrice,
+        item.shop_amount,
+        item.shopAmount,
+        this.goodsAmountSum(item.order_goods || item.goods_lists)
+      )
+    },
+    couponDeductAmount(item = {}) {
+      const amountInfo = item.amountInfo || item.amount_info || item.settlementAmount || item.settlement_amount || {}
+      const coupon = item.coupon || item.couponInfo || item.coupon_info || {}
+      return this.moneyValue(this.firstAmount(
+        item.coupon_discount_amount,
+        item.couponDiscountAmount,
+        item.coupon_amount,
+        item.couponAmount,
+        item.discount_amount,
+        item.discountAmount,
+        item.discount_price,
+        item.discountPrice,
+        amountInfo.coupon_discount_amount,
+        amountInfo.couponDiscountAmount,
+        amountInfo.coupon_amount,
+        amountInfo.couponAmount,
+        amountInfo.discount_amount,
+        amountInfo.discountAmount,
+        coupon.discountAmount,
+        coupon.discount_amount,
+        coupon.amount,
+        0
+      ))
+    },
+    pointsDeductAmount(item = {}) {
+      const amountInfo = item.amountInfo || item.amount_info || item.settlementAmount || item.settlement_amount || {}
+      const pointsInfo = item.pointsInfo || item.points_info || item.integralInfo || item.integral_info || {}
+      return this.moneyValue(this.firstAmount(
+        item.pointsDeductAmount,
+        item.points_deduct_amount,
+        item.integral_amount,
+        item.integralAmount,
+        item.integralDeductAmount,
+        item.integral_deduct_amount,
+        amountInfo.pointsDeductAmount,
+        amountInfo.points_deduct_amount,
+        amountInfo.integral_amount,
+        amountInfo.integralAmount,
+        pointsInfo.pointsDeductAmount,
+        pointsInfo.points_deduct_amount,
+        pointsInfo.integral_amount,
+        pointsInfo.integralAmount,
+        0
+      ))
+    },
+    amountDetailRows(item = {}) {
+      const rows = []
+      const originalAmount = this.moneyValue(this.orderOriginalAmount(item))
+      const payAmount = this.moneyValue(this.orderAmount(item))
+      const couponAmount = this.couponDeductAmount(item)
+      const pointsAmount = this.pointsDeductAmount(item)
+      if (originalAmount > 0 && payAmount > 0 && originalAmount > payAmount) {
+        rows.push({ label: '商品合计', value: `¥${this.formatMoney(originalAmount)}` })
+      }
+      if (couponAmount > 0) rows.push({ label: '优惠券抵扣', value: `-¥${this.formatMoney(couponAmount)}`, type: 'deduct' })
+      if (pointsAmount > 0) rows.push({ label: '积分抵扣', value: `-¥${this.formatMoney(pointsAmount)}`, type: 'deduct' })
+      return rows
+    },
+    orderAmountLabel(item = {}) {
+      if (this.isPendingPayOrder(item)) return '应付'
+      if (this.isPaidOrder(item)) return '实付'
+      return '合计'
+    },
+    goodsAmountSum(list = []) {
+      const amount = (list || []).reduce((sum, goods = {}) => {
+        const rawCount = goods.goods_num ?? goods.goodsNum ?? goods.quantity ?? goods.num ?? '';
+        const count = Number(rawCount);
+        const price = Number(goods.goods_price || goods.goodsPrice || goods.salePrice || goods.unitPrice || goods.price || 0);
+        if (rawCount !== '' && !Number.isNaN(count) && count > 0 && !Number.isNaN(price) && price > 0) return sum + count * price;
+        const explicitAmount = Number(goods.total_price || goods.totalPrice || goods.totalAmount || goods.realAmount);
+        return !Number.isNaN(explicitAmount) && explicitAmount > 0 ? sum + explicitAmount : sum;
+      }, 0);
+      return amount > 0 ? amount.toFixed(2) : '';
     },
     orderPayWay(item) {
       return item.pay_way || item.payMethod || item.payWay;
@@ -480,31 +767,243 @@ export default {
       return value === 1 || value === '1' || value === 'WECHAT_JSAPI' || value === 'wechat' || value === 'wxpay';
     },
     normalizeStatus(value) {
-      return String(value || '').toUpperCase();
+      return String(value || '').trim().replace(/[\s-]+/g, '_').toUpperCase();
+    },
+    isPaidStatus(value) {
+      const status = this.normalizeStatus(value)
+      return value === 1 || value === '1' || ['PAID', 'PAYED', 'SUCCESS', 'SUCCEEDED', 'PAID_SUCCESS', 'PAY_SUCCESS', 'FINISHED', 'COMPLETED'].includes(status)
+    },
+    isUnpaidStatus(value) {
+      const status = this.normalizeStatus(value)
+      return value === 0 || value === '0' || ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID'].includes(status)
+    },
+    cleanText(value, fallback = '') {
+      return cleanBackendText(value, fallback);
+    },
+    cleanPlainText(value, fallback = '') {
+      return cleanEmptyBackendText(value, fallback);
     },
     isClosedOrder(item) {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
-      return item.order_status == 4 || item.close_btn || item.closed_btn || ['CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER'].includes(status);
+      return item.order_status == 4 || item.close_btn || item.closed_btn || this.isExpiredPendingPayOrder(item) || ['CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER'].includes(status);
+    },
+    isAfterSaleOrder(item = {}) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      return Boolean(
+        ['REFUNDING', 'AFTER_SALE', 'AFTER_SALES', 'AFTERSALE', 'REFUND_APPLIED', 'REFUND_PROCESSING'].includes(status) ||
+        this.isRefundFinishedOrder(item) ||
+        item.after_sale_id ||
+        item.afterSaleId ||
+        item.refundNo ||
+        item.refund_no ||
+        this.afterSaleStatusText(item) ||
+        this.hasAfterSaleGoods(item)
+      );
+    },
+    shouldShowOrder(item = {}) {
+      const type = String(this.orderType || 'all');
+      if (type === 'pay') return !this.isAfterSaleOrder(item) && this.isPendingPayOrder(item);
+      if (type === 'ship') {
+        if (this.normalizedOrderScene() === 'offline') {
+          return !this.isAfterSaleOrder(item) && this.isPendingSelfFetchOrder(item);
+        }
+        return !this.isAfterSaleOrder(item) && this.isWaitShipOrder(item);
+      }
+      if (type === 'finish') {
+        return !this.isAfterSaleOrder(item) && this.isSelfFetchOrder(item) && (this.isVerifiedOrder(item) || this.isFinishedOrder(item));
+      }
+      if (type === 'delivery') return !this.isAfterSaleOrder(item) && !this.isEndedOrder(item) && (this.isShippedOrder(item) || this.isPendingSelfFetchOrder(item));
+      if (type === 'afterSale') return this.isAfterSaleOrder(item);
+      if (type === 'close' || type === 'closed') return !this.isAfterSaleOrder(item) && this.isClosedOrder(item);
+      if (type === 'ended') return !this.isAfterSaleOrder(item) && this.isEndedOrder(item);
+      return true;
+    },
+    hasShippingSignal(item = {}) {
+      return Boolean(
+        item.shipping_time ||
+        item.shippedAt ||
+        item.express_no ||
+        item.expressNo ||
+        item.tracking_no ||
+        item.trackingNo ||
+        item.invoice_no ||
+        item.invoiceNo
+      );
+    },
+    isShippedText(value) {
+      return /(已发货|待收货|待签收|运输中|派送中|已揽收)/.test(String(value || ''));
+    },
+    isWaitShipOrder(item = {}) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      const rawText = item.order_status_desc || item.orderStatusDesc || item.statusText || '';
+      if (this.isShippedOrder(item) || this.isEndedOrder(item) || this.isClosedOrder(item)) return false;
+      if (!this.isSelfFetchOrder(item) && this.isPaidOrder(item) && this.isRawPendingPayOrder(item)) return true;
+      return item.order_status == 1 || ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY'].includes(status) || /待发货/.test(String(rawText || ''));
+    },
+    isShippedOrder(item = {}) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      const deliveryStatus = this.normalizeStatus(item.delivery_status || item.deliveryStatus);
+      const rawText = item.order_status_desc || item.orderStatusDesc || item.statusText || '';
+      return Boolean(
+        item.order_status == 2 ||
+        ['SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', 'IN_TRANSIT', 'RECEIVING'].includes(status) ||
+        ['SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', 'IN_TRANSIT', 'RECEIVING', 'SIGNED'].includes(deliveryStatus) ||
+        this.isShippedText(rawText) ||
+        this.hasShippingSignal(item)
+      );
+    },
+    isPendingSelfFetchOrder(item = {}) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      return Boolean(
+        this.isSelfFetchOrder(item) &&
+        !this.isAfterSaleOrder(item) &&
+        !this.isEndedOrder(item) &&
+        !this.isVerifiedOrder(item) &&
+        (this.isPaidOrder(item) && this.isRawPendingPayOrder(item) || item.order_status == 1 || item.order_status == 2 || ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED'].includes(status))
+      );
+    },
+    isEndedOrder(item = {}) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      return Boolean(
+        item.order_status == 3 ||
+        item.order_status == 4 ||
+        ['COMPLETED', 'SUCCESS', 'FINISHED', 'CANCELLED', 'CANCELED', 'CLOSED', 'CLOSE', 'CLOSED_ORDER', 'REFUNDED'].includes(status) ||
+        this.isClosedOrder(item)
+      );
+    },
+    isFinishedOrder(item = {}) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      return Boolean(item.order_status == 3 || ['COMPLETED', 'SUCCESS', 'FINISHED'].includes(status));
+    },
+    isRefundFinishedOrder(item = {}) {
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      const rawRefundStatus = item.refundStatus || item.refund_status || item.after_status_desc || item.afterStatusDesc || item.refundStatusText || item.refund_status_text;
+      const refundStatus = this.normalizeStatus(rawRefundStatus);
+      const refundText = String(rawRefundStatus || '').trim();
+      return ['REFUNDED', 'REFUND_SUCCESS'].includes(status) || ['REFUNDED', 'REFUND_SUCCESS', 'SUCCESS'].includes(refundStatus) || ['退款成功', '已退款'].includes(refundText);
     },
     isPendingPayOrder(item) {
+      if (this.isPaidOrder(item) || this.isExpiredPendingPayOrder(item)) return false;
+      return this.isRawPendingPayOrder(item);
+    },
+    isRawPendingPayOrder(item) {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status || item.pay_status || item.payStatus);
-      return item.order_status == 0 || item.pay_status == 0 || ['CREATED', 'WAIT_PAY', 'PENDING_PAY', 'UNPAID', 'NOT_PAID'].includes(status);
+      return this.isUnpaidStatus(item.order_status || item.orderStatus || item.status || item.pay_status || item.payStatus) || item.pay_status == 0;
+    },
+    isLocallyPaidOrder(item = {}) {
+      return this.orderIdentityList(item).some((id) => this.paidOrderIds.includes(id))
+    },
+    isBackendPaidOrder(item = {}) {
+      const payStatus = this.normalizeStatus(item.pay_status || item.payStatus || item.paymentStatus || item.payment_status)
+      const orderStatus = this.normalizeStatus(item.order_status || item.orderStatus || item.status)
+      const paymentInfo = item.paymentInfo || item.payment_info || item.payInfo || item.pay_info || {}
+      const paidAmount = Number(item.paidAmount || item.paid_amount || paymentInfo.paidAmount || paymentInfo.paid_amount || 0)
+      return Boolean(
+        this.isPaidStatus(item.pay_status || item.payStatus || item.paymentStatus || item.payment_status || paymentInfo.payStatus || paymentInfo.pay_status || paymentInfo.status) ||
+        ['PAID', 'WAIT_SHIP', 'WAIT_DELIVERY', 'SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', 'COMPLETED', 'SUCCESS', 'FINISHED'].includes(orderStatus) ||
+        item.pay_time ||
+        item.payTime ||
+        item.paidAt ||
+        item.paid_at ||
+        paymentInfo.payTime ||
+        paymentInfo.pay_time ||
+        paymentInfo.paidAt ||
+        paymentInfo.paid_at ||
+        item.transactionId ||
+        item.transaction_id ||
+        paymentInfo.transactionId ||
+        paymentInfo.transaction_id ||
+        (!Number.isNaN(paidAmount) && paidAmount > 0)
+      )
+    },
+    isPaidOrder(item = {}) {
+      return this.isBackendPaidOrder(item) || this.isLocallyPaidOrder(item)
+    },
+    orderExpireTimestamp(item = {}) {
+      const value = item.order_cancel_time || item.expireTime || item.expire_time || item.cancel_time || item.cancelTime || item.pay_expire_time || item.payExpireTime
+      if (!value) return 0
+      if (typeof value === 'string' && /[-/:T]/.test(value)) {
+        const time = new Date(value.replace(/-/g, '/')).getTime()
+        return Number.isNaN(time) ? 0 : Math.floor(time / 1000)
+      }
+      const number = Number(value)
+      if (Number.isNaN(number) || number <= 0) return 0
+      return number > 10000000000 ? Math.floor(number / 1000) : number
+    },
+    isExpiredPendingPayOrder(item = {}) {
+      const expireAt = this.orderExpireTimestamp(item)
+      return expireAt > 0 && this.isRawPendingPayOrder(item) && expireAt <= Date.now() / 1000
     },
     canPayOrder(item) {
+      if (this.isPaidOrder(item) || this.isExpiredPendingPayOrder(item)) return false;
       return Boolean(item.pay_btn || item.payBtn || item.pay_button || (this.isPendingPayOrder(item) && !this.isClosedOrder(item)));
     },
     canCancelOrder(item) {
+      if (this.isPaidOrder(item) || this.isExpiredPendingPayOrder(item)) return false;
       return Boolean(item.cancel_btn || item.cancelBtn || item.cancel_button || (this.isPendingPayOrder(item) && !this.isClosedOrder(item)));
     },
+    showDeliveryButton(item) {
+      return Boolean(!this.isSelfFetchOrder(item) && (item.delivery_btn || this.isShippedOrder(item) || (this.isFinishedOrder(item) && this.hasShippingSignal(item))))
+    },
+    showTakeButton(item) {
+      return Boolean(!this.isSelfFetchOrder(item) && !this.isEndedOrder(item) && (item.take_btn || this.isReceivableOrder(item)))
+    },
+    showPickupButton(item = {}) {
+      return Boolean(
+        this.isSelfFetchOrder(item) &&
+        !this.isPendingPayOrder(item) &&
+        !this.isClosedOrder(item) &&
+        !this.isVerifiedOrder(item) &&
+        (item.pickup_btn || this.isPendingSelfFetchOrder(item) || this.pickupCode(item))
+      )
+    },
+    isReceivableOrder(item = {}) {
+      if (item.receivable || item.can_confirm_receipt) return true
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      const deliveryStatus = this.normalizeStatus(item.delivery_status || item.deliveryStatus);
+      return Boolean(
+        item.order_status == 2 ||
+        ['WAIT_RECEIVE', 'DELIVERED', 'RECEIVING'].includes(status) ||
+        ['WAIT_RECEIVE', 'DELIVERED', 'RECEIVING'].includes(deliveryStatus)
+      )
+    },
+    goCommentPage(item = {}) {
+      const goods = (item.order_goods || item.goods_lists || [])[0] || {}
+      const id = goods.id || goods.item_id || goods.itemId || goods.order_item_id || goods.orderItemId || item.id || ''
+      if (!id) {
+        this.$toast({ title: '缺少评价商品信息' })
+        return
+      }
+      this.goPage(`/bundle_order/pages/goods_reviews/goods_reviews?id=${encodeURIComponent(id)}&order_id=${encodeURIComponent(item.id || item.order_sn || '')}`)
+    },
+    goPickupCodePage(item = {}) {
+      const id = item.id || item.order_id || item.orderId || ''
+      if (!id) {
+        this.$toast({ title: '缺少订单信息' })
+        return
+      }
+      this.goPage(`/bundle/pages/order_details/order_details?id=${encodeURIComponent(id)}`)
+    },
     formatOrderStatusText(item) {
+      if (this.isSelfFetchOrder(item) && this.isRefundFinishedOrder(item)) return '售后';
+      if (this.isRefundFinishedOrder(item)) return '已退款';
+      if (this.isAfterSaleOrder(item)) return '售后中';
+      if (this.isExpiredPendingPayOrder(item)) return '已关闭';
+      if (this.isSelfFetchOrder(item) && (this.isVerifiedOrder(item) || this.isFinishedOrder(item))) return '已核销';
+      if (this.isSelfFetchOrder(item) && this.isPendingSelfFetchOrder(item)) return '待核销';
+      if (this.isPaidOrder(item) && this.isRawPendingPayOrder(item)) return '待发货';
       const rawText = item.order_status_desc || item.orderStatusDesc || item.statusText || '';
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status || rawText);
+      if (this.isSelfFetchOrder(item) && ['SHIPPED', 'WAIT_RECEIVE', 'DELIVERED', '2'].includes(status)) {
+        return '待取货';
+      }
+      if (this.isShippedOrder(item) && !this.isEndedOrder(item)) return this.isShippedText(rawText) ? this.cleanText(rawText) : '已发货';
       if (/^submit-/i.test(String(rawText || status))) return '订单已提交';
       const map = {
-        CREATED: '待付款',
-        WAIT_PAY: '待付款',
-        PENDING_PAY: '待付款',
-        UNPAID: '待付款',
+        CREATED: '待支付',
+        WAIT_PAY: '待支付',
+        PENDING_PAY: '待支付',
+        UNPAID: '待支付',
         SUBMITTED: '订单已提交',
         SUBMIT: '订单已提交',
         PAID: '待发货',
@@ -526,11 +1025,65 @@ export default {
       };
       if (map[status]) return map[status];
       if (this.isClosedOrder(item)) return '已关闭';
-      return (/^[A-Z0-9_-]+$/.test(String(rawText))) ? '订单处理中' : (rawText || this.getOrderStatus(item.order_status) || '处理中');
+      return isBackendCodeText(rawText) ? '订单处理中' : (this.cleanText(rawText) || this.getOrderStatus(item.order_status) || '处理中');
+    },
+    hasAfterSaleGoods(item = {}) {
+      return (item.order_goods || item.goods_lists || []).some((goods = {}) => {
+        const afterSale = goods.after_sale || goods.afterSale || goods.refund_info || goods.refundInfo || {}
+        return Boolean(
+          goods.after_sale_id ||
+          goods.afterSaleId ||
+          goods.refundNo ||
+          goods.refund_no ||
+          goods.refundId ||
+          goods.refund_id ||
+          this.cleanText(goods.after_status_desc || goods.afterStatusDesc || goods.refundStatusText || goods.refund_status_text || goods.after_status || goods.afterSaleStatus || goods.after_sale_status) ||
+          this.cleanText(afterSale.desc || afterSale.statusText || afterSale.status_text || afterSale.refundStatusText || afterSale.refund_status_text || afterSale.refundStatus || afterSale.refund_status || afterSale.status)
+        )
+      })
+    },
+    showAfterSaleGoodsTag(item = {}) {
+      if (String(this.orderType || '') === 'ended') return false;
+      if (this.isRefundFinishedOrder(item)) return false;
+      return this.hasAfterSaleGoods(item);
+    },
+    afterSaleStatusText(item = {}) {
+      const text = this.formatRefundStatusText(item.after_status_desc || item.afterStatusDesc || item.refundStatusText || item.refund_status_text || item.refundStatus || item.refund_status);
+      if (text) return text;
+      const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      if (status === 'REFUNDING') return '退款中';
+      return '';
+    },
+    formatRefundStatusText(value) {
+      const status = this.normalizeStatus(value);
+      const map = {
+        APPLIED: '待商家处理',
+        APPLY: '待商家处理',
+        PENDING: '待商家处理',
+        PENDING_REVIEW: '待商家处理',
+        PROCESSING: '处理中',
+        REFUNDING: '退款中',
+        IN_PROGRESS: '处理中',
+        APPROVED: '商家已同意',
+        RETURNING: '待买家退货',
+        WAIT_RETURN: '待买家退货',
+        REJECTED: '商家已拒绝',
+        REJECT: '商家已拒绝',
+        CANCELLED: '已撤销',
+        CANCELED: '已撤销',
+        REFUNDED: '退款成功',
+        REFUND_SUCCESS: '退款成功',
+        SUCCESS: '退款成功',
+        FAILED: '退款失败'
+      };
+      return map[status] || this.cleanText(value);
     },
     orderStatusClass(item) {
       const status = this.normalizeStatus(item.order_status || item.orderStatus || item.status);
+      if (this.isRefundFinishedOrder(item)) return 'is-closed';
+      if (this.isAfterSaleOrder(item)) return 'is-after-sale';
       if (this.isClosedOrder(item)) return 'is-closed';
+      if (this.isPaidOrder(item) && this.isRawPendingPayOrder(item)) return 'is-active-status';
       if (status === 'CREATED' || item.order_status == 0) return 'is-pay';
       if (status === 'COMPLETED' || status === 'SUCCESS' || item.order_status == 3) return 'is-finished';
       return 'is-active-status';
@@ -545,27 +1098,72 @@ export default {
       return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     },
     formatDeliveryType(type) {
-      const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', PICKUP: '门店自提' };
-      return map[type] || type || '';
+      const map = { 1: '快递配送', 2: '门店自提', EXPRESS: '快递配送', DELIVERY: '快递配送', LOGISTICS: '快递配送', PICKUP: '门店自提', SELF_FETCH: '门店自提', SELF_PICKUP: '门店自提', SELFFETCH: '门店自提' };
+      return map[type] || this.cleanText(type);
+    },
+    isSelfFetchOrder(item = {}) {
+      const type = item.delivery_type || item.deliveryType
+      const value = String(type || '').toUpperCase()
+      return type === 2 || value === '2' || ['PICKUP', 'SELF_FETCH', 'SELF_PICKUP', 'SELFFETCH', 'STORE_PICKUP'].includes(value)
+    },
+    isVerifiedOrder(item = {}) {
+      const value = item.verification_status ?? item.verificationStatus ?? item.verifyStatus ?? item.verify_status ?? ''
+      if (value === true || value === 1 || value === '1') return true
+      const status = this.normalizeStatus(value)
+      return ['VERIFIED', 'USED', 'CONSUMED', 'SUCCESS', 'DONE', 'COMPLETED'].includes(status)
+    },
+    verificationStatusText(item = {}) {
+      return this.isVerifiedOrder(item) ? '已核销' : '待核销'
+    },
+    selfFetchShop(item = {}) {
+      return item.selffetch_shop || item.selffetchShop || item.pickupShop || {}
+    },
+    selfFetchShopName(item = {}) {
+      const shop = this.selfFetchShop(item)
+      return this.cleanPlainText(shop.name || shop.shopName || shop.shop_name || shop.storeName || item.shop_name || item.shopName, '门店待确认')
+    },
+    selfFetchShopAddress(item = {}) {
+      const shop = this.selfFetchShop(item)
+      return this.cleanPlainText(shop.shop_address || shop.address || shop.detailAddress || shop.detail_address || shop.addressText || item.pickupAddress || item.pickup_address, '')
+    },
+    selfFetchContactText(item = {}) {
+      const name = this.cleanPlainText(item.consignee || item.pickupContact || item.pickup_contact || item.receiverName, '')
+      const mobile = this.cleanPlainText(item.mobile || item.pickupMobile || item.pickup_mobile || item.receiverMobile, '')
+      return [name, mobile].filter(Boolean).join(' ') || '待补充提货信息'
+    },
+    pickupCode(item = {}) {
+      const value = item.pickup_code || item.pickupCode || item.verifyCode || ''
+      return this.isOrderNoLikePickupCode(value, item) ? '' : value
+    },
+    isOrderNoLikePickupCode(value, item = {}) {
+      const text = String(value || '').trim()
+      if (!text) return false
+      return [
+        item.order_sn,
+        item.orderNo,
+        item.order_no,
+        item.id
+      ].filter(Boolean).map(String).includes(text)
     },
     formatPayWay(value) {
       const map = { WECHAT_JSAPI: '微信支付', WECHAT: '微信支付', ALIPAY: '支付宝', BALANCE: '余额支付', OFFLINE: '线下支付', 1: '微信支付', 2: '支付宝', 3: '余额支付' };
-      return map[value] || value || '';
+      return map[value] || this.cleanText(value);
     },
     formatPayStatus(status) {
       const map = { UNPAID: '未支付', PAID: '已支付', REFUNDED: '已退款', CLOSED: '已关闭', 0: '未支付', 1: '已支付' };
-      return map[status] || status || '';
+      return map[status] || this.cleanText(status);
     },
     orderMetaRows(item) {
-      return [
-        { label: '订单类型', value: item.order_type_desc },
-        { label: '商家', value: item.shop_name || item.shopName },
+      const rows = [
+        { label: '订单类型', value: this.cleanText(item.order_type_desc) },
+        { label: '商家', value: this.cleanPlainText(item.shop_name || item.shopName) },
         { label: '下单时间', value: this.formatDisplayTime(item.create_time || item.createTime || item.createdAt) },
         { label: '支付时间', value: this.formatDisplayTime(item.pay_time || item.payTime || item.paidAt) },
-        { label: '配送方式', value: this.formatDeliveryType(item.delivery_type || item.deliveryType) },
+        ...(!this.isSelfFetchOrder(item) ? [{ label: '配送方式', value: this.formatDeliveryType(item.delivery_type || item.deliveryType) }] : []),
         { label: '支付方式', value: this.formatPayWay(item.pay_way_text || item.payMethod || item.pay_way) },
         { label: '支付状态', value: this.formatPayStatus(item.pay_status || item.payStatus) }
-      ].filter((row) => row.value !== undefined && row.value !== null && row.value !== '');
+      ]
+      return rows.filter((row) => this.cleanText(row.value) !== '');
     },
   },
   computed: {
@@ -593,13 +1191,16 @@ export default {
       };
     },
     getCancelTime() {
-      return (time) => time - Date.now() / 1000;
+      return (time) => {
+        const timestamp = this.orderExpireTimestamp({ order_cancel_time: time })
+        return timestamp > 0 ? timestamp - Date.now() / 1000 : 0
+      };
     },
     showPlaceholder() {
       return !this.orderList.length && (this.status === loadingType.EMPTY || this.status === loadingType.ERROR);
     },
     placeholderText() {
-      return this.status === loadingType.ERROR ? '加载失败，请稍后重试' : '暂无订单';
+      return this.status === loadingType.ERROR ? '加载失败，请稍后重试' : '暂无数据';
     },
     footerStatus() {
       if (this.isFetching) return loadingType.LOADING;
@@ -612,17 +1213,17 @@ export default {
 <style lang="scss">
 .order-list {
   // min-height: calc(100vh - 80rpx);
-  padding: 10rpx 22rpx calc(32rpx + env(safe-area-inset-bottom));
+  padding: 0 24rpx calc(32rpx + env(safe-area-inset-bottom));
   overflow: hidden;
 
   .order-item {
     display: block;
     margin-top: 24rpx;
-    background: #ffffff;
-    border: 1rpx solid rgba(31, 122, 244, .08);
-    border-radius: 30rpx;
+    background: #fffaf5;
+    border: 0;
+    border-radius: 15rpx;
     overflow: hidden;
-    box-shadow: 0 16rpx 42rpx rgba(24, 54, 104, .1);
+    box-shadow: none;
 
     .order-header {
       display: flex;
@@ -631,8 +1232,8 @@ export default {
       flex-wrap: wrap;
       min-height: 96rpx;
       padding: 20rpx 24rpx;
-      background: linear-gradient(135deg, #f4f9ff 0%, #ffffff 76%);
-      border-bottom: 1rpx solid #edf2f7;
+      background: #fffaf5;
+      border-bottom: 1rpx solid #f1e3d4;
       box-sizing: border-box;
     }
 
@@ -643,6 +1244,35 @@ export default {
       color: #343b48;
       font-size: 25rpx;
       line-height: 36rpx;
+    }
+
+    .order-sn__text {
+      flex: 1;
+      min-width: 0;
+      word-break: break-all;
+    }
+
+    .order-header__right {
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10rpx;
+      max-width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .order-after-tag {
+      flex: none;
+      padding: 7rpx 14rpx;
+      color: #c2410c;
+      background: #fff7ed;
+      border: 1rpx solid #fed7aa;
+      border-radius: 999rpx;
+      font-size: 22rpx;
+      font-weight: 600;
+      line-height: 30rpx;
+      white-space: nowrap;
     }
 
     .order-status {
@@ -658,8 +1288,8 @@ export default {
     }
 
     .order-status.is-active-status {
-      color: #1f7af4;
-      background: rgba(31, 122, 244, .08);
+      color: #a0610d;
+      background: #fff3e8;
     }
 
     .order-status.is-pay {
@@ -675,6 +1305,11 @@ export default {
     .order-status.is-closed {
       color: #8f9aaf;
       background: #f1f3f6;
+    }
+
+    .order-status.is-after-sale {
+      color: #c2410c;
+      background: #fff7ed;
     }
 
     .order-meta {
@@ -693,7 +1328,7 @@ export default {
       min-width: 0;
       max-width: 100%;
       padding: 7rpx 13rpx;
-      background: #f6f8fb;
+      background: #fff8ed;
       border-radius: 999rpx;
     }
 
@@ -707,11 +1342,88 @@ export default {
       word-break: break-all;
     }
 
+    .pickup-brief {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+      margin: 14rpx 24rpx 0;
+      padding: 14rpx 18rpx;
+      border-radius: 16rpx;
+      background: #f4fff8;
+      border: 1rpx solid #d8f5e2;
+      box-sizing: border-box;
+    }
+
+    .pickup-brief__tag {
+      flex: none;
+      padding: 5rpx 12rpx;
+      border-radius: 999rpx;
+      color: #10a66a;
+      background: #e8fbf1;
+      font-size: 22rpx;
+      font-weight: 700;
+      line-height: 30rpx;
+    }
+
+    .pickup-brief__main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pickup-brief__name {
+      color: #475467;
+      font-size: 24rpx;
+      line-height: 34rpx;
+      word-break: break-all;
+    }
+
+    .pickup-brief__address {
+      margin-top: 4rpx;
+      color: #667085;
+      font-size: 22rpx;
+      line-height: 32rpx;
+      word-break: break-all;
+    }
+
     .all-price {
       text-align: right;
-      padding: 12rpx 24rpx 24rpx;
+      padding: 12rpx 24rpx 8rpx;
       flex-wrap: wrap;
       gap: 4rpx;
+    }
+
+    .amount-detail {
+      padding: 0 24rpx 24rpx;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8rpx;
+    }
+
+    .amount-detail__row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 18rpx;
+      color: #7a8491;
+      font-size: 23rpx;
+      line-height: 32rpx;
+    }
+
+    .amount-detail__label {
+      min-width: 120rpx;
+      text-align: right;
+    }
+
+    .amount-detail__value {
+      min-width: 112rpx;
+      text-align: right;
+      color: #536173;
+      font-weight: 500;
+    }
+
+    .amount-detail__value--deduct {
+      color: #ff4d4f;
     }
 
     .order-footer {
@@ -722,6 +1434,19 @@ export default {
       flex-wrap: wrap;
       gap: 14rpx;
       justify-content: flex-end;
+
+      .order-footer__timer {
+        flex: 1 1 220rpx;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .order-footer__timer-text {
+        max-width: 100%;
+        line-height: 26rpx;
+        flex-wrap: wrap;
+      }
 
       button {
         min-width: 140rpx;
@@ -736,8 +1461,14 @@ export default {
         color: #536173;
 
         &.red {
-          border-color: $color-primary;
+          color: #a0610d;
+          border-color: #a0610d;
         }
+      }
+
+      .bg-primary {
+        border-color: #a0610d;
+        background: #a0610d;
       }
     }
   }
@@ -753,7 +1484,9 @@ export default {
 
       .order-header,
       .order-meta,
+      .pickup-brief,
       .all-price,
+      .amount-detail,
       .order-footer {
         padding-left: 18rpx;
         padding-right: 18rpx;
@@ -774,8 +1507,21 @@ export default {
 }
 
 .order-placeholder {
-  min-height: 520rpx;
-  padding-top: 160rpx;
+  min-height: 560rpx;
+  padding-top: 276rpx;
   box-sizing: border-box;
+
+  .lighter {
+    margin-top: 20rpx;
+    color: #666666;
+    font-size: 32rpx;
+    font-weight: 500;
+    line-height: 40rpx;
+  }
+}
+
+.order-placeholder__image {
+  width: 502rpx;
+  height: 293rpx;
 }
 </style>

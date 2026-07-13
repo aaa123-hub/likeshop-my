@@ -8,7 +8,7 @@
 					<image class="share-card__image" :src="config.image" mode="aspectFill"></image>
 					<view class="share-card__info">
 						<view class="share-card__name">{{ config.name || '商品详情' }}</view>
-						<view class="share-card__price">¥{{ config.price || '0.00' }}</view>
+							<view class="share-card__price">{{ config.price ? `¥${config.price}` : '价格待确认' }}</view>
 						<view v-if="config.marketPrice" class="share-card__market">原价 ¥{{ config.marketPrice }}</view>
 					</view>
 				</view>
@@ -145,7 +145,10 @@ import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 		},
 		watch: {
 			showshare(val) {
-				if (val) this.prepareQrcode()
+				if (val) {
+					uni.showToast({ title: '商品二维码功能已下线', icon: 'none' })
+					this.showshare = false
+				}
 			},
 			showPoster() {}
 		},
@@ -294,7 +297,7 @@ import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 			align-items: center;
 			margin-top: 30rpx;
 			padding: 18rpx;
-			background: #f7f8fb;
+			background: #fff8ed;
 			border-radius: 18rpx;
 		}
 
@@ -324,7 +327,7 @@ import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 
 		.share-card__price {
 			margin-top: 12rpx;
-			color: #ff2c3c;
+			color: #a0610d;
 			font-size: 34rpx;
 			font-weight: 700;
 		}
@@ -379,17 +382,17 @@ import TkiQrcode from '@/bundle/components/tki-qrcode/tki-qrcode.vue'
 			height: 76rpx;
 			margin: 0 8rpx;
 			padding: 0;
-			color: #037dfa;
+			color: #a0610d;
 			font-size: 26rpx;
 			line-height: 76rpx;
-			background: #eef7ff;
+			background: #fff1dc;
 			border: 0;
 			border-radius: 38rpx;
 		}
 
 		.share-card__action--primary {
 			color: #ffffff;
-			background: #037dfa;
+			background: #a0610d;
 		}
 
 		.share-card__action::after {

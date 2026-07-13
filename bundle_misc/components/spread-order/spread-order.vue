@@ -4,35 +4,37 @@
       <view class="order-container">
           <view v-for="(item, index) in lists" :key="item.order_sn" class="order-item bg-white mt20">
               <view class="order-header row-between">
-                  <view>订单编号:{{item.order_sn}}</view>
-                  <view class="white guide-shop-btn row-center">{{item.status}}</view>
+                  <view>订单编号:{{ displayText(item.order_sn, '订单号待确认') }}</view>
+                  <view class="white guide-shop-btn row-center">{{ displayText(item.status, '状态待确认') }}</view>
               </view>
               <view class="order-content row">
                   <view class="order-goods-img">
                       <image width="100%" height="100%" radius="6px" :src="item.image" />
                   </view>
                   <view class="order-goods-info ml20">
-                      <view class="name row sm">{{item.goods_name}}</view>
+                      <view class="name row sm">{{ displayText(item.goods_name, '商品待确认') }}</view>
                       <view class="row-between">
-                          <view class="xs">数量<text class="normal nr">{{item.goods_num}}</text></view>
+                          <view class="xs">数量<text class="normal nr">{{ displayText(item.goods_num, '待确认') }}</text></view>
                           <view class="xs">
                             付款金额
-                            <price-format showSubscript :subScriptSize="28" :firstSize="28" :secondSize="28" weight="bold" :price="item.pay_price" />
+                            <price-format v-if="hasKnownValue(item.pay_price)" showSubscript :subScriptSize="28" :firstSize="28" :secondSize="28" weight="bold" :price="item.pay_price" />
+                            <text v-else class="amount-pending">金额待确认</text>
                           </view>
                       </view>
                       <view class="pre-income muted">预估收益
-                          <price-format showSubscript :subScriptSize="28" :firstSize="28" :secondSize="28" color="#FF2C3C" weight="bold" :price="item.money" />
+                          <price-format v-if="hasKnownValue(item.money)" showSubscript :subScriptSize="28" :firstSize="28" :secondSize="28" color="#a0610d" weight="bold" :price="item.money" />
+                          <text v-else class="income-pending">金额待确认</text>
                       </view>
                   </view>
               </view>
               <view class="order-footer row-between">
-                  <view class="time muted sm">{{item.create_time}}</view>
-                  <view class="static sm" :style="{color: item.status == '待返佣' ? '#FF2C3C' : item.status == '已失效' ? '#909090' : '#00c735'}">{{item.status}}</view>
+                  <view class="time muted sm">{{ displayText(item.create_time, '时间待确认') }}</view>
+                  <view class="static sm" :style="{color: item.status == '待返佣' ? '#a0610d' : item.status == '已失效' ? '#909090' : '#00c735'}">{{ displayText(item.status, '状态待确认') }}</view>
               </view>
           </view>
           <loading-footer slotEmpty :status="loadingStatus">
               <view slot="empty" class="data-null column-center">
-                <text class="sm muted">暂无其他评价～</text>
+                <text class="sm muted">暂无推广订单～</text>
               </view>
           </loading-footer>
       </view>
@@ -93,6 +95,12 @@ export default {
   },
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
     reflesh() {
       this.page = 1;
       this.lists = [];
@@ -153,13 +161,13 @@ export default {
               padding: 20rpx 30rpx;
               border-bottom: var(--border);
               .status {
-                  /* background: linear-gradient(80deg, #F95F2F 0%, #FF2C3C 100%);
+                  /* background: linear-gradient(80deg, #d79a43 0%, #a0610d 100%);
                   border-radius: 4rpx;
                   width: 134rpx;
                   height: 42rpx;
                   font-size: 24rpx;
                   line-height: 34rpx; */
-                  color: #F95F2F;
+                  color: #d79a43;
               }
             }
             .order-content {
@@ -180,15 +188,20 @@ export default {
                     line-height: 34rpx;
                     margin-top: 8rpx;
                 }
+                .amount-pending,
+                .income-pending {
+                    color: #8b95a5;
+                    font-size: 24rpx;
+                }
               }
             }
             .order-footer {
               padding: 20rpx 30rpx 20rpx 20rpx;
               .static {
-                  color: #F95F2F;
+                  color: #d79a43;
               }
               .wait-return {
-                  color: #F95F2F;
+                  color: #d79a43;
               }
             }
           }

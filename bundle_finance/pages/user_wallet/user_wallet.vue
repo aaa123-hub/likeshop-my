@@ -2,7 +2,7 @@
 <view class="user-wallet">
     <navbar
         title="余额"
-        :background="{ background: '#f7f8fa' }"
+        :background="{ background: '#fff9f0' }"
         :border-bottom="false"
     ></navbar>
     <view class="wallet-page">
@@ -11,7 +11,7 @@
                 <view>
                     <view class="wallet-card__label">我的余额（元）</view>
                     <view class="wallet-card__amount">
-                        <text>¥</text>{{ formatMoney(wallet.user_money) }}
+                        {{ formatMoneyWithSymbol(wallet.user_money) }}
                     </view>
                 </view>
                 <image class="wallet-card__image" :src="walletIconUrl" mode="aspectFit"></image>
@@ -21,15 +21,26 @@
                     可提现金额
                     <text class="wallet-card__question" @tap.stop="showWithdrawableTip">?</text>
                 </view>
-                <view class="wallet-card__value">¥{{ formatMoney(withdrawableAmount) }}</view>
+                <view class="wallet-card__value">{{ formatMoneyWithSymbol(withdrawableAmount) }}</view>
             </view>
         </view>
         <view
-            v-if="wallet.open_withdraw !== 0"
+            v-if="canWithdrawToBalance"
             class="wallet-btn"
             @tap="handleWithdrawTap"
         >
             微信提现到余额
+        </view>
+        <view class="wallet-action-card">
+            <view
+                v-for="item in walletActions"
+                :key="item.name"
+                class="wallet-action"
+                @tap="goFinancePage(item.url)"
+            >
+                <view :class="['wallet-action__icon', 'wallet-action__icon--' + item.type]"></view>
+                <view class="wallet-action__text">{{ item.name }}</view>
+            </view>
         </view>
         <view class="wallet-records-card">
             <view class="wallet-tabs">
@@ -48,12 +59,12 @@
             </view>
             <view :class="['wallet-panel', activeTab === 1 ? 'wallet-panel--withdraw' : '']">
                 <template v-if="activeRecords.length">
-                    <navigator
+                    <view
                         v-for="(item, index) in activeRecords"
                         :key="index"
                         class="wallet-record"
                         hover-class="none"
-                        :url="item.url"
+                        @tap="openRecord(item)"
                     >
                         <image class="wallet-record__icon" :src="item.icon" mode="aspectFit"></image>
                         <view class="wallet-record__main">
@@ -66,7 +77,7 @@
                             </view>
                             <view class="wallet-record__balance">余额：{{ item.balance }}</view>
                         </view>
-                    </navigator>
+                    </view>
                 </template>
                 <template v-else>
                     <view class="empty-panel">
@@ -106,9 +117,10 @@ export default {
   data() {
     return {
       wallet: {
-        user_money: 0,
-        open_racharge: 1,
-        open_withdraw: 1
+        user_money: '',
+        open_racharge: 0,
+        open_recharge: 0,
+        open_withdraw: 0
       },
       walletIconUrl: 'https://shengyuan.store/api/miniapp/files/miniapp/ce28a354dbb5412f9f776a748d865aa1/wallet-balance-icon.png',
       user_wallet: 'https://shengyuan.store/api/miniapp/files/miniapp/eb819a12b29d43be91001eb8e65f397d/wallet-card-bg.png',
@@ -134,41 +146,64 @@ export default {
 
   methods: {
     formatMoney(value) {
-      const amount = Number(value || 0)
-      return Number.isNaN(amount) ? (value || '0.00') : amount.toFixed(2)
+      if (value === '' || value === null || value === undefined) return '待确认'
+      const amount = Number(value)
+      return Number.isNaN(amount) ? '待确认' : amount.toFixed(2)
+    },
+    formatMoneyWithSymbol(value) {
+      const text = this.formatMoney(value)
+      return text === '待确认' ? text : `¥${text}`
     },
     normalizeAmount(value, positive) {
-      const amount = Number(value || 0)
-      const display = Number.isNaN(amount) ? value || '0.00' : Math.abs(amount).toFixed(2)
+      if (value === '' || value === null || value === undefined) return positive ? '+金额待确认' : '-金额待确认'
+      const amount = Number(value)
+      const display = Number.isNaN(amount) ? '金额待确认' : Math.abs(amount).toFixed(2)
       return `${positive ? '+' : '-'}${display}`
     },
     normalizeBalance(value) {
-      const amount = Number(value || 0)
-      return Number.isNaN(amount) ? (value || '0.00') : amount.toFixed(2)
+      if (value === '' || value === null || value === undefined) return '待确认'
+      const amount = Number(value)
+      return Number.isNaN(amount) ? '待确认' : amount.toFixed(2)
+    },
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
+    displayText(value, fallback) {
+      return this.hasKnownValue(value) ? value : fallback
+    },
+    isIncomeRecord(item = {}) {
+      const value = item.direction ?? item.change_type ?? item.changeType ?? item.type
+      const text = String(value).toLowerCase()
+      if (value == 1 || text === 'in' || text === 'income') return true
+      if (value == 2 || text === 'out' || text === 'expense') return false
+      const amount = Number(item.change_amount ?? item.money ?? item.amount)
+      return !Number.isNaN(amount) && amount > 0
     },
     normalizeBillRecord(item) {
-      const isIncome = Number(item.change_type) === 1 || Number(item.change_amount) > 0
+      const isIncome = this.isIncomeRecord(item)
       const rawTitle = item.source_type || item.type_desc || item.action || ''
-      const title = rawTitle || (isIncome ? '充值金额' : '购买商品')
+      const amount = item.change_amount ?? item.money ?? item.amount
       return {
-        title,
-        time: item.create_time || item.change_time || '--',
-        amount: this.normalizeAmount(item.change_amount, isIncome),
+        title: this.displayText(rawTitle, '账单类型待确认'),
+        time: this.displayText(item.create_time || item.change_time, '时间待确认'),
+        amount: this.normalizeAmount(amount, isIncome),
         amountClass: isIncome ? 'is-plus' : 'is-minus',
-        balance: this.normalizeBalance(item.left_amount || item.left_money || item.balance || 0),
+        balance: this.normalizeBalance(item.left_amount ?? item.left_money ?? item.balance ?? ''),
         icon: isIncome ? this.recordIcons.billIncome : this.recordIcons.billExpense,
         url: '/bundle_finance/pages/user_bill/user_bill?type=0'
       }
     },
     normalizeWithdrawRecord(item) {
+      const id = item.id || item.sn || ''
       return {
-        title: item.desc || item.status_desc || item.type_desc || item.source_type || '提现',
-        time: item.create_time || '--',
-        amount: this.normalizeAmount(item.money || item.change_amount || item.amount, false),
+        title: this.displayText(item.desc || item.status_desc || item.type_desc || item.source_type, '提现记录待确认'),
+        time: this.displayText(item.create_time, '时间待确认'),
+        amount: this.normalizeAmount(item.money ?? item.change_amount ?? item.amount, false),
         amountClass: 'is-minus',
-        balance: this.normalizeBalance(item.left_amount || item.left_money || item.balance || 0),
+        balance: this.normalizeBalance(item.left_amount ?? item.left_money ?? item.balance ?? ''),
         icon: this.recordIcons.withdraw,
-        url: `/bundle_finance/pages/widthdraw_result/widthdraw_result?id=${item.id}&type=1`
+        url: id ? `/bundle_finance/pages/widthdraw_result/widthdraw_result?id=${encodeURIComponent(id)}&type=1` : '',
+        missingUrlTip: '提现记录信息待确认'
       }
     },
 
@@ -220,9 +255,8 @@ export default {
               amount,
               accountType: 'BALANCE',
               accountNo: this.wallet.accountNo || this.wallet.account_no || this.wallet.userNo || this.wallet.user_no || 'BALANCE',
-              accountName: this.wallet.accountName || this.wallet.account_name || this.wallet.nickname || '小程序余额',
-              idempotentKey: withdrawNo,
-              remark: '微信提现到小程序余额'
+              accountName: this.wallet.accountName || this.wallet.account_name || this.wallet.nickname || '',
+              idempotentKey: withdrawNo
             })
             if (res.code != 1) throw new Error(res.msg || '提现申请失败')
             uni.showToast({ title: '已提交入账申请', icon: 'none' })
@@ -240,10 +274,21 @@ export default {
     showWithdrawableTip() {
       uni.showModal({
         title: '可提现金额说明',
-        content: '这里的提现表示将微信侧资金转入当前小程序“我的余额”，不受当前页可提现金额限制，实际处理结果以后端审核为准。',
+        content: '这里的提现表示将微信侧资金转入当前小程序“我的余额”，不受当前页可提现金额限制，实际处理结果以平台审核为准。',
         showCancel: false,
         confirmText: '知道了'
       })
+    },
+    goFinancePage(url) {
+      if (!url) return
+      uni.navigateTo({ url })
+    },
+    openRecord(item = {}) {
+      if (!item.url) {
+        uni.showToast({ title: item.missingUrlTip || '记录信息待确认', icon: 'none' })
+        return
+      }
+      uni.navigateTo({ url: item.url })
     }
 
   },
@@ -256,10 +301,24 @@ export default {
   },
   computed: {
     withdrawableAmount() {
-      return Number(this.wallet.withdrawable_amount ?? this.wallet.able_withdraw ?? this.wallet.withdrawableAmount ?? this.wallet.user_money ?? 0)
+      return this.wallet.withdrawable_amount ?? this.wallet.able_withdraw ?? this.wallet.withdrawableAmount ?? this.wallet.user_money ?? ''
     },
     activeRecords() {
       return this.activeTab === 0 ? this.billRecords : this.withdrawRecords
+    },
+    walletActions() {
+      const actions = []
+      if (this.canRecharge) {
+        actions.push({ name: '余额充值', type: 'recharge', url: '/bundle_finance/pages/user_payment/user_payment' })
+      }
+      actions.push(
+        { name: '钱包明细', type: 'bill', url: '/bundle_finance/pages/user_bill/user_bill?type=0' },
+        { name: '提现记录', type: 'withdraw', url: '/bundle_finance/pages/user_withdraw_code/user_withdraw_code' },
+        { name: '余额转账', type: 'transfer', url: '/bundle_finance/pages/balance_transfer/balance_transfer' },
+        { name: '转账记录', type: 'record', url: '/bundle_finance/pages/transfer_record/transfer_record?type=0' },
+        { name: '转账密码', type: 'password', url: '/bundle_finance/pages/set_pay_pwd/set_pay_pwd' }
+      )
+      return actions
     },
     billRecords() {
       if (this.billList.length) {
@@ -272,6 +331,12 @@ export default {
         return this.withdrawList.map((item) => this.normalizeWithdrawRecord(item))
       }
       return []
+    },
+    canRecharge() {
+      return Number(this.wallet.open_racharge ?? this.wallet.open_recharge ?? 0) !== 0
+    },
+    canWithdrawToBalance() {
+      return Number(this.wallet.open_withdraw ?? 0) !== 0
     }
   }
 };
@@ -279,7 +344,7 @@ export default {
 <style lang="scss">
 .user-wallet {
     min-height: 100vh;
-    background: #f5f7fb;
+    background: #fff9f0;
 }
 
 .wallet-page {
@@ -292,7 +357,7 @@ export default {
     overflow: hidden;
     height: 298rpx;
     border-radius: 18rpx;
-    background: linear-gradient(108deg, #0187ff 0%, #037dfa 52%, #2f75ff 100%);
+    background: linear-gradient(108deg, #b26c10 0%, #a0610d 52%, #d79a43 100%);
     color: #ffffff;
     box-shadow: 0 14rpx 34rpx rgba(3, 125, 250, 0.18);
 }
@@ -379,6 +444,140 @@ export default {
     font-weight: 600;
     background: #0785ff;
     border-radius: 40rpx;
+}
+
+.wallet-action-card {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18rpx 12rpx;
+    margin: 0 0 24rpx;
+    padding: 24rpx 18rpx 20rpx;
+    background: #ffffff;
+    border-radius: 18rpx;
+    box-sizing: border-box;
+}
+
+.wallet-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.wallet-action__icon {
+    position: relative;
+    width: 62rpx;
+    height: 62rpx;
+    border-radius: 50%;
+    background: #fff1dc;
+    box-sizing: border-box;
+}
+
+.wallet-action__icon::before,
+.wallet-action__icon::after {
+    content: '';
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.wallet-action__icon--recharge::before,
+.wallet-action__icon--bill::before,
+.wallet-action__icon--withdraw::before {
+    left: 16rpx;
+    top: 18rpx;
+    width: 30rpx;
+    height: 24rpx;
+    border: 4rpx solid #0785ff;
+    border-radius: 6rpx;
+}
+
+.wallet-action__icon--recharge::after {
+    left: 29rpx;
+    top: 10rpx;
+    width: 4rpx;
+    height: 42rpx;
+    background: #0785ff;
+    box-shadow: -10rpx 10rpx 0 -8rpx #0785ff, 10rpx 10rpx 0 -8rpx #0785ff;
+}
+
+.wallet-action__icon--bill::after {
+    left: 21rpx;
+    top: 25rpx;
+    width: 20rpx;
+    height: 4rpx;
+    background: #0785ff;
+    box-shadow: 0 10rpx 0 #0785ff;
+}
+
+.wallet-action__icon--withdraw::after {
+    left: 25rpx;
+    top: 12rpx;
+    width: 12rpx;
+    height: 28rpx;
+    border-right: 4rpx solid #0785ff;
+    border-bottom: 4rpx solid #0785ff;
+    transform: rotate(45deg);
+}
+
+.wallet-action__icon--transfer::before,
+.wallet-action__icon--record::before {
+    left: 14rpx;
+    top: 19rpx;
+    width: 34rpx;
+    height: 22rpx;
+    border-top: 4rpx solid #0785ff;
+    border-bottom: 4rpx solid #0785ff;
+}
+
+.wallet-action__icon--transfer::after {
+    left: 19rpx;
+    top: 15rpx;
+    width: 24rpx;
+    height: 24rpx;
+    border-top: 4rpx solid #0785ff;
+    border-right: 4rpx solid #0785ff;
+    transform: rotate(45deg);
+}
+
+.wallet-action__icon--record::after {
+    left: 19rpx;
+    top: 14rpx;
+    width: 24rpx;
+    height: 34rpx;
+    border-left: 4rpx solid #0785ff;
+    border-bottom: 4rpx solid #0785ff;
+    transform: skewY(-15deg);
+}
+
+.wallet-action__icon--password::before {
+    left: 17rpx;
+    top: 26rpx;
+    width: 28rpx;
+    height: 20rpx;
+    border: 4rpx solid #0785ff;
+    border-radius: 6rpx;
+}
+
+.wallet-action__icon--password::after {
+    left: 22rpx;
+    top: 14rpx;
+    width: 18rpx;
+    height: 20rpx;
+    border: 4rpx solid #0785ff;
+    border-bottom: 0;
+    border-radius: 18rpx 18rpx 0 0;
+}
+
+.wallet-action__text {
+    max-width: 100%;
+    margin-top: 10rpx;
+    color: #222222;
+    font-size: 24rpx;
+    line-height: 30rpx;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .wallet-records-card {
@@ -473,6 +672,7 @@ export default {
     font-weight: 600;
     color: #222222;
     line-height: 38rpx;
+    word-break: break-all;
 }
 
 .wallet-record__time {
@@ -480,26 +680,31 @@ export default {
     font-size: 20rpx;
     color: #999999;
     line-height: 28rpx;
+    word-break: break-all;
 }
 
 .wallet-record__side {
     flex: none;
-    width: 150rpx;
+    width: 180rpx;
+    max-width: 38%;
     text-align: right;
+    word-break: break-all;
 }
 
 .wallet-record__amount {
     font-size: 30rpx;
     font-weight: 600;
     color: #222222;
-    line-height: 34rpx;
+    line-height: 36rpx;
+    word-break: break-all;
 }
 
 .wallet-record__balance {
     margin-top: 16rpx;
     font-size: 24rpx;
     color: #999999;
-    line-height: 28rpx;
+    line-height: 30rpx;
+    word-break: break-all;
 }
 
 .is-plus {
@@ -543,7 +748,7 @@ export default {
         width: 48rpx;
         height: 48rpx;
         border-radius: 50%;
-        background: #f7f8fa;
+        background: #fff8ed;
     }
 }
 
@@ -559,7 +764,7 @@ export default {
     transform: rotate(1deg);
 
     &::before {
-        content: 'XXXX XXXXX XX';
+        content: '';
         position: absolute;
         left: 22rpx;
         top: 24rpx;
@@ -594,8 +799,8 @@ export default {
     &::after {
         content: '';
         position: absolute;
-        right: -42rpx;
-        bottom: -30rpx;
+        left: 50rpx;
+        bottom: -24rpx;
         width: 70rpx;
         height: 12rpx;
         border-radius: 10rpx;

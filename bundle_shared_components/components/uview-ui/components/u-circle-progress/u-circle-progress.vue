@@ -43,7 +43,7 @@
  * @property {String Number} duration 整个圆环执行一圈的时间，单位ms（默认呢1500）
  * @property {String} type 如设置，active-color值将会失效
  * @property {String} bg-color 整个组件背景颜色，默认为白色
- * @example <u-circle-progress active-color="#2979ff" :percent="80"></u-circle-progress>
+ * @example <u-circle-progress active-color="#a0610d" :percent="80"></u-circle-progress>
  */
 export default {
 	name: 'u-circle-progress',

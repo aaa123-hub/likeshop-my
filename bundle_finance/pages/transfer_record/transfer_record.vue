@@ -6,15 +6,15 @@
 				<view class="list mt20">
 					<view v-for="(item, index) in lists" :key="index" class="item bg-white row">
 						<view class="flexnone mr20">
-							<image class="avatar" :src="item.avatar"></image>
+							<image class="avatar" :src="displayAvatar(item.avatar)"></image>
 						</view>
-						<view class="flex1 mr20">
-							<view class="black mb10">{{item.nickname}}</view>
-							<view class="xs muted">会员ID:{{item.sn}}</view>
-							<view class="xs muted">{{item.create_time}}</view>
+						<view class="transfer-record__info flex1 mr20">
+							<view class="transfer-record__name black mb10">{{ displayText(item.nickname, '收款人待确认') }}</view>
+							<view class="transfer-record__meta xs muted">会员ID:{{ displayText(item.sn, '待确认') }}</view>
+							<view class="transfer-record__meta xs muted">{{ displayText(item.create_time, '时间待确认') }}</view>
 						</view>
-						<view :class="'lg flexnone ' + (item.type == 1 ? 'primary' : '')">
-							{{item.type == 1 ? '+' : '-'}}{{item.money}}
+						<view :class="'transfer-record__amount lg flexnone ' + (isIncome(item) ? 'primary' : '')">
+							{{ transferAmountText(item) }}
 						</view>
 					</view>
 				</view>
@@ -25,21 +25,21 @@
 				</loading-footer>
 			</tab>
 			<tab title="转出">
-			<view class="list mt20">
-				<view v-for="(item, index) in lists" :key="index" class="item bg-white row">
-					<view class="flexnone mr20">
-						<image class="avatar" :src="item.avatar"></image>
-					</view>
-					<view class="flex1 mr20">
-						<view class="black mb10">{{item.nickname}}</view>
-						<view class="xs muted">会员ID:{{item.sn}}</view>
-						<view class="xs muted">{{item.create_time}}</view>
-					</view>
-					<view :class="'lg flexnone ' + (item.type == 1 ? 'primary' : '')">
-						{{item.type == 1 ? '+' : '-'}}{{item.money}}
+				<view class="list mt20">
+					<view v-for="(item, index) in lists" :key="index" class="item bg-white row">
+						<view class="flexnone mr20">
+							<image class="avatar" :src="displayAvatar(item.avatar)"></image>
+						</view>
+						<view class="transfer-record__info flex1 mr20">
+							<view class="transfer-record__name black mb10">{{ displayText(item.nickname, '收款人待确认') }}</view>
+							<view class="transfer-record__meta xs muted">会员ID:{{ displayText(item.sn, '待确认') }}</view>
+							<view class="transfer-record__meta xs muted">{{ displayText(item.create_time, '时间待确认') }}</view>
+						</view>
+						<view :class="'transfer-record__amount lg flexnone ' + (isIncome(item) ? 'primary' : '')">
+							{{ transferAmountText(item) }}
+						</view>
 					</view>
 				</view>
-			</view>
 				<loading-footer :status="loadingStatus" slotEmpty>
 					<view class="data-null column-center" slot="empty">
 						<text class="nr muted">暂无转出记录～</text>
@@ -50,15 +50,15 @@
 				<view class="list mt20">
 					<view v-for="(item, index) in lists" :key="index" class="item bg-white row">
 						<view class="flexnone mr20">
-							<image class="avatar" :src="item.avatar"></image>
+							<image class="avatar" :src="displayAvatar(item.avatar)"></image>
 						</view>
-						<view class="flex1 mr20">
-							<view class="black mb10">{{item.nickname}}</view>
-							<view class="xs muted">会员ID:{{item.sn}}</view>
-							<view class="xs muted">{{item.create_time}}</view>
+						<view class="transfer-record__info flex1 mr20">
+							<view class="transfer-record__name black mb10">{{ displayText(item.nickname, '收款人待确认') }}</view>
+							<view class="transfer-record__meta xs muted">会员ID:{{ displayText(item.sn, '待确认') }}</view>
+							<view class="transfer-record__meta xs muted">{{ displayText(item.create_time, '时间待确认') }}</view>
 						</view>
-						<view :class="'lg flexnone ' + (item.type == 1 ? 'primary' : '')">
-							{{item.type == 1 ? '+' : '-'}}{{item.money}}
+						<view :class="'transfer-record__amount lg flexnone ' + (isIncome(item) ? 'primary' : '')">
+							{{ transferAmountText(item) }}
 						</view>
 					</view>
 				</view>
@@ -82,6 +82,8 @@
 	import {
 		loadingFun
 	} from "@/utils/tools"
+	import { resolveImage } from "@/utils/image-placeholder"
+
 	export default {
 		data() {
 			return {
@@ -139,6 +141,32 @@
 						this.loadingStatus = res.status
 					}
 				})
+			},
+
+			hasKnownValue(value) {
+				return value !== undefined && value !== null && value !== ''
+			},
+
+			displayText(value, fallback) {
+				return this.hasKnownValue(value) ? value : fallback
+			},
+
+			displayAvatar(value) {
+				return resolveImage(value, 'avatar')
+			},
+
+			transferAmountText(item = {}) {
+				const amount = item.money ?? item.change_amount ?? item.amount
+				if (!this.hasKnownValue(amount)) return '金额待确认'
+				const amountText = String(amount)
+				const normalizedAmount = amountText.replace(/^[+-]/, '')
+				return `${this.isIncome(item) ? '+' : '-'}${normalizedAmount}`
+			},
+
+			isIncome(item = {}) {
+				const value = item.direction ?? item.transferDirection ?? item.transfer_direction ?? item.change_type ?? item.changeType ?? item.type
+				const text = String(value).toLowerCase()
+				return value == 1 || text === 'in' || text === 'income'
 			}
 
 		}
@@ -151,6 +179,8 @@
 				padding: 20rpx 30rpx;
 				border-bottom: $solid-border;
 				align-items: flex-start;
+				max-width: 100%;
+				box-sizing: border-box;
 				.avatar {
 					width: 68rpx;
 					height: 68rpx;
@@ -158,6 +188,24 @@
 
 				}
 			}
+		}
+
+		&__info {
+			min-width: 0;
+		}
+
+		&__name,
+		&__meta {
+			max-width: 100%;
+			word-break: break-all;
+			line-height: 1.4;
+		}
+
+		&__amount {
+			max-width: 220rpx;
+			text-align: right;
+			word-break: break-all;
+			line-height: 1.4;
 		}
 	}
 

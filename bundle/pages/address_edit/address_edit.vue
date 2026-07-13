@@ -1,6 +1,16 @@
 <template>
     <view class="address-edit">
-        <navbar :title="pageTitle"></navbar>
+        <view class="address-edit-nav">
+            <view class="address-edit-nav__back" @tap="goBack">
+                <view class="address-edit-nav__arrow"></view>
+            </view>
+            <view class="address-edit-nav__title">{{ pageTitle }}</view>
+            <view class="address-edit-nav__capsule">
+                <view class="address-edit-nav__dot"></view>
+                <view class="address-edit-nav__divider"></view>
+                <view class="address-edit-nav__circle"></view>
+            </view>
+        </view>
         <form @submit="formSubmit" report-submit="true">
             <view class="form-card">
                 <view class="form-row">
@@ -42,7 +52,7 @@
                         class="form-row__input"
                         type="text"
                         maxlength="20"
-                        placeholder="请输入手机号或座机"
+                        placeholder="请输入电话"
                         placeholder-class="address-placeholder"
                     />
                 </view>
@@ -75,8 +85,8 @@
                 <view class="default-card__label">设置为默认地址</view>
                 <u-switch
                     v-model="isDefaultSwitch"
-                    active-color="#1F7AF4"
-                    inactive-color="#d2d4da"
+                    active-color="#a0610d"
+                    inactive-color="#D2D4DA"
                     @change="onSwitchChange"
                 ></u-switch>
             </view>
@@ -97,7 +107,6 @@
 </template>
 
 <script>
-import Navbar from '@/components/navbar/navbar.vue'
 import USelect from '@/bundle/components/uview-ui/components/u-select/u-select.vue'
 // +----------------------------------------------------------------------
 // | likeshop开源商城系统
@@ -122,7 +131,6 @@ import UIcon from '@/bundle/components/uview-ui/components/u-icon/u-icon.vue'
 import USwitch from '@/bundle/components/uview-ui/components/u-switch/u-switch.vue'
 export default {
 	components: {
-			Navbar,
 			USelect,
 			UIcon,
 			USwitch
@@ -140,8 +148,8 @@ export default {
             },
             region: '',
             addressId: '',
-            defaultRegion: ['广东省', '广州市', '番禺区'],
-            defaultRegionCode: '440113',
+            defaultRegion: [],
+            defaultRegionCode: '',
             showRegion: false,
             lists: area,
             gender: '先生'
@@ -179,6 +187,14 @@ export default {
      */
     // onShareAppMessage: function () {},
     methods: {
+        goBack() {
+            const pages = getCurrentPages()
+            if (pages.length > 1) {
+                uni.navigateBack()
+                return
+            }
+            uni.switchTab({ url: '/pages/user/user' })
+        },
         openRegionPicker() {
             if (!this.lists.length) {
                 this.lists = area
@@ -382,19 +398,119 @@ export default {
 </script>
 <style lang="scss">
 .address-edit {
+    position: relative;
     min-height: 100vh;
     padding: 0 24rpx calc(180rpx + env(safe-area-inset-bottom));
-    background: #edf6ff;
+    overflow-x: hidden;
+    background: linear-gradient(180deg, #fff7eb 0%, #fff8ef 46%, #fffdf8 100%);
+
+    &::before {
+        content: '';
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 0;
+        height: 430rpx;
+        background:
+            radial-gradient(circle at 16% 8%, rgba(255, 232, 186, 0.82) 0, rgba(255, 232, 186, 0) 170rpx),
+            linear-gradient(180deg, #fff0d4 0%, rgba(255, 248, 239, 0) 100%);
+        pointer-events: none;
+    }
+
+    form {
+        position: relative;
+        z-index: 1;
+    }
+
+    .address-edit-nav {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: flex-start;
+        height: calc(var(--status-bar-height) + 145rpx);
+        padding: calc(var(--status-bar-height) + 45rpx) 24rpx 0;
+        box-sizing: border-box;
+    }
+
+    .address-edit-nav__back {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 72rpx;
+        height: 64rpx;
+    }
+
+    .address-edit-nav__arrow {
+        width: 18rpx;
+        height: 18rpx;
+        margin-left: 3rpx;
+        border-left: 3rpx solid #222222;
+        border-bottom: 3rpx solid #222222;
+        transform: rotate(45deg);
+    }
+
+    .address-edit-nav__title {
+        position: absolute;
+        left: 50%;
+        top: calc(var(--status-bar-height) + 62rpx);
+        transform: translateX(-50%);
+        color: #222222;
+        font-size: 36rpx;
+        font-weight: 500;
+        line-height: 36rpx;
+        white-space: nowrap;
+    }
+
+    .address-edit-nav__capsule {
+        position: absolute;
+        right: 24rpx;
+        top: calc(var(--status-bar-height) + 45rpx);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        width: 168rpx;
+        height: 64rpx;
+        padding: 0 25rpx;
+        box-sizing: border-box;
+        border: 1rpx solid transparent;
+        border-radius: 32rpx;
+        background: transparent;
+    }
+
+    .address-edit-nav__dot {
+        width: 9rpx;
+        height: 9rpx;
+        border-radius: 50%;
+        background: #222222;
+        box-shadow: 20rpx 0 0 #222222, 40rpx 0 0 #222222;
+    }
+
+    .address-edit-nav__divider {
+        width: 1rpx;
+        height: 34rpx;
+        margin-left: 36rpx;
+        background: rgba(0, 0, 0, 0.12);
+    }
+
+    .address-edit-nav__circle {
+        width: 30rpx;
+        height: 30rpx;
+        border: 3rpx solid #222222;
+        border-radius: 50%;
+        box-sizing: border-box;
+    }
 
     .form-card,
     .default-card {
-        background: #ffffff;
+        background: #fff9f0;
         border-radius: 15rpx;
         overflow: hidden;
+        box-shadow: none;
     }
 
     .form-card {
-        margin-top: 24rpx;
+        margin-top: -1rpx;
         min-height: 619rpx;
     }
 
@@ -453,7 +569,7 @@ export default {
         color: #222222;
 
         &.gender-item--active {
-            color: #1f7af4;
+            color: #222222;
         }
 
         text {
@@ -478,8 +594,8 @@ export default {
     }
 
     .gender-radio--active {
-        border-color: #037dfa;
-        background: #037dfa;
+        border-color: #a0610d;
+        background: #a0610d;
     }
 
     .gender-radio__mark {
@@ -526,7 +642,7 @@ export default {
         color: #ffffff;
         font-size: 28rpx;
         font-weight: 500;
-        background: #037dfa;
+        background: linear-gradient(90deg, #d79a43 0%, #a0610d 100%);
         border-radius: 40rpx;
         box-shadow: none;
     }

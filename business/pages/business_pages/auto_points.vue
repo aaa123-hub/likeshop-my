@@ -48,6 +48,8 @@
 <script>
 import { getAutoReceivePoints, setAutoReceivePoints } from '@/api/user'
 
+const AUTO_POINTS_CACHE_KEY = 'auto_receive_points_settings'
+
 export default {
     data() {
         return {
@@ -58,6 +60,7 @@ export default {
         }
     },
     onLoad() {
+        this.loadCachedSettings()
         this.loadSettings()
     },
     methods: {
@@ -78,34 +81,108 @@ export default {
             if (text === 'false' || text === 'no' || text === 'off') return false
             return fallback
         },
+        currentSettings() {
+            return {
+                onlinePay: Boolean(this.onlinePay),
+                onlineReceive: Boolean(this.onlineReceive),
+                offlinePay: Boolean(this.offlinePay)
+            }
+        },
+        buildSettingsPayload(settings = this.currentSettings()) {
+            const enabled = settings.onlinePay || settings.onlineReceive || settings.offlinePay
+            return {
+                onlinePay: settings.onlinePay,
+                online_pay: settings.onlinePay,
+                onlineAfterPay: settings.onlinePay,
+                online_after_pay: settings.onlinePay,
+                onlineReceive: settings.onlineReceive,
+                online_receive: settings.onlineReceive,
+                onlineAfterReceive: settings.onlineReceive,
+                online_after_receive: settings.onlineReceive,
+                offlinePay: settings.offlinePay,
+                offline_pay: settings.offlinePay,
+                offlineAfterPay: settings.offlinePay,
+                offline_after_pay: settings.offlinePay,
+                autoReceiveFlag: enabled,
+                auto_receive_flag: enabled,
+                enabled,
+                value: enabled
+            }
+        },
+        normalizeSettings(raw = {}, fallback = this.currentSettings()) {
+            const data = raw.settings || raw.config || raw.autoReceive || raw.auto_receive || raw
+            const hasOnlinePay = data.onlinePay !== undefined || data.online_pay !== undefined || data.onlineAfterPay !== undefined || data.online_after_pay !== undefined
+            const hasOnlineReceive = data.onlineReceive !== undefined || data.online_receive !== undefined || data.onlineAfterReceive !== undefined || data.online_after_receive !== undefined
+            const hasOfflinePay = data.offlinePay !== undefined || data.offline_pay !== undefined || data.offlineAfterPay !== undefined || data.offline_after_pay !== undefined
+            const autoReceiveFlag = this.parseSwitchValue(data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? data.enabled, true)
+            return {
+                onlinePay: hasOnlinePay
+                    ? this.parseSwitchValue(data.onlinePay ?? data.online_pay ?? data.onlineAfterPay ?? data.online_after_pay, fallback.onlinePay)
+                    : fallback.onlinePay,
+                onlineReceive: hasOnlineReceive
+                    ? this.parseSwitchValue(data.onlineReceive ?? data.online_receive ?? data.onlineAfterReceive ?? data.online_after_receive, fallback.onlineReceive)
+                    : fallback.onlineReceive,
+                offlinePay: hasOfflinePay
+                    ? this.parseSwitchValue(data.offlinePay ?? data.offline_pay ?? data.offlineAfterPay ?? data.offline_after_pay, fallback.offlinePay)
+                    : fallback.offlinePay,
+                hasDetailedFields: hasOnlinePay || hasOnlineReceive || hasOfflinePay,
+                autoReceiveFlag
+            }
+        },
+        applySettings(settings = {}) {
+            this.onlinePay = Boolean(settings.onlinePay)
+            this.onlineReceive = Boolean(settings.onlineReceive)
+            this.offlinePay = Boolean(settings.offlinePay)
+        },
+        loadCachedSettings() {
+            try {
+                const cache = uni.getStorageSync(AUTO_POINTS_CACHE_KEY)
+                if (!cache) return
+                this.applySettings(this.normalizeSettings(cache, this.currentSettings()))
+            } catch (error) {}
+        },
+        saveCachedSettings(settings = this.currentSettings()) {
+            try {
+                uni.setStorageSync(AUTO_POINTS_CACHE_KEY, {
+                    ...this.buildSettingsPayload(settings),
+                    updatedAt: Date.now()
+                })
+            } catch (error) {}
+        },
         async loadSettings() {
             try {
                 const res = await getAutoReceivePoints()
                 if (res.code != 1) return
-                const raw = res.data || {}
-                const data = raw.settings || raw.config || raw.autoReceive || raw.auto_receive || raw
-                const autoReceiveFlag = this.parseSwitchValue(data.autoReceiveFlag ?? data.auto_receive_flag ?? data.value ?? data.enabled, true)
-                this.onlinePay = this.parseSwitchValue(data.onlinePay ?? data.online_pay ?? data.onlineAfterPay ?? data.online_after_pay, autoReceiveFlag)
-                this.onlineReceive = this.parseSwitchValue(data.onlineReceive ?? data.online_receive ?? data.onlineAfterReceive ?? data.online_after_receive, false)
-                this.offlinePay = this.parseSwitchValue(data.offlinePay ?? data.offline_pay ?? data.offlineAfterPay ?? data.offline_after_pay, autoReceiveFlag)
+                const fallback = this.currentSettings()
+                const settings = this.normalizeSettings(res.data || {}, fallback)
+                if (settings.hasDetailedFields) {
+                    this.applySettings(settings)
+                    this.saveCachedSettings(settings)
+                    return
+                }
+                if (!uni.getStorageSync(AUTO_POINTS_CACHE_KEY)) {
+                    this.applySettings({
+                        onlinePay: settings.autoReceiveFlag,
+                        onlineReceive: false,
+                        offlinePay: settings.autoReceiveFlag
+                    })
+                }
             } catch (error) {
-                console.warn('load auto receive points failed', error)
             }
         },
         async saveSettings() {
             if (this.saving) return
             this.saving = true
             try {
-                const res = await setAutoReceivePoints({
-                    onlinePay: this.onlinePay,
-                    online_pay: this.onlinePay,
-                    onlineReceive: this.onlineReceive,
-                    online_receive: this.onlineReceive,
-                    offlinePay: this.offlinePay,
-                    offline_pay: this.offlinePay,
-                    autoReceiveFlag: this.onlinePay || this.onlineReceive || this.offlinePay
-                })
+                const settings = this.currentSettings()
+                const res = await setAutoReceivePoints(this.buildSettingsPayload(settings))
                 if (res.code == 1) {
+                    this.saveCachedSettings(settings)
+                    const responseSettings = this.normalizeSettings(res.data || {}, settings)
+                    if (responseSettings.hasDetailedFields) {
+                        this.applySettings(responseSettings)
+                        this.saveCachedSettings(responseSettings)
+                    }
                     uni.showToast({ title: '保存成功', icon: 'success' })
                     return
                 }
@@ -126,8 +203,13 @@ export default {
     min-height: 100vh;
     padding-top: calc(var(--app-safe-top) + 24rpx);
     overflow: hidden;
-    background: #f6f8fb url('https://shengyuan.store/api/miniapp/files/miniapp/d436eea929e84f17a7bbc5f609cc7188/auto-points-bg.png') no-repeat center top;
+    background: #fff9f0 url('https://shengyuan.store/api/miniapp/files/miniapp/d436eea929e84f17a7bbc5f609cc7188/auto-points-bg.png') no-repeat center top;
     background-size: 100% 100%;
+    box-sizing: border-box;
+}
+
+.auto-points-page,
+.auto-points-page * {
     box-sizing: border-box;
 }
 
@@ -179,7 +261,9 @@ export default {
 .auto-points-section-title {
     display: flex;
     align-items: center;
-    margin: 45rpx 0 0 24rpx;
+    width: calc(100% - 48rpx);
+    max-width: 703rpx;
+    margin: 45rpx auto 0;
     color: #222222;
     font-size: 32rpx;
     font-weight: 500;
@@ -194,13 +278,14 @@ export default {
     width: 11rpx;
     height: 26rpx;
     margin-right: 18rpx;
-    background: #037dfa;
+    background: #a0610d;
 }
 
 .auto-points-card {
-    width: 703rpx;
+    width: calc(100% - 48rpx);
+    max-width: 703rpx;
     height: 201rpx;
-    margin: 34rpx 0 0 24rpx;
+    margin: 34rpx auto 0;
     overflow: hidden;
     background: #ffffff;
     border-radius: 15rpx;
@@ -232,7 +317,7 @@ export default {
 }
 
 .auto-points-switch.is-active {
-    background: #037dfa;
+    background: #a0610d;
 }
 
 .auto-points-switch__thumb {
@@ -253,28 +338,33 @@ export default {
 
 .auto-points-divider {
     display: block;
-    width: 702rpx;
+    width: 100%;
     height: 1rpx;
 }
 
 .auto-points-divider--standalone {
-    margin-left: 24rpx;
+    width: calc(100% - 48rpx);
+    max-width: 703rpx;
+    margin: 0 auto;
 }
 
 .auto-points-save {
     position: fixed;
-    left: 84rpx;
-    right: 84rpx;
+    left: 50%;
+    right: auto;
     bottom: calc(113rpx + env(safe-area-inset-bottom));
     display: flex;
     align-items: center;
     justify-content: center;
+    width: calc(100% - 168rpx);
+    max-width: 582rpx;
     height: 81rpx;
     color: #ffffff;
     font-size: 28rpx;
     font-weight: 500;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 40rpx;
+    transform: translateX(-50%);
 }
 
 .auto-points-save.is-disabled {

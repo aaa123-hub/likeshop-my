@@ -58,6 +58,13 @@ export default {
     },
     methods: {
         openPage(item) {
+            if (item.needsData) {
+                uni.showToast({
+                    title: '请从真实业务流程进入',
+                    icon: 'none'
+                })
+                return
+            }
             if (item.openType === 'switchTab') {
                 uni.switchTab({
                     url: item.route
@@ -75,7 +82,7 @@ export default {
 <style lang="scss">
 .page-index {
     min-height: 100vh;
-    background: #f5f7fb;
+    background: #fff9f0;
 }
 
 .page-index__body {
@@ -84,7 +91,7 @@ export default {
 
 .page-index__summary {
     padding: 28rpx;
-    background: linear-gradient(135deg, #2f79ff 0%, #5b92ff 100%);
+    background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
     border-radius: 24rpx;
     color: #ffffff;
 }
@@ -128,10 +135,10 @@ export default {
     width: 52rpx;
     height: 52rpx;
     margin-right: 18rpx;
-    color: #2f79ff;
+    color: #a0610d;
     font-size: 24rpx;
     font-weight: 600;
-    background: rgba(47, 121, 255, 0.12);
+    background: rgba(160, 97, 13, 0.12);
     border-radius: 16rpx;
 }
 
@@ -158,8 +165,8 @@ export default {
 }
 
 .page-index__tag.is-business {
-    color: #1767ff;
-    background: rgba(23, 103, 255, 0.1);
+    color: #a0610d;
+    background: rgba(160, 97, 13, 0.1);
 }
 
 .page-index__tag.is-scene {

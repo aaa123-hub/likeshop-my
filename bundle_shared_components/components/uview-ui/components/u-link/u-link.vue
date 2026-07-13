@@ -28,7 +28,7 @@
 			// 文字颜色
 			color: {
 				type: String,
-				default: '#2979ff'
+				default: '#a0610d'
 			},
 			// 字体大小，单位rpx
 			fontSize: {

@@ -1,5 +1,5 @@
 <template>
-    <business-wrapper-page scene="store-group" :page-options="pageOptions"></business-wrapper-page>
+    <business-wrapper-page scene="store-detail" store-detail-default-tab="group" :page-options="pageOptions"></business-wrapper-page>
 </template>
 
 <script>

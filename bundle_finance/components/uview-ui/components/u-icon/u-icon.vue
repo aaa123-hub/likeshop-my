@@ -50,7 +50,7 @@
  * @property {String} inactive-color 背景颜色，可接受主题色，仅Decimal时有效
  * @property {String | Number} percent 显示的百分比，仅Decimal时有效
  * @event {Function} click 点击图标时触发
- * @example <u-icon name="photo" color="#2979ff" size="28"></u-icon>
+ * @example <u-icon name="photo" color="#a0610d" size="28"></u-icon>
  */
 export default {
 	name: 'u-icon',

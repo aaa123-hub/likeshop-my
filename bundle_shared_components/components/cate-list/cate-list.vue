@@ -274,7 +274,7 @@
 					height: 6rpx;
 					border-radius: 6rpx;
 					margin-right: 10rpx;
-					background-color: rgba(255, 44, 60, 0.4);
+					background-color: rgba(160, 97, 13, 0.4);
 
 					&.active {
 						width: 20rpx;

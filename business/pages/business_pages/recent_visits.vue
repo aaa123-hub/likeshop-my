@@ -7,8 +7,8 @@
 
         <view class="recent-visits-list" v-if="visitList.length">
             <view
-                v-for="item in visitList"
-                :key="item.shopId"
+                v-for="(item, index) in visitList"
+                :key="item.shopId || index"
                 class="recent-visits-item"
                 @tap="goShopDetail(item)"
             >
@@ -18,7 +18,12 @@
                     <view class="recent-visits-name line1">{{ item.name }}</view>
                     <view class="recent-visits-time line1">{{ item.time }}&nbsp;访问过的商家</view>
                 </view>
-                <view :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']" @tap.stop="toggleSubscribe(item)">
+                <view
+                    :class="['recent-visits-btn', item.subscribed ? 'recent-visits-btn--subscribed' : '']"
+                    :data-visit-index="index"
+                    :data-shop-id="item.shopId"
+                    @tap.stop="toggleSubscribeByEvent"
+                >
                     <text>{{ item.subscribed ? '已订阅' : '+订阅' }}</text>
                 </view>
             </view>
@@ -68,6 +73,19 @@ export default {
                 return
             }
             uni.switchTab({ url: '/pages/index/index' })
+        },
+        resolveVisitFromEvent(event = {}) {
+            const dataset = event.currentTarget && event.currentTarget.dataset ? event.currentTarget.dataset : {}
+            const index = Number(dataset.visitIndex ?? dataset.visit_index)
+            const shopId = String(dataset.shopId || dataset.shop_id || '')
+            if (!Number.isNaN(index) && this.visitList[index]) {
+                const item = this.visitList[index]
+                if (!shopId || String(item.shopId) === shopId) return item
+            }
+            return this.visitList.find(item => String(item.shopId) === shopId) || {}
+        },
+        toggleSubscribeByEvent(event = {}) {
+            return this.toggleSubscribe(this.resolveVisitFromEvent(event))
         },
         async toggleSubscribe(item) {
             if (!item.shopId) return
@@ -212,13 +230,13 @@ export default {
     font-size: 26rpx;
     font-weight: 600;
     line-height: 30rpx;
-    background: #037dfa;
+    background: #a0610d;
     border-radius: 29rpx;
     white-space: nowrap;
 }
 
 .recent-visits-btn--subscribed {
-    color: #037dfa;
+    color: #a0610d;
     background: #d0e7ff;
 }
 

@@ -30,7 +30,7 @@
  * @property {String Number} margin-top 与前一个组件的距离，单位rpx（默认0）
  * @property {String Number} margin-bottom 与后一个组件的距离，单位rpx（0）
  * @event {Function} click divider组件被点击时触发
- * @example <u-divider color="#fa3534">长河落日圆</u-divider>
+ * @example <u-divider color="#d65f2e">长河落日圆</u-divider>
  */
 export default {
 	name: 'u-divider',

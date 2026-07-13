@@ -33,7 +33,7 @@
 	 * @property {String Number} font-size 提示文字的大小，单位rpx（默认28）
 	 * @property {String} text-indent 段落首行缩进的字符个数（默认2em）
 	 * @property {String} open-text 展开时的提示文字（默认“收起”）
-	 * @property {String} color 提示文字的颜色（默认#2979ff）
+	 * @property {String} color 提示文字的颜色（默认#a0610d）
 	 * @example <u-read-more><rich-text :nodes="content"></rich-text></u-read-more>
 	 */
 	export default {
@@ -62,7 +62,7 @@
 			// 提示的文字颜色
 			color: {
 				type: String,
-				default: '#2979ff'
+				default: '#a0610d'
 			},
 			// 提示文字的大小
 			fontSize: {

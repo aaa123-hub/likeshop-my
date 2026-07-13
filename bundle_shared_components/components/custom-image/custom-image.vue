@@ -172,7 +172,7 @@ export default {
         justify-content: center;
         color: #969799;
         font-size: 28rpx;
-        background-color: #f7f8fa;
+        background-color: #fff8ed;
     }
 
     .placeholder-wrap {

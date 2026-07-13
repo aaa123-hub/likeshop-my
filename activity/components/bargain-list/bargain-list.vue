@@ -17,10 +17,10 @@
                     </view>
                     <view class="mt10 row">
                         <view class="sm primary">
-                            已砍至<text class="sm" style="font-weight: 500;line-height: 48rpx;">￥<text class="xl">{{item.current_price}}</text></text>
+                            已砍至<text v-if="hasKnownValue(item.current_price)" class="sm" style="font-weight: 500;line-height: 48rpx;">￥<text class="xl">{{item.current_price}}</text></text><text v-else>金额待确认</text>
                         </view>
                         <view class="xs muted ml20">
-                            原价<text style="text-decoration: line-through;"> ¥{{item.price}}</text>
+                            原价<text v-if="hasKnownValue(item.price)" style="text-decoration: line-through;"> ¥{{item.price}}</text><text v-else>价格待确认</text>
                         </view>
                     </view>
                     <view class="xxs" style="color: #FFA200;line-height: 30rpx;margin-top: 4rpx;">
@@ -77,6 +77,9 @@
 
         },
         methods: {
+            hasKnownValue(value) {
+                return value !== undefined && value !== null && value !== ''
+            },
             $getBargainActivityList() {
                 let {page, lists, loadingStatus, bargainType} = this;
                 loadingFun(getBargainActivityList, page, lists, loadingStatus, {type: bargainType}).then(res => {
@@ -96,7 +99,7 @@
                     goods
                 }
                 uni.navigateTo({
-                	url: '/bundle/pages/confirm_order/confirm_order?data=' + encodeURIComponent(JSON.stringify(params)) + "&bargain_launch_id=" + bargainId
+                    url: '/bundle/pages/confirm_order/confirm_order?data=' + encodeURIComponent(JSON.stringify(params)) + "&bargain_launch_id=" + bargainId
                 });
             }
         }
@@ -133,7 +136,7 @@
                     // 直接购买
                     height: 62rpx;
                     padding: 0 44rpx;
-                    background-color: rgba(255, 44, 60, 0.1);
+                    background-color: rgba(160, 97, 13, 0.1);
                 }
                 .footer-btn {
                     &:not(:last-child) {

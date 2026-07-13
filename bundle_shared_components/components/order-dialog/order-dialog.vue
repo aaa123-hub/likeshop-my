@@ -1,5 +1,5 @@
 <template>
-	<u-modal v-model="show" :show-cancel-button	="true" :content="getTipsText" @confirm="onConfirm" confirm-color="#ff2c3c"></u-modal>
+	<u-modal v-model="show" :show-cancel-button	="true" :content="getTipsText" @confirm="onConfirm" confirm-color="#a0610d"></u-modal>
 </template>
 
 <script>

@@ -4,11 +4,11 @@
 
         <view class="withdraw-hero">
             <view class="withdraw-hero__label">可提现金额</view>
-            <view class="withdraw-hero__amount">¥{{ availableAmountText }}</view>
+            <view class="withdraw-hero__amount">{{ availableAmountWithSymbol }}</view>
             <view class="withdraw-hero__meta">
                 <text>手续费 {{ feePercentText }}</text>
                 <text class="withdraw-hero__dot"></text>
-                <text>预计到账 ¥{{ arriveAmountText }}</text>
+                <text>预计到账 {{ arriveAmountWithSymbol }}</text>
             </view>
         </view>
 
@@ -36,8 +36,8 @@
                 <view class="withdraw-all" @tap="allWithdraw">全部</view>
             </view>
             <view class="withdraw-balance-row">
-                <text>可提现 ¥{{ availableAmountText }}</text>
-                <text>服务费 ¥{{ feeAmountText }}</text>
+                <text>可提现 {{ availableAmountWithSymbol }}</text>
+                <text>服务费 {{ feeAmountWithSymbol }}</text>
             </view>
         </view>
 
@@ -81,7 +81,7 @@
         </view>
 
         <view class="withdraw-tips">
-            <view>提现申请提交后进入平台审核，到账时间以后端审核结果为准。</view>
+            <view>提现申请提交后进入平台审核，到账时间以平台审核结果为准。</view>
             <view>提现可能扣除服务费，请自行承担并申报相关税费。</view>
         </view>
 
@@ -127,37 +127,57 @@ export default {
     computed: {
         ...mapGetters(['userInfo']),
         availableAmount() {
-            return Number(this.widthDrawConfig.able_withdraw || this.widthDrawConfig.withdrawable_amount || this.widthDrawConfig.withdrawableAmount || this.widthDrawConfig.balance || this.widthDrawConfig.user_money || this.userInfo.user_money || this.userInfo.balance || 0)
+            return this.pickNumber(
+                this.widthDrawConfig.able_withdraw,
+                this.widthDrawConfig.withdrawable_amount,
+                this.widthDrawConfig.withdrawableAmount,
+                this.widthDrawConfig.balance,
+                this.widthDrawConfig.user_money
+            )
         },
         availableAmountText() {
             return this.formatMoney(this.availableAmount)
         },
+        availableAmountWithSymbol() {
+            return this.formatMoneyWithSymbol(this.availableAmount)
+        },
         feePercent() {
-            return Number(this.widthDrawConfig.poundage_percent || this.widthDrawConfig.poundagePercent || 0)
+            return this.pickNumber(this.widthDrawConfig.poundage_percent, this.widthDrawConfig.poundagePercent)
         },
         feePercentText() {
-            return `${this.feePercent || 0}%`
+            return this.hasRealValue(this.feePercent) ? `${this.formatPercent(this.feePercent)}%` : '待确认'
         },
         isWithdrawOpen() {
-            return Number(this.widthDrawConfig.open_withdraw ?? this.widthDrawConfig.openWithdraw ?? 1) !== 0
+            return Number(this.widthDrawConfig.open_withdraw ?? this.widthDrawConfig.openWithdraw ?? 0) !== 0
         },
         minWithdrawAmount() {
-            return Number(this.widthDrawConfig.min_withdraw || this.widthDrawConfig.minWithdraw || this.widthDrawConfig.min_withdraw_amount || 0)
+            return this.pickNumber(this.widthDrawConfig.min_withdraw, this.widthDrawConfig.minWithdraw, this.widthDrawConfig.min_withdraw_amount)
         },
         maxWithdrawAmount() {
-            return Number(this.widthDrawConfig.max_withdraw || this.widthDrawConfig.maxWithdraw || this.widthDrawConfig.max_withdraw_amount || 0)
+            return this.pickNumber(this.widthDrawConfig.max_withdraw, this.widthDrawConfig.maxWithdraw, this.widthDrawConfig.max_withdraw_amount)
         },
         moneyAmount() {
-            return Number(this.money || 0)
+            const amount = Number(this.money)
+            return this.money === '' || Number.isNaN(amount) ? null : amount
         },
         feeAmount() {
-            return this.moneyAmount > 0 ? this.moneyAmount * this.feePercent / 100 : 0
+            return this.moneyAmount > 0 && this.hasRealValue(this.feePercent) ? this.moneyAmount * this.feePercent / 100 : null
         },
         feeAmountText() {
             return this.formatMoney(this.feeAmount)
         },
+        feeAmountWithSymbol() {
+            return this.formatMoneyWithSymbol(this.feeAmount)
+        },
         arriveAmountText() {
-            return this.formatMoney(Math.max(this.moneyAmount - this.feeAmount, 0))
+            return this.moneyAmount > 0 && this.hasRealValue(this.feeAmount)
+                ? this.formatMoney(Math.max(this.moneyAmount - this.feeAmount, 0))
+                : '待确认'
+        },
+        arriveAmountWithSymbol() {
+            return this.moneyAmount > 0 && this.hasRealValue(this.feeAmount)
+                ? this.formatMoneyWithSymbol(Math.max(this.moneyAmount - this.feeAmount, 0))
+                : '待确认'
         },
         currentWay() {
             return this.withdrawWays.find(item => String(item.value) === String(this.currentType)) || {}
@@ -184,7 +204,7 @@ export default {
             return Number(this.currentType) === withdrawType.PAY_ALIPAY ? '支付宝收款码' : '微信收款码'
         },
         canSubmit() {
-            return Boolean(this.isWithdrawOpen && this.currentWay.value && this.moneyAmount > 0 && this.moneyAmount <= this.availableAmount)
+            return Boolean(this.isWithdrawOpen && this.currentWay.value && this.moneyAmount > 0 && this.hasRealValue(this.availableAmount) && this.moneyAmount <= this.availableAmount)
         }
     },
     onLoad(options = {}) {
@@ -192,8 +212,27 @@ export default {
         this.getWithdrawConfigFun()
     },
     methods: {
+        hasRealValue(value) {
+            if (value === undefined || value === null || value === '') return false
+            const amount = Number(value)
+            return !Number.isNaN(amount) && Number.isFinite(amount)
+        },
+        pickNumber(...values) {
+            for (const value of values) {
+                if (this.hasRealValue(value)) return Number(value)
+            }
+            return null
+        },
         formatMoney(value) {
-            return Number(value || 0).toFixed(2)
+            return this.hasRealValue(value) ? Number(value).toFixed(2) : '待确认'
+        },
+        formatMoneyWithSymbol(value) {
+            return this.hasRealValue(value) ? `¥${this.formatMoney(value)}` : '待确认'
+        },
+        formatPercent(value) {
+            if (!this.hasRealValue(value)) return ''
+            const percent = Number(value)
+            return Number.isInteger(percent) ? String(percent) : percent.toFixed(2).replace(/\.?0+$/, '')
         },
         wayDesc(type) {
             const descMap = {
@@ -217,7 +256,7 @@ export default {
             this.fileList = []
         },
         allWithdraw() {
-            this.money = this.availableAmount ? this.formatMoney(this.availableAmount) : ''
+            this.money = this.hasRealValue(this.availableAmount) && this.availableAmount > 0 ? this.formatMoney(this.availableAmount) : ''
         },
         normalizeMoneyInput() {
             if (!this.money) return
@@ -231,17 +270,16 @@ export default {
                     const ways = Array.isArray(data.type) ? data.type : []
                     this.widthDrawConfig = data
                     this.withdrawWays = ways.filter(item => item && item.value)
-                    if (!this.withdrawWays.length) this.withdrawWays = this.defaultWithdrawWays()
                     this.currentType = this.resolveInitialWithdrawType()
                 } else {
-                    this.widthDrawConfig = { user_money: this.userInfo.user_money || this.userInfo.balance || 0, open_withdraw: 1 }
-                    this.withdrawWays = this.defaultWithdrawWays()
+                    this.widthDrawConfig = { open_withdraw: 0 }
+                    this.withdrawWays = []
                     this.currentType = this.resolveInitialWithdrawType()
                     this.$toast({ title: res.msg || '提现配置获取失败' })
                 }
             }).catch((err) => {
-                this.widthDrawConfig = { user_money: this.userInfo.user_money || this.userInfo.balance || 0, open_withdraw: 1 }
-                this.withdrawWays = this.defaultWithdrawWays()
+                this.widthDrawConfig = { open_withdraw: 0 }
+                this.withdrawWays = []
                 this.currentType = this.resolveInitialWithdrawType()
                 this.$toast({ title: err?.msg || err?.message || '提现配置获取失败' })
             })
@@ -249,15 +287,6 @@ export default {
         resolveInitialWithdrawType() {
             const preset = this.withdrawWays.find(item => String(item.value) === String(this.presetType))
             return preset?.value || this.withdrawWays[0]?.value || ''
-        },
-        defaultWithdrawWays() {
-            return [
-                { name: '账户余额', value: withdrawType.ACCOUNT },
-                { name: '微信零钱', value: withdrawType.WECHAT },
-                { name: '微信收款码', value: withdrawType.PAY_WECHAT },
-                { name: '支付宝', value: withdrawType.PAY_ALIPAY },
-                { name: '银行卡', value: withdrawType.BANK }
-            ]
         },
         afterRead(files) {
             const list = Array.isArray(files) ? files : [files]
@@ -283,9 +312,10 @@ export default {
             if (!this.currentWay.value) return '暂无可用提现方式'
             if (!this.money) return '请输入提现金额'
             if (this.moneyAmount <= 0) return '提现金额必须大于0'
+            if (!this.hasRealValue(this.availableAmount)) return '可提现金额待确认'
             if (this.moneyAmount > this.availableAmount) return '提现金额不能超过可提现金额'
-            if (this.minWithdrawAmount && this.moneyAmount < this.minWithdrawAmount) return `提现金额不能低于${this.formatMoney(this.minWithdrawAmount)}元`
-            if (this.maxWithdrawAmount && this.moneyAmount > this.maxWithdrawAmount) return `提现金额不能高于${this.formatMoney(this.maxWithdrawAmount)}元`
+            if (this.hasRealValue(this.minWithdrawAmount) && this.minWithdrawAmount > 0 && this.moneyAmount < this.minWithdrawAmount) return `提现金额不能低于${this.formatMoney(this.minWithdrawAmount)}元`
+            if (this.hasRealValue(this.maxWithdrawAmount) && this.maxWithdrawAmount > 0 && this.moneyAmount > this.maxWithdrawAmount) return `提现金额不能高于${this.formatMoney(this.maxWithdrawAmount)}元`
             if (this.needAccountInfo && !this.account.trim()) return `请输入${this.accountLabel}`
             if (this.needAccountInfo && !this.realName.trim()) return '请输入真实姓名'
             if (this.needQrCode && !this.qrCode) return `请上传${this.qrCodeLabel}`
@@ -335,23 +365,23 @@ export default {
 
 <style lang="scss">
 page {
-    background: #f3f7ff;
+    background: #fff9f0;
 }
 
 .withdraw-page {
     min-height: 100vh;
     padding: 0 24rpx calc(260rpx + env(safe-area-inset-bottom));
     box-sizing: border-box;
-    background: linear-gradient(180deg, #eaf4ff 0%, #f6f8fb 420rpx, #f6f8fb 100%);
+    background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 420rpx, #fff9f0 100%);
 }
 
 .withdraw-hero {
     margin-top: 24rpx;
     padding: 36rpx 32rpx;
     color: #ffffff;
-    background: linear-gradient(135deg, #1678ff 0%, #0bb4ff 100%);
+    background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
     border-radius: 28rpx;
-    box-shadow: 0 18rpx 46rpx rgba(22, 120, 255, 0.24);
+    box-shadow: 0 18rpx 46rpx rgba(160, 97, 13, 0.22);
 }
 
 .withdraw-hero__label {
@@ -412,14 +442,14 @@ page {
     margin: 0 8rpx 16rpx;
     padding: 20rpx;
     box-sizing: border-box;
-    background: #f6f8fb;
+    background: #fff8ed;
     border: 2rpx solid transparent;
     border-radius: 20rpx;
 }
 
 .withdraw-way--active {
-    background: #eef6ff;
-    border-color: #1678ff;
+    background: #fff1dc;
+    border-color: #d79a43;
 }
 
 .withdraw-way__name {
@@ -474,10 +504,10 @@ page {
 .withdraw-all {
     flex: none;
     padding: 12rpx 22rpx;
-    color: #1678ff;
+    color: #a0610d;
     font-size: 26rpx;
     line-height: 36rpx;
-    background: #edf6ff;
+    background: #fff1dc;
     border-radius: 999rpx;
 }
 
@@ -537,8 +567,8 @@ page {
     height: 176rpx;
     margin-top: 18rpx;
     overflow: hidden;
-    background: #f6f8fb;
-    border: 2rpx dashed #d9e2ef;
+    background: #fff8ed;
+    border: 2rpx dashed #ead5b8;
     border-radius: 20rpx;
 }
 
@@ -576,7 +606,7 @@ page {
     bottom: 0;
     z-index: 99;
     padding: 18rpx 32rpx calc(22rpx + env(safe-area-inset-bottom));
-    background: rgba(246, 248, 251, 0.96);
+    background: rgba(255, 249, 240, 0.96);
     box-shadow: 0 -12rpx 30rpx rgba(31, 55, 88, 0.06);
 }
 
@@ -588,9 +618,9 @@ page {
     color: #ffffff;
     font-size: 30rpx;
     font-weight: 700;
-    background: linear-gradient(135deg, #1678ff 0%, #0bb4ff 100%);
+    background: linear-gradient(135deg, #a0610d 0%, #d79a43 100%);
     border-radius: 44rpx;
-    box-shadow: 0 14rpx 30rpx rgba(22, 120, 255, 0.22);
+    box-shadow: 0 14rpx 30rpx rgba(160, 97, 13, 0.2);
 }
 
 .withdraw-submit--disabled {

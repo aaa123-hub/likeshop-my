@@ -81,22 +81,31 @@ export default {
       id
     } = options; // 售后id
 
-    this.afterSalesId = id;
+    this.afterSalesId = id || '';
   },
 
 
   methods: {
     afterRead(e) {
-      const file = e
+      const file = this.normalizeFiles(e)
+      if (!file.length) return
       uni.showLoading({
         title: '正在上传中...',
         mask: true
       });
+      let finished = 0
       file.forEach(item => {
-        uploadFile(item.path).then(res => {
-            uni.hideLoading();
-            this.fileList.push(res);
-          });
+        uploadFile(item.path)
+          .then(res => {
+            this.fileList = [res]
+          })
+          .catch(() => {
+            this.$toast({ title: '上传失败' })
+          })
+          .finally(() => {
+            finished += 1
+            if (finished >= file.length) uni.hideLoading()
+          })
       })
     },
 
@@ -107,17 +116,23 @@ export default {
       let {
         fileList
       } = this;
-      if (!value.express) return this.$toast({
+      const express = String(value.express || '').trim()
+      const number = String(value.number || '').trim()
+      const remark = String(value.remark || '').trim()
+      if (!this.afterSalesId) return this.$toast({
+        title: '售后编号待确认'
+      });
+      if (!express) return this.$toast({
         title: '请填写物流公司名称'
       });
-      if (!value.number) return this.$toast({
+      if (!number) return this.$toast({
         title: '请填写快递单号'
       });
       let data = {
         id: this.afterSalesId,
-        express_name: value.express,
-        invoice_no: value.number,
-        express_remark: value.remark,
+        express_name: express,
+        invoice_no: number,
+        express_remark: remark,
         express_image: fileList.length <= 0 ? '' : (fileList[0].url || fileList[0].base_url)
       };
       this.inputExpressInfoFun(data);
@@ -136,8 +151,17 @@ export default {
       });
     },
 
-    handleImage(index) {
-        this.fileList.splice(index, 1)
+    normalizeFiles(e) {
+      if (Array.isArray(e)) return e
+      if (Array.isArray(e && e.file)) return e.file
+      if (Array.isArray(e && e.detail && e.detail.file)) return e.detail.file
+      return []
+    },
+
+    handleImage(event) {
+        const index = typeof event === 'number' ? event : (event && event.index !== undefined ? event.index : (event && event.detail ? event.detail.index : undefined))
+        if (index === undefined || index === null) return
+        this.fileList.splice(Number(index), 1)
     }
 
   }
@@ -146,37 +170,59 @@ export default {
 <style>
 /* pages/input_express_info/input_express_info.wxss */
 .input-express-info {
-
+  min-height: 100vh;
+  max-width: 750rpx;
+  margin: 0 auto;
+  padding: 20rpx 24rpx 48rpx;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  background: #fff9f0;
 }
 
 .input-contain {
   background-color: white;
+  border-radius: 22rpx;
+  overflow: hidden;
 }
 
 .input-contain .input-item {
   padding: 24rpx;
+  align-items: center;
+  box-sizing: border-box;
 }
 
 .input-item .label{
+  flex: none;
   width: 152rpx;
 }
 
 .input-item .input {
   flex: 1;
+  min-width: 0;
 }
 
 .upload-contain {
   background-color: white;
   padding: 24rpx 20rpx 44rpx;
+  border-radius: 22rpx;
+  box-sizing: border-box;
 }
 
 .upload-contain .header {
+  flex-wrap: wrap;
+  gap: 8rpx 0;
   margin-bottom: 30rpx;
+  word-break: break-all;
 }
 
 .submit-btn {
   margin-top: 50rpx;
-  margin-left: 26rpx;
-  margin-right: 26rpx;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.submit-btn button {
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>

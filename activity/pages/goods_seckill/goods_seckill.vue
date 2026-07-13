@@ -9,7 +9,7 @@
         <scroll-view style="height: 120rpx; white-space: nowrap;" :scroll-into-view="'item-' + currentView" scroll-x="true" scroll-with-animation="true">
             <view v-for="(item, index) in seckillTime" :key="index" :id="'item-' + index" class="time-item column-center" @tap="exchangeTime" :data-id="item.id" :data-index="index">
                 <view :class="'xl bold ' + (item.active==1 ? 'primary': '')">{{ item.start_time }}</view>
-                <view :class="'sm br60 state ' + ( item.active === 1 ? 'bg-primary white': '' ) + ' ' + ( item.status === 2 ? 'muted': '' )" :style="item.active==1 ? 'background-color: #FF2C3C;color: white': ''">
+                <view :class="'sm br60 state ' + ( item.active === 1 ? 'bg-primary white': '' ) + ' ' + ( item.status === 2 ? 'muted': '' )" :style="item.active==1 ? 'background-color: #a0610d;color: white': ''">
                     {{ item.tips }}
                 </view>
             </view>
@@ -20,13 +20,14 @@
             <custom-image width="180rpx" height="180rpx" radius="10rpx" lazy-load class="goods-img mr20" :src="item.image" />
             <view class="goods-info">
                 <view style="width: 490rpx" class="goods-name line2 mb10">{{item.name}}</view>
-                <label class="sale-info xs primary br60">
+                <label v-if="hasKnownValue(item.sales_sum)" class="sale-info xs primary br60">
                     已抢{{item.sales_sum}}件
                 </label>
                 <view class="info-footer row-between" style="margin-top: 5rpx">
                     <view class="price">
-                        <price-format class="mr10" :price="item.seckill_price" color="#FF2C3C" :firstSize="34" :secondSize="26" :showSubscript="true" :subscriptSize="26" />
-                        <price-format class="line-through muted" :price="item.min_price" color="#999999" :firstSize="24" :secondSize="24" :showSubscript="true" :subscriptSize="24" />
+                        <price-format v-if="hasKnownValue(item.seckill_price)" class="mr10" :price="item.seckill_price" color="#a0610d" :firstSize="34" :secondSize="26" :showSubscript="true" :subscriptSize="26" />
+                        <text v-else class="price-pending">价格待确认</text>
+                        <price-format v-if="hasKnownValue(item.min_price)" class="line-through muted" :price="item.min_price" color="#999999" :firstSize="24" :secondSize="24" :showSubscript="true" :subscriptSize="24" />
                     </view>
                     <button :class="'br60 white ' + (currentStatus == 2? 'bg-gray' : currentStatus == 1 ? 'primary-btn' : 'border-btn')" size="sm" @tap.stop="goGoodsDetail" :data-id="item.id" :data-shop_id="item.shop_id">{{currentStatus == 2? '已结束': currentStatus == 1 ? '立即抢购' : '未开始'}}</button>
                 </view>
@@ -97,6 +98,9 @@ export default {
   },
 
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== ''
+    },
     // 获取秒杀时间段
     getSeckillTimeFun() {
       let {
@@ -208,8 +212,6 @@ export default {
     },
 
     goToBuy(e) {
-      console.log("goToBuy");
-      console.log(e);
     }
 
   }
@@ -254,6 +256,12 @@ export default {
                     .btn {
                         padding: 0 30rpx;
                     }
+                    .price-pending {
+                        color: #8b95a5;
+                        font-size: 26rpx;
+                        line-height: 42rpx;
+                        white-space: nowrap;
+                    }
                 }
                 .progress-wrap {
                     .progress {
@@ -270,15 +278,15 @@ export default {
     padding: 0 30rpx;
     background: linear-gradient(
         270deg,
-        rgba(255, 44, 60, 1) 0%,
-        rgba(249, 95, 47, 1) 100%
+        rgba(160, 97, 13, 1) 0%,
+        rgba(215, 154, 67, 1) 100%
     );
 }
 
 .border-btn {
     padding: 0 30rpx;
-    border: 1px solid #FF2C3C !important;
-    color: #FF2C3C !important;
+    border: 1px solid #a0610d !important;
+    color: #a0610d !important;
 }
 
 .data-null {

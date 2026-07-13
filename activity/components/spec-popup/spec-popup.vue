@@ -18,15 +18,17 @@
         <view class="goods-info" v-if="!isBargain">
           <view class="primary row">
             <price-format
+              v-if="hasKnownValue(group ? checkedGoods.team_price : checkedGoods.price)"
               :first-size="46"
               :second-size="32"
               :subscript-size="32"
               :price="group ? checkedGoods.team_price : checkedGoods.price"
               :weight="500"
             ></price-format>
+            <text v-else class="price-pending">价格待确认</text>
             <view
               class="vip-price row"
-              v-if="!group && !isSeckill && checkedGoods.member_price"
+              v-if="!group && !isSeckill && hasKnownValue(checkedGoods.member_price)"
             >
               <view class="price-name xxs">会员价</view>
               <view style="padding: 0 11rpx">
@@ -51,11 +53,14 @@
         </view>
         <view class="goods-info" v-else>
           <view class="xs">
-            最低可砍至<text class="sm" style="color: #f95f2f"
+            最低可砍至<text class="sm" style="color: #d79a43"
+              v-if="hasKnownValue(checkedGoods.activity_price)"
               >¥{{ checkedGoods.activity_price }}</text
-            >
+            ><text v-else class="price-pending">价格待确认</text>
           </view>
-          <view class="muted xs mt10"> 原价 ¥{{ checkedGoods.price }} </view>
+          <view class="muted xs mt10">
+            原价 <text v-if="hasKnownValue(checkedGoods.price)">¥{{ checkedGoods.price }}</text><text v-else>价格待确认</text>
+          </view>
           <view class="sm lighter mt20">
             <!-- <text>已选择：{{checkedGoods.spec_value_str}}</text> -->
             <text>{{ specValueText }}</text>
@@ -228,7 +233,7 @@ export default {
     // 选择的规格参数等
     specValueText() {
       if (!this.specList.length) {
-        return `已选择 ${this.checkedGoods.spec_value_str || this.checkedGoods.name || '默认'} ${this.goodsNum} 件`;
+        return `已选择 ${this.checkedGoods.spec_value_str || this.checkedGoods.name || '规格待确认'} ${this.goodsNum} 件`;
       }
       let arr = this.checkedGoods.spec_value_ids?.split(",");
       let spec_str = "";
@@ -265,8 +270,6 @@ export default {
       this.disable = this.getOutOfStockArr(getArrGather, idsArr);
 
       if (res.length != 0) {
-        console.log(res, "-----");
-
         let result = JSON.parse(JSON.stringify(res[0]));
         result.spec_value_ids_arr = result.spec_value_ids.split(",");
         if (this.goodsNum > result.stock) {
@@ -284,10 +287,11 @@ export default {
       this.showPop = val;
     },
   },
-  created() {
-    console.log("spec");
-  },
   methods: {
+    hasKnownValue(value) {
+      return value !== undefined && value !== null && value !== '';
+    },
+
     initGoods(value = {}) {
       this.specList = value.goods_spec || [];
       let goodsItem = value.goods_item || [];
@@ -495,6 +499,12 @@ export default {
       width: 180rpx;
       height: 180rpx;
       flex: none;
+    }
+    .price-pending {
+      color: #8b95a5;
+      font-size: 28rpx;
+      line-height: 48rpx;
+      white-space: nowrap;
     }
   }
 

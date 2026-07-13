@@ -17,7 +17,7 @@
 					</custom-image>
 					<view class="goods-name line1 mt10">{{item.name}}</view>
 					<view class="price">
-						<price-format color="#FF2C3C" :subscript-size="22" :second-size="22" :price="item.price"
+						<price-format color="#a0610d" :subscript-size="22" :second-size="22" :price="item.price"
 							:weight="500"></price-format>
 						<price-format class="ml10" :show-subscript="true" color="#999" :line-through="true"
 							:subscript-size="22" :first-size="22" :second-size="22" :price="item.market_price">
@@ -26,7 +26,7 @@
 				</navigator>
 			</scroll-view>
 			<view class="row-center mb10 mt20" v-if="list.length > 3">
-				<cu-progress progressBarColor="#FF2C3C" :left="progressPer"></cu-progress>
+				<cu-progress progressBarColor="#a0610d" :left="progressPer"></cu-progress>
 			</view>
 		</view>
 	</view>
@@ -104,7 +104,7 @@ getRect
 
 	.goods-like .title .like {
 		padding: 1rpx 11rpx;
-		background: linear-gradient(180deg, rgba(255, 44, 60, 1) 0%, rgba(249, 95, 47, 1) 100%);
+		background: linear-gradient(180deg, #d79a43 0%, #a0610d 100%);
 		border-radius: 100px 100px 100px 0px;
 	}
 

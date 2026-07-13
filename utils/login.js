@@ -74,9 +74,18 @@ async function _wxMnpLogin() {
 		const inviteCode = Cache.get("INVITE_CODE")
 		if (inviteCode) {
 			Cache.remove("INVITE_CODE")
-			inputInviteCode({
-				code: inviteCode
-			})
+			const invitePayload = typeof inviteCode === 'object'
+				? {
+					code: inviteCode.code || inviteCode.invite_code || inviteCode.inviteCode,
+					invite_code: inviteCode.invite_code || inviteCode.inviteCode || inviteCode.code,
+					promoterUserId: inviteCode.promoterUserId || inviteCode.promoter_user_id || inviteCode.uid || inviteCode.userId,
+					ownerUserId: inviteCode.ownerUserId || inviteCode.owner_user_id || inviteCode.promoterUserId || inviteCode.promoter_user_id || inviteCode.uid || inviteCode.userId,
+					roleCode: inviteCode.roleCode || inviteCode.role_code || inviteCode.role,
+					scene: inviteCode.scene || '',
+					rawScene: inviteCode.rawScene || inviteCode.raw_scene || inviteCode.scene || ''
+				}
+				: { code: inviteCode }
+			inputInviteCode(invitePayload)
 		}
 	} else {
 		const loginRoute = '/bundle/pages/login/login'

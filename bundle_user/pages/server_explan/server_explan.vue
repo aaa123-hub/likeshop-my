@@ -1,9 +1,38 @@
 <template>
 <view>
 <!--pages/server_explan/server_explan.wxml-->
-<view class="main">
-  <rich-text v-if="article_content" :nodes="article_content"></rich-text>
+<view :class="['main', { 'main--login-agreement': isLoginAgreementFlow }]">
+  <view v-if="articleRows.length" class="legal-doc">
+    <view v-if="articleMetaRows.length" class="legal-doc__meta-card">
+      <view v-for="item in articleMetaRows" :key="item.label + item.value" class="legal-doc__meta-row">
+        <text class="legal-doc__meta-label">{{ item.label }}</text>
+        <text class="legal-doc__meta-value">{{ item.value }}</text>
+      </view>
+    </view>
+    <view
+      v-for="(row, index) in articleRows"
+      :key="index"
+      :class="['legal-doc__row', 'legal-doc__row--' + row.type]"
+    >{{ row.text }}</view>
+    <view v-if="showSignRows && articleSignRows.length" class="legal-doc__sign-card">
+      <view class="legal-doc__sign-title">签署信息</view>
+      <view v-for="item in articleSignRows" :key="item.label + item.value" class="legal-doc__sign-row">
+        <text class="legal-doc__sign-label">{{ item.label }}</text>
+        <text class="legal-doc__sign-value">{{ item.value }}</text>
+      </view>
+    </view>
+  </view>
+  <rich-text v-else-if="article_content" :nodes="article_content"></rich-text>
   <view v-else class="server-empty">暂无内容</view>
+</view>
+<view v-if="isLoginAgreementFlow" class="login-agreement-bar">
+  <button
+    class="login-agreement-bar__button"
+    :class="{ 'is-ready': hasReachedBottom, 'is-confirmed': readMarked }"
+    @tap="confirmLoginAgreement"
+  >
+    {{ loginAgreementButtonText }}
+  </button>
 </view>
 
 <!--<import src="/wxParse/wxParse.wxml"></import>-->
@@ -28,13 +57,24 @@
 // +----------------------------------------------------------------------
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
-import { getServerProto, getPrivatePolicy, getAfterSaleGuar } from '@/api/app';
+import { getServerProto, getPrivatePolicy } from '@/api/app';
+import { getLegalDocument } from '@/utils/legal-documents'
+
+const LOGIN_AGREEMENT_READ_PREFIX = 'LOGIN_AGREEMENT_READ_'
+const LOGIN_AGREEMENT_CONFIRM_PREFIX = 'LOGIN_AGREEMENT_CONFIRMED_'
+const LOGIN_AGREEMENT_TYPES = [0, 1]
 
 export default {
   data() {
     return {
       article_content: "",
-      type: 0
+      articleRows: [],
+      articleMetaRows: [],
+      articleSignRows: [],
+      type: 0,
+      readMarked: false,
+      source: '',
+      hasReachedBottom: false
     };
   },
 
@@ -46,13 +86,18 @@ export default {
    */
   onLoad: function (options) {
     let {
-      type
+      type,
+      from,
+      source
     } = options;
-    type = parseInt(type); // 0 ==> 服务协议 1 ==> 隐私政策 2 ==> 售后保障
+    type = parseInt(type); // 0 用户服务协议 1 隐私政策 2 交易纠纷处理 3 平台服务协议 4 入驻经营规范
     this.type = Number.isNaN(type) ? 0 : type;
+    this.source = from || source || '';
+    this.refreshReadMarked()
+    const doc = getLegalDocument(this.type)
 
     uni.setNavigationBarTitle({
-      title: this.type == 0 ? '服务协议' : this.type == 1 ? '隐私政策' : '售后保障'
+      title: this.displayDocumentTitle(doc.title)
     });
 
     switch (this.type) {
@@ -65,7 +110,10 @@ export default {
         break;
 
       case 2:
-        this.getAfterSaleGuarFun();
+      case 3:
+      case 4:
+      case 5:
+        this.applyArticleContent('');
         break;
 
       default:
@@ -73,36 +121,169 @@ export default {
         break;
     }
   },
+  onReachBottom() {
+    this.hasReachedBottom = true
+    if (!this.isLoginAgreementFlow) this.markDocumentRead()
+  },
+  computed: {
+    showSignRows() {
+      return !LOGIN_AGREEMENT_TYPES.includes(this.type)
+    },
+    isLoginAgreementFlow() {
+      return this.source === 'login' && LOGIN_AGREEMENT_TYPES.includes(this.type)
+    },
+    loginAgreementButtonText() {
+      if (this.readMarked) return '已阅读并同意本协议'
+      return this.hasReachedBottom ? '我已阅读并同意本协议' : '请阅读全文'
+    }
+  },
   methods: {
+    refreshReadMarked() {
+      if (!LOGIN_AGREEMENT_TYPES.includes(this.type)) return
+      try {
+        const storageKey = this.isLoginAgreementFlow ? LOGIN_AGREEMENT_CONFIRM_PREFIX : LOGIN_AGREEMENT_READ_PREFIX
+        this.readMarked = Boolean(uni.getStorageSync(`${storageKey}${this.type}`))
+        if (this.readMarked) this.hasReachedBottom = true
+      } catch (error) {}
+    },
+    localDocument() {
+      return getLegalDocument(this.type)
+    },
     fallbackContent() {
-      const render = (title, intro, sections) => `<h2>${title}</h2><p>${intro}</p>${sections.map(item => `<h3>${item.title}</h3>${item.content.map(text => `<p>${text}</p>`).join('')}`).join('')}`
-      if (this.type == 1) {
-        return render('隐私政策', '我们重视并保护您的个人信息安全。本政策适用于注册登录、商品浏览、店铺关注、团购下单、订单履约、售后客服、积分权益和消息通知等服务。', [
-          { title: '一、信息收集', content: ['为完成账号识别、交易履约和客户服务，我们可能收集手机号、昵称、头像、收货地址、定位门店、订单信息、支付状态、设备信息、操作日志、客服沟通记录及您主动提交的认证资料。', '当您使用分享、保存海报、扫码核销、门店导航等功能时，可能需要相册、相机或位置信息权限。您可以在系统设置中管理授权。'] },
-          { title: '二、使用范围', content: ['收集的信息仅用于身份核验、订单处理、配送售后、门店自提、风险控制、客服响应、权益发放、服务优化及法律法规要求的场景。', '平台不会将个人信息用于与当前服务无关的用途，也不会在未取得授权的情况下进行无关营销。'] },
-          { title: '三、信息共享', content: ['为完成交易履约，我们可能向商家、物流、支付机构、门店服务人员或依法有权机关提供必要信息。共享范围以实现具体服务为限。', '平台要求合作方履行安全保护义务，不得超出约定目的处理您的个人信息。'] },
-          { title: '四、信息保护', content: ['平台将采用访问控制、数据脱敏、安全审计等合理措施保护信息安全。', '您可通过个人中心查看、更正资料，或联系客服申请处理个人信息相关请求。'] },
-          { title: '五、政策更新', content: ['如隐私政策发生调整，我们将在页面展示最新版本。继续使用平台服务即表示您已阅读并理解更新后的内容。'] }
-        ])
+      const doc = this.localDocument()
+      return doc && doc.text ? doc.text : ''
+    },
+    cleanLegalLine(value) {
+      return String(value || '')
+        .replace(/\u0007/g, '')
+        .replace(/[\t ]*[•][\t ]*/g, '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/ ，/g, '，')
+        .replace(/ ：/g, '：')
+        .trim()
+    },
+    displayDocumentTitle(title = '') {
+      if (this.type === 0) return '服务协议'
+      if (this.type === 1) return '隐私政策'
+      return String(title || '')
+        .replace(/^钥岫商城/, '')
+        .replace(/^平台服务协议$/, '平台服务协议')
+        .trim() || '协议说明'
+    },
+    splitInlineMeta(line = '') {
+      const text = this.cleanLegalLine(line)
+      const matched = text.match(/^(运营主体：.+?)(版本日期\s*[:：]\s*.+)$/)
+      return matched ? [matched[1], matched[2]] : [text]
+    },
+    mergeBrokenLines(lines = []) {
+      const merged = []
+      lines.forEach((line) => {
+        const prev = merged[merged.length - 1] || ''
+        if (/\/$/.test(prev) && /^1\d{10}$/.test(line)) {
+          merged[merged.length - 1] = `${prev} ${line}`
+          return
+        }
+        if (/[,，、]$/.test(prev) && line && !/^(第[一二三四五六七八九十百]+条|[一二三四五六七八九十]+、|\d+(\.\d+)*[.、]|甲方|乙方|日期|签署方式)/.test(line)) {
+          merged[merged.length - 1] = `${prev}${line}`
+          return
+        }
+        merged.push(line)
+      })
+      return merged
+    },
+    extractSignRows(lines = []) {
+      const signRows = []
+      const contentLines = []
+      const signLabels = ['甲方（盖章）', '乙方（签字/盖章）', '法定代表人/授权代表', '法定代表人/经营者/授权代表', '日期', '签署方式']
+      const normalizeSignLabel = (line) => signLabels.find(label => line.startsWith(`${label}：`) || line.startsWith(`${label}:`))
+      lines.forEach((line) => {
+        const label = normalizeSignLabel(line)
+        if (!label) {
+          contentLines.push(line)
+          return
+        }
+        const value = line.replace(new RegExp(`^${label}[：:]?`), '').trim() || '待签署'
+        signRows.push({ label, value })
+      })
+      return { signRows, contentLines }
+    },
+    metaPairFromLines(lines = []) {
+      const metaRows = []
+      const contentLines = []
+      const labels = ['运营主体', '版本日期', '甲方', '乙方', '统一社会信用代码', '住所/联系地址', '联系人及电话', '电子邮箱', '平台名称', '证照/身份证号', '签署日期', '协议编号']
+      const hiddenLabels = LOGIN_AGREEMENT_TYPES.includes(this.type) ? ['签署日期'] : []
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index]
+        const colonMatch = line.match(/^(.+?)[:：]\s*(.+)$/)
+        if (colonMatch && labels.includes(colonMatch[1].trim())) {
+          if (hiddenLabels.includes(colonMatch[1].trim())) continue
+          metaRows.push({ label: colonMatch[1].trim(), value: colonMatch[2].trim() })
+          continue
+        }
+        if (labels.includes(line)) {
+          const next = lines[index + 1] || ''
+          if (hiddenLabels.includes(line)) {
+            if (next && !labels.includes(next) && !/^(第[一二三四五六七八九十百]+条|[一二三四五六七八九十]+、)/.test(next)) index += 1
+            continue
+          }
+          if (next && !labels.includes(next) && !/^(第[一二三四五六七八九十百]+条|[一二三四五六七八九十]+、)/.test(next)) {
+            metaRows.push({ label: line, value: next })
+            index += 1
+            continue
+          }
+          continue
+        }
+        contentLines.push(line)
       }
-      if (this.type == 2) {
-        return render('售后保障', '平台为用户提供清晰、可追踪的售后处理通道。商品或服务售后以商品页面说明、订单约定、商家承诺及平台规则为准。', [
-          { title: '一、售后范围', content: ['支持未发货退款、已发货退货退款、商品质量问题、错发漏发、配送异常、核销异常、服务无法履约等场景。', '生鲜、定制、虚拟权益、已核销服务等特殊商品，以商品页面说明和商家售后规则为准。'] },
-          { title: '二、申请入口', content: ['用户可在我的订单、订单详情、客服入口或平台指定方式提交售后申请。', '申请时请准确选择售后类型、问题原因、退款金额，并上传必要凭证。'] },
-          { title: '三、处理流程', content: ['提交申请后，平台将根据订单状态、支付记录、商品属性、物流信息、核销记录和用户凭证进行核验。', '商家会在合理时间内完成审核。审核通过后，未发货订单优先原路退款；需退货订单请按页面提示寄回商品。'] },
-          { title: '四、凭证要求', content: ['建议保留商品照片、开箱视频、物流单号、支付凭证、沟通记录等材料。材料越完整，越有助于平台和商家快速判断并处理。', '如涉及商品质量或错发漏发，请拍摄商品外观、包装、面单和问题细节。'] },
-          { title: '五、退款说明', content: ['符合退款条件的订单将按原支付方式或平台支持方式退回，实际到账时间以支付机构和银行处理时效为准。', '优惠券、积分、团购权益等随订单规则返还或失效，具体以页面展示为准。'] },
-          { title: '六、客服协助', content: ['如售后处理存在争议，用户可联系平台客服。平台将依据订单信息、平台规则和有效凭证进行协调，保障合理合法权益。'] }
-        ])
+      return { metaRows, contentLines }
+    },
+    rowType(text, index) {
+      if (index === 0) return 'lead'
+      if (/^(第[一二三四五六七八九十百]+条|[一二三四五六七八九十]+、|主要法律依据与合规参考)/.test(text)) return 'heading'
+      if (/^\d+(\.\d+)*[.、]/.test(text)) return 'clause'
+      return 'paragraph'
+    },
+    buildRows(content) {
+      const doc = this.localDocument()
+      const rawLines = String(content || '')
+        .replace(/\r/g, '\n')
+        .split('\n')
+        .flatMap(this.splitInlineMeta)
+        .map(this.cleanLegalLine)
+        .filter(Boolean)
+      const titleSet = new Set([doc.title, this.displayDocumentTitle(doc.title)])
+      const withoutDuplicateTitle = titleSet.has(rawLines[0]) ? rawLines.slice(1) : rawLines
+      const mergedLines = this.mergeBrokenLines(withoutDuplicateTitle)
+      const { signRows, contentLines: linesBeforeMeta } = this.extractSignRows(mergedLines)
+      const { metaRows, contentLines } = this.metaPairFromLines(linesBeforeMeta)
+      this.articleMetaRows = metaRows.filter(row => row.value && !/^_+$/.test(row.value))
+      this.articleSignRows = this.showSignRows ? signRows.filter(row => row.value) : []
+      return contentLines.map((text, index) => ({ text, type: this.rowType(text, index) }))
+    },
+    markDocumentRead() {
+      if (this.readMarked || !LOGIN_AGREEMENT_TYPES.includes(this.type) || !this.articleRows.length) return
+      this.readMarked = true
+      try {
+        const storageKey = this.isLoginAgreementFlow ? LOGIN_AGREEMENT_CONFIRM_PREFIX : LOGIN_AGREEMENT_READ_PREFIX
+        uni.setStorageSync(`${storageKey}${this.type}`, true)
+      } catch (error) {}
+    },
+    confirmLoginAgreement() {
+      if (!this.hasReachedBottom) {
+        uni.showToast({
+          title: '请先上滑阅读全文',
+          icon: 'none'
+        })
+        return
       }
-      return render('服务协议', '欢迎使用本平台服务。本协议是用户与平台之间关于注册、登录、浏览、下单、支付、参与团购、线下门店服务、积分权益、联系商家及售后服务等事项的约定。', [
-        { title: '一、服务内容', content: ['平台提供商品展示、交易撮合、订单管理、支付结算、线下门店服务、会员积分、活动参与、客服咨询、分享海报及售后协助等功能。', '具体服务以页面实际展示为准，平台可根据运营情况调整服务内容。'] },
-        { title: '二、用户义务', content: ['用户应遵守法律法规和平台规则，提交真实、准确、完整的信息，妥善保管账号、验证码及支付凭证。', '不得利用平台从事虚假交易、恶意退款、刷单套利、侵犯他人权益或其他违法违规行为。'] },
-        { title: '三、订单与支付', content: ['用户下单后应按页面提示完成支付。订单状态、商品价格、配送方式、核销规则、售后条件等以订单页面和商家说明为准。', '因库存、活动、系统、支付或风控原因导致订单变化的，平台将按规则处理并尽量及时通知用户。'] },
-        { title: '四、门店与团购', content: ['线下门店商品、服务核销、营业时间、门店地址和团购成团条件以页面展示和商家实际服务能力为准。', '参与拼团、秒杀、优惠活动时，请关注活动时间、人数要求、退款规则和商品库存。'] },
-        { title: '五、积分与权益', content: ['积分、优惠券、会员权益、分享奖励等应在有效期和适用范围内使用，不得转让、套现或用于违规交易。', '权益发放、使用和失效规则以页面展示及平台规则为准。'] },
-        { title: '六、协议变更', content: ['平台可根据业务和法律法规要求更新本协议，并在相关页面展示。更新后继续使用服务，视为您已阅读并接受调整后的协议。'] }
-      ])
+      this.markDocumentRead()
+      uni.showToast({
+        title: '已确认阅读',
+        icon: 'none'
+      })
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 300)
     },
     applyArticleContent(content) {
       const value = String(content || '').trim()
@@ -111,7 +292,29 @@ export default {
         1: '<p>隐私政策内容待平台完善。</p>',
         2: '<p>售后保障内容待平台完善。</p>'
       }
-      this.article_content = !value || value === placeholderMap[this.type] ? this.fallbackContent() : value
+      const doc = this.localDocument()
+      const isPlaceholder = !value || value === placeholderMap[this.type] || /^<p>.*待平台完善。<\/p>$/.test(value)
+      this.article_content = ''
+      this.articleRows = this.buildRows(isPlaceholder ? this.fallbackContent() : value)
+      this.checkShortDocumentRead()
+    },
+    checkShortDocumentRead() {
+      if (!LOGIN_AGREEMENT_TYPES.includes(this.type)) return
+      this.$nextTick(() => {
+        setTimeout(() => {
+          uni.createSelectorQuery()
+            .in(this)
+            .select('.main')
+            .boundingClientRect((rect) => {
+              const windowHeight = uni.getSystemInfoSync().windowHeight || 0
+              if (rect && windowHeight && rect.height <= windowHeight + 4) {
+                this.hasReachedBottom = true
+                if (!this.isLoginAgreementFlow) this.markDocumentRead()
+              }
+            })
+            .exec()
+        }, 80)
+      })
     },
     // 服务协议
     getServerProtoFun() {
@@ -127,7 +330,7 @@ export default {
       }).catch(() => this.applyArticleContent(''));
     },
 
-    // 隐私协议
+    // 隐私政策
     getPrivatePolicyFun() {
       getPrivatePolicy().then(res => {
         if (res.code == 1) {
@@ -141,20 +344,6 @@ export default {
       }).catch(() => this.applyArticleContent(''));
     },
 
-    // 售后保障
-    getAfterSaleGuarFun() {
-      getAfterSaleGuar().then(res => {
-        if (res.code == 1) {
-          //wxParse.wxParse('content', 'html', res.data, this, 15)
-          setTimeout(() => {
-            this.applyArticleContent(res.data);
-          }, 200);
-        } else {
-          this.applyArticleContent('');
-        }
-      }).catch(() => this.applyArticleContent(''));
-    }
-
   }
 };
 </script>
@@ -163,13 +352,143 @@ export default {
 
 .main {
   min-height: 100vh;
-  padding: 32rpx 28rpx 56rpx;
+  padding: 22rpx 22rpx 48rpx;
   box-sizing: border-box;
   color: #333333;
-  font-size: 28rpx;
+  font-size: 26rpx;
   line-height: 1.8;
-  background: #ffffff;
+  background: #fff9f0;
   /* min-height: 100vh; */
+}
+
+.main--login-agreement {
+  padding-bottom: calc(156rpx + env(safe-area-inset-bottom));
+}
+
+.legal-doc {
+  padding: 24rpx 24rpx 38rpx;
+  border-radius: 20rpx;
+  background: #ffffff;
+  box-shadow: 0 12rpx 34rpx rgba(31, 44, 71, .06);
+  box-sizing: border-box;
+}
+
+.legal-doc__meta-card {
+  margin-bottom: 24rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid #e8edf5;
+  border-radius: 16rpx;
+  background: #f8fafd;
+  box-sizing: border-box;
+}
+
+.legal-doc__meta-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 8rpx 0;
+  border-bottom: 1rpx solid #eef2f7;
+}
+
+.legal-doc__meta-row:last-child {
+  border-bottom: 0;
+}
+
+.legal-doc__meta-label {
+  flex: none;
+  width: 142rpx;
+  color: #7a8494;
+  font-size: 23rpx;
+  line-height: 34rpx;
+}
+
+.legal-doc__meta-value {
+  flex: 1;
+  min-width: 0;
+  color: #273142;
+  font-size: 24rpx;
+  line-height: 36rpx;
+  word-break: break-word;
+}
+
+.legal-doc__row {
+  color: #3f4652;
+  font-size: 26rpx;
+  line-height: 44rpx;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.legal-doc__row + .legal-doc__row {
+  margin-top: 8rpx;
+}
+
+.legal-doc__row--lead {
+  color: #222936;
+  font-size: 26rpx;
+  line-height: 44rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 14rpx;
+  background: #f8fafd;
+  box-sizing: border-box;
+}
+
+.legal-doc__row--heading {
+  margin-top: 26rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #edf1f6;
+  color: #182232;
+  font-size: 29rpx;
+  font-weight: 700;
+  line-height: 42rpx;
+}
+
+.legal-doc__row--clause {
+  color: #273142;
+  font-weight: 600;
+}
+
+.legal-doc__sign-card {
+  margin-top: 32rpx;
+  padding: 20rpx 22rpx;
+  border: 1rpx solid #e8edf5;
+  border-radius: 16rpx;
+  background: #fffdf8;
+  box-sizing: border-box;
+}
+
+.legal-doc__sign-title {
+  margin-bottom: 10rpx;
+  color: #182232;
+  font-size: 27rpx;
+  font-weight: 700;
+  line-height: 38rpx;
+}
+
+.legal-doc__sign-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 9rpx 0;
+  border-top: 1rpx solid #f1eadc;
+}
+
+.legal-doc__sign-label {
+  flex: none;
+  width: 210rpx;
+  color: #8a6a30;
+  font-size: 23rpx;
+  line-height: 34rpx;
+}
+
+.legal-doc__sign-value {
+  flex: 1;
+  min-width: 0;
+  color: #273142;
+  font-size: 24rpx;
+  line-height: 36rpx;
+  word-break: break-word;
 }
 
 .main ::v-deep h2,
@@ -196,5 +515,72 @@ export default {
   color: #999999;
   font-size: 28rpx;
   text-align: center;
+}
+
+.login-agreement-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: #f1f2f5;
+  box-shadow: 0 -8rpx 24rpx rgba(31, 41, 55, .08);
+  box-sizing: border-box;
+}
+
+.login-agreement-bar__button {
+  width: 100%;
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: #c9ced8;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 88rpx;
+}
+
+.login-agreement-bar__button::after {
+  border: 0;
+}
+
+.login-agreement-bar__button.is-ready,
+.login-agreement-bar__button.is-confirmed {
+  background: #a0610d;
+}
+
+@media screen and (max-width: 360px) {
+  .main {
+    padding-left: 16rpx;
+    padding-right: 16rpx;
+  }
+
+  .legal-doc {
+    padding-left: 18rpx;
+    padding-right: 18rpx;
+  }
+
+  .legal-doc__row {
+    font-size: 25rpx;
+    line-height: 42rpx;
+  }
+
+  .legal-doc__meta-row {
+    flex-direction: column;
+    gap: 4rpx;
+  }
+
+  .legal-doc__meta-label {
+    width: auto;
+  }
+
+  .legal-doc__sign-row {
+    flex-direction: column;
+    gap: 4rpx;
+  }
+
+  .legal-doc__sign-label {
+    width: auto;
+  }
 }
 </style>

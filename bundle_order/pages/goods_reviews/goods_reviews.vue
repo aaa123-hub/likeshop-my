@@ -1,53 +1,55 @@
 <template>
     <view class="goods-reviews">
-        <order-goods :list="goods"></order-goods>
-        <view class="goods-evaluate row">
-            <view class="lable">商品评价</view>
-            <u-rate
-                name="goodsRate"
-                :count="5"
-                :size="42"
-                active-color="#FF2C3C"
-                v-model="goodsRate"
-                @change="goodsRateChange"
-            />
+        <view class="review-hero">
+            <view class="review-hero__title">评价晒图</view>
+            <view class="review-hero__desc">真实评价能帮助其他用户，也能让商家持续改进服务。</view>
+        </view>
+        <view class="review-card review-card--goods">
+            <order-goods :list="goods"></order-goods>
+        </view>
+        <view class="review-card score-card">
+            <view class="score-card__head">
+                <view class="score-card__title">评分</view>
+                <view class="score-card__hint">轻点星星完成打分</view>
+            </view>
             <view
-                :class="'desc ' + (goodsRate <= 2 ? 'muted' : 'primary') + ' '"
-                v-show="!(goodsRate == 0)"
+                v-for="item in scoreRows"
+                :key="item.key"
+                class="score-row"
             >
-                {{ goodsRateDesc }}
+                <view class="score-row__main">
+                    <view class="score-row__label">{{ item.label }}</view>
+                    <view :class="['score-row__desc', item.value <= 2 ? 'is-muted' : 'is-primary']">
+                        {{ rateDesc(item.value) }}
+                    </view>
+                </view>
+                <view class="score-stars" :aria-label="item.label">
+                    <view
+                        v-for="(star, starIndex) in 5"
+                        :key="starIndex"
+                        :class="['score-star', starIndex < item.value ? 'score-star--selected' : '']"
+                        @tap.stop="setRate(item.key, starIndex + 1)"
+                    >
+                        <text class="score-star__icon">★</text>
+                    </view>
+                </view>
             </view>
         </view>
-        <view class="rate bg-white">
-            <view class="item row mb20">
-                <view class="lable">描述相符</view>
-                <u-rate name="descRate" :size="42" active-color="#FF2C3C" v-model="descRate" />
+        <view class="goods-dec bg-white">
+            <view class="review-section-head">
+                <view class="title md bold">评价内容</view>
+                <view class="review-count">{{ comment.length }}/500</view>
             </view>
-            <view class="item row mb20">
-                <view class="lable">服务态度</view>
-                <u-rate name="serverRate" :size="42" active-color="#FF2C3C" v-model="serverRate" />
-            </view>
-            <view class="item row">
-                <view class="lable">配送服务</view>
-                <u-rate
-                    name="deliveryRate"
-                    :size="42"
-                    active-color="#FF2C3C"
-                    v-model="deliveryRate"
-                />
-            </view>
-        </view>
-        <view class="goods-dec bg-white mt20">
-            <view class="title mb20 md bold">商品描述</view>
-            <view class="textarea mb20" style="background-color: #f5f5f5">
-                <input
+            <view class="textarea mb20">
+                <textarea
                     v-model="comment"
-                    placeholder="宝贝收到还满意吗，说说你的使用心得。分享给想买的他们吧！！"
-                    type="textarea"
-                    :clearable="false"
-                    :height="240"
-                >
-                </input>
+                    placeholder="商品体验怎么样？说说使用感受，帮助其他用户参考。"
+                    maxlength="500"
+                ></textarea>
+            </view>
+            <view class="upload-head">
+                <view class="upload-title">上传图片</view>
+                <view class="upload-tip">最多 5 张，可选</view>
             </view>
             <uploader
                 preview-size="180rpx"
@@ -58,6 +60,15 @@
                 :deletable="true"
                 @delete="onDelete"
             />
+            <view class="anonymous-row" @tap="anonymous = !anonymous">
+                <view>
+                    <view class="anonymous-title">匿名评价</view>
+                    <view class="anonymous-desc">开启后将不展示你的昵称</view>
+                </view>
+                <view :class="['review-switch', anonymous ? 'is-active' : '']">
+                    <view class="review-switch__thumb"></view>
+                </view>
+            </view>
         </view>
         <button form-type="submit" class="btn br60" type="primary" size="lg" @tap="onSubmit">
             立即评价
@@ -84,15 +95,12 @@ import Uploader from '@/bundle_order/components/uploader/uploader.vue'
 // +----------------------------------------------------------------------
 // | author: likeshop.cn.team
 // +----------------------------------------------------------------------
-import { baseURL } from '@/config/app.js'
 import { goodsComment, getCommentInfo } from '@/api/user'
 import { uploadFile } from '@/utils/tools.js'
-import URate from '@/bundle_order/components/uview-ui/components/u-rate/u-rate.vue'
 import OrderGoods from '@/bundle_order/components/order-goods/order-goods.vue'
 export default {
 	components: {
 			Uploader,
-			URate,
 			OrderGoods
 		},
     data() {
@@ -105,15 +113,35 @@ export default {
             fileList: [],
             goods: [],
             comment: '',
-            type: ''
+            anonymous: false,
+            type: '',
+            id: '',
+            orderId: ''
+        }
+    },
+    computed: {
+        scoreRows() {
+            return [
+                { key: 'goodsRate', label: '商品评分', value: Number(this.goodsRate || 0) },
+                { key: 'descRate', label: '描述相符', value: Number(this.descRate || 0) },
+                { key: 'serverRate', label: '服务态度', value: Number(this.serverRate || 0) },
+                { key: 'deliveryRate', label: '配送服务', value: Number(this.deliveryRate || 0) }
+            ]
         }
     },
 
     /**
      * 生命周期函数--监听页面加载
      */
-    onLoad: function (options) {
-        this.id = options.id
+    onLoad: function (options = {}) {
+        this.id = options.id || options.item_id || options.itemId || options.orderItemId || options.order_item_id || ''
+        this.orderId = options.order_id || options.orderId || ''
+        if (!this.id) {
+            this.$toast({
+                title: '评价商品信息待确认'
+            })
+            return
+        }
         this.getCommentInfoFun()
     },
 
@@ -122,22 +150,29 @@ export default {
             this.type = e.value
         },
 
-        goodsRateChange: function (e) {
-            let goodsRateDesc = ''
-
-            if (e <= 2) {
-                goodsRateDesc = '差评'
-            } else if (e == 3) {
-                goodsRateDesc = '中评'
-            } else {
-                goodsRateDesc = '好评'
-            }
-            this.goodsRateDesc = goodsRateDesc
+        setRate(key, value) {
+            if (!['goodsRate', 'descRate', 'serverRate', 'deliveryRate'].includes(key)) return
+            this[key] = value
+            if (key === 'goodsRate') this.goodsRateDesc = this.rateDesc(value)
+        },
+        rateDesc(value) {
+            const score = Number(value || 0)
+            if (!score) return '请选择'
+            if (score === 1) return '有待提升'
+            if (score === 2) return '基本符合'
+            if (score === 3) return '体验不错'
+            if (score === 4) return '比较满意'
+            return '非常满意'
         },
 
         onSubmit() {
             let { goodsRate, fileList, comment, deliveryRate, descRate, serverRate } = this
-            let image = fileList.map((item) => item.base_url)
+            let image = fileList.map((item) => item.base_url || item.url).filter(Boolean)
+            if (!this.id) {
+                return this.$toast({
+                    title: '评价商品信息待确认'
+                })
+            }
             if (!goodsRate)
                 return this.$toast({
                     title: '请对商品进行评分'
@@ -155,13 +190,22 @@ export default {
                     title: '请对配送服务进行评分'
                 })
             goodsComment({
-                id: parseInt(this.id),
+                id: this.id,
+                orderItemId: this.id,
+                order_id: this.orderId,
                 goods_comment: goodsRate,
+                score: goodsRate,
                 service_comment: serverRate,
                 express_comment: deliveryRate,
                 description_comment: descRate,
                 comment,
-                image
+                content: comment,
+                is_anonymous: this.anonymous ? 1 : 0,
+                anonymous: this.anonymous ? 1 : 0,
+                anonymousFlag: this.anonymous,
+                anonymous_flag: this.anonymous ? 1 : 0,
+                image,
+                imageUrls: image
             }).then((res) => {
                 if (res.code == 1) {
                     this.$toast(
@@ -182,85 +226,352 @@ export default {
         },
 
         getCommentInfoFun() {
+            if (!this.id) return
             getCommentInfo({
                 id: this.id
             }).then((res) => {
                 if (res.code == 1) {
-                    this.goods.push(res.data)
+                    const data = res.data || {}
+                    const goods = this.normalizeCommentGoods(data)
+                    this.goods = Object.keys(goods || {}).length ? [goods] : []
+                } else {
+                    this.goods = []
                 }
+            }).catch(() => {
+                this.goods = []
             })
         },
 
         afterRead(e) {
-            const file = e
+            const file = this.extractUploadFiles(e)
+            if (!file.length) return
             uni.showLoading({
                 title: '正在上传中...',
                 mask: true
             })
-            file.map((item) => {
-                uploadFile(item.path)
+            let finished = 0
+            file.forEach((item) => {
+                const filePath = item.path || item.tempFilePath || item.url
+                uploadFile(filePath)
                     .then((res) => {
-                        uni.hideLoading()
                         this.fileList.push(res)
                     })
                     .catch(() => {
-                        uni.hideLoading()
                         this.$toast({
                             title: '上传失败'
                         })
                     })
+                    .finally(() => {
+                        finished += 1
+                        if (finished >= file.length) uni.hideLoading()
+                    })
             })
         },
 
-        onDelete(index) {
-            this.fileList.splice(index, 1)
+        extractUploadFiles(event) {
+            const source = event && event.detail ? event.detail : event
+            const file = source && (source.file || source.files || source.tempFiles)
+            const files = Array.isArray(source) ? source : (Array.isArray(file) ? file : (file ? [file] : []))
+            if (files.length) return files.filter((item) => item && (item.path || item.tempFilePath || item.url))
+            if (source && (source.path || source.tempFilePath || source.url)) return [source]
+            return []
+        },
+
+        normalizeCommentGoods(data = {}) {
+            const goods = data.goods || data.goodsInfo || data.order_goods || data.orderGoods || data.product || data.sku || {}
+            const source = Object.keys(goods || {}).length ? goods : data
+            const hasGoodsField = [
+                'goods_name',
+                'goodsName',
+                'name',
+                'title',
+                'image',
+                'image_str',
+                'imageStr',
+                'goods_image',
+                'goodsImage',
+                'price',
+                'goods_price',
+                'goodsPrice'
+            ].some((key) => source[key] !== undefined && source[key] !== null && source[key] !== '')
+            if (!hasGoodsField) return {}
+            return {
+                ...source,
+                goods_id: source.goods_id || source.goodsId || source.productId || source.product_id || source.id || '',
+                goods_name: source.goods_name || source.goodsName || source.name || source.title || '',
+                image: source.image || source.image_str || source.imageStr || source.goods_image || source.goodsImage || source.cover || '',
+                goods_price: source.goods_price || source.goodsPrice || source.price || source.salePrice || source.sale_price || '',
+                spec_value_str: source.spec_value_str || source.specValueStr || source.spec_value || source.specValue || source.skuName || ''
+            }
+        },
+
+        onDelete(event) {
+            const index = typeof event === 'number' ? event : (event && event.index !== undefined ? event.index : (event && event.detail ? event.detail.index : undefined))
+            if (index === undefined || index === null) return
+            this.fileList.splice(Number(index), 1)
         }
     }
 }
 </script>
-<style>
+<style lang="scss">
 .goods-reviews {
-    padding: 20rpx 0 40rpx;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 750rpx;
+    margin: 0 auto;
+    padding: 24rpx 24rpx 48rpx;
+    background: linear-gradient(180deg, #fff1dc 0%, #fff9f0 300rpx, #fff9f0 100%);
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
-.goods-reviews .rate {
-    padding: 20rpx 30rpx;
+.review-hero {
+    padding: 12rpx 4rpx 28rpx;
 }
-.goods-reviews .rate .lable {
-    width: 170rpx;
+.review-hero__title {
+    color: #1f2937;
+    font-size: 42rpx;
+    font-weight: 800;
+    line-height: 52rpx;
+}
+.review-hero__desc {
+    margin-top: 10rpx;
+    color: #7a828e;
+    font-size: 25rpx;
+    line-height: 36rpx;
+}
+.review-card,
+.goods-reviews .goods-dec {
+    border-radius: 24rpx;
+    background: #ffffff;
+    box-shadow: 0 16rpx 38rpx rgba(24, 44, 84, .07);
+    box-sizing: border-box;
+}
+.review-card--goods {
+    overflow: hidden;
+    margin-bottom: 20rpx;
+}
+.score-card {
+    padding: 30rpx 28rpx 8rpx;
+    margin-bottom: 20rpx;
+}
+.score-card__head,
+.review-section-head,
+.upload-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16rpx;
+}
+.score-card__title {
+    min-width: 0;
+    color: #1f2937;
+    font-size: 32rpx;
+    font-weight: 800;
+    line-height: 44rpx;
+}
+.score-card__hint,
+.review-count,
+.upload-tip {
+    flex: none;
+    color: #98a2b3;
+    font-size: 24rpx;
+}
+.score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18rpx;
+    min-height: 92rpx;
+    padding: 18rpx 0;
+    border-bottom: 1rpx solid #f1f3f6;
+}
+.score-row:last-child {
+    border-bottom: 0;
+}
+.score-row__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+.score-row__label {
+    flex: none;
+    color: #344054;
+    font-size: 27rpx;
+    font-weight: 700;
+    line-height: 36rpx;
+}
+.score-stars {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10rpx;
+    padding: 0;
+    border-radius: 999rpx;
+    background: #ffffff;
+}
+.score-star {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46rpx;
+    height: 46rpx;
+    border-radius: 50%;
+    opacity: .32;
+    filter: grayscale(1);
+    transition: opacity .16s ease, filter .16s ease, transform .16s ease;
+}
+.score-star__icon {
+    width: 38rpx;
+    height: 38rpx;
+    display: block;
+    color: #c7d0dc;
+    font-size: 34rpx;
+    line-height: 38rpx;
+    text-align: center;
+}
+.score-star--selected .score-star__icon { color: #ffb02e; }
+.score-star--selected {
+    opacity: 1;
+    filter: none;
+    transform: scale(1.06);
+}
+.score-row__desc {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    min-width: 92rpx;
+    height: 38rpx;
+    padding: 0;
+    border-radius: 999rpx;
+    color: #667085;
+    font-size: 22rpx;
+    font-weight: 600;
+    line-height: 38rpx;
+    background: transparent;
+    box-sizing: border-box;
+}
+.score-row__desc.is-muted {
+    color: #98a2b3;
+    background: transparent;
+}
+.score-row__desc.is-primary {
+    color: #667085;
+    background: transparent;
 }
 .goods-reviews .goods-dec {
-    padding: 30rpx;
+    padding: 32rpx 30rpx;
+}
+.review-section-head {
+    margin-bottom: 20rpx;
 }
 .goods-reviews .goods-dec .textarea {
     height: 240rpx;
-    border-radius: 10rpx;
+    border-radius: 18rpx;
+    background-color: #fff8ed;
+    border: 1rpx solid #f0dcc0;
 }
 .goods-reviews .goods-dec .textarea textarea {
     width: 100%;
     height: 100%;
     padding: 20rpx;
+    color: #222222;
+    font-size: 28rpx;
+    line-height: 40rpx;
     box-sizing: border-box;
 }
+.upload-head {
+    margin: 28rpx 0 18rpx;
+}
+.upload-title,
+.anonymous-title {
+    min-width: 0;
+    color: #30343b;
+    font-size: 27rpx;
+    font-weight: 700;
+}
+.anonymous-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20rpx;
+    margin-top: 30rpx;
+    padding: 24rpx 0 2rpx;
+    border-top: 1rpx solid #eef2f6;
+}
+.anonymous-row > view:first-child {
+    flex: 1;
+    min-width: 0;
+}
+.anonymous-desc {
+    max-width: 520rpx;
+    margin-top: 8rpx;
+    color: #98a2b3;
+    font-size: 23rpx;
+    line-height: 34rpx;
+}
+.review-switch {
+    position: relative;
+    width: 92rpx;
+    height: 52rpx;
+    border-radius: 999rpx;
+    background: #d9dee7;
+    transition: background .18s ease;
+}
+.review-switch.is-active {
+    background: #d79a43;
+}
+.review-switch__thumb {
+    position: absolute;
+    left: 4rpx;
+    top: 4rpx;
+    width: 44rpx;
+    height: 44rpx;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 4rpx 12rpx rgba(16, 24, 40, .18);
+    transition: transform .18s ease;
+}
+.review-switch.is-active .review-switch__thumb {
+    transform: translateX(40rpx);
+}
 .goods-reviews .btn {
-    width: 698rpx;
-    margin: 30rpx 26rpx 0;
+    width: 100%;
+    max-width: 702rpx;
+    height: 88rpx;
+    margin: 36rpx 0 0;
+    border-radius: 44rpx;
+    background: linear-gradient(135deg, #d79a43 0%, #a0610d 100%);
+    color: #ffffff;
+    font-size: 30rpx;
+    font-weight: 700;
+    line-height: 88rpx;
 }
 
-.rate .item .desc {
-    margin-left: 30rpx;
+@media screen and (max-width: 360px) {
+    .score-card__head,
+    .review-section-head,
+    .upload-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .score-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14rpx;
+    }
+    .score-row__main {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .score-stars {
+        width: 100%;
+        justify-content: space-between;
+        box-sizing: border-box;
+    }
 }
 
-.goods-reviews .goods-evaluate {
-    padding: 20rpx 30rpx;
-    background-color: white;
-    border: 1rpx solid #f2f2f2;
-}
-
-.goods-reviews .goods-evaluate .desc {
-    margin-left: 30rpx;
-}
-
-.goods-reviews .goods-evaluate .lable {
-    width: 170rpx;
-}
 </style>

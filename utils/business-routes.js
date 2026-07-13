@@ -13,14 +13,12 @@ export const businessRoutes = {
     notice: { name: "消息通知", url: "/bundle_misc/pages/notice/notice" },
     noticeDetail: {
       name: "消息通知-详情",
-      url:
-        "/bundle_misc/pages/notice_detail/notice_detail?title=%E7%B3%BB%E7%BB%9F%E9%80%9A%E7%9F%A5&time=2026-05-10%2010%3A00%3A00&content=%E8%BF%99%E6%98%AF%E7%B3%BB%E7%BB%9F%E9%80%9A%E7%9F%A5%E8%AF%A6%E6%83%85%E7%A4%BA%E4%BE%8B",
+      url: "/bundle_misc/pages/notice_detail/notice_detail",
     },
     storeDetail: { name: "店铺详情", url: "/business/pages/business_pages/store_detail" },
     fiatBalance2: { name: "人民币余额2", url: "/business/pages/business_pages/fiat_balance_2" },
     pendingPayment: { name: "待付款", url: "/business/pages/business_pages/pending_payment" },
     storeQr: { name: "店铺二维码", url: "/business/pages/business_pages/store_qr" },
-    goodsQr: { name: "商品二维码", url: "/business/pages/business_pages/goods_qr" },
     storeGroup: { name: "店铺团购", url: "/business/pages/business_pages/store_group" },
     storeAlbum: { name: "店铺相册", url: "/business/pages/business_pages/store_album" },
     wallet: { name: "人民币余额", url: "/bundle_finance/pages/user_wallet/user_wallet" },
@@ -31,11 +29,12 @@ export const businessRoutes = {
     activityExchange: { name: "活动兑换", url: "/business/pages/business_pages/activity_exchange" },
     activityCenter: { name: "活动中心", url: "/business/pages/business_pages/activity_center" },
     introCard: { name: "介绍名片", url: "/business/pages/business_pages/intro_card" },
-    facePay: { name: "面对面付款", url: "/business/pages/business_pages/face_pay" },
+    facePay: { name: "快速核销", url: "/business/pages/business_pages/face_pay" },
+    writeoffOrder: { name: "核销订单", url: "/bundle_misc/pages/writeoff_order/writeoff_order" },
     recentVisits: { name: "最近访问", url: "/business/pages/business_pages/recent_visits" },
     license: { name: "商家资质", url: "/bundle_user/pages/license/license" },
     streetGoods: { name: "商街商品", url: "/business/pages/business_pages/street_goods" },
-    goodsDetail: { name: "商品详情", url: "/bundle/pages/goods_details/goods_details?id=1" },
+    goodsDetail: { name: "商品详情", url: "/bundle/pages/goods_details/goods_details", requiresContext: true },
     ecoApp: { name: "生态应用", url: "/business/pages/business_pages/eco_app" },
     autoPoints: { name: "自动领取积分", url: "/business/pages/business_pages/auto_points" },
     mallGuide: { name: "商城使用引导", url: "/business/pages/business_pages/mall_guide" },
@@ -45,13 +44,11 @@ export const businessRoutes = {
     myService: { name: "我的客服", url: "/business/pages/business_pages/my_service" },
     userOrder: { name: "我的订单", url: "/bundle_order/pages/user_order/user_order" },
     userKyc: { name: "用户KYC", url: "/business/pages/business_pages/user_kyc" },
-    confirmOrder: {
-      name: "确认订单",
-      url:
-        "/bundle/pages/confirm_order/confirm_order?data=%7B%22goods%22%3A%5B%7B%22item_id%22%3A1%2C%22num%22%3A1%7D%5D%2C%22type%22%3A%22buy_now%22%7D",
-    },
-    payment: { name: "支付订单", url: "/bundle/pages/payment/payment?from=order&order_id=1" },
-    payResult: { name: "支付详情", url: "/bundle_user/pages/pay_result/pay_result?id=1" },
+    promoterApply: { name: "角色申请", url: "/business/pages/business_pages/promoter_apply" },
+    pointsLedger: { name: "积分流水", url: "/business/pages/business_pages/points_ledger" },
+    confirmOrder: { name: "确认订单", url: "/bundle/pages/confirm_order/confirm_order", requiresContext: true },
+    payment: { name: "支付订单", url: "/bundle/pages/payment/payment", requiresContext: true },
+    payResult: { name: "支付详情", url: "/bundle_user/pages/pay_result/pay_result", requiresContext: true },
     pageIndex: { name: "页面总览", url: "/business/pages/page_index/page_index" },
   },
 };
@@ -79,7 +76,6 @@ export const businessTabGroups = {
     businessRoutes.pages.storeAlbum,
     businessRoutes.pages.license,
     businessRoutes.pages.storeQr,
-    businessRoutes.pages.goodsQr,
     businessRoutes.pages.recentVisits,
   ],
   cart: [
@@ -97,6 +93,7 @@ export const businessTabGroups = {
     businessRoutes.pages.fiatBalance3,
     businessRoutes.pages.paymentRecord,
     businessRoutes.pages.paymentFilter,
+    businessRoutes.pages.writeoffOrder,
     businessRoutes.pages.facePay,
     businessRoutes.pages.introCard,
     businessRoutes.pages.autoPoints,
@@ -115,6 +112,13 @@ for (const key of Object.keys(businessTabGroups)) {
 
 export function openBusinessRoute(route) {
   if (!route || !route.url) return;
+  if (route.requiresContext) {
+    uni.showToast({
+      title: '请从真实业务流程进入',
+      icon: 'none'
+    });
+    return;
+  }
   if (!guardRoute(route.url)) return;
   if (route.openType === "switchTab") {
     uni.switchTab({ url: route.url });

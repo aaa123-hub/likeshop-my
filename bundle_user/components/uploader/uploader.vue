@@ -104,7 +104,7 @@ export default {
         position: relative;
         width: 160rpx;
         height: 160rpx;
-        background-color: #f7f8fa;
+        background-color: #fff8ed;
     }
 
     .uplader-upload-slot {

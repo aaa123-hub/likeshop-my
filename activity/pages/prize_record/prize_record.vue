@@ -4,15 +4,14 @@
 		<view v-for="(item, index) in lists" :key="index" class="prize-record-item row">
 			<custom-image :src="item.prize_image" style="width: 90rpx;height: 90rpx" radius="6rpx" />
 			<view class="prize-record-info">
-				<view class="lg">{{item.prize_name}}</view>
+				<view class="lg">{{ displayText(item.prize_name, '奖品待确认') }}</view>
 				<view class="mt20 row-between">
-					<view class="xs lighter">{{item.create_time}}</view>
+					<view class="xs lighter">{{ displayText(item.create_time, '时间待确认') }}</view>
 					<view class="xs primary need-integral-tips" v-if="item.need_tips">{{item.need_tips}}</view>
 				</view>
-				<view class="xs primary mt10">
+				<view class="xs primary mt10" v-if="item.send_tips">
 					{{item.send_tips}}
 				</view>
-				<!-- <view class="xs lighter">领取时间：{{item.create_time}}</view> -->
 			</view>
 		</view>
 		<loading-footer slotEmpty :status="loadingStatus">
@@ -58,6 +57,9 @@
 		},
 
 		methods: {
+			displayText(value, fallback) {
+				return value === undefined || value === null || value === '' ? fallback : value
+			},
 			getUserRecordFun() {
 				let {
 					loadingStatus,

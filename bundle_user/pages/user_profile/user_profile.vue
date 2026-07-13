@@ -366,9 +366,11 @@ export default {
         // 发送短信
         $sendSms(type) {
             if (!this.canSendSms) return
+            if (!/^1\d{10}$/.test(String(this.new_mobile || ''))) return this.$toast({ title: '请输入正确的新手机号' })
             sendSms({
-                mobile: this.userInfo.mobile || this.new_mobile,
-                key: this.smsType
+                mobile: this.new_mobile,
+                key: this.smsType,
+                scene: this.smsType
             }).then((res) => {
                 if (res.code == 1) {
                     this.$toast({
@@ -526,9 +528,13 @@ export default {
         // end
 
         async getPhoneNumber(e) {
-            const { encryptedData, iv, code: phoneCode } = e.detail
-            if (String(this.code || phoneCode || '').includes('mock')) {
-                this.$toast({ title: '微信绑定手机号请使用真机调试' })
+            const { encryptedData, iv, code: phoneCode, errMsg } = e.detail || {}
+            if (!phoneCode && !encryptedData) {
+                this.$toast({ title: errMsg && errMsg.includes('deny') ? '已取消手机号授权' : '未获取到手机号授权' })
+                return
+            }
+            if (String(this.code || phoneCode || '').toLowerCase().includes('mock')) {
+                this.$toast({ title: '暂未获取到有效手机号授权' })
                 return
             }
             let data = {
@@ -537,12 +543,15 @@ export default {
                 wxCode: this.code,
                 phoneCode,
                 phone_code: phoneCode,
+                code: phoneCode,
                 encrypted_data: encryptedData,
                 encryptedData,
-                iv
+                iv,
+                scene: SMSType.BIND,
+                action: 'bind'
             }
             this.fieldType = FieldType.MOBILE
-            if (encryptedData) {
+            if (phoneCode || encryptedData) {
                 this.$changeUserMobileMP(data)
             }
         },
